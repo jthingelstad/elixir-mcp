@@ -18,7 +18,8 @@ const followsSomeone = (me) =>
       ),
   );
 
-/** /home: one feed, beside your week and your clan (slice 7, #765). */
+/** /timeline (/home until 2026-11-17): one feed, beside your week and your
+ *  clan (slice 7, #765). */
 export function HomePage() {
   const { me } = useMe();
   const { hash } = useLocation();
@@ -37,7 +38,7 @@ export function HomePage() {
   if (query.isError || data?.first?.ok === false)
     return (
       <>
-        <PageHead title="Home" />
+        <PageHead title="Timeline" />
         <TodayError busy={query.isFetching} onRetry={() => query.refetch()} />
       </>
     );
@@ -48,7 +49,7 @@ export function HomePage() {
   if (query.isPending)
     return (
       <>
-        <PageHead title="Home" />
+        <PageHead title="Timeline" />
         <div className="kit-skeleton" aria-busy="true" />
       </>
     );
@@ -79,7 +80,7 @@ export function HomePage() {
   return (
     <>
       <PageHead
-        title="Home"
+        title="Timeline"
         className="kit-head--home"
         aside={
           <>

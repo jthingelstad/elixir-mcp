@@ -40,7 +40,7 @@ test("each sitting's headline links its session page, campaign-tagged", () => {
   assert.ok(text.includes("Classic Challenge: up to 5 wins"));
   assert.ok(text.includes("With Quail Cool"));
   assert.ok(text.includes("+1 more deck: Royal Giant beatdown (3)"));
-  assert.ok(text.includes("1 more sitting on their page."));
+  assert.ok(text.includes("1 more session on their page."));
   const hrefs = [...html.matchAll(/href="([^"]*\/session\/[^"]*)"/g)].map((m) =>
     m[1].replace(/&amp;/g, "&"),
   );
@@ -132,7 +132,7 @@ test("a full digest stays under Gmail's clip: twelve people, three big sittings 
   // last only counted, with a link to their page.
   assert.ok(words(html).includes("3 three-crown wins"));
   assert.ok((html.match(/alt="Hog Rider"/g) ?? []).length <= 3);
-  assert.ok(words(html).includes("8 sittings on their page."));
+  assert.ok(words(html).includes("8 sessions on their page."));
 });
 
 test("the budget counts UTF-8 bytes: long CJK highlights still leave the footer in (Codex on #1085)", () => {
@@ -154,7 +154,7 @@ test("the budget counts UTF-8 bytes: long CJK highlights still leave the footer 
   const size = Buffer.byteLength(html, "utf8");
   assert.ok(size < 100_000, `${size} bytes`);
   assert.ok(html.includes("api/email/unsubscribe?t=x"));
-  assert.ok(words(html).includes("3 sittings on their page."));
+  assert.ok(words(html).includes("3 sessions on their page."));
   assert.ok(words(html).includes("3 more on your timeline."));
   assert.ok(html.includes(words500));
 });

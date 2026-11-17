@@ -62,7 +62,9 @@ test(
   async () => {
     window.history.pushState({}, "", "/settings/profile");
     render(<App />);
-    await waitFor(() => screen.getByRole("heading", { name: "Profile" }));
+    await waitFor(() =>
+      screen.getByRole("heading", { name: "Profile settings" }),
+    );
     expect(screen.getAllByText("jamie@example.com").length).toBeGreaterThan(0);
     const tz = screen.getByRole("combobox", { name: "Time zone" });
     expect(tz.value).toBe("America/Chicago");

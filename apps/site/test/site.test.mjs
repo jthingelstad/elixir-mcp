@@ -220,7 +220,11 @@ test(
   () => {
     const manifest = JSON.parse(read("manifest.webmanifest"));
     assert.equal(manifest.name, "Elixir");
-    assert.equal(manifest.start_url, "/home");
+    // The app opens on the Timeline (2026-11-17). Its id stays /home: the
+    // id is the installed app's identity, and changing it would make every
+    // installed copy a different app.
+    assert.equal(manifest.start_url, "/timeline");
+    assert.equal(manifest.id, "/home");
     assert.equal(manifest.scope, "/");
     assert.equal(manifest.display, "standalone");
     // Every icon ships, and is the size it says it is.
@@ -460,7 +464,7 @@ function assertNativeApp(uri) {
 }
 
 test(
-  "native behaviors own /home, /settings, /signin and /clan; the static router resolves content documents",
+  "native behaviors own /home, /timeline, /settings, /signin and /clan; the static router resolves content documents",
   { skip },
   async () => {
     const route = edgeRouter();
@@ -509,6 +513,11 @@ test(
       assertNativeApp(uri);
     assert.ok(!existsSync(path.join(out, "home")));
     assert.equal(route("/homes"), "/homes/index.html");
+
+    // The Timeline (2026-11-17), its own prefix alone.
+    for (const uri of ["/timeline", "/timeline/"]) assertNativeApp(uri);
+    assert.ok(!existsSync(path.join(out, "timeline")));
+    assert.equal(route("/timelines"), "/timelines/index.html");
 
     // So does Settings, for its prefix alone.
     for (const uri of ["/settings", "/settings/", "/settings/profile"])
@@ -577,11 +586,12 @@ test(
         `the app or the site links to ${link}, which the site does not build`,
       );
     }
-    // Home's button is the app, on this origin; so is everything the bar
-    // links for someone signed in.
+    // The Timeline's button is the app, on this origin; so is everything
+    // the bar links for someone signed in.
     const product = SHELL_PRODUCTS.find((p) => p.key === "home");
-    assert.equal(product.href, `${SHELL_ORIGIN}/home`);
+    assert.equal(product.href, `${SHELL_ORIGIN}/timeline`);
     for (const uri of [
+      "/timeline",
       "/home",
       SHELL_PLACES.signIn.path,
       SHELL_PLACES.search.path,
@@ -1722,7 +1732,7 @@ test(
     const html = read("404.html");
     assert.match(html, /<title>Page not found - Elixir<\/title>/);
     assert.match(html, /<meta name="robots" content="noindex"/);
-    for (const href of ['href="/"', 'href="/docs"', 'href="/home"'])
+    for (const href of ['href="/"', 'href="/docs"', 'href="/timeline"'])
       assert.ok(html.includes(href), `404 lacks ${href}`);
     assert.match(html, /not endorsed by Supercell/);
     assert.ok(!read("sitemap.xml").includes("404"));

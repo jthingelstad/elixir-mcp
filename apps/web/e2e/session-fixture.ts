@@ -190,7 +190,7 @@ const sessionTwelve = {
   subject_tag: ME_TAG,
   subject_name: "King Thing",
   subjects: [{ tag: ME_TAG, kind: "player", name: "King Thing" }],
-  text: `King Thing played 12 battles in one sitting (8W-4L; 12 Trophy Road, +${net12} trophies), with Hog Rider cycle (8), Giant beatdown (4).`,
+  text: `King Thing played 12 battles in one session (8W-4L; 12 Trophy Road, +${net12} trophies), with Hog Rider cycle (8), Giant beatdown (4).`,
   kind: "battle_session",
   section: "battles",
   facts: {
@@ -268,7 +268,7 @@ const sessionRanked = {
   subject_tag: JUNIPER,
   subject_name: "Juniper",
   subjects: [{ tag: JUNIPER, kind: "player", name: "Juniper" }],
-  text: "Juniper played 4 battles in one sitting (3W-1L; 4 Path of Legends), with X-Bow cycle (4).",
+  text: "Juniper played 4 battles in one session (3W-1L; 4 Path of Legends), with X-Bow cycle (4).",
   kind: "battle_session",
   section: "battles",
   facts: {
@@ -311,7 +311,7 @@ const sessionEvent = {
   subject_tag: CLAN,
   subject_name: "Ada's Clan",
   subjects: [{ tag: PIP, kind: "player", name: "Pip" }],
-  text: "Pip played 6 battles in one sitting (5W-1L; 6 event, 3 wins in a row), with Royal Giant beatdown (3), Lava Hound beatdown (2), Hog Rider cycle (1), in Classic 1v1 (6).",
+  text: "Pip played 6 battles in one session (5W-1L; 6 event, 3 wins in a row), with Royal Giant beatdown (3), Lava Hound beatdown (2), Hog Rider cycle (1), in Classic 1v1 (6).",
   kind: "battle_session",
   section: "battles",
   facts: {

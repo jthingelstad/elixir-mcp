@@ -19,7 +19,7 @@ test.describe("Search from a static page", () => {
     await mockApi(page, signedIn());
     await page.goto("/home?search");
     await expect(page.getByRole("dialog", { name: "Search" })).toBeVisible();
-    await expect(page).toHaveURL(/\/home$/);
+    await expect(page).toHaveURL(/\/timeline$/);
   });
 
   test("a static page's Search link lands on the open sheet", async ({
@@ -42,7 +42,7 @@ test.describe("Search from a static page", () => {
     await expect(
       page.getByRole("dialog", { name: "Notifications" }),
     ).toBeVisible();
-    await expect(page).toHaveURL(/\/home$/);
+    await expect(page).toHaveURL(/\/timeline$/);
   });
 
   test("signed out, ?search opens nothing", async ({ page }) => {

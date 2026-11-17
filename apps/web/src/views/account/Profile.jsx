@@ -51,7 +51,10 @@ export function Profile({ me, refresh, hash = null }) {
 
   return (
     <div className="st-page">
-      <PageHead title="Profile" sub="Your account and your preferences." />
+      <PageHead
+        title="Profile settings"
+        sub="Your account and your preferences."
+      />
       <ZoneOffer />
       <Panel title="You in Elixir" titleAs="h2">
         <Identity me={me} main={main} verified={mainVerified} />

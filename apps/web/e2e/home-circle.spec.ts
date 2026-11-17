@@ -261,7 +261,7 @@ for (const [label, width] of [
     await capture(page, "circle", width);
 
     await circle.getByRole("button", { name: "See all" }).click();
-    await expect(circle).toContainText("23 battles · 4 days · 3 sittings");
+    await expect(circle).toContainText("23 battles · 4 days · 3 sessions");
     await expect(circle).toContainText("Moss Lantern reached Path of Legends.");
     await noSideways(page);
     await accessible(page, `circle list at ${width}`);

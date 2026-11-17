@@ -29,10 +29,21 @@ export const DAILY_CAP = 8;
 export const SETTLE_MS = 2 * 60_000;
 const DAY_MS = 86_400_000;
 const SITE = "https://elixir.poapkings.com";
+/** The feed (2026-11-17; `/home` forwards there for a notice already sent). */
+const TIMELINE = "/timeline";
 
 const plural = (n, one, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
 const tagPath = (tag) =>
   encodeURIComponent(String(tag ?? "").replace(/^#/, ""));
+
+/** A session's own page, as the bell's read stored it (session-story's
+ *  sessionPathOf), or null: never any other path. */
+function sessionPathOk(path) {
+  return typeof path === "string" &&
+    /^\/home\/player\/[^/?#]+\/session\/[^/?#]+(\?[^#]*)?$/.test(path)
+    ? path
+    : null;
+}
 
 /** A battle on Elixir's own origin opens as its path; anything else is
  *  not a link a notice may carry. */
@@ -42,7 +53,9 @@ function battlePath(url) {
   return s.slice(SITE.length);
 }
 
-/** The cheers notice: one item names it, several count them. */
+/** The cheers notice: one item names it, several count them. One item opens
+ *  where its bell row does: a session its own page (2026-11-16), else the
+ *  battle, else the player; several open the Timeline. */
 export function cheersNotice(cheers) {
   const total = cheers.reduce((s, i) => s + i.fresh, 0);
   if (total === 0) return null;
@@ -53,14 +66,15 @@ export function cheersNotice(cheers) {
       title,
       body: clipText(i.text, 120),
       url:
+        sessionPathOk(i.session_path) ??
         battlePath(i.battle_url) ??
-        (i.subject_tag ? `/home/player/${tagPath(i.subject_tag)}` : "/home"),
+        (i.subject_tag ? `/home/player/${tagPath(i.subject_tag)}` : TIMELINE),
     };
   }
   return {
     title,
     body: `On ${cheers.length} of your battles and moments`,
-    url: "/home",
+    url: TIMELINE,
   };
 }
 
@@ -72,7 +86,7 @@ export function followersNotice(followers) {
   return {
     title: plural(total, "new follower"),
     body: one ? `On ${clipText(one.name ?? one.tag, 60)}` : "On your players",
-    url: one ? `/home/player/${tagPath(one.tag)}` : "/home",
+    url: one ? `/home/player/${tagPath(one.tag)}` : TIMELINE,
   };
 }
 

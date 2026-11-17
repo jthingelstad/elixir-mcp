@@ -268,7 +268,7 @@ for (const [summaryCount, evidenceCount] of [
       at: "2026-10-03T12:00:00Z",
       subject_name: `Example Player ${i}`,
       kind: "session_standout",
-      text: `Example Player ${i} played ${summaryCount} games in one sitting (9 wins, 6 losses; ranked, ladder and friendly; five wins in a row). The full recorded sitting ended after the last milestone named in this update.`,
+      text: `Example Player ${i} played ${summaryCount} games in one session (9 wins, 6 losses; ranked, ladder and friendly; five wins in a row). The full recorded sitting ended after the last milestone named in this update.`,
       facts: { battles: summaryCount, ended_at: "2026-10-03T12:15:00Z" },
       evidence,
     }));

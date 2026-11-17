@@ -1,11 +1,11 @@
-/** Help for Home and the pages beside it (slice 7, #765). */
+/** Help for the Timeline and the pages beside it (slice 7, #765). */
 export const HOME_HELP = {
   today: {
-    title: "Home",
+    title: "Timeline",
     docs: "home",
     lines: [
-      "Home is one feed: the last seven days of everyone you follow, your clan and you, newest first. The chips choose whose: Everyone, Friends, Clan or You.",
-      "A session's bars are its battles in order, up for a win and down for a loss, as tall as the crown margin. New means learned since you last opened Home.",
+      "Your Timeline is the last seven days of everyone you follow, your clan and you, newest first. The chips choose whose: Everyone, Friends, Clan or You.",
+      "A session's bars are its battles in order, up for a win and down for a loss, as tall as the crown margin. New means it arrived since you last opened your Timeline.",
     ],
   },
   find: {
@@ -17,10 +17,10 @@ export const HOME_HELP = {
     ],
   },
   you: {
-    title: "You",
+    title: "Profile",
     docs: "home",
     lines: [
-      "You is your own account page: your players, Stamps and timeline, with Your stats, Settings and signing out.",
+      "Your Profile is your own account page, as other members see it: your players, Stamps and timeline. Your stats, Settings and signing out are here too.",
     ],
   },
 };

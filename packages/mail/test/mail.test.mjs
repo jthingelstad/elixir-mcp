@@ -217,7 +217,7 @@ test("one shell: the wordmark, the product source, the why-line in the reader's 
   const html = renderMail("tracking_report", digest, links).html;
   assert.match(html, />Elixir</, "the wordmark is Elixir");
   assert.ok(!/Elixir MCP|ELIXIR/.test(html), "never the old wordmark");
-  assert.ok(html.includes(">Home</span>"), "the product source");
+  assert.ok(html.includes(">Timeline</span>"), "the product source");
   assert.match(html, /Turn off this mail/);
   // The digest's why-line is in the reader's zone: 11:00 UTC is 6:00 am
   // in daylight time and 5:00 am in standard.
@@ -289,13 +289,13 @@ test("the digest replaces the friends mail under its kind: Your week in Elixir, 
   // A moment with no battle on record has no battle link; the rest are counted.
   assert.match(text, /passed 5,000 career wins\.\n/);
   assert.match(text, /2 more on your timeline/);
-  assert.match(text, /4 sittings · 23 battles · 15–8/);
+  assert.match(text, /4 sessions · 23 battles · 15–8/);
   assert.match(text, /1 card unlocked\./);
   // The clans and the reader's own week, then the feed.
   assert.match(text, /Around you/);
   assert.match(text, /You, King Thing/);
   assert.match(text, /With Hare Pelican/);
-  assert.match(text, /Open your feed/);
+  assert.match(text, /Open your Timeline/);
   assert.match(
     text,
     /You get this on Mondays at \d:00 am Central, in a week when someone you follow played or posted, you did, or your clan had news\./,

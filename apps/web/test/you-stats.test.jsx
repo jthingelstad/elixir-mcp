@@ -1,7 +1,7 @@
 /**
  * You (2026-11-15, Jamie: "when you tap You it should go to your account,
  * not your primary player"): You is your own account page, with Your
- * stats one tap away; Stats keeps a tab back to You. With no player yet,
+ * stats one tap away; Stats keeps a tab back to Profile. With no player yet,
  * You says Add your player. Invented players only.
  */
 import { test, expect, vi, beforeEach, afterEach } from "vitest";
@@ -202,9 +202,9 @@ test(
 test("Stats keeps a tab back to You", { timeout: 20000 }, async () => {
   window.history.pushState({}, "", "/home/you/stats");
   render(<App />);
-  const tabs = await screen.findByRole("tablist", { name: "You" });
+  const tabs = await screen.findByRole("tablist", { name: "Profile" });
   const you = Array.from(tabs.querySelectorAll("a")).find(
-    (a) => a.textContent === "You",
+    (a) => a.textContent === "Profile",
   );
   expect(you?.getAttribute("href")).toBe("/home/you");
 });
@@ -245,7 +245,7 @@ test(
     render(<App />);
     const back = await screen.findByRole("navigation", { name: "Whose stats" });
     expect(back.textContent).toContain("Copper Fern");
-    expect(screen.queryByRole("tablist", { name: "You" })).toBeNull();
+    expect(screen.queryByRole("tablist", { name: "Profile" })).toBeNull();
     await waitFor(() => expect(posted.length).toBeGreaterThan(0));
     // Every read names the followed player, and none rides the open bridge.
     expect(posted.every(([p]) => p === "/api/me/stats")).toBe(true);
@@ -272,7 +272,7 @@ test(
     };
     window.history.pushState({}, "", "/home/you/stats?player=WW2299");
     render(<App />);
-    await screen.findByRole("tablist", { name: "You" });
+    await screen.findByRole("tablist", { name: "Profile" });
     expect(
       screen.queryByRole("navigation", { name: "Whose stats" }),
     ).toBeNull();

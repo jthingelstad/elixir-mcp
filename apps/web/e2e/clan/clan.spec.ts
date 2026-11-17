@@ -1159,8 +1159,8 @@ test("one application and account survive Home and Clan navigation at phone, tab
       "no sideways scroll",
     ).toBe(false);
     await accessible(page, `shared clan ${viewport.width}x${viewport.height}`);
-    await switchTo("Home", viewport.width);
-    await expect(page).toHaveURL(/\/home$/);
+    await switchTo("Timeline", viewport.width);
+    await expect(page).toHaveURL(/\/timeline$/);
     expect(
       await page.evaluate(
         () =>

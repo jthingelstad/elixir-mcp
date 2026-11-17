@@ -8,7 +8,7 @@ const ABOUT = {
   season:
     "The season so far in one mode: your record, trophy range, week by week and the days you played.",
   battles:
-    "Every battle it records, by day and by sitting, each opening on both decks.",
+    "Every battle it records, by day and by session, each opening on both decks.",
   decks:
     "Every deck you played this season, with its record. A change of one card makes a new deck.",
   cards:

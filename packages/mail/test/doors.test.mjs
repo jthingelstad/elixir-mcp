@@ -90,7 +90,7 @@ test("transactional mail keeps the disclaimer, carries no turn-off, and names no
   assert.ok(
     renderEmail(cases[0]).html.includes(`${SITE}/signin#login_token=t`),
   );
-  assert.ok(renderEmail(cases[1]).text.includes(`${SITE}/home`));
+  assert.ok(renderEmail(cases[1]).text.includes(`${SITE}/timeline`));
   assert.match(renderEmail(cases[2]).html, />Open Admin</);
 });
 

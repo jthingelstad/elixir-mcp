@@ -50,7 +50,7 @@ export function Battles({ player, mode, modeReady, season, startsAt }) {
 function SittingFoot({ mode }) {
   return (
     <p className="footnote">
-      A sitting is a run of battles with no gap longer than 30 minutes, and a
+      A session is a run of battles with no gap longer than 30 minutes, and a
       day with two or more lists each one. A battle with a page opens on it,
       with both decks, and you can share why it mattered to you.
       {mode === "war"
@@ -192,7 +192,7 @@ function Day({ day, past, zone, titleAs }) {
           >
             {all
               ? `Show the newest ${SITTINGS_SHOWN}`
-              : `Show all ${fmt(day.sittings.length)} sittings`}
+              : `Show all ${fmt(day.sittings.length)} sessions`}
           </button>
         </div>
       ) : null}

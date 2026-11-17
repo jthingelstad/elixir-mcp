@@ -132,13 +132,13 @@ test("a player already followed says so, and a full pool cannot take a slot", as
   );
 });
 
-test("an account with no player of its own is asked for it first, as on Home", () => {
+test("an account with no player of its own is asked for it first, as on the Timeline", () => {
   const followCost = vi.spyOn(api, "followCost");
   renderWithProviders(<FollowFromHere sides={SIDES} me={{ claims: [] }} />);
   expect(screen.getByText(/Add your own player first/)).toBeTruthy();
   expect(
     screen.getByRole("link", { name: "Add your player" }).getAttribute("href"),
-  ).toBe("/home");
+  ).toBe("/timeline");
   expect(screen.queryByRole("button", { name: /^Follow / })).toBeNull();
   expect(followCost).not.toHaveBeenCalled();
 });

@@ -133,12 +133,12 @@ test.describe("signed out", () => {
     await page.getByRole("button", { name: "Send sign-in email" }).click();
     await page.getByLabel("6-digit code").fill("123456");
     await page.getByRole("button", { name: "Sign in" }).click();
-    await expect(page).toHaveURL(/\/home$/);
+    await expect(page).toHaveURL(/\/timeline$/);
     await expect(
       page
         .locator(".kit-bottom a[aria-current], .kit-top__nav a[aria-current]")
         .first(),
-    ).toHaveText(/Home/);
+    ).toHaveText(/Timeline/);
     await rendered(page);
   });
 
@@ -396,7 +396,9 @@ test.describe("signed in", () => {
       },
     });
     await page.goto("/home");
-    await expect(page.getByRole("heading", { level: 1 })).toContainText("Home");
+    await expect(page.getByRole("heading", { level: 1 })).toContainText(
+      "Timeline",
+    );
     // The page marks the window it showed, once, and the dot follows.
     await expect.poll(() => marks).toEqual([{ to: TO }]);
     // The rule sits under the last new row, drawn from the place as the
@@ -682,11 +684,11 @@ test.describe("signed in", () => {
   }) => {
     await page.goto("/home");
     const tabs = page.locator(".kit-bottom");
-    await expect(tabs.getByRole("link", { name: "Home" })).toHaveAttribute(
+    await expect(tabs.getByRole("link", { name: "Timeline" })).toHaveAttribute(
       "aria-current",
       "page",
     );
-    for (const name of ["Find", "Clan", "You"])
+    for (const name of ["Find", "Clan", "Profile"])
       await expect(tabs.getByRole("link", { name })).toBeVisible();
     await expect(tabs.getByRole("button", { name: /Bell/ })).toBeVisible();
     // The bar's own places are the tabs here; the account stays on the bar.

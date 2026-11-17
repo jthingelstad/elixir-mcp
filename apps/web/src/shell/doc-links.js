@@ -4,7 +4,7 @@
  */
 export const DOC_LINKS = {
   home: [
-    "Home",
+    "Timeline",
     [
       ["Get started with Elixir", "/docs/quickstart"],
       ["The timeline", "/docs/timeline"],

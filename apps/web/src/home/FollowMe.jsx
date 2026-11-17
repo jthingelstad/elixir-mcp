@@ -57,7 +57,7 @@ export function FollowMePage() {
         <Empty
           title="Add your own player first"
           action={
-            <Link to="/home" className="btn btn--sm">
+            <Link to="/timeline" className="btn btn--sm">
               Add your player
             </Link>
           }

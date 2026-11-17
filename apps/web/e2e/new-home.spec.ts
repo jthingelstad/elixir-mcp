@@ -49,7 +49,7 @@ for (const [label, width] of [
       await mockApi(page, homeApi());
       await page.goto("/home");
       await expect(
-        page.getByRole("heading", { level: 1, name: "Home" }),
+        page.getByRole("heading", { level: 1, name: "Timeline" }),
       ).toBeVisible();
       // The three tabs are gone.
       await expect(page.getByRole("tab", { name: "Timeline" })).toHaveCount(0);
@@ -176,7 +176,7 @@ for (const [label, width] of [
       ).toHaveAttribute("href", "/battle/b1#highlight");
       await noSideways(page);
       await page.goBack();
-      await expect(page).toHaveURL(/\/home$/);
+      await expect(page).toHaveURL(/\/timeline$/);
       await expect(
         page.getByRole("link", { name: /^Open King Thing’s session:/ }),
       ).toBeVisible();
@@ -344,7 +344,7 @@ for (const [label, width] of [
       await mockApi(page, homeApi());
       await page.goto("/home/you");
       await expect(
-        page.getByRole("heading", { level: 1, name: "You" }),
+        page.getByRole("heading", { level: 1, name: "Profile" }),
       ).toBeVisible();
       await expect(
         page.getByRole("link", { name: /Settings/ }).first(),
@@ -456,7 +456,7 @@ for (const [label, width] of [
       await page.goto("/home");
       if (width === 390) {
         const tabs = page.getByRole("navigation", { name: "Main, phone" });
-        for (const name of ["Home", "Find", "Clan", "You"])
+        for (const name of ["Timeline", "Find", "Clan", "Profile"])
           await expect(tabs.getByRole("link", { name })).toBeVisible();
         await expect(tabs.getByRole("button", { name: /Bell/ })).toBeVisible();
         await tabs.getByRole("link", { name: "Find" }).click();
@@ -465,14 +465,14 @@ for (const [label, width] of [
           "aria-current",
           "page",
         );
-        await tabs.getByRole("link", { name: "You" }).click();
+        await tabs.getByRole("link", { name: "Profile" }).click();
         await expect(page).toHaveURL(/\/home\/you$/);
       } else {
         const nav = page.getByRole("navigation", {
           name: "Main",
           exact: true,
         });
-        for (const name of ["Home", "Find", "Clan"])
+        for (const name of ["Timeline", "Find", "Clan"])
           await expect(
             nav.getByRole("link", { name }).locator("svg"),
           ).toBeVisible();
@@ -480,14 +480,14 @@ for (const [label, width] of [
         // says so in words; Find does not.
         await expect(
           nav
-            .getByRole("link", { name: "Home, new items" })
+            .getByRole("link", { name: "Timeline, new items" })
             .locator(".kit-bell__dot"),
         ).toHaveCount(1);
         await expect(
           nav.getByRole("link", { name: "Find" }).locator(".kit-bell__dot"),
         ).toHaveCount(0);
         // You is the avatar's on a wide screen.
-        await expect(nav.getByRole("link", { name: "You" })).toHaveCount(0);
+        await expect(nav.getByRole("link", { name: "Profile" })).toHaveCount(0);
         await nav.getByRole("link", { name: "Find" }).click();
         await expect(page).toHaveURL(/\/home\/find$/);
       }
@@ -584,7 +584,7 @@ test("adding your player from Stats' or Clan's link stays on Home's steps", asyn
   await page.getByLabel("Your player tag").fill("#0PJCLJYP");
   await page.getByRole("button", { name: "Add", exact: true }).click();
   await expect(page.getByText("your main player.")).toBeVisible();
-  await expect(page).toHaveURL(/\/home$/);
+  await expect(page).toHaveURL(/\/timeline$/);
 });
 
 // 2026-11-09, a production walk: the tag added was already on record as an
@@ -643,7 +643,7 @@ test("a player known as an opponent waits for their own battle log, then Home dr
   await expect.poll(() => checks).toBeGreaterThan(0);
   read = true;
   await expect(
-    page.getByRole("heading", { level: 1, name: "Home" }),
+    page.getByRole("heading", { level: 1, name: "Timeline" }),
   ).toBeVisible({ timeout: 15_000 });
   await expect(page.getByText(/^Battle log read /).first()).toBeVisible();
 });
@@ -654,7 +654,7 @@ test("the head is the title and the feed's chips, as the canvas draws it", async
   await mockApi(page, homeApi());
   await page.goto("/home");
   const head = page.locator(".kit-head");
-  await expect(head.getByRole("heading", { level: 1 })).toHaveText("Home");
+  await expect(head.getByRole("heading", { level: 1 })).toHaveText("Timeline");
   await expect(head.getByRole("group", { name: "Show" })).toBeVisible();
   // One row of chips: New is a toggle in it, not a second group.
   await expect(page.getByRole("group", { name: "State" })).toHaveCount(0);
@@ -682,9 +682,9 @@ test("the signed-in bar shows the app's places as tabs, and Help has no stray bo
   await mockApi(page, homeApi());
   await page.goto("/home");
   const nav = page.getByRole("navigation", { name: "Main", exact: true });
-  for (const name of ["Home", "Find", "Clan"])
+  for (const name of ["Timeline", "Find", "Clan"])
     await expect(nav.getByRole("link", { name }).locator("svg")).toBeVisible();
-  await expect(nav.getByRole("link", { name: "Home" })).toHaveAttribute(
+  await expect(nav.getByRole("link", { name: "Timeline" })).toHaveAttribute(
     "aria-current",
     "page",
   );

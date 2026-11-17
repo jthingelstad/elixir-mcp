@@ -375,7 +375,7 @@ test("a magic link is redeemed ONCE, however many times the page re-renders whil
     "GET /api/me/clans": [200, { clans: [] }],
   });
   render(<FreshApp />);
-  await waitFor(() => expect(window.location.pathname).toBe("/home"));
+  await waitFor(() => expect(window.location.pathname).toBe("/timeline"));
   // Let any straggling re-render fire its effect, then count: settle
   // every read the page has started and let React and the query cache
   // flush, until a pass starts no new read. Quiet is observed, not slept

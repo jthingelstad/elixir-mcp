@@ -31,7 +31,7 @@ import { useSignOut } from "./sign-out.js";
  * addresses are the kit's manifest (packages/ui/src/shell.json), the list
  * apps/site draws the same bar from. A static page has no app under it: its
  * Help is a small drawer of its own (assets/site-help.js) and its Search comes
- * here as `/home?search`.
+ * here as `/timeline?search`.
  */
 const PLACES = {
   ...Object.fromEntries(SHELL_TABS.map((t) => [t.key, t.path])),
@@ -42,9 +42,10 @@ const PLACES = {
   admin: `${ADMIN}/accounts`,
 };
 
-/** The places a signed-in reader moves between (slice 7, #765): Home, Find,
- *  Clan and You, from the manifest. The phone draws all four and the bell;
- *  the top bar all but You, which is its avatar. */
+/** The places a signed-in reader moves between (slice 7, #765; renamed
+ *  2026-11-17): Timeline, Find, Clan and Profile, from the manifest. The
+ *  phone draws all four and the bell; the top bar all but Profile, which is
+ *  its avatar. */
 const TABS = SHELL_TABS;
 
 const DROP =
@@ -90,7 +91,7 @@ export function barAccount(me, signOut) {
       {
         key: "you",
         icon: "user-round",
-        label: "You",
+        label: "Profile",
         href: PLACES.you,
       },
       // Every account has a passport, with or without a player (#1015).
@@ -111,7 +112,7 @@ export function barAccount(me, signOut) {
         href: PLACES.settings,
       },
       // Play Drop's place on a wide screen too since 2026-11-12: the bar
-      // has Home, Find, Clan, search, help, the bell and you.
+      // has Timeline, Find, Clan, search, help, the bell and your Profile.
       {
         key: "drop",
         icon: "droplet",
@@ -143,7 +144,7 @@ function Brand() {
     <Link
       to={PLACES.home}
       className="kit-top__brand"
-      aria-label="Elixir, go to Home"
+      aria-label="Elixir, go to your Timeline"
     >
       <img src={SHELL_LOGO} alt="" width="28" height="28" />
       <span>Elixir</span>
@@ -298,8 +299,8 @@ function TopBar({ me, area, open, bell }) {
   );
 }
 
-/** Home's mark (#765): the old Timeline tab's, moved to Home. It is lit
- *  while the recorder has learned something since Home's own place, which
+/** The Timeline tab's mark (#765; Home's from 2026-11-12 to 2026-11-17).
+ *  It is lit while the recorder has learned something since the feed's own place, which
  *  `me` already carries, so it costs no read [engineering, 2026-11-12]. */
 const homeNews = (tab, me) =>
   tab.key === "home" && (me?.signals?.timeline_pending ?? 0) > 0;
@@ -316,7 +317,7 @@ function TabIcon({ tab, me, size }) {
 }
 
 /** The dot in words, as the tab's name: an sr-only span would be read as a
- *  block of its own ("Home , new items"). Undefined keeps the label. */
+ *  block of its own ("Timeline , new items"). Undefined keeps the label. */
 const tabName = (tab, me) =>
   homeNews(tab, me) ? `${tab.label}, new items` : undefined;
 

@@ -97,7 +97,7 @@ test("a friend's week is facts: battles and days, or none, never a nudge", () =>
   expect(circleLine(FRIENDS[0])).toBe("12 battles · 3 days");
   expect(circleLine(FRIENDS[1])).toBe("1 battle · 1 day");
   expect(circleLine(FRIENDS[2])).toBe("No battles this week");
-  expect(circleDetail(FRIENDS[0])).toBe("12 battles · 3 days · 2 sittings");
+  expect(circleDetail(FRIENDS[0])).toBe("12 battles · 3 days · 2 sessions");
   // Sittings the stored week did not tell are left unsaid, not zero.
   expect(circleDetail(FRIENDS[1])).toBe("1 battle · 1 day");
   expect(circleWhy({ follows_you: true, clanmate: true })).toBe(
@@ -172,7 +172,7 @@ test("marked friends: a strip in the read's order, quiet said plainly, names esc
   // See all: the fuller list, with the timeline's moments and the star.
   fireEvent.click(screen.getByRole("button", { name: "See all" }));
   expect(screen.getByText("Moss Lantern reached a new best")).toBeTruthy();
-  expect(screen.getByText("12 battles · 3 days · 2 sittings")).toBeTruthy();
+  expect(screen.getByText("12 battles · 3 days · 2 sessions")).toBeTruthy();
   expect(
     screen.getByRole("link", { name: "Latest session" }).getAttribute("href"),
   ).toMatch(/\/session\/s-1/);

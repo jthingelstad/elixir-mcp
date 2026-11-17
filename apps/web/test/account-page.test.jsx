@@ -169,9 +169,11 @@ test("addresses: an account by its page id, its passport under it", () => {
   expect(accountIdOf(`/home/account/${THEIRS}/passport`)).toBeNull();
   expect(accountIdOf("/home/account/not-an-id")).toBeNull();
   expect(barArea(`/home/account/${THEIRS}`)).toBe("find");
-  expect(titleFor(`/home/account/${THEIRS}`)).toBe("Account - Home - Elixir");
+  expect(titleFor(`/home/account/${THEIRS}`)).toBe(
+    "Account - Timeline - Elixir",
+  );
   expect(titleFor(`/home/account/${THEIRS}/passport`)).toBe(
-    "Passport - Home - Elixir",
+    "Passport - Timeline - Elixir",
   );
   expect(accountOf({ section: "people", facts: { account_id: THEIRS } })).toBe(
     THEIRS,

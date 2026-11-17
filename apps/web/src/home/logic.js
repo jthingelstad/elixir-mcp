@@ -62,7 +62,7 @@ export function circleLine(f) {
 export function circleDetail(f) {
   const line = circleLine(f);
   if (!f || !(f.battles > 0) || !(f.sittings > 0)) return line;
-  return `${line} · ${f.sittings} ${f.sittings === 1 ? "sitting" : "sittings"}`;
+  return `${line} · ${f.sittings} ${f.sittings === 1 ? "session" : "sessions"}`;
 }
 
 /** Why a player is offered for the circle, as facts. */

@@ -25,7 +25,7 @@ async function accessible(page: Page, name: string) {
 const at = (weekday: string) => ({ weekday, time: "9:00 am", zone: "Central" });
 const KINDS = (
   [
-    ["tracking_report", "Your digest", "Home", at("Wednesday")],
+    ["tracking_report", "Your digest", "Timeline", at("Wednesday")],
     ["collector_activity", "Collector activity", "Collectors", at("Sunday")],
     ["clan_actions_waiting", "Clan actions waiting", "Clan", null],
   ] as const

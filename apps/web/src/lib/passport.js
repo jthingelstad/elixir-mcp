@@ -1,6 +1,6 @@
 import { STAMPS, stampById } from "@elixir-mcp/stamps/catalog";
 import { ACCOUNT } from "./account.js";
-import { HOME } from "./moved.js";
+import { HOME, TIMELINE } from "./moved.js";
 import { SETTINGS } from "./settings.js";
 import { gateLifts, markReconciled, reconcileDue } from "./reconcile-gate.js";
 
@@ -178,7 +178,7 @@ export function destinationHref(destination) {
     case "player":
       return `${HOME}/you`;
     default:
-      return HOME;
+      return TIMELINE;
   }
 }
 

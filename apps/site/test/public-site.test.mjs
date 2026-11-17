@@ -34,7 +34,7 @@ function pages(dir = out) {
 
 /** Paths the app answers, not the static tree. */
 const APP =
-  /^\/(home|signin|settings|console|ladder|clan|battle|data\/service|api|mcp|oauth)(\/|$)/;
+  /^\/(home|timeline|signin|settings|console|ladder|clan|battle|data\/service|api|mcp|oauth)(\/|$)/;
 
 const isHistory = (page) => /^\/updates\/\d{4}-\d{2}-\d{2}-/.test(page);
 const inHistoryMonth = (page) => /^\/updates(\/|$)/.test(page);
@@ -210,7 +210,7 @@ test("a static page can reach search and help", { skip }, () => {
     doc
       .querySelector('.kit-top__search[data-session-face="in"]')
       .getAttribute("href"),
-    "/home?search",
+    "/timeline?search",
   );
   const box = doc.querySelector("dialog[data-help]");
   assert.ok(box, "the help drawer");

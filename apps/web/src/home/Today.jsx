@@ -434,7 +434,7 @@ export function TodayFresh({ player }) {
 export function TodayError({ onRetry, busy }) {
   return (
     <ErrorState
-      title="Home could not be read just now"
+      title="Your Timeline could not be read just now"
       onRetry={onRetry}
       busy={busy}
     >

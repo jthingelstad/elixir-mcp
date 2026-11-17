@@ -133,7 +133,7 @@ test.describe("Stats signed in", () => {
       .getByRole("navigation", { name: "Main" });
     await expect(places.getByRole("link", { name: "Ladder" })).toHaveCount(0);
     await expect(
-      places.getByRole("link", { name: "Home" }),
+      places.getByRole("link", { name: "Timeline" }),
     ).not.toHaveAttribute("aria-current", "page");
 
     // No rail: one player names itself, and the tabs are the pages.
@@ -501,7 +501,7 @@ test.describe("Stats signed in", () => {
     await expect(
       page.getByRole("navigation", { name: "Whose stats" }),
     ).toContainText("A Friend");
-    await expect(page.getByRole("tablist", { name: "You" })).toHaveCount(0);
+    await expect(page.getByRole("tablist", { name: "Profile" })).toHaveCount(0);
 
     // A watched player or a stranger reads your primary instead.
     for (const tag of ["00VVGLJ", "9VVV2Q"]) {
@@ -661,7 +661,7 @@ test.describe("Stats signed in", () => {
     ).toBeVisible();
     await expect(
       page.getByRole("link", { name: "Add your player" }),
-    ).toHaveAttribute("href", "/home#add-player");
+    ).toHaveAttribute("href", "/timeline#add-player");
     await accessible(page, "stats no players");
   });
 

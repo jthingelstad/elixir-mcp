@@ -55,9 +55,44 @@ test("notices: counts, never who; one item is named by its own text", () => {
     {
       title: "2 cheers on your play",
       body: "On 2 of your battles and moments",
-      url: "/home",
+      url: "/timeline",
     },
   );
+  // A session opens its own page first, as its bell row does
+  // (2026-11-17), even when it also has a battle.
+  const SESSION =
+    "/home/player/0QQG0JVQQ/session/tl_s1?at=2026-11-16T10%3A00%3A00.000Z";
+  assert.equal(
+    cheersNotice([
+      {
+        fresh: 2,
+        text: "Invented Owner played 12 battles",
+        session_path: SESSION,
+        battle_url: "https://elixir.poapkings.com/battle/abc",
+        subject_tag: OWN,
+      },
+    ]).url,
+    SESSION,
+  );
+  // Only a session path: anything else falls back to the battle.
+  for (const session_path of [
+    "https://evil.example/home/player/x/session/y",
+    "//evil.example/home/player/x/session/y",
+    "/home/player/x",
+    "/settings/feedback",
+  ])
+    assert.equal(
+      cheersNotice([
+        {
+          fresh: 1,
+          text: "a",
+          session_path,
+          battle_url: "https://elixir.poapkings.com/battle/abc",
+        },
+      ]).url,
+      "/battle/abc",
+      session_path,
+    );
   assert.equal(
     cheersNotice([
       {

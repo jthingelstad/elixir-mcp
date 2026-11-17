@@ -69,7 +69,7 @@ function html(statusCode, body) {
  *  page is served at /api/email/unsubscribe. */
 const NEXT = {
   in: [
-    { href: "/home", label: "Open Home" },
+    { href: "/timeline", label: "Open your Timeline" },
     { href: "/settings/emails", label: "Email settings" },
   ],
   out: [
@@ -268,7 +268,7 @@ export function emailRoutes({
     next: {
       in: [
         { href: "/settings/emails", label: "Email settings" },
-        { href: "/home", label: "Open Home" },
+        { href: "/timeline", label: "Open your Timeline" },
       ],
       out: NEXT.out,
     },

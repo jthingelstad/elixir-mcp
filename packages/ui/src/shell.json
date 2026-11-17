@@ -5,8 +5,8 @@
   "products": [
     {
       "key": "home",
-      "label": "Home",
-      "path": "/home",
+      "label": "Timeline",
+      "path": "/timeline",
       "icon": "house"
     },
     {
@@ -35,8 +35,8 @@
   "tabs": [
     {
       "key": "home",
-      "label": "Home",
-      "path": "/home",
+      "label": "Timeline",
+      "path": "/timeline",
       "icon": "house"
     },
     {
@@ -53,7 +53,7 @@
     },
     {
       "key": "you",
-      "label": "You",
+      "label": "Profile",
       "path": "/home/you",
       "icon": "user-round",
       "bar": false
@@ -62,7 +62,7 @@
   "bell": {
     "label": "Notifications",
     "tab": "Bell",
-    "staticPath": "/home?bell",
+    "staticPath": "/timeline?bell",
     "icon": "bell"
   },
   "docs": {
@@ -100,7 +100,7 @@
     "label": "Search",
     "prompt": "Search players, clans, cards, help",
     "path": "/home/find",
-    "staticPath": "/home?search",
+    "staticPath": "/timeline?search",
     "icon": "search"
   },
   "help": {

@@ -117,7 +117,7 @@ test.describe("your passport", () => {
     ).toBeVisible();
     await expect(who(page).getByText("4 Stamps")).toBeVisible();
     await expect(gold(page)).toBeVisible();
-    await expect(page).toHaveTitle("Passport - Home - Elixir");
+    await expect(page).toHaveTitle("Passport - Timeline - Elixir");
     await axe(page);
   });
 
@@ -136,7 +136,9 @@ test.describe("your passport", () => {
     await expect(
       sheet.getByText("Your progress: 18 of 50 days."),
     ).toBeVisible();
-    await expect(sheet.getByRole("link", { name: "Open Home" })).toBeVisible();
+    await expect(
+      sheet.getByRole("link", { name: "Open your Timeline" }),
+    ).toBeVisible();
     await axe(page);
     // A modal dialog keeps Tab off the page behind it: focus cycles
     // through the sheet and, past its last control, the browser's own

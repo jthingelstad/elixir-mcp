@@ -76,7 +76,7 @@ test(
 test("Stats' Season no longer offers it", { timeout: 20000 }, async () => {
   window.history.pushState({}, "", "/home/you/stats");
   render(<App />);
-  await screen.findByRole("tablist", { name: "You" });
+  await screen.findByRole("tablist", { name: "Profile" });
   // Give the clan read its chance to land before saying it is absent.
   await waitFor(() =>
     expect(global.fetch.mock.calls.some(([p]) => String(p) === "/api/me")).toBe(
