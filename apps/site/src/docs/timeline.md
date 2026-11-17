@@ -41,6 +41,30 @@ only choose what the page draws: your place moves when you open the feed,
 whichever chip is on, so **New** means the same under every chip. Your
 choice is kept for your next visit on the same device.
 
+### By mode
+
+The **Mode** list beside the chips chooses which game mode the feed
+shows: **All modes** (the start), **Trophy Road**, **Ranked**, **War** or
+**Casual**. It works with the chips, so **Friends** and **Ranked** shows
+your friends' Ranked play.
+
+- A session sits under each mode it was played in. A session with Trophy
+  Road and Ranked battles shows under both.
+- **Casual** is everything that isn't Trophy Road, Ranked or War:
+  friendly battles, 2v2, party modes, challenges, events and
+  tournaments.
+- **War** is River Race battles and your clan's race results.
+- A moment about one mode sits under it: a new Arena or best trophies
+  under Trophy Road, a league up under Ranked, a challenge run under
+  Casual. A post with a battle sits under that battle's mode.
+- Things that aren't about one mode (badges, cards, levels, joining or
+  leaving a clan, a post without a battle) show only under **All modes**.
+
+The mode is in the page's address, so a link you share opens on it and
+**Back** goes to the mode you had before. It is kept for your next visit
+on the same device, like the chips. When a mode has nothing this week,
+your Timeline says so and offers **Show all modes**.
+
 ### Your circle this week
 
 Star a friend you follow and they are a **close friend**. Your circle sits
@@ -84,8 +108,8 @@ kept card first and swaps in a fresh one when it is ready, so an older card
 
 The feed shows the newest thirty items, and **More** reads the next thirty of
 the same week, so an item never appears twice or goes missing between pages.
-The counts on the chips are the whole week's; the chips filter what is
-loaded. If the feed doesn't load (the read took too long or the connection
+The counts on the chips are the whole week's, in the mode you chose; the
+chips filter what is loaded. The **N new** button below counts every mode. If the feed doesn't load (the read took too long or the connection
 dropped), it says so and offers **Try again**. It never asks again on its own,
 and the panels beside it read on regardless.
 

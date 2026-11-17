@@ -59,7 +59,11 @@ import { battleLinks } from "@elixir-mcp/record/battle-links";
 import { masteryCard } from "@elixir-mcp/record/badge-names";
 import { verifiedAvatars } from "./avatars.mjs";
 import { proofOf } from "@elixir-mcp/tools/activity/bell";
-import { badgeArtPath, modeGroupOf } from "@elixir-mcp/contracts";
+import {
+  badgeArtPath,
+  modeGroupOf,
+  timelineModeOf,
+} from "@elixir-mcp/contracts";
 import {
   highlightVersus,
   scoresOf,
@@ -83,6 +87,95 @@ export const proofModeOf = (it) => {
   }
   return null;
 };
+
+/**
+ * The Timeline's mode filter (Jamie, 2026-11-17: "a player should be able
+ * to filter the timeline by these same groups: Trophy Road, Ranked, War,
+ * Casual"). Which of the four an item sits under, from the one mode-group
+ * vocabulary (contracts' modeGroupOf, folded by timelineModeOf): a session
+ * under each mode it was played in, a battle (a highlight's, a post's)
+ * under its own, a moment under the mode it is about.
+ *
+ * An item that is about no mode (a text post, a badge, a card, a clan's
+ * roster line, a follow) sits under none, so a mode filter leaves it out
+ * and All modes shows it. Every kind is listed here on purpose: a kind
+ * not listed is about no mode, and a test (feed-modes.test.mjs) fails on
+ * any kind the timeline can build that this table does not name, so a new
+ * kind is classified when it lands.
+ */
+const NO_MODE = () => [];
+const groups = (...gs) => [
+  ...new Set(gs.filter(Boolean).map((g) => timelineModeOf(g))),
+];
+/** A battle as an item carries it: its group, or its type and tag. */
+const battleGroup = (b) =>
+  b
+    ? (b.mode_group ?? (b.type ? modeGroupOf(b.type, b.event_tag) : null))
+    : null;
+/** A sitting: every mode its battles were played in. */
+const sittingModes = (it) => groups(...Object.keys(it.facts?.by_mode ?? {}));
+
+export const KIND_MODES = {
+  battle_session: sittingModes,
+  session_standout: sittingModes,
+  battle_highlight: (it) => groups(battleGroup(it.facts?.battle)),
+  // A post with a battle attached is that battle's; a post of words, a
+  // deck or cards is about no mode.
+  post: (it) => groups(battleGroup(it.post?.battle ?? it.facts?.battle)),
+  // Arenas and the best trophies are Trophy Road's; leagues are Ranked's.
+  arena_changed: () => ["ladder"],
+  best_trophies_band: () => ["ladder"],
+  ranked_promotion: () => ["ranked"],
+  ranked_season_finished: () => ["ranked"],
+  // A switch names its mode (13.6.0).
+  deck_switched: (it) => groups(it.facts?.mode),
+  // A challenge's runs are a challenge's: Casual.
+  challenge_best_run: () => ["casual"],
+  twelve_win_run: () => ["casual"],
+  // The clan's River Race.
+  bracket_observed: () => ["war"],
+  race_finished: () => ["war"],
+  week_resolved: () => ["war"],
+  // About the player, not one mode: wins counted in every mode, a level,
+  // a card, a badge, a clan's roster, a quiet spell or a return.
+  career_wins_step: NO_MODE,
+  collection_level_step: NO_MODE,
+  badge_earned: NO_MODE,
+  legendary_badge_earned: NO_MODE,
+  card_unlocked: NO_MODE,
+  card_form_unlocked: NO_MODE,
+  card_maxed: NO_MODE,
+  king_tower_leveled: NO_MODE,
+  clan_joined: NO_MODE,
+  clan_left: NO_MODE,
+  member_joined: NO_MODE,
+  member_left: NO_MODE,
+  member_role_changed: NO_MODE,
+  quiet_crossed: NO_MODE,
+  returned: NO_MODE,
+  account: NO_MODE,
+  account_feedback_responded: NO_MODE,
+  // What a clan or an app attested (contracts' ATTESTED_FACT_TYPES): a
+  // clan's own awards and messages, a departure, a family app's game.
+  departure_classified: NO_MODE,
+  role_change_made: NO_MODE,
+  award_granted: NO_MODE,
+  award_standing: NO_MODE,
+  member_away: NO_MODE,
+  clan_message: NO_MODE,
+  personal_record: NO_MODE,
+  // People items: an account's own news.
+  player_verified: NO_MODE,
+  stamp_earned: NO_MODE,
+  place_set: NO_MODE,
+};
+
+/** The mode filters an item sits under; [] when it is about no mode or
+ *  its kind is not one the table names. */
+export const modesOf = (it) => (KIND_MODES[it?.kind] ?? NO_MODE)(it);
+
+/** Whether a mode filter shows an item; null is All modes. */
+export const inMode = (it, mode) => !mode || modesOf(it).includes(mode);
 
 /** The tags an item is about: its subject and every subject it names. */
 const tagsOf = (it) =>

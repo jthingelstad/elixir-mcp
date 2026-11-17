@@ -86,6 +86,28 @@ export const MODE_GROUPS = [
   ...new Set([...Object.values(MODE_GROUP_BY_TYPE), EVENT_MODE_GROUP]),
 ].sort();
 
+/**
+ * The Timeline's mode filter (Jamie, 2026-11-17: "a player should be able
+ * to filter the timeline by these same groups: Trophy Road, Ranked, War,
+ * Casual"): the four groups Home's week chips name, in their order. Each
+ * mode group above lands in exactly one of them: Trophy Road, Ranked and
+ * War are themselves, and every other game a player chooses to play
+ * (casual, events, challenges, tournaments) is Casual.
+ *
+ * A FILTER, never a population: it chooses which items a feed shows and
+ * is never the key of a rate or a count of battles. Modes are different
+ * games, and nothing adds them up through this.
+ */
+export const TIMELINE_MODES = ["ladder", "ranked", "war", "casual"] as const;
+export type TimelineMode = (typeof TIMELINE_MODES)[number];
+
+/** The Timeline mode filter a mode group falls under. */
+export function timelineModeOf(group: string): TimelineMode {
+  return group === "ladder" || group === "ranked" || group === "war"
+    ? group
+    : "casual";
+}
+
 export function typesForModeGroup(group: string): string[] {
   return Object.entries(MODE_GROUP_BY_TYPE)
     .filter(([, g]) => g === group)

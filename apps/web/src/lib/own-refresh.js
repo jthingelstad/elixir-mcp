@@ -171,7 +171,8 @@ export function makeOwnRefresh({
  *  reader who asked gets the feed read again too. */
 const notOpenFeed = (q) =>
   !(
-    q.queryKey.length === HOME_FEED_KEY.length &&
+    // The feed in any mode (homeFeedKey): the key, or the key and a mode.
+    q.queryKey.length <= HOME_FEED_KEY.length + 1 &&
     HOME_FEED_KEY.every((k, i) => q.queryKey[i] === k) &&
     q.isActive()
   );

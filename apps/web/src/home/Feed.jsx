@@ -1,4 +1,5 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { useLocation } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { createPortal } from "react-dom";
 import {
@@ -18,14 +19,21 @@ import {
   useHomeFeedNew,
   useMyPassport,
 } from "../lib/queries.js";
-import { useMe } from "../App.jsx";
+import { useMe, useNav } from "../App.jsx";
 import {
   TimelineEvidence,
   useTimelinePlace,
 } from "../views/account/timeline-shared.jsx";
 import {
+  askedMode,
   feedChips,
   feedShown,
+  FEED_MODES,
+  keepMode,
+  keptFor,
+  keptMode,
+  modeQuiet,
+  withMode,
   askedShow,
   keepShow,
   keptShow,
@@ -69,6 +77,15 @@ import { PostComposer } from "./Post.jsx";
  * feed moves your place as it always did, whichever chip is lit, so the
  * bell's dot and New mean the same thing under every chip.
  *
+ * Mode (2026-11-17, Jamie: "a player should be able to filter the
+ * timeline by these same groups: Trophy Road, Ranked, War, Casual") is a
+ * second, separate choice: a list beside the chips, All modes by default.
+ * Unlike Show it is the server's: the week is filtered before its pages
+ * are cut (feed.mjs, KIND_MODES), so every page is thirty of that mode's
+ * items, and Show and New then choose among them. It is in the address
+ * (`?mode=ranked`), so a link and Back keep it, and kept per account in
+ * this browser as Show is (useTimelineMode).
+ *
  * The feed is read when Home opens and when the reader asks, never under
  * them (2026-11-14): an open Home asks a cheap count once a minute while its
  * tab is visible, and when new items have arrived an "N new" pill floats
@@ -84,6 +101,8 @@ export function HomeFeed({
   chipsAt = null,
   suggest = false,
   compose = null,
+  mode = null,
+  setMode = null,
 } = {}) {
   // The post composer's open state (2026-11-17): the page head's Post
   // opens it on a phone, so the page may hold it; else the feed does.
@@ -93,18 +112,14 @@ export function HomeFeed({
     <PostComposer open={writing.open} setOpen={writing.setOpen} />
   );
   const { day, feedDayHeading: dayHeading } = useClock();
-  const query = useHomeFeed();
+  const query = useHomeFeed(mode);
   const pages = query.data?.pages ?? [];
   const timeline = pages[0] ?? null;
   const { openedMs } = useTimelinePlace(timeline);
   // The Show chip, as this account left it here (2026-11-16).
   const { me } = useMe();
   // Kept per account: its page id, else its main player, else this browser.
-  const who = me?.authenticated
-    ? (me.page_id ??
-      (me.claims ?? []).find((c) => c.is_primary)?.player_tag ??
-      "account")
-    : null;
+  const who = keptFor(me);
   const [picked, setPicked] = useState(null);
   // A notice's address may ask for a chip (?show=close); read once.
   const [asked] = useState(() =>
@@ -134,7 +149,10 @@ export function HomeFeed({
   // (Jamie, 2026-11-12).
   // The passport is Home's read already (the profile list's); a quiet feed
   // reads its follow counts, and only then.
-  const quiet = query.isSuccess && items.length === 0;
+  // Under a mode, a quiet week is one the whole week is quiet in: an empty
+  // mode in a busy week says so instead (week_total).
+  const weekTotal = timeline?.week_total ?? items.length;
+  const quiet = query.isSuccess && weekTotal === 0;
   const passport = useMyPassport(quiet);
   const shown = feedShown(items, show).filter((it) => !newOnly || isNew(it));
   const more = timeline?.timeline_more ?? 0;
@@ -142,7 +160,7 @@ export function HomeFeed({
   const top = useRef(null);
   const pill =
     fresh.data > 0 && !query.isFetching ? (
-      <NewPill count={fresh.data} top={top} />
+      <NewPill count={fresh.data} top={top} mode={mode} />
     ) : null;
   if (query.isPending)
     return (
@@ -166,6 +184,37 @@ export function HomeFeed({
       >
         Nothing was lost. Try again in a moment.
       </ErrorState>
+    );
+  const modePick = setMode ? (
+    <ModePick value={mode} onChange={setMode} />
+  ) : null;
+  if (items.length === 0 && mode && weekTotal > 0)
+    return (
+      <div ref={top} tabIndex={-1} className="kit-feed kit-feed__top">
+        {pill}
+        {chipsAt ? (
+          createPortal(<FeedFilters>{modePick}</FeedFilters>, chipsAt)
+        ) : (
+          <FeedFilters>{modePick}</FeedFilters>
+        )}
+        {composer}
+        <Empty
+          title={modeQuiet(mode, null)}
+          titleAs="h2"
+          data-quiet="mode"
+          action={
+            <button
+              type="button"
+              className="btn btn--sm"
+              onClick={() => setMode(null)}
+            >
+              Show all modes
+            </button>
+          }
+        >
+          {`${weekTotal.toLocaleString("en-US")} ${weekTotal === 1 ? "item is" : "items are"} in your Timeline this week across all modes.`}
+        </Empty>
+      </div>
     );
   if (items.length === 0)
     return (
@@ -219,6 +268,7 @@ export function HomeFeed({
           New
         </Chip>
       ) : null}
+      {modePick}
     </FeedFilters>
   );
   return (
@@ -248,13 +298,15 @@ export function HomeFeed({
         <p className="kit-week__quiet">
           {newOnly
             ? "Nothing new here since your last visit."
-            : show === "close"
-              ? "Nothing from your close friends in the last seven days."
-              : show === "friends"
-                ? "Nothing from your friends in the last seven days."
-                : show === "clan"
-                  ? "Nothing from your clan in the last seven days."
-                  : "Nothing of yours in the last seven days."}
+            : mode
+              ? modeQuiet(mode, show)
+              : show === "close"
+                ? "Nothing from your close friends in the last seven days."
+                : show === "friends"
+                  ? "Nothing from your friends in the last seven days."
+                  : show === "clan"
+                    ? "Nothing from your clan in the last seven days."
+                    : "Nothing of yours in the last seven days."}
         </p>
       ) : (
         days.map((d) => (
@@ -317,7 +369,7 @@ export function HomeFeed({
  * The tap reads the first page again (the pages past it are let go) and
  * brings the feed's top into view, its focus there for a keyboard.
  */
-function NewPill({ count, top }) {
+function NewPill({ count, top, mode }) {
   const queryClient = useQueryClient();
   const [busy, setBusy] = useState(false);
   const label = `${count.toLocaleString("en-US")} new`;
@@ -332,7 +384,7 @@ function NewPill({ count, top }) {
         onClick={async () => {
           setBusy(true);
           try {
-            await reloadHomeFeed(queryClient);
+            await reloadHomeFeed(queryClient, mode);
           } finally {
             setBusy(false);
           }
@@ -375,6 +427,69 @@ function Quiet({ follows, suggest }) {
       {suggest ? <PeopleToFollow /> : null}
     </div>
   );
+}
+
+/**
+ * The mode filter (2026-11-17): a native list, not a third row of chips, so
+ * it reads as a different choice from Show, takes one control's room at
+ * 320 px, and is a keyboard's and a screen reader's as the platform makes
+ * it. No counts: a mode's count would sit beside Show's, which already
+ * count the chosen mode's week, and two sets of numbers in one row read as
+ * one sum.
+ */
+function ModePick({ value, onChange }) {
+  const id = useId();
+  return (
+    <span className="kit-home__mode">
+      <label className="sr-only" htmlFor={id}>
+        Mode
+      </label>
+      <select
+        id={id}
+        className="scope-select"
+        value={value ?? "all"}
+        onChange={(e) =>
+          onChange(e.target.value === "all" ? null : e.target.value)
+        }
+      >
+        {FEED_MODES.map((m) => (
+          <option key={m.key} value={m.key}>
+            {m.label}
+          </option>
+        ))}
+      </select>
+    </span>
+  );
+}
+
+/**
+ * The feed's mode, from the address (`?mode=war`), All modes without one.
+ * A visit that opens on the bare address takes the mode this account left
+ * here last time and writes it into the address in place, so Back and a
+ * copied link carry it; after that the address alone decides, and a
+ * choice is a new history entry.
+ */
+export function useTimelineMode(who) {
+  const { pathname, search } = useLocation();
+  const navigate = useNav();
+  const asked = askedMode(search);
+  const [restore, setRestore] = useState(() => (asked ? null : keptMode(who)));
+  useEffect(() => {
+    if (!restore) return;
+    if (asked === restore) setRestore(null);
+    else if (!asked)
+      navigate(withMode(pathname, window.location.search, restore), {
+        replace: true,
+      });
+    else setRestore(null);
+  }, [asked, restore, pathname, navigate]);
+  const mode = asked ?? restore;
+  const setMode = (next) => {
+    setRestore(null);
+    keepMode(who, next);
+    navigate(withMode(pathname, window.location.search, next));
+  };
+  return [mode, setMode];
 }
 
 /** The same filters wrap when needed; no option hides beyond the edge. */

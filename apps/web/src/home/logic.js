@@ -1,5 +1,6 @@
 import { tagPath } from "../lib/tag-url.js";
 import { SETTINGS } from "../lib/settings.js";
+import { TIMELINE_MODES } from "@elixir-mcp/contracts";
 import { modeChips, modeWord } from "@elixir-mcp/ui/session-story";
 
 /** What Home works out on its own, away from the drawing. */
@@ -20,6 +21,16 @@ export const FEED_CHIPS = [
 /** The Show chips this reader gets: Close friends only once one is marked. */
 export const feedChips = (hasClose) =>
   FEED_CHIPS.filter((c) => c.key !== "close" || hasClose);
+
+/** Whose choices this browser keeps for the feed: the account's page id,
+ *  else its main player, else this browser's one account; nobody signed
+ *  out. */
+export const keptFor = (me) =>
+  me?.authenticated
+    ? (me.page_id ??
+      (me.claims ?? []).find((c) => c.is_primary)?.player_tag ??
+      "account")
+    : null;
 
 /** Where the feed's Show choice is kept, per account, in this browser. */
 const SHOW_KEY = "elixir.home.show:";
@@ -57,6 +68,82 @@ export function keepShow(who, show) {
   } catch {
     // Storage blocked: the choice lasts this visit.
   }
+}
+
+/** The Timeline's mode filter (Jamie, 2026-11-17): All modes, then the four
+ *  groups your week names, in its order. The server decides which items a
+ *  mode holds (services/web-api/src/feed.mjs, KIND_MODES); this is only
+ *  the choice. */
+export const FEED_MODES = [
+  { key: "all", label: "All modes" },
+  ...TIMELINE_MODES.map((key) => ({ key, label: modeWord(key) })),
+];
+const isFeedMode = (v) => TIMELINE_MODES.includes(v);
+
+/** Where the feed's mode is kept, per account, in this browser, as the
+ *  Show choice is. */
+const MODE_KEY = "elixir.home.mode:";
+
+/** The mode an address names (`?mode=ranked`), or null for All modes. */
+export function askedMode(search) {
+  const v =
+    typeof search === "string"
+      ? (() => {
+          try {
+            return new URLSearchParams(search).get("mode");
+          } catch {
+            return null;
+          }
+        })()
+      : search?.mode;
+  return isFeedMode(v) ? v : null;
+}
+
+/** The mode this reader chose last time here, or null for All modes. */
+export function keptMode(who) {
+  if (!who) return null;
+  try {
+    const v = window.localStorage.getItem(MODE_KEY + who);
+    return isFeedMode(v) ? v : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Keep the reader's mode for their next visit. Never throws. */
+export function keepMode(who, mode) {
+  if (!who) return;
+  try {
+    if (!isFeedMode(mode)) window.localStorage.removeItem(MODE_KEY + who);
+    else window.localStorage.setItem(MODE_KEY + who, mode);
+  } catch {
+    // Storage blocked: the choice lasts this visit.
+  }
+}
+
+/** The address with this mode in it, every other part kept. */
+export function withMode(pathname, search, mode) {
+  const q = new URLSearchParams(search ?? "");
+  if (isFeedMode(mode)) q.set("mode", mode);
+  else q.delete("mode");
+  const s = q.toString();
+  return s ? `${pathname}?${s}` : pathname;
+}
+
+/** What a mode's empty week says, as facts. */
+export function modeQuiet(mode, show) {
+  const where = modeWord(mode);
+  const who =
+    show === "close"
+      ? " from your close friends"
+      : show === "friends"
+        ? " from your friends"
+        : show === "clan"
+          ? " from your clan"
+          : show === "you"
+            ? " of yours"
+            : "";
+  return `Nothing${who} ${mode === "ladder" ? "on" : "in"} ${where} in the last seven days.`;
 }
 
 /** A close friend's week in one short line, as facts: how many battles on
