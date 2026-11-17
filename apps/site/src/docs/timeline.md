@@ -239,6 +239,17 @@ and a member joining, leaving or changing role, has a gold edge with the
 clan's name above it. Every player's name opens their
 [player page](/docs/player-page).
 
+A player you follow brings their own clan news, even when you don't follow
+their clan:
+
+- **A promotion**, like "Pip was promoted from Member to Elder". A step
+  down is only on the clan's timeline. Follow the clan too and you still
+  see it once.
+- **Their war week**, when the week closes: "Pip played all 16 war decks
+  in Season 131, week 2, for 3,200 points." It's the whole week, never a
+  day, and points, never fame. A week with no deck played says nothing.
+  When several friends' weeks close together, they fold into one row.
+
 ### Getting set up
 
 Until you're set up, your Timeline opens with the list above the feed:

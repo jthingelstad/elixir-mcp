@@ -49,6 +49,7 @@ about a player, a member's moment on a clan's timeline included, carries
 | `member_role_changed` | 1 | the roster read that saw the new role | `player_tag`, `name`, `role_before`, `role_after`, `direction`, `roster_size_before`, `roster_size_after` |
 | `bracket_observed` | 1 | the record's first sight of the week | `season_id`, `section_index`, `is_colosseum`, `rivals[]` (`tag`, `name`, `recorded`) |
 | `race_finished` | 1 | the finish, when the race log gives it, else the read that saw it | `season_id`, `section_index`, `fame`, `finish_time` |
+| `war_week_played` | 1 | the read that saw the week close | `player_tag`, `name`, `clan_tag`, `clan_name`, `season_id`, `section_index`, `is_colosseum`, `decks_used`, `points` |
 | `week_resolved` | 2 | the read that saw the week close | `season_id`, `section_index`, `is_colosseum`, `fame`, `rank`, `trophy_change`, `members` (`player_tag`, `name`, `decks_used`, `points`, most points first; `text` names the top three) |
 | `quiet_crossed` | 2 | the last battle plus the rung's days | `player_tag`, `name`, `rung` (5, 10 or 20), `days_quiet`, `days_since_poll`, [`role` on a clan's timeline] |
 | `returned` | 2 | the battle that ended the absence | `player_tag`, `name`, `after_days` |

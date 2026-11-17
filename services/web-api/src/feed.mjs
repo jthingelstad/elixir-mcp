@@ -137,6 +137,8 @@ export const KIND_MODES = {
   bracket_observed: () => ["war"],
   race_finished: () => ["war"],
   week_resolved: () => ["war"],
+  // A player's own war week (13.10.0).
+  war_week_played: () => ["war"],
   // About the player, not one mode: wins counted in every mode, a level,
   // a card, a badge, a clan's roster, a quiet spell or a return.
   career_wins_step: NO_MODE,

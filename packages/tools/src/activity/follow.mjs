@@ -175,6 +175,9 @@ export function followFor(it, window) {
           ]
         : [];
     }
+    // A player's war week (13.10.0): the clan's week, which lists every
+    // member's decks and points, the player's included.
+    case "war_week_played":
     case "race_finished":
     case "week_resolved": {
       const clan = clanOf(it);

@@ -7,7 +7,10 @@ import { PNG } from "./test-art.ts";
 import { mockApi as clanApi, signedIn as clanIn } from "./clan/fixtures.ts";
 import {
   FEED_NOW,
+  JUNIPER,
   RHYTHM_CLAN_FEED,
+  RHYTHM_TIMELINE,
+  ROWAN,
   rhythmApi,
 } from "./feed-rhythm-fixture.ts";
 
@@ -316,5 +319,120 @@ test("small moments fold into one row that opens to a line each (2026-11-17)", a
   if (shots) {
     mkdirSync(shots, { recursive: true });
     await group.screenshot({ path: path.join(shots, "moments-open-390.png") });
+  }
+});
+
+test("a war week is a small moment, two friends' one row; a friend's promotion wears the clan's band (13.10.0)", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.clock.setFixedTime(new Date(FEED_NOW));
+  const ago = (min: number) =>
+    new Date(Date.parse(FEED_NOW) - min * 60_000).toISOString();
+  const clan = { tag: "#0GJJ9QJL", kind: "clan", name: "Ember Hall" };
+  const week = (
+    p: { tag: string; name: string },
+    decks: number,
+    points: number,
+    text: string,
+  ) => ({
+    id: `war-${p.tag}`,
+    at: ago(3),
+    observed_at: ago(3),
+    subject_tag: p.tag,
+    subject_name: p.name,
+    subjects: [{ tag: p.tag, kind: "player", name: p.name }],
+    kind: "war_week_played",
+    section: "war",
+    text,
+    facts: {
+      player_tag: p.tag,
+      name: p.name,
+      clan_tag: clan.tag,
+      clan_name: clan.name,
+      season_id: 131,
+      section_index: 1,
+      is_colosseum: false,
+      decks_used: decks,
+      points,
+    },
+    groups: ["friends"],
+    cheers: {},
+    my_cheer: null,
+  });
+  const promotion = {
+    id: "promotion-rowan",
+    at: ago(5),
+    observed_at: ago(5),
+    subject_tag: ROWAN.tag,
+    subject_name: ROWAN.name,
+    subjects: [{ tag: ROWAN.tag, kind: "player", name: ROWAN.name }, clan],
+    kind: "member_role_changed",
+    section: "roster",
+    text: "Rowan was promoted from Member to Elder in Ember Hall.",
+    facts: {
+      player_tag: ROWAN.tag,
+      name: ROWAN.name,
+      role_before: "member",
+      role_after: "elder",
+      direction: "promoted",
+    },
+    groups: ["friends"],
+    cheers: {},
+    my_cheer: null,
+  };
+  const timeline = [
+    week(
+      JUNIPER,
+      16,
+      3200,
+      "Juniper played all 16 war decks in Season 131, week 2, for 3,200 points.",
+    ),
+    week(
+      ROWAN,
+      12,
+      2400,
+      "Rowan played 12 war decks in Season 131, week 2, for 2,400 points.",
+    ),
+    promotion,
+    ...RHYTHM_TIMELINE.timeline,
+  ];
+  await mockApi(
+    page,
+    rhythmApi({
+      "GET /api/me/timeline": [
+        200,
+        { ...RHYTHM_TIMELINE, total: timeline.length, timeline },
+      ],
+    }),
+  );
+  await page.goto("/timeline");
+  const group = page
+    .locator(".kit-feed__group")
+    .filter({ hasText: "2 moments from Juniper and Rowan" });
+  await expect(group).toBeVisible();
+  await group.locator(".kit-group__toggle").click();
+  const lines = group.locator(".kit-feed__item--line");
+  await expect(lines).toHaveCount(2);
+  await expect(lines.nth(0)).toContainText(
+    "Played all 16 war decks in Season 131, week 2, for 3,200 points.",
+  );
+  await expect(lines.nth(1)).toContainText(
+    "Played 12 war decks in Season 131, week 2, for 2,400 points.",
+  );
+  const promoted = page
+    .locator(".kit-feed__item")
+    .filter({ hasText: "was promoted from Member to Elder" });
+  await expect(promoted).toBeVisible();
+  await expect(promoted).toContainText("Ember Hall");
+  if (shots) {
+    mkdirSync(shots, { recursive: true });
+    await page.screenshot({
+      path: path.join(shots, "war-week-promotion-390.png"),
+    });
+    await promoted.scrollIntoViewIfNeeded();
+    await promoted.screenshot({
+      path: path.join(shots, "promotion-390.png"),
+    });
   }
 });

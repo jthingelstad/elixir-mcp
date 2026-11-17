@@ -164,6 +164,8 @@ export const ITEM_KINDS = [
   "bracket_observed",
   "race_finished",
   "week_resolved",
+  // A player's own war week, at its close (13.10.0).
+  "war_week_played",
   "quiet_crossed",
   "returned",
   // What a person did in a clan, or a family app's game produced for a
@@ -1826,6 +1828,24 @@ async function prefetchPlayers(
       )
     ).rows,
   );
+  const roleRows = groupBy(
+    (
+      await db.query(
+        perTag(roleChangesSql("t.tag", fromMs, toMs, basis), "x.event_id"),
+        [tags],
+      )
+    ).rows,
+  );
+  const promoted = await playerPromotions(db, [...roleRows.values()].flat());
+  const promotedRows = new Set(promoted.rows);
+  const warWeeks = groupBy(
+    (
+      await db.query(
+        perTag(warWeeksSql("t.tag", fromMs, toMs, basis), "x.event_id"),
+        [tags],
+      )
+    ).rows,
+  );
   const played = new Map(
     tags.map((t) => [t, playedOf(battles.get(t).wide, fromMs, basis)]),
   );
@@ -1868,6 +1888,11 @@ async function prefetchPlayers(
         who: who.get(t),
         ledger: ledger.get(t),
         moves: moves.get(t),
+        promotions: {
+          rows: roleRows.get(t).filter((r) => promotedRows.has(r)),
+          firstIds: promoted.firstIds,
+        },
+        warWeeks: warWeeks.get(t),
         presence: presence.get(t),
         anchors: anchorsOf.get(t) ?? [],
         firstIds,
@@ -1896,6 +1921,57 @@ const clanMovesSql = (tagSql, fromMs, toMs) =>
       and ((cm.joined_observed_at >= ${ts(fromMs + 1)} and cm.joined_observed_at < ${ts(toMs + 1)})
         or (cm.left_observed_at >= ${ts(fromMs + 1)} and cm.left_observed_at < ${ts(toMs + 1)}))
     order by coalesce(cm.left_observed_at, cm.joined_observed_at)`;
+
+/** The player's role changes the window observed (13.10.0), in any clan
+ *  they have been in, on the clan ledger's own index: the clan's
+ *  role_changed rows about them. Only promotions are told on the
+ *  player's timeline (playerPromotions); a demotion stays the clan's. */
+const roleChangesSql = (tagSql, fromMs, toMs, basis) =>
+  `select ${CLAN_EVENT_COLUMNS},
+          (select c.name from clan c where c.clan_tag = e.clan_tag) as clan_name
+     from clan_event e
+    where e.clan_tag in (select cm.clan_tag from clan_membership cm
+                          where cm.player_tag = ${tagSql})
+      and e.event_type = 'role_changed' and e.player_tag = ${tagSql}
+      and ${ledgerWindowSql("e", fromMs, toMs, basis, (a) => `${a}window_end`)}
+    order by e.event_id`;
+
+/** The player's war weeks the window resolved (13.10.0): each week the
+ *  clan's week_resolved row closed, with the player's own decks and
+ *  points for the WEEK as the race recorded them (weekly aggregates
+ *  only: never a day, never fame). A week with no deck played says
+ *  nothing. One row a clan and week, the first resolution's. */
+const warWeeksSql = (tagSql, fromMs, toMs, basis) =>
+  `select * from (
+     select distinct on (wp.clan_tag, wp.season_id, wp.section_index)
+            e.event_id, e.window_end, e.occurred_at,
+            wp.clan_tag, c.name as clan_name, wp.season_id, wp.section_index,
+            coalesce(w.is_colosseum, false) as is_colosseum,
+            wp.decks_used, wp.points
+       from war_participation wp
+       join clan_event e
+         on e.clan_tag = wp.clan_tag and e.event_type = 'week_resolved'
+        and e.war_season_id = wp.season_id and e.section_index = wp.section_index
+       left join clan c on c.clan_tag = wp.clan_tag
+       left join war_week w
+         on w.clan_tag = wp.clan_tag and w.season_id = wp.season_id
+        and w.section_index = wp.section_index
+      where wp.player_tag = ${tagSql} and wp.decks_used > 0
+        and ${ledgerWindowSql("e", fromMs, toMs, basis, (a) => `${a}window_end`)}
+      order by wp.clan_tag, wp.season_id, wp.section_index, e.event_id) ww
+    order by event_id`;
+
+/** Role-change rows, hydrated, kept to promotions, with their story ids
+ *  (the clan's own, so the two copies are one story). */
+async function playerPromotions(db, rows) {
+  const promoted = (await hydrateClanEvents(db, rows)).filter(
+    (e) => e.payload?.direction === "promoted",
+  );
+  return {
+    rows: promoted,
+    firstIds: await firstEventIds(db, "clan_event", promoted),
+  };
+}
 
 /** The window's battles of the wider fetch (playerBattles' `rows`). */
 const playedOf = (wide, fromMs, basis) =>
@@ -2416,6 +2492,15 @@ export async function buildPlayerEntry(
       });
   }
   clanChanges.sort((a, b) => a.at.localeCompare(b.at));
+  const promotions =
+    prefetched?.promotions ??
+    (await playerPromotions(
+      db,
+      (await db.query(roleChangesSql("$1", fromMs, toMs, basis), [tag])).rows,
+    ));
+  const warWeeks =
+    prefetched?.warWeeks ??
+    (await db.query(warWeeksSql("$1", fromMs, toMs, basis), [tag])).rows;
 
   const presence = await timed(perf, "player.presence", () =>
     presenceOf(db, tag, played, fromMs, toMs, prefetched?.presence ?? null),
@@ -2646,6 +2731,50 @@ export async function buildPlayerEntry(
       [STORY]: moment(kind, tag, c.clan_tag, c.at),
     });
   }
+  // A promotion is the player's news as well as the clan's (the owner,
+  // 2026-11-17): the clan's item about them, the clan's story id, so a
+  // reader who follows both reads it once. A demotion stays the clan's:
+  // a step down is not a moment to put in front of a player's friends.
+  for (const e of promotions.rows)
+    items.push({
+      ...subject,
+      subjects: [
+        ...subject.subjects,
+        { tag: e.clan_tag, kind: "clan", name: e.clan_name ?? null },
+      ],
+      at: iso(e.occurred_at ?? e.window_end),
+      kind: "member_role_changed",
+      section: "roster",
+      facts: e.payload,
+      [STORY]: ledgerStory("clan_event", promotions.firstIds, e),
+    });
+  // The player's own war week, at its close (13.10.0): decks and points
+  // for the week, as the clan's resolved week lists them.
+  for (const w of warWeeks)
+    items.push({
+      ...subject,
+      at: iso(w.occurred_at ?? w.window_end),
+      observed_at: iso(w.window_end),
+      kind: "war_week_played",
+      section: "war",
+      facts: {
+        ...self,
+        clan_tag: w.clan_tag,
+        clan_name: w.clan_name ?? null,
+        season_id: w.season_id,
+        section_index: w.section_index,
+        is_colosseum: Boolean(w.is_colosseum),
+        decks_used: w.decks_used,
+        points: w.points,
+      },
+      [STORY]: moment(
+        "war_week_played",
+        tag,
+        w.clan_tag,
+        w.season_id,
+        w.section_index,
+      ),
+    });
   // A return and a quiet crossing name the player, so the same one on a
   // clan's timeline (the member's) is the same story.
   if (presence.returned)
@@ -4801,8 +4930,14 @@ export async function buildTimeline(
     // A moment item is something said, whatever the entry counts: a
     // player whose window held only a season's finish, a maxed card or a
     // deck switch was listed quiet and their item dropped (found 13.8.0).
+    // A promotion or a war week alone is something said too (13.10.0).
     const said =
-      built.items.some((it) => PLAYER_MOMENT_KINDS.includes(it.kind)) ||
+      built.items.some(
+        (it) =>
+          PLAYER_MOMENT_KINDS.includes(it.kind) ||
+          it.kind === "member_role_changed" ||
+          it.kind === "war_week_played",
+      ) ||
       built.items.some(
         (it) =>
           it.evidence?.kind === "crossing" &&
@@ -5116,7 +5251,14 @@ export const NEWS_SOURCES = {
   // return, which needs one of them.
   player_battles: ["battle_session", "returned"],
   player_moments: PLAYER_MOMENT_KINDS,
-  player_clan_moves: ["clan_joined", "clan_left"],
+  // Joins and leaves; a promotion and a war week read the clans the
+  // player has been in (13.10.0).
+  player_clan_moves: [
+    "clan_joined",
+    "clan_left",
+    "member_role_changed",
+    "war_week_played",
+  ],
   player_quiet: ["quiet_crossed"],
   // highlightItems: a followed player's highlights posted or edited in
   // the window.
@@ -5197,9 +5339,20 @@ export async function timelineNews(
                   and ${inWindow("coalesce(pe.evidence_observed_at, pe.window_end)")})`,
     player_clan_moves:
       players.length &&
-      `exists (select 1 from clan_membership cm
+      `(exists (select 1 from clan_membership cm
                 where cm.player_tag = any(p.players)
-                  and ((${inWindow("cm.joined_observed_at")}) or (${inWindow("cm.left_observed_at")})))`,
+                  and ((${inWindow("cm.joined_observed_at")}) or (${inWindow("cm.left_observed_at")})))
+        or exists (select 1 from clan_membership cm
+                    join clan_event e on e.clan_tag = cm.clan_tag
+                   where cm.player_tag = any(p.players)
+                     and e.event_type = 'role_changed' and e.player_tag = cm.player_tag
+                     and ${inWindow("e.window_end")})
+        or exists (select 1 from war_participation wp
+                    join clan_event e
+                      on e.clan_tag = wp.clan_tag and e.event_type = 'week_resolved'
+                     and e.war_season_id = wp.season_id and e.section_index = wp.section_index
+                   where wp.player_tag = any(p.players) and wp.decks_used > 0
+                     and ${inWindow("e.window_end")}))`,
     player_quiet: players.length && quietSql("select unnest(p.players)"),
     player_highlights:
       players.length &&
