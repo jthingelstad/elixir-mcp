@@ -218,9 +218,12 @@ test("database: battles recorded before the mark write nothing; a first log (no 
 test("database: a live poll past the mark writes the switch once, typed and stamped", async () => {
   const iso = (ms) => new Date(ms).toISOString();
   // The battles above with created_at an hour after play are live.
+  // Read two days after the third battle: a pointer that passed the
+  // battle meanwhile still learns it (Codex on #1110).
   const first = await detectDeckSwitches(ctx.db, {
     playerTag: PIP,
     mark: iso(T0 + 13 * DAY),
+    observedAt: iso(T0 + 16.2 * DAY),
   });
   assert.equal(first.written, 1);
   const again = await detectDeckSwitches(ctx.db, {
@@ -237,4 +240,9 @@ test("database: a live poll past the mark writes the switch once, typed and stam
   assert.equal(row.timing, "exact");
   assert.equal(row.occurred_at.toISOString(), iso(T0 + 14.2 * DAY));
   assert.equal(row.window_start.toISOString(), iso(T0 + 14 * DAY));
+  assert.equal(
+    row.window_end.toISOString(),
+    iso(T0 + 16.2 * DAY),
+    "observed when the read delivered it, not at the battle",
+  );
 });

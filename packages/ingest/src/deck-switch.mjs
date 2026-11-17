@@ -32,7 +32,9 @@
  *    are one moment, the first.
  *
  * Stamped at the third battle (the instant the switch became real); the
- * window opens at the first. battles and wins count the run from its first
+ * window opens at the first and closes at the read that delivered it, so a
+ * poller whose pointer passed the battle before the battle arrived still
+ * learns the switch (an observed window reads window_end; Codex on #1110). battles and wins count the run from its first
  * battle through the newest this poll delivered.
  */
 
@@ -154,8 +156,12 @@ export function findDeckSwitches(battles, { mark, earliest }) {
 
 /** Read the player's battles around a delivery, find the switches it
  *  completed and write each once. mark is the high-water mark the poll
- *  read before it wrote (an ISO string); without one nothing is said. */
-export async function detectDeckSwitches(db, { playerTag, mark, receiptId }) {
+ *  read before it wrote (an ISO string); without one nothing is said.
+ *  observedAt is when the poll read the log (its fetchedAt). */
+export async function detectDeckSwitches(
+  db,
+  { playerTag, mark, observedAt = null, receiptId },
+) {
   if (!mark) return { written: 0 };
   const { rows } = await db.query(
     `select bp.battle_id, bp.battle_time, b.created_at, bp.type, bp.deck_hash,
@@ -215,7 +221,11 @@ export async function detectDeckSwitches(db, { playerTag, mark, receiptId }) {
       tag: playerTag,
       payload: s,
       windowStart: s.first_battle_time,
-      windowEnd: s.battle_time,
+      // When the record learned it, never earlier than the battle.
+      windowEnd:
+        observedAt && Date.parse(observedAt) > Date.parse(s.battle_time)
+          ? new Date(observedAt).toISOString()
+          : s.battle_time,
       occurredAt: s.battle_time,
       receiptId,
     });
