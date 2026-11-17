@@ -87,9 +87,9 @@ export async function readReactions(
             count(*) filter (where $3::timestamptz is null
                                or updated_at > $3)::int as fresh,
             max(updated_at) as last_at
-       from timeline_cheer
-      where item_id = any($1::text[]) and account_id <> $2
-        and not ${blockedSql("account_id", "$2::uuid")}
+       from timeline_cheer tc
+      where item_id = any($1::text[]) and tc.account_id <> $2
+        and not ${blockedSql("tc.account_id", "$2::uuid")}
       group by item_id, cheer`,
     [[...byId.keys()], accountId, seen],
   );

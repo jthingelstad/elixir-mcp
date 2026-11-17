@@ -25,7 +25,9 @@ import { unfollowAccountLinked } from "./linked.mjs";
 export const BLOCK_MAX = 1000;
 
 /** SQL true when accounts `$a` and `$b` are in a block either way. Takes
- *  two SQL expressions. */
+ *  two SQL expressions; a column must be qualified by its table's alias
+ *  (`tc.account_id`), or inside the subquery it names account_block's own
+ *  column (Codex on #1078). */
 export const blockedSql = (a, b) =>
   `exists (select 1 from account_block ab
             where (ab.account_id = ${a} and ab.blocked_account_id = ${b})

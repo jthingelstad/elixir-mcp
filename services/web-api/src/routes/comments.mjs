@@ -191,6 +191,9 @@ export function commentsRoutes({ resolveAccount, comments = null }) {
         account,
         body?.id,
         String(body?.reason ?? ""),
+        async (row) =>
+          (await feedItem(db, account, row.item_id, [row.subject_tag])) !==
+          null,
       );
       if (out.error === "invalid_reason")
         return json(400, { error: "invalid_reason" });
