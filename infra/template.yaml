@@ -148,10 +148,10 @@ Parameters:
     AllowedValues: ["true", "false"]
     Description: >-
       Comments on timeline items (2026-11-16). Set to true only once the
-      app secret carries moderation_api_key (Elixir's own Anthropic key
-      for the check before each comment); the relay then holds the key and
-      the API takes comments. False, comments are off everywhere
-      (docs/SECRETS.md).
+      elixir-mcp/moderation secret carries moderation_api_key (Elixir's own
+      Anthropic key for the check before each comment); the relay then
+      reads it at runtime and the API takes comments. False, comments are
+      off everywhere (docs/SECRETS.md).
   CommentsMonthlyCapUsd:
     Type: String
     Default: "10"
@@ -1174,6 +1174,14 @@ Resources:
               - Effect: Allow
                 Action: secretsmanager:GetSecretValue
                 Resource: !Sub arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:elixir-mcp/web-push-??????
+              # Comments' check (2026-11-17): the moderation key's one secret,
+              # read at runtime, only while comments are on.
+              - !If
+                - HasComments
+                - Effect: Allow
+                  Action: secretsmanager:GetSecretValue
+                  Resource: !Sub arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:elixir-mcp/moderation-??????
+                - !Ref AWS::NoValue
               # Durable transport receipts for one notice per upgrade.
               - Effect: Allow
                 Action: [s3:GetObject, s3:PutObject, s3:DeleteObject]
@@ -1799,12 +1807,11 @@ Resources:
             - !Sub "{{resolve:secretsmanager:${AppSecretName}:SecretString:discord_client_secret}}"
             - !Ref AWS::NoValue
           CLAN_MODEL_SECRET: !Sub "{{resolve:secretsmanager:${AppSecretName}:SecretString:clan_sealing_secret}}"
-          # Comments' check (2026-11-16): Elixir's own Anthropic key, used
-          # for that check alone; only the relay reaches Anthropic.
-          MODERATION_API_KEY: !If
-            - HasComments
-            - !Sub "{{resolve:secretsmanager:${AppSecretName}:SecretString:moderation_api_key}}"
-            - !Ref AWS::NoValue
+          # Comments' check: the secret's NAME, never its value (2026-11-17).
+          # The relay reads Elixir's own Anthropic key from it at runtime and
+          # keeps it in memory; only the relay reaches Anthropic.
+          MODERATION_SECRET_ID:
+            !If [HasComments, elixir-mcp/moderation, !Ref AWS::NoValue]
           # Web push (2026-11-16): the secret's NAME, never its value. The
           # relay reads the VAPID pair at runtime and keeps it in memory
           # (Jamie: the private key is never an environment variable).

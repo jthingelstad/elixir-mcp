@@ -12,9 +12,9 @@ the steps that need a value are Jamie's, in the Secrets Manager console.
 | `db_password` | app secret; the RDS master password | the seven database functions and the `Database` resource | Database password |
 | `buttondown_api_token` | app secret | email-relay | Any other app-secret key |
 | `clan_sealing_secret` | app secret | web-api, email-relay, jobs, timeline-sync (`CLAN_MODEL_SECRET`): seals Clan's stored model keys and Discord webhooks, the timeline's Discord webhooks, and the outbox requests that carry them | Clan sealing secret |
-| `moderation_api_key` | app secret; an Anthropic API key of Elixir's own, for comment checks | email-relay (`MODERATION_API_KEY`), only when `CommentsEnabled=true` | Moderation key |
+| `moderation_api_key` | its own secret `elixir-mcp/moderation` (2026-11-17); an Anthropic API key of Elixir's own, for comment checks | email-relay reads it at runtime and keeps it in memory, only when `CommentsEnabled=true` (never an environment variable) | Moderation key |
 | `turnstile_secret_key` | app secret; the secret of Cloudflare Turnstile widget "Elixir sign-in" | email-relay, when `TurnstileKeyInSecret=true` | Turnstile secret key |
-| `vapid_public_key`, `vapid_private_key` | their own secret `elixir-mcp/web-push` (2026-11-16) | email-relay reads the pair at runtime and keeps it in memory (its one `GetSecretValue`); the web-api gets only the public key, by a dynamic reference | Web push key pair |
+| `vapid_public_key`, `vapid_private_key` | their own secret `elixir-mcp/web-push` (2026-11-16) | email-relay reads the pair at runtime and keeps it in memory (a `GetSecretValue` on this one secret); the web-api gets only the public key, by a dynamic reference | Web push key pair |
 | `OriginSecret` | a NoEcho stack parameter | CloudFront sends it; web-api, mcp and collector require it | Origin secret |
 
 **CloudFormation reads a secret only when the resource holding the
@@ -165,24 +165,40 @@ deploy that reads `clan_sealing_secret` has succeeded.
 ## Moderation key (once)
 
 Comments are checked by Claude on a key of Elixir's own, never a clan's
-(`docs/notes/2026-11-16-comments.md`). Only the email relay reads it; the
-web API never holds it. Until the key is there, every check answers
-`moderation_off` and nothing posts.
+(`docs/notes/2026-11-16-comments.md`). It lives in its own secret,
+`elixir-mcp/moderation` (us-east-1), a JSON string
+`{"moderation_api_key": "<key>"}`, never in the app secret and never in an
+environment variable (`docs/notes/2026-11-17-moderation-secret.md`). Only
+the email relay reads it: one `GetSecretValue` on first use, kept in
+memory, never logged. The web API never holds it. While the secret is
+missing, unreadable or malformed, every check answers `moderation_off`,
+nothing posts, and the relay logs `moderation_key_unavailable` with the
+cause once.
 
 1. Jamie, in the Anthropic Console: make an API key for Elixir comment
    checks (a workspace spend limit of its own is a good second cap).
 2. Jamie, in the AWS console (us-east-1): Secrets Manager,
-   `elixir-mcp/app`, Retrieve secret value, Edit. Add the key
-   `moderation_api_key` with that value, Save.
+   `elixir-mcp/moderation`, Retrieve secret value, Edit. Set
+   `moderation_api_key` to that value, Save.
 3. Deploy with `--param=CommentsEnabled=true` (and
    `--param=CommentsMonthlyCapUsd=<dollars>` for a cap other than 10).
+   That names the secret to the relay and grants its role
+   `secretsmanager:GetSecretValue` on that one secret.
 4. Check: Admin, Comments shows checks this month with verdicts other
    than `error`.
 
-To rotate it, put the new value in the same key and deploy with
-`--param=SecretEpoch=<YYYY-MM-DD>`. To turn comments off, deploy with
-`--param=CommentsEnabled=false`; the relay stops reading the key. Remove
-the key from the secret only after that deploy has succeeded.
+To rotate it, put the new value in the same key of `elixir-mcp/moderation`
+and wait: the relay reads the key again an hour after it last read it,
+and within five minutes of Anthropic refusing the old one as
+unauthenticated, so revoke the old key once the new one is saved. To pick
+it up at once, redeploy with `--param=SecretEpoch=<YYYY-MM-DD>`, which
+replaces the relay's containers. A failed read is tried again after five
+minutes, so a fixed secret also turns checks back on without a deploy.
+
+To turn comments off, deploy with `--param=CommentsEnabled=false`: the
+relay is no longer told the secret's name and its role loses the read.
+Leave the secret in place; delete it only after that deploy has
+succeeded.
 
 ## Web push key pair
 

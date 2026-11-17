@@ -228,11 +228,31 @@ export function createModelWorker({
   storage,
   provider,
   now = Date.now,
-  /** Elixir's own key for comment checks; null = every check answers
+  /** Elixir's own key for comment checks: a string, or a source
+   *  `{ get(): Promise<string|null>, rejected() }` (the relay's, read from
+   *  its secret at runtime). No key = every check answers
    *  `moderation_off`, so comments fail closed. */
   moderationKey = null,
 }) {
   const box = createBox(secret, "clan model bridge v1");
+  const moderationSource =
+    moderationKey && typeof moderationKey === "object"
+      ? moderationKey
+      : { get: async () => moderationKey || null, rejected() {} };
+  async function moderate(input) {
+    let k = null;
+    try {
+      k = await moderationSource.get();
+    } catch {
+      k = null;
+    }
+    if (!k) return { ok: false, status: 0, code: "moderation_off" };
+    const r = await provider.write(k, input);
+    // A refused key may have been rotated: ask the source to read again.
+    if (r?.status === 401 || r?.code === "authentication_error")
+      moderationSource.rejected();
+    return r;
+  }
   return async function work(key) {
     const id = modelRequestId(key);
     if (!id) throw new Error("unsupported private model object");
@@ -261,12 +281,7 @@ export function createModelWorker({
           : {};
         response =
           request.method === "moderate"
-            ? moderationKey
-              ? await provider.write(moderationKey, {
-                  ...request.input,
-                  ...wait,
-                })
-              : { ok: false, status: 0, code: "moderation_off" }
+            ? await moderate({ ...request.input, ...wait })
             : request.method === "write"
               ? await provider.write(request.key, { ...request.input, ...wait })
               : request.method === "turn"
