@@ -230,11 +230,11 @@ test("a 2v2 pair's sittings are both told, each naming the other as teammate", a
   });
   assert.match(
     ann.text,
-    /^Ann played 5 battles in one sitting with Bea in 2v2 \(/,
+    /^Ann played 5 battles in one session with Bea in 2v2 \(/,
   );
   assert.match(
     bea.text,
-    /^Bea played 5 battles in one sitting with Ann in 2v2 \(/,
+    /^Bea played 5 battles in one session with Ann in 2v2 \(/,
   );
 });
 
@@ -361,7 +361,7 @@ test("a sitting only partly with the partner says how much of it (Codex on #482)
   };
   assert.match(
     itemText(item),
-    /^Ann played 20 battles in one sitting, 1 of them with Bea in 2v2 \(/,
+    /^Ann played 20 battles in one session, 1 of them with Bea in 2v2 \(/,
   );
   assert.doesNotMatch(itemText(item), /sitting with Bea/);
 });

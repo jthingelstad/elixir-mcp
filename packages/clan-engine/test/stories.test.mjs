@@ -192,7 +192,7 @@ test("a sitting is one story that grows: edited only when its best win or its ru
   const first = buildStories([sit]).stories[0];
   assert.equal(
     renderStory(first, { nowMs: T }),
-    "Ada went 5-1 over 6 battles in one sitting playing Hog Rider cycle (4 ladder, 2 ranked), +120 trophies, winning 4 in a row. The best was a 3-0 win over Sunny Moon.",
+    "Ada went 5-1 over 6 battles in one session playing Hog Rider cycle (4 ladder, 2 ranked), +120 trophies, winning 4 in a row. The best was a 3-0 win over Sunny Moon.",
   );
   const told = new Map([
     [
@@ -457,7 +457,7 @@ test("told today: the same sitting edits a recent post, told with what it told",
   assert.equal(edit.digest, storyDigest(edit));
   assert.equal(
     renderStory(edit, { mates: ["Rain Brave", "Zebra Tawny"], mates_total: 2 }),
-    "Har moved up to Summit of Heroes, joining Rain Brave and Zebra Tawny there. They also set a new best of 11,510 trophies, passing 11,500 with a 2-1 win over Zed. In the same sitting they went 3-1 over 4 battles, winning 3 in a row.",
+    "Har moved up to Summit of Heroes, joining Rain Brave and Zebra Tawny there. They also set a new best of 11,510 trophies, passing 11,500 with a 2-1 win over Zed. In the same session they went 3-1 over 4 battles, winning 3 in a row.",
   );
 });
 

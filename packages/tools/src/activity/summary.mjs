@@ -93,7 +93,7 @@ export function summarizePlayer(e, timeZone = "UTC") {
   if (b.played > 0) {
     const m = modes(b.by_mode);
     parts.push(
-      `${plural(b.played, "battle")} in ${plural(b.sessions, "sitting")} since ${since} (${record(b.won, b.lost, b.drawn)}${m ? `; ${m}` : ""})`,
+      `${plural(b.played, "battle")} in ${plural(b.sessions, "session")} since ${since} (${record(b.won, b.lost, b.drawn)}${m ? `; ${m}` : ""})`,
     );
   } else {
     parts.push(`no recorded battles since ${since}`);
@@ -190,8 +190,8 @@ export function clanSummaryParts(e, timeZone = "UTC") {
   if (a.battles !== null)
     parts.push(
       a.members_active > a.members_total
-        ? `${plural(a.battles, "battle")} in ${plural(a.sessions, "sitting")} by ${a.members_active} players who were members during the window (roster now ${a.members_total}) since ${since}`
-        : `${plural(a.battles, "battle")} in ${plural(a.sessions, "sitting")} by ${a.members_active} of ${a.members_total} members since ${since}`,
+        ? `${plural(a.battles, "battle")} in ${plural(a.sessions, "session")} by ${a.members_active} players who were members during the window (roster now ${a.members_total}) since ${since}`
+        : `${plural(a.battles, "battle")} in ${plural(a.sessions, "session")} by ${a.members_active} of ${a.members_total} members since ${since}`,
     );
   else
     parts.push(
@@ -306,7 +306,7 @@ export function clanSummaryParts(e, timeZone = "UTC") {
       );
     if (s.sessions?.items.length)
       parts.push(
-        `standout sittings: ${s.sessions.items
+        `standout sessions: ${s.sessions.items
           .slice(0, 3)
           .map(
             (m) =>
@@ -505,7 +505,7 @@ export function itemText(it, timeZone = "UTC") {
   const member = f.name ?? f.player_tag ?? "";
   switch (it.kind) {
     case "battle_session":
-      return `${member || subj} played ${plural(f.battles, "battle")}${f.battles > 1 ? " in one sitting" : ""}${togetherPart(f)} (${sitting(f)}${rankedPart(f.ranked)})${played(f)}${f.open ? ", still going" : ""}.`;
+      return `${member || subj} played ${plural(f.battles, "battle")}${f.battles > 1 ? " in one session" : ""}${togetherPart(f)} (${sitting(f)}${rankedPart(f.ranked)})${played(f)}${f.open ? ", still going" : ""}.`;
     // A highlight is the player's post: the battle, then their words as
     // they wrote them (escaped at each output that needs it, never here).
     case "battle_highlight": {
@@ -546,7 +546,7 @@ export function itemText(it, timeZone = "UTC") {
           (p) => !f.teammate || p.player_tag !== f.teammate.player_tag,
         ),
       };
-      return `${member || subj} played ${plural(f.battles, "battle")} in one sitting${mate}${togetherPart(others)} (${sitting(f)}${rankedPart(f.ranked)}${run})${played(f)}${best}${f.open ? ", still going" : ""}.`;
+      return `${member || subj} played ${plural(f.battles, "battle")} in one session${mate}${togetherPart(others)} (${sitting(f)}${rankedPart(f.ranked)}${run})${played(f)}${best}${f.open ? ", still going" : ""}.`;
     }
     // The badge as a player says it: a level above 1 is a level taken,
     // the first level (or a one-off) is a badge earned.

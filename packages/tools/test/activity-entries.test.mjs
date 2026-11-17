@@ -184,7 +184,7 @@ test("battles the record learned in the window are counted; late captures set as
   assert.ok(e.presence.last_battle_at, "presence knows the last battle");
   assert.match(
     e.summary,
-    new RegExp(`${e.battles.played} battles in \\d+ sittings since`),
+    new RegExp(`${e.battles.played} battles in \\d+ sessions since`),
   );
 
   // Late is the battle's own capture delay, not its distance from the
