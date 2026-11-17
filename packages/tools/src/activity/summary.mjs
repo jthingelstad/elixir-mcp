@@ -601,6 +601,8 @@ export function itemText(it, timeZone = "UTC") {
       return `${member || subj} earned ${badgeLabel(f.badge ?? f.name)}.`;
     case "arena_changed":
       return `${member || subj} moved to ${f.to_name ?? `arena ${f.to}`}${f.from_name ? ` from ${f.from_name}` : ""}${onBattle(f.promoted_by)}.`;
+    case "ranked_season_finished":
+      return `${member || subj} finished the Ranked season in ${f.league_name ?? `league ${f.league}`}${f.rating !== null && f.rating !== undefined ? `, rated ${num(f.rating)}` : ""}.`;
     case "ranked_promotion":
       return `${member || subj} was promoted to ${f.to_name ?? `league ${f.to}`}${onBattle(f.promoted_by)}.`;
     case "best_trophies_band":

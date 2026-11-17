@@ -306,3 +306,21 @@ test("0289: a deck switch's head names its mode and its deck; it is never a smal
     false,
   );
 });
+
+test("0289: a Ranked season's finish names the league, a rating only in Ultimate Champion, and is a small moment so a morning of them is one row", () => {
+  expect(
+    momentHead({
+      kind: "ranked_season_finished",
+      facts: { league: 3, league_name: "Master III", rating: null },
+    }),
+  ).toEqual({ kicker: "Ranked season", title: "Master III" });
+  expect(
+    momentHead({
+      kind: "ranked_season_finished",
+      facts: { league: 7, league_name: "Ultimate Champion", rating: 2345 },
+    }),
+  ).toEqual({ kicker: "Ranked season", title: "Ultimate Champion · 2,345" });
+  expect(
+    smallMoment({ kind: "ranked_season_finished", facts: {}, subjects: [] }),
+  ).toBe(true);
+});

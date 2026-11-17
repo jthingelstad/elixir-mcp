@@ -477,6 +477,18 @@ export function momentHead(it) {
       return f.deck
         ? { kicker: SWITCH_KICKER[f.mode] ?? "New deck", title: f.deck }
         : null;
+    // The league only; a rating only in Ultimate Champion, as its
+    // sentence says it (0289). Never a rank.
+    case "ranked_season_finished":
+      return f.league_name
+        ? {
+            kicker: "Ranked season",
+            title:
+              typeof f.rating === "number"
+                ? `${f.league_name} · ${f.rating.toLocaleString("en-US")}`
+                : f.league_name,
+          }
+        : null;
     case "badge_earned":
       if (Array.isArray(f.badges) && f.badges.length > 1)
         return {
@@ -561,7 +573,7 @@ function MomentArtDrawn({ it }) {
   const mark =
     it.kind === "arena_changed"
       ? "castle"
-      : it.kind === "ranked_promotion"
+      : it.kind === "ranked_promotion" || it.kind === "ranked_season_finished"
         ? "crown"
         : it.kind === "best_trophies_band"
           ? "award"

@@ -112,6 +112,8 @@ const PLAYER_MOMENT_KINDS = [
   "legendary_badge_earned",
   "arena_changed",
   "ranked_promotion",
+  // A Ranked season's final league, at the season's end (0289).
+  "ranked_season_finished",
   "best_trophies_band",
   "collection_level_step",
   "career_wins_step",
@@ -136,6 +138,14 @@ const CLAN_LEDGER_KINDS = [
   "race_finished",
   "week_resolved",
 ];
+
+/** A member's moments on a clan's timeline: all but the season finish,
+ *  which every member who played says within hours of one another on
+ *  the season's roll, one instant for the whole clan. It is a moment for
+ *  the player's own followers, never a clan's feed (0289). */
+const CLAN_MEMBER_MOMENT_KINDS = PLAYER_MOMENT_KINDS.filter(
+  (k) => k !== "ranked_season_finished",
+);
 
 /** Every item kind the timeline can carry, for the tool's `kinds` filter. */
 export const ITEM_KINDS = [
@@ -2196,6 +2206,7 @@ function sectionOfKind(kind) {
     case "best_trophies_band":
       return "trophies";
     case "ranked_promotion":
+    case "ranked_season_finished":
       return "ranked";
     case "collection_level_step":
     case "card_unlocked":
@@ -2263,6 +2274,8 @@ function decorate(kind, payload, arenaNames) {
       from_name: leagueName(payload.from),
       to_name: leagueName(payload.to),
     };
+  if (kind === "ranked_season_finished")
+    return { ...payload, league_name: leagueName(payload.league) };
   return payload;
 }
 
@@ -3440,7 +3453,7 @@ export async function buildClanEntry(
       where pe.event_type = any($2::text[])
         and ${ledgerWindowSql("pe", fromMs, toMs, basis)}
       order by pe.event_id`,
-      [tag, PLAYER_MOMENT_KINDS],
+      [tag, CLAN_MEMBER_MOMENT_KINDS],
     ),
   );
   // The same moment written twice in the ledger is one moment in the
@@ -4781,7 +4794,11 @@ export async function buildTimeline(
       lateCounts,
     });
     const e = built.entry;
+    // A moment item is something said, whatever the entry counts: a
+    // player whose window held only a season's finish, a maxed card or a
+    // deck switch was listed quiet and their item dropped (found 13.8.0).
     const said =
+      built.items.some((it) => PLAYER_MOMENT_KINDS.includes(it.kind)) ||
       built.items.some(
         (it) =>
           it.evidence?.kind === "crossing" &&
@@ -5111,7 +5128,7 @@ export const NEWS_SOURCES = {
     "race_finished",
     "week_resolved",
   ],
-  clan_member_moments: PLAYER_MOMENT_KINDS,
+  clan_member_moments: CLAN_MEMBER_MOMENT_KINDS,
   clan_member_battles: ["session_standout", "battle_session", "returned"],
   clan_quiet: ["quiet_crossed"],
   // accountItems serves account_<kind>; factItems the attested kinds.
@@ -5196,7 +5213,7 @@ export async function timelineNews(
       `exists (select 1 from player_event pe
                 join clan_membership cm on cm.player_tag = pe.player_tag
                  and cm.clan_tag = any(p.clans) and cm.left_observed_at is null
-                where pe.event_type = any(p.moment_kinds)
+                where pe.event_type = any(p.clan_moment_kinds)
                   and ${inWindow("coalesce(pe.evidence_observed_at, pe.window_end)")})`,
     // Standouts and a member's sessions read battles in the clan; a return
     // reads a member's battles wherever they were played, back to the
@@ -5240,7 +5257,8 @@ export async function timelineNews(
       `select ${asked.map(([k, sql]) => `${sql} as ${k}`).join(",\n")}
          from (select $1::text[] as players, $2::text[] as clans,
                       $3::text[] as comprehensive, $4::text[] as moment_kinds,
-                      $5::text[] as ledger_kinds, $6::uuid as account_id) p`,
+                      $5::text[] as ledger_kinds, $6::uuid as account_id,
+                      $7::text[] as clan_moment_kinds) p`,
       [
         players,
         clans,
@@ -5248,6 +5266,7 @@ export async function timelineNews(
         PLAYER_MOMENT_KINDS,
         CLAN_LEDGER_KINDS,
         accountId,
+        CLAN_MEMBER_MOMENT_KINDS,
       ],
     );
     for (const [k] of asked) sources[k] = row[k] === true;

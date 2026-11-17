@@ -529,6 +529,8 @@ function clause(it) {
       return `reached King Tower level ${num(f.level)}`;
     case "deck_switched":
       return `switched to ${f.deck ?? "a new deck"}`;
+    case "ranked_season_finished":
+      return `finished the Ranked season in ${f.league_name ?? "Ranked"}`;
     case "challenge_best_run":
       return `set a best challenge run of ${plural(f.best ?? 0, "win")}`;
     case "twelve_win_run":

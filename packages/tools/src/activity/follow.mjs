@@ -97,6 +97,20 @@ export function followFor(it, window) {
       return tag
         ? [{ tool: "players_profile", args: { player_tag: tag } }]
         : [];
+    // A Ranked season's finish: that season's Ranked battles (0289).
+    case "ranked_season_finished":
+      return tag
+        ? [
+            {
+              tool: "battles_performance",
+              args: {
+                player_tag: tag,
+                mode: "ranked",
+                ...(f.season ? { season: f.season } : {}),
+              },
+            },
+          ]
+        : [];
     // A deck switch's decks, read by the mode it was played in (0289).
     case "deck_switched":
       return tag

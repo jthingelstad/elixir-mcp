@@ -1146,6 +1146,62 @@ test("13.6.0: a deck switch is an item with its sentence, its decks by label and
   );
 });
 
+// The owner, 2026-11-17: "Pip finished the Ranked season in Master I."
+// The league, a rating only in Ultimate Champion, never a rank; a
+// player's own moment, never a clan's feed.
+test("13.8.0: a Ranked season's finish is a player's item at the season's end; never on a clan's timeline", async () => {
+  const { rows: mem } = await ctx.db.query(
+    `select cm.player_tag from clan_membership cm join player p on p.player_tag = cm.player_tag
+      where cm.clan_tag = $1 and cm.left_observed_at is null and p.name is not null
+        and cm.player_tag <> all($2::text[])
+      order by cm.player_tag asc limit 1`,
+    [CLAN, [PROFILE, OBSERVER]],
+  );
+  const finish = (tag, payload) =>
+    emitEvent(ctx.db, "ranked_season_finished", {
+      tag,
+      windowStart: "2026-08-03T10:00:00Z",
+      windowEnd: "2026-09-07T13:00:00Z",
+      occurredAt: "2026-09-07T10:00:00Z",
+      payload,
+    });
+  await finish(PROFILE, { season_month: "2026-08", league: 7, rating: 2345 });
+  await finish(mem[0].player_tag, {
+    season_month: "2026-08",
+    league: 3,
+    rating: null,
+  });
+  const { body, isError } = await call("elixir_timeline", {
+    from: "2026-09-07T09:00:00Z",
+    to: "2026-09-07T14:00:00Z",
+    mark_read: false,
+  });
+  assert.equal(isError, false, JSON.stringify(body));
+  const mine = body.timeline.filter((x) => x.kind === "ranked_season_finished");
+  assert.equal(
+    mine.length,
+    1,
+    "the member's finish is not on the clan's timeline",
+  );
+  const [it] = mine;
+  assert.equal(it.facts.player_tag ?? it.subject_tag, PROFILE);
+  assert.ok(
+    body.entries.some((e) => e.subject_tag === PROFILE),
+    "a player whose window holds only the finish is not quiet",
+  );
+  assert.equal(it.schema, "ranked_season_finished/1");
+  assert.equal(it.at, "2026-09-07T10:00:00.000Z");
+  assert.equal(it.section, "ranked");
+  assert.equal(it.facts.season, "2026-08");
+  assert.equal(it.facts.league_name, "Ultimate Champion");
+  assert.equal(it.facts.rating, 2345);
+  assert.equal("rank" in it.facts, false, "never a global rank");
+  assert.match(
+    it.text,
+    / finished the Ranked season in Ultimate Champion, rated 2,345\.$/,
+  );
+});
+
 test("player_tag keeps one member's items, before the cap; a bad tag is refused (7.1.5, Gym #253)", async () => {
   // A closed window: an open one is capped at 30 days before now, which
   // passed the fixture's September on 2026-10-24.
