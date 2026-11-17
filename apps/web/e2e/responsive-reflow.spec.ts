@@ -88,7 +88,7 @@ for (const state of ["signed in", "signed out", "checking"] as const) {
         await expect(page.locator(".account-menu__name")).toHaveText(longName);
         await inBounds(
           page,
-          ".kit-top__row, .kit-top__brand, .kit-top__account, #account-menu, .account-menu__head, .account-menu__name",
+          ".kit-top__row, .kit-top__brand, .kit-top button.kit-bell, .kit-top__account, #account-menu, .account-menu__head, .account-menu__name",
         );
         await accessible(page, ".kit-top");
         await page.keyboard.press("Escape");
@@ -96,8 +96,9 @@ for (const state of ["signed in", "signed out", "checking"] as const) {
         await expect(page.locator("#account-menu")).toHaveCount(0);
         if (width <= 760) {
           const tabs = page.locator(".kit-bottom a, .kit-bottom button");
-          // Home, Find, Clan, You and the bell (#765).
-          await expect(tabs).toHaveCount(5);
+          // Timeline, Find, Clan and Profile; the bell is in the bar
+          // (2026-11-17).
+          await expect(tabs).toHaveCount(4);
           for (const box of await tabs.evaluateAll((all) =>
             all.map((a) => a.getBoundingClientRect().toJSON()),
           ))
