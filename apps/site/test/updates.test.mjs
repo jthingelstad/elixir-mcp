@@ -6,9 +6,12 @@
  */
 import test from "node:test";
 import assert from "node:assert/strict";
-import { readdirSync } from "node:fs";
+import { mkdtempSync, readdirSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { pathToFileURL } from "node:url";
 import updates from "../src/_data/updates.js";
-import { parseUpdate } from "../src/_lib/updates.mjs";
+import { parseUpdate, readUpdates } from "../src/_lib/updates.mjs";
 
 const dir = new URL("../src/_data/updates/", import.meta.url);
 
@@ -16,7 +19,7 @@ test("every file in updates/ is an entry", () => {
   const files = readdirSync(dir);
   assert.ok(
     files.every((f) => f.endsWith(".md")),
-    "only <YYYY-MM-DD>-<NN>-<slug>.md files belong in updates/",
+    "only timestamped or legacy numbered Markdown entries belong in updates/",
   );
   assert.equal(updates.length, files.length);
 });
@@ -38,12 +41,83 @@ test("an entry is its date, its title line and its body, exactly", () => {
   );
 });
 
+test("parallel same-day entries use their own UTC time and slug", () => {
+  const path = mkdtempSync(join(tmpdir(), "elixir-updates-"));
+  const dir = pathToFileURL(`${path}/`);
+  try {
+    // Two sessions can choose names independently. Neither needs to read or
+    // reserve the other's daily number, and both survive the combined build.
+    writeFileSync(
+      new URL("2026-11-17-t142536-clearer-posts.md", dir),
+      "# Clearer posts\n\nRead the post.\n",
+    );
+    writeFileSync(
+      new URL("2026-11-17-t142536-better-follows.md", dir),
+      "# Better follows\n\nFind your friends.\n",
+    );
+    assert.deepEqual(readUpdates(dir), [
+      { date: "2026-11-17", title: "Clearer posts", body: "Read the post." },
+      {
+        date: "2026-11-17",
+        title: "Better follows",
+        body: "Find your friends.",
+      },
+    ]);
+
+    writeFileSync(
+      new URL("2026-11-17-t150001-earlier-in-the-alphabet.md", dir),
+      "# Later time\n\nLater.\n",
+    );
+
+    // Legacy entries keep their own order and words when newer fragments join.
+    writeFileSync(
+      new URL("2026-11-17-09-legacy-nine.md", dir),
+      "# Legacy nine\n\nNine.\n",
+    );
+    writeFileSync(
+      new URL("2026-11-17-10-legacy-ten.md", dir),
+      "# Legacy ten\n\nTen.\n",
+    );
+    writeFileSync(
+      new URL("2026-11-17-10-other-legacy-ten.md", dir),
+      "# Other legacy ten\n\nAlso ten.\n",
+    );
+    writeFileSync(
+      new URL("2026-11-16-t235959-yesterday.md", dir),
+      "# Yesterday\n\nEarlier.\n",
+    );
+    assert.deepEqual(
+      readUpdates(dir).map((u) => u.title),
+      [
+        "Later time",
+        "Clearer posts",
+        "Better follows",
+        "Other legacy ten",
+        "Legacy ten",
+        "Legacy nine",
+        "Yesterday",
+      ],
+    );
+    assert.deepEqual(
+      readUpdates(dir),
+      readUpdates(dir),
+      "same-day ties are deterministic",
+    );
+  } finally {
+    rmSync(path, { recursive: true, force: true });
+  }
+});
+
 test("a file of any other shape is refused", () => {
   for (const name of [
     "2026-10-10-a-title.md",
     "2026-10-10-1-a-title.md",
     "2026-10-10-01-A-Title.md",
     "2026-10-10-01-.md",
+    "2026-10-10-t240000-a-title.md",
+    "2026-10-10-t126000-a-title.md",
+    "2026-10-10-t125960-a-title.md",
+    "2026-10-10-t0102-a-title.md",
   ])
     assert.throws(() => parseUpdate(name, "# T\n\nBody.\n"), /name it/, name);
   for (const text of ["T\n\nBody.\n", "# T\nBody.\n", "# T\n\n", "#  T\n\nB\n"])
@@ -54,7 +128,7 @@ test("a file of any other shape is refused", () => {
     );
 });
 
-test("newest day first, and the highest number first within a day", () => {
+test("newest day first, with legacy numbered entries still readable", () => {
   assert.equal(
     parseUpdate("2026-10-10-10-newest.md", "# x\n\ny\n").order,
     10,
@@ -65,40 +139,4 @@ test("newest day first, and the highest number first within a day", () => {
       updates[i - 1].date >= updates[i].date,
       `${updates[i - 1].title} sits above a newer entry`,
     );
-});
-
-/** Days whose number two entries already shared before this test
- *  (2026-11-13). They keep their numbers: renumbering one would move it
- *  within its day, and the reader orders a pair by file name. The list
- *  only shrinks. */
-const SHARED_BEFORE = [
-  "2026-10-10-11",
-  "2026-10-11-07",
-  "2026-10-11-09",
-  "2026-11-05-03",
-  "2026-11-06-02",
-  "2026-11-06-04",
-  "2026-11-06-09",
-  "2026-11-10-02",
-  "2026-11-13-218",
-];
-
-test("no two entries share a day's number: a new one takes the day's next free one", () => {
-  const seen = new Map();
-  for (const name of readdirSync(dir)) {
-    const key = /^(\d{4}-\d{2}-\d{2}-\d{2,})-/.exec(name)?.[1];
-    if (key) seen.set(key, [...(seen.get(key) ?? []), name]);
-  }
-  const shared = [...seen].filter(([, names]) => names.length > 1);
-  const fresh = shared.filter(([key]) => !SHARED_BEFORE.includes(key));
-  assert.deepEqual(
-    fresh.map(([, names]) => names),
-    [],
-    "rename the newer file to the day's highest number plus one",
-  );
-  assert.deepEqual(
-    SHARED_BEFORE.filter((key) => !seen.has(key) || seen.get(key).length < 2),
-    [],
-    "a pair in SHARED_BEFORE no longer shares its number: take it off the list",
-  );
 });
