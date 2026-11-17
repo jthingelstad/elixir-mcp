@@ -14,7 +14,7 @@
  *   account, and clanmates in Clan's Feed; nobody else, and never anyone
  *   in a block either way, who may not cheer or comment on it either;
  * - delete, report, admin remove and dismiss; rate limits;
- * - posts never reach the record's timeline (MCP, mail, push, RSS,
+ * - posts never reach the record's timeline (MCP, push, RSS,
  *   Discord, public pages all build from it), and no code outside the
  *   web API's own reads names the table.
  *
@@ -626,7 +626,7 @@ const BATTLE_POST_READERS = [
   "packages/tools/src/activity/entries.mjs",
 ];
 
-test("a post about nothing in the record never reaches the record's timeline, which MCP, mail, push, RSS and Discord build from", async () => {
+test("a post about nothing in the record never reaches the record's timeline, which MCP, push, RSS and Discord build from", async () => {
   const subjects = await subjectsFor(scratch.db, FOLLOWER);
   const built = await buildTimeline(scratch.db, subjects, {
     fromMs: Date.now() - 7 * 86_400_000,
@@ -635,7 +635,7 @@ test("a post about nothing in the record never reaches the record's timeline, wh
     interactive: true,
   });
   assert.equal(built.timeline.filter((it) => it.kind === "post").length, 0);
-  // And no code outside the web API's own reads, the schema, the account
+  // And no code outside the canonical post reader, web API writes, schema, account
   // removal and the sweeps names the table, but for the readers of posts
   // about battles (0292: what highlights were), which read only those.
   const root = fileURLToPath(new URL("../../../", import.meta.url));
@@ -647,7 +647,7 @@ test("a post about nothing in the record never reaches the record's timeline, wh
     .filter(Boolean)
     .filter(
       (f) =>
-        !/^(db\/|docs\/|services\/web-api\/(src|test)\/|services\/migrate\/(src|test)\/ops-account-remove|services\/jobs\/src\/index|packages\/record\/src\/retention|apps\/web\/|services\/jobs\/test\/)/.test(
+        !/^(db\/|docs\/|packages\/posts\/src\/|services\/web-api\/(src|test)\/|services\/migrate\/(src|test)\/ops-account-remove|services\/jobs\/src\/index|packages\/record\/src\/retention|apps\/web\/|services\/jobs\/test\/)/.test(
           f,
         ),
     )
