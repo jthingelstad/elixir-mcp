@@ -377,3 +377,78 @@ test("drain: a notice stays sending until every device's relay object is written
     await s.drop();
   }
 });
+
+test("drain: a kind switched off while a notice is still owed to devices stops it there", async () => {
+  const s = await scratchDb("web_push_retry_off");
+  const { db } = s;
+  try {
+    const owners = [];
+    for (const who of ["told-one", "told-none"]) {
+      const {
+        rows: [{ account_id }],
+      } = await db.query(
+        `insert into account (email_hash, email, status, kind, timezone)
+         values ($1, $2, 'approved', 'person', 'UTC') returning account_id`,
+        [who, `${who}@example.com`],
+      );
+      owners.push(account_id);
+      await db.query(
+        `insert into push_subscription (account_id, endpoint, p256dh, auth)
+         values ($1, $2, repeat('B', 87), repeat('a', 22)),
+                ($1, $3, repeat('B', 87), repeat('a', 22))`,
+        [account_id, `${ENDPOINT}-${who}-a`, `${ENDPOINT}-${who}-b`],
+      );
+      await oweClanActionsPush(db, {
+        accountId: account_id,
+        clanTag: "#J2RGCRVG",
+        clanName: "POAP KINGS",
+        count: 1,
+        link: "https://elixir.poapkings.com/clan/J2RGCRVG/actions",
+        day: "2026-11-17",
+      });
+    }
+    const out = [];
+    const now = new Date();
+    // The first account's second write fails; the second account's first.
+    let failOn = 2;
+    const failing = async (lane, msg) => {
+      if (--failOn === 0) throw new Error("s3 down");
+      out.push(msg);
+    };
+    await runWebPush({ db, outbox: failing, now, accountId: owners[0] });
+    failOn = 1;
+    await runWebPush({ db, outbox: failing, now, accountId: owners[1] });
+    assert.equal(out.length, 1);
+
+    // Both switch Clan Actions off before the next run: nothing more is
+    // written, the part-told notice stays sent, the untold one is dropped.
+    for (const a of owners)
+      await db.query(
+        `insert into account_push_pref (account_id, kind, enabled)
+         values ($1, 'clan_actions', false)`,
+        [a],
+      );
+    const writes = [];
+    const next = await runWebPush({
+      db,
+      outbox: async (lane, msg) => writes.push(msg),
+      now,
+    });
+    assert.deepEqual(writes, []);
+    assert.equal(next.sent, 0);
+    const { rows } = await db.query(
+      `select account_id, status, cardinality(pending)::int as left
+         from push_notice order by account_id = $1 desc`,
+      [owners[0]],
+    );
+    assert.deepEqual(
+      rows.map((r) => [r.status, r.left]),
+      [
+        ["sent", 0],
+        ["dropped", 0],
+      ],
+    );
+  } finally {
+    await s.drop();
+  }
+});
