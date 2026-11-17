@@ -77,13 +77,24 @@ const head = (page: Page) =>
     return { overlap, sameLine: b.top < a.bottom && b.bottom > a.top };
   });
 
-/** Fonts loaded and every animation finished: the earned mark's entry
+/** Fonts loaded and active animations settled: the earned mark's entry
  *  (`kit-stamp-in`) scales it to 112% for 220ms, which a measurement in
- *  that window reads as reaching past the edge. */
+ *  that window reads as reaching past the edge. Replacing a transition
+ *  cancels it and rejects `finished`; wait for its replacement as well. */
 const settled = (page: Page) =>
   page.evaluate(async () => {
     await document.fonts.ready;
-    await Promise.all(document.getAnimations().map((a) => a.finished));
+    for (let pass = 0; pass < 10; pass++) {
+      await new Promise<void>((resolve) =>
+        requestAnimationFrame(() => resolve()),
+      );
+      const moving = document
+        .getAnimations()
+        .filter((a) => a.pending || a.playState === "running");
+      if (!moving.length) return;
+      await Promise.allSettled(moving.map((a) => a.finished));
+    }
+    throw new Error("Animations kept restarting before the layout settled");
   });
 
 const px = (page: Page, selector: string) =>
@@ -212,4 +223,26 @@ test("twice the default font size, 320px: a Stamp's detail sheet grows and nothi
   );
   expect(await sideways(page)).toBeLessThanOrEqual(0);
   expect(await cutOff(page, "dialog .kit-passport-sheet")).toEqual([]);
+});
+
+test("a canceled animation settles before a layout is measured", async ({
+  page,
+}) => {
+  await page.setContent('<main><p id="moving">Ready to measure</p></main>');
+  await page.evaluate(() => {
+    const animation = document
+      .querySelector("#moving")!
+      .animate([{ opacity: 0 }, { opacity: 1 }], { duration: 60_000 });
+    const read = document.getAnimations.bind(document);
+    // Cancel after the helper has captured the real finished promise,
+    // reproducing a transition replaced while an async panel updates.
+    document.getAnimations = () => {
+      document.getAnimations = read;
+      const animations = read();
+      queueMicrotask(() => animation.cancel());
+      return animations;
+    };
+  });
+  await settled(page);
+  await expect(page.getByText("Ready to measure")).toBeVisible();
 });
