@@ -406,6 +406,76 @@ test("the keyboard: arrows move, Enter chooses, Escape steps back then closes", 
   await waitFor(() => expect(document.activeElement).toBe(cheerButton()));
 });
 
+test("the arrows step over a recent slot the screen hides (Codex on #1108)", async () => {
+  answering();
+  localStorage.setItem("elixir.cheer.recent", "ice_cold");
+  // Under 380 px the stylesheet hides a recent slot that is not yours.
+  const narrow = document.createElement("style");
+  narrow.textContent =
+    '.kit-cheers__kind--recent[aria-pressed="false"] { display: none; }';
+  document.head.append(narrow);
+  try {
+    await feedWith(FRESH);
+    fireEvent.click(toggle(), { detail: 0 });
+    await waitFor(() => expect(focused()).toBe("Well played"));
+    // The slot is there, only not drawn.
+    expect(lead().querySelector('[aria-label="Ice cold"]')).toBeTruthy();
+    fireEvent.keyDown(document.activeElement, { key: "End" });
+    expect(focused()).toBe("More reactions");
+    fireEvent.keyDown(document.activeElement, { key: "ArrowLeft" });
+    expect(focused()).toBe("Grind");
+    fireEvent.keyDown(document.activeElement, { key: "ArrowRight" });
+    expect(focused()).toBe("More reactions");
+    fireEvent.keyDown(document.activeElement, { key: "ArrowRight" });
+    expect(focused()).toBe("Well played");
+    fireEvent.keyDown(document.activeElement, { key: "ArrowLeft" });
+    expect(focused()).toBe("More reactions");
+  } finally {
+    narrow.remove();
+    localStorage.removeItem("elixir.cheer.recent");
+  }
+});
+
+test("the grid goes above the row when it would not fit below, though the six did (Codex on #1108)", async () => {
+  answering();
+  // A row near the foot of the screen: the six fit under it, the grid of
+  // twenty does not, and there is room above.
+  const rect = (top, height) => ({
+    top,
+    bottom: top + height,
+    height,
+    left: 8,
+    right: 308,
+    width: 300,
+    x: 8,
+    y: top,
+  });
+  vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(
+    function () {
+      if (this.classList.contains("kit-cheers__row")) return rect(600, 44);
+      if (this.classList.contains("kit-cheers__pop--all")) return rect(0, 200);
+      if (this.classList.contains("kit-cheers__pop")) return rect(0, 50);
+      return rect(0, 0);
+    },
+  );
+  const pop = () => document.querySelector(".kit-cheers__pop");
+  await feedWith(FRESH);
+  expect(window.innerHeight).toBeLessThan(600 + 44 + 4 + 200);
+  fireEvent.click(toggle());
+  expect(pop().classList.contains("kit-cheers__pop--up")).toBe(false);
+  fireEvent.click(screen.getByRole("button", { name: "More reactions" }));
+  await waitFor(() =>
+    expect(pop().classList.contains("kit-cheers__pop--up")).toBe(true),
+  );
+  // Back to the six: under the row again.
+  fireEvent.keyDown(screen.getByRole("button", { name: "Love it" }), {
+    key: "Escape",
+  });
+  await waitFor(() =>
+    expect(pop().classList.contains("kit-cheers__pop--up")).toBe(false),
+  );
+});
+
 test("a scroll that starts on the button never cheers, and a long press opens the kinds", async () => {
   answering();
   await feedWith(FRESH);

@@ -28,6 +28,8 @@ const PRESS_SLOP = 10;
 export const GRID_COLUMNS = 5;
 /** How near the viewport's edge the popover and a name may come. */
 const EDGE = 4;
+// The popover's distance from the row (components.css, .kit-cheers__pop).
+const GAP = 4;
 
 /** What a reader hears after the button's name: the counts by kind, how
  *  many cheered, and which one is yours (`yours: false` where the reader
@@ -173,20 +175,20 @@ export function Cheers({ it, where, compact = false }) {
   }, [open]);
 
   // The popover stays on screen: sideways inside the viewport, and above
-  // the row when there is no room under it.
+  // the row when there is no room under it. Decided again at each level
+  // from the popover's own height, so the grid of all twenty goes up when
+  // the row of six fitted below but the grid would not (Codex on #1108).
   useLayoutEffect(() => {
     const el = popRef.current;
     if (!el) return;
     keepInside(el, 0);
-    if (level === 1) {
-      const r = el.getBoundingClientRect();
-      const row = rowRef.current?.getBoundingClientRect();
-      setUp(
-        Boolean(row) &&
-          r.bottom > window.innerHeight - EDGE &&
-          row.top - r.height > EDGE,
-      );
-    }
+    const h = el.getBoundingClientRect().height;
+    const row = rowRef.current?.getBoundingClientRect();
+    setUp(
+      Boolean(row) &&
+        row.bottom + GAP + h > window.innerHeight - EDGE &&
+        row.top - GAP - h >= EDGE,
+    );
     const at = focusAt.current;
     focusAt.current = null;
     if (at != null) el.querySelectorAll("button")[at]?.focus();
@@ -340,7 +342,13 @@ export function Cheers({ it, where, compact = false }) {
     else kindPress.current = null;
   };
 
-  const buttons = () => [...(popRef.current?.querySelectorAll("button") ?? [])];
+  // The kinds the arrows move between: the ones drawn. Under 380 px the
+  // recent slot is hidden (display: none) unless it is yours, and an arrow
+  // must step over it, not stop on it (Codex on #1108).
+  const buttons = () =>
+    [...(popRef.current?.querySelectorAll("button") ?? [])].filter(
+      (b) => getComputedStyle(b).display !== "none",
+    );
   const onKindsKey = (e) => {
     const list = buttons();
     const at = list.indexOf(document.activeElement);
