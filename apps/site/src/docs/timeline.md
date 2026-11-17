@@ -218,7 +218,7 @@ After the link is ready, **Share image** opens its picture and **Copy for a
 post** copies a linked picture. A clipboard or Share sheet interruption
 leaves the link available to select and copy.
 
-Every share of the same item gets the same random link. It names no sender
+While a link is active, every share of the same item gets the same random link. It names no sender
 or opener. Elixir re-reads the current item when the link opens: edits show,
 and a removed or hidden post stops opening. The link lasts while its source
 can be read, up to a year. Session updates can be read for 30 days. Previous

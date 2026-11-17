@@ -19,7 +19,8 @@ export function ItemShare({ it, battle, onReady }) {
       let link = url;
       if (!link) {
         const subject =
-          it?.subjects?.find((s) => s.kind === "player") ?? it?.subjects?.[0];
+          it?.subjects?.find((s) => s.tag === it.subject_tag) ??
+          it?.subjects?.[0];
         const out = await api.shareItem(
           battle
             ? { source: "battle", battle_ref: battle.id }

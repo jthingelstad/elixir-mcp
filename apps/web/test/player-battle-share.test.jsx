@@ -8,7 +8,7 @@ import {
 } from "@testing-library/react";
 import { PlayerBattleShare } from "../src/views/PlayerBattleShare.jsx";
 
-const URL = "https://elixir.poapkings.com/battle/ccd04012bda8";
+const URL = "https://elixir.poapkings.com/share/abcdefghijklmnopqrstuvwx";
 let copy;
 beforeEach(() => {
   copy = vi.fn().mockResolvedValue(undefined);

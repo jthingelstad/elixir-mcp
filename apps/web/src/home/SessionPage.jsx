@@ -43,10 +43,8 @@ import { Invite, JoinLine } from "../views/JoinElixir.jsx";
  * tap from its row. Where the record and the update's count differ, the
  * page says so in plain words.
  *
- * Its public page (2026-11-17) is /session/<tag>/<id>/<start>
- * (PublicSession.jsx): the same view read as nobody. Signed out, this
- * address goes there (App.jsx HomeOutlet, and the web API's 302 on a
- * first load).
+ * Share issues an opaque link to this Timeline update. Its standalone
+ * public page opens no battle history; this member page requires sign-in.
  */
 export function SessionPage() {
   const { pathname, search } = useLocation();

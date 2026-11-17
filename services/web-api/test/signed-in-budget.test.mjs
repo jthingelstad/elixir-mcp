@@ -197,7 +197,7 @@ test("your own player page stays in its budgets, and reads each battle post's ro
   // player's whole history once per post.
   const scans = scansOf(
     page.posts.planned,
-    /from account_post p\s+join account au/,
+    /from account_post p[\s\S]+?join account au/,
     "battle_participant",
   );
   assert.ok(scans.length > 0, "the battle posts' read was planned");
@@ -610,14 +610,16 @@ const latestBattle = async () =>
  */
 const BATTLE = {
   "/api/me": { statements: 11, buffers: 900 },
-  "/api/public/battles": { statements: 21, buffers: 500 },
+  // The formerly anonymous read now checks one approved-person session.
+  // Its game-record budget stays 21 statements, with the same buffer ceiling.
+  "/api/me/battles": { statements: 22, buffers: 500 },
   "/api/me/posts": { statements: 6, buffers: 80 },
   // +1: the player's clan news reads (13.10.0, 2026-11-17).
   "/api/me/cheers": { statements: 27, buffers: 900 },
   // +1: who verified the player, for linked follows (2026-11-15).
   "/api/me/follow-cost": { statements: 6, buffers: 250 },
   // +1: the page's profile images, one statement (2026-11-14).
-  "/api/public/posts": { statements: 23, buffers: 500 },
+  "/api/public/shared-items": { statements: 23, buffers: 500 },
 };
 
 test("the battle page and a shared post stay in their budgets, and /api/me reads each claim's player by key", async () => {
@@ -625,10 +627,10 @@ test("the battle page and a shared post stay in their budgets, and /api/me reads
   const page = await inOrder([
     ["/api/me", "/api/me", {}, BATTLE["/api/me"]],
     [
-      "/api/public/battles",
-      `/api/public/battles/${battle}`,
+      "/api/me/battles",
+      `/api/me/battles/${battle}`,
       {},
-      BATTLE["/api/public/battles"],
+      BATTLE["/api/me/battles"],
     ],
     [
       "/api/me/posts",
@@ -649,6 +651,19 @@ test("the battle page and a shared post stay in their budgets, and /api/me reads
       BATTLE["/api/me/follow-cost"],
     ],
   ]);
+  const battleRead = page["/api/me/battles"];
+  const sessionStatements = battleRead.seen.filter((s) =>
+    s.text.trimStart().startsWith("update session s"),
+  );
+  assert.equal(
+    sessionStatements.length,
+    1,
+    "one session gate before the battle read",
+  );
+  assert.ok(
+    battleRead.seen.length - sessionStatements.length <= 21,
+    "the game-record query ceiling is unchanged",
+  );
   for (const s of scansOf(
     page["/api/me"].planned,
     /cross join lateral \(\s*select p\.name, p\.last_known_clan_tag from player p/,
@@ -656,26 +671,41 @@ test("the battle page and a shared post stay in their budgets, and /api/me reads
   ))
     assert.equal(s.index, "player_pkey", `/api/me: player read by ${s.index}`);
 
-  // A post: the owner's words on a battle the page can name.
-  const share = "qqqqqqqqqqqqqqz";
-  await seed.db.query(
-    `insert into account_post (item_id, player_tag, battle_id, account_id, body, share_id, shared_at)
-     values ('tl_' || substr(md5(random()::text), 1, 20), $1, $2, $3, 'What a finish', $4, now())`,
-    [seed.leaderTag, battle, seed.accountId, share],
+  // A post: the owner's words on a battle the page can name. Issue the
+  // capability through the real authenticated source read, not a fixture
+  // token in the retired account_post.share_id column.
+  const {
+    rows: [post],
+  } = await seed.db.query(
+    `insert into account_post (item_id, player_tag, battle_id, account_id, body)
+     values ('tl_' || substr(md5(random()::text), 1, 20), $1, $2, $3, 'What a finish')
+     returning post_id::text, item_id`,
+    [seed.leaderTag, battle, seed.accountId],
   );
   try {
-    await inOrder([
+    const issued = await request(handler, seed.cookie, "/api/me/item-shares", {
+      method: "POST",
+      body: { source: "post", post_id: post.post_id, item_id: post.item_id },
+    });
+    assert.equal(issued.status, 200, JSON.stringify(issued.body));
+    assert.match(issued.body.id, /^[a-z2-7]{24}$/);
+    const shared = await inOrder([
       [
-        "/api/public/posts",
-        `/api/public/posts/${share}`,
+        "/api/public/shared-items",
+        `/api/public/shared-items/${issued.body.id}`,
         {},
-        BATTLE["/api/public/posts"],
+        BATTLE["/api/public/shared-items"],
       ],
       ["/api/me (post)", "/api/me", {}, BATTLE["/api/me"]],
     ]);
+    assert.equal(shared["/api/public/shared-items"].body.item.id, post.item_id);
+    assert.equal(
+      shared["/api/public/shared-items"].body.item.post.text,
+      "What a finish",
+    );
   } finally {
-    await seed.db.query("delete from account_post where share_id = $1", [
-      share,
+    await seed.db.query("delete from account_post where post_id = $1", [
+      post.post_id,
     ]);
   }
 });
