@@ -6861,6 +6861,11 @@ button.kit-row {
 .kit-home__chips:empty {
   display: none;
 }
+.kit-onboarding__setup > summary {
+  min-height: var(--hit);
+  padding-block: var(--s-3);
+  cursor: pointer;
+}
 /* The mode filter (2026-11-17): one list after the chips, set apart from
    them so it reads as a second choice; never full width, even where the
    kit's lists are on a phone. */

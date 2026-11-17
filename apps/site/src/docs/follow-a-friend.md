@@ -65,6 +65,11 @@ relationship is set when the player is added: for a player already on
 your account, change it under Settings › Players & following. An [agent](/docs/agents) you own
 follows players as watching only.
 
+When adding your own player requests its first battles, an admitted
+profile already on record is enough: the missing first battle-log read
+can be requested without waiting for a new profile. The recorder's
+existing first-read limits still apply.
+
 A friend takes one of your player slots, the same as a watched
 player, unless Elixir already records them: a member of a clan recorded in
 full, or a player another account followed first, is free. Find's Follow and

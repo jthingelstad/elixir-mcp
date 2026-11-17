@@ -1262,3 +1262,44 @@ test("a tag the game answered not found for asks for nothing, battle log include
   ]);
   assert.deepEqual(await jobsOf(tag), []);
 });
+
+test("first battles use an admitted existing profile, never a rejected or retired receipt", async () => {
+  await db.query("update budget_state set tokens = 10");
+  const cases = [
+    { tag: "#00JRG2RU", admission: "admitted", retired: false },
+    { tag: "#0LJR0G22", admission: "rejected", retired: false },
+    { tag: "#02G2PJC0", admission: "admitted", retired: true },
+  ];
+  const live = makeLive({ enqueue: enqueueJob });
+  for (const { tag, admission, retired } of cases) {
+    const personId = await personWith(`first-battles-existing-${tag}`, tag);
+    await db.query(
+      `insert into api_receipt
+        (endpoint, entity_key, gateway_id, fetched_at, payload_hash, admission, replay_retired_at)
+       values ('player', $1, $2, now() - make_interval(secs => $3), 'x', $4,
+               case when $5 then now() else null end)`,
+      [tag, gatewayId, admission === "rejected" ? 1 : 3600, admission, retired],
+    );
+    const result = await requestFirstRead(db, live, tag, personId, {
+      battles: true,
+    });
+    if (admission === "rejected") {
+      assert.equal(result.reason, "rejected");
+      assert.deepEqual(result.battles, {
+        requested: false,
+        reason: "profile_not_requested",
+      });
+      assert.deepEqual(await jobsOf(tag), []);
+    } else {
+      assert.equal(result.requested, retired);
+      assert.deepEqual(result.battles, { requested: true, reason: "pending" });
+      assert.deepEqual(
+        await jobsOf(tag),
+        retired
+          ? ["player:live", "player_battlelog:live"]
+          : ["player_battlelog:live"],
+      );
+    }
+  }
+  assert.equal(await tokens(), 7);
+});

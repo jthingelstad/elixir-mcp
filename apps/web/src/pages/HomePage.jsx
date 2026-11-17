@@ -5,6 +5,7 @@ import { useMe } from "../App.jsx";
 import { useHome, useReconcilePassport } from "../lib/queries.js";
 import { NewAccount } from "../home/NewAccount.jsx";
 import { useFirstRead } from "../home/first-read.js";
+import { useOnboardingPeople } from "../home/onboarding-people.js";
 import { HomeFeed, ModePick, useTimelineMode } from "../home/Feed.jsx";
 import { keptFor } from "../home/logic.js";
 import { useMayPost } from "../home/Post.jsx";
@@ -30,6 +31,9 @@ export function HomePage() {
   // The first read, whichever view is drawn: until the player's own battle
   // log is read, one status read polls and Home refreshes once it lands.
   const { answer, live, player, ready } = useFirstRead(data?.first);
+  const peopleProgress = useOnboardingPeople(live);
+  const [readingTimeline, setReadingTimeline] = useState(false);
+  const [keepPeople, setKeepPeople] = useState(false);
   // Where the feed puts its chips: the head, right of the title (design
   // canvas, 2026-11-13). The feed draws them above itself until it is set.
   const [chipsAt, setChipsAt] = useState(null);
@@ -62,18 +66,27 @@ export function HomePage() {
         <div className="kit-skeleton" aria-busy="true" />
       </>
     );
-  if (!ready)
+  if ((!ready || keepPeople) && !readingTimeline)
     return (
       <>
         <PageHead
-          title="Welcome to Elixir"
-          sub="Add your player tag, and your battles show up here within about a minute."
+          title={player ? "Your people" : "Welcome to Elixir"}
+          sub={
+            player
+              ? ready
+                ? "Follow your friends and clanmates, then open your Timeline."
+                : "Follow your friends and clanmates while your battles arrive."
+              : "Add your player tag, and your battles show up here within about a minute."
+          }
         />
         <NewAccount
           first={live}
           answer={answer}
           landed={ready}
           zoneMissing={!me?.timezone}
+          peopleProgress={peopleProgress}
+          onOpenTimeline={() => setReadingTimeline(true)}
+          onFollowed={() => setKeepPeople(true)}
         />
         {/* Someone followed before a player of your own: their feed is
             here already, as the Timeline tab was [engineering, 2026-11-12]. */}

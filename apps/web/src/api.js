@@ -461,6 +461,9 @@ export const api = {
   // People to follow ("suggested"), Find's From your battles ("battles")
   // and Your clan ("clan").
   people: (which) => request("GET", `/api/me/people/${which}`),
+  onboardingPeople: () => request("GET", "/api/me/people/onboarding"),
+  requestOnboardingPeople: () =>
+    request("POST", "/api/me/people/onboarding", {}),
   // The player map (#768): everyone who has set a place, at that place.
   playerMap: () => request("GET", "/api/me/player-map"),
   // Home's suggested follows' "Not now": off Home's top for 30 days.

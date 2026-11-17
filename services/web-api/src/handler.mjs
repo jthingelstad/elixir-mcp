@@ -60,6 +60,7 @@ import { postsRoutes } from "./routes/posts.mjs";
 import { pushRoutes } from "./routes/push.mjs";
 import { bellRoutes } from "./routes/bell.mjs";
 import { peopleRoutes } from "./routes/people.mjs";
+import { onboardingPeopleRoutes } from "./routes/onboarding-people.mjs";
 import { passportRoutes } from "./routes/passport.mjs";
 import { accountsRoutes } from "./routes/accounts.mjs";
 import { ensurePassport } from "@elixir-mcp/stamps";
@@ -550,6 +551,7 @@ export function makeHandler({
       posts: postsOn,
     }),
     ...peopleRoutes({ resolveAccount, blocks: comments?.enabled === true }),
+    ...onboardingPeopleRoutes({ resolveAccount, live: liveRead }),
     ...passportRoutes({ resolveAccount }),
     ...accountsRoutes({ resolveAccount, blocks: comments?.enabled === true }),
     // Clan, a part of Elixir: its routes under /api/clan (routes/clan.mjs).

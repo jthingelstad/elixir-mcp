@@ -8,6 +8,7 @@ import { tagPath } from "../lib/tag-url.js";
 import { recordJourney } from "../lib/record-journey.js";
 import { useInvalidate } from "../lib/queries.js";
 import { clanStepLine } from "./logic.js";
+import { OnboardingPeople } from "./OnboardingPeople.jsx";
 
 /**
  * Welcome: worked out from the record each time, with nothing stored. Four
@@ -27,6 +28,9 @@ export function NewAccount({
   answer = null,
   landed = false,
   zoneMissing,
+  peopleProgress,
+  onOpenTimeline,
+  onFollowed,
 }) {
   const invalidate = useInvalidate();
   const navigate = useNavigate();
@@ -34,85 +38,113 @@ export function NewAccount({
   const live = first;
   const player = live?.player ?? null;
   const journey = recordJourney(live);
+  const Steps = added ? "details" : "div";
   return (
     <div className="kit-home">
       {zoneMissing ? <ZoneNotice /> : null}
       <div className="kit-home__two">
-        <ol className="kit-steps">
-          <Step
-            n={1}
-            title="Add your player"
-            done={added}
-            doneLine={
-              added ? (
-                <>
-                  <TagText>{player?.name ?? player?.player_tag}</TagText>, your
-                  main player.
-                </>
-              ) : null
-            }
-          >
-            <AddPlayer
-              onAdded={() => {
-                // The player is added, so #add-player has done its work; left
-                // on, the Timeline would send an account with a player to Settings.
-                if (window.location.hash === ADD_PLAYER_HASH)
-                  navigate({ to: "/timeline", hash: "", replace: true });
-                invalidate();
-              }}
-            />
-          </Step>
-          <Step
-            n={2}
-            title="Your battles"
-            done={Boolean(landed)}
-            waiting={!added}
-            ahead="Your recent battles show up here, usually within a minute."
-            doneLine={
-              landed
-                ? player.battles_30d > 0
-                  ? `${player.battles_30d} ${player.battles_30d === 1 ? "battle" : "battles"} on record.`
-                  : "Your profile is on record."
-                : null
-            }
-          >
-            <FirstRead
-              player={player}
-              journey={journey}
-              onCheck={() => answer?.refresh()}
-              busy={Boolean(answer?.loading)}
-              onStopped={() => invalidate()}
-            />
-          </Step>
-          <Step
-            n={3}
-            title="Your clan"
-            done={Boolean(live?.clan?.name)}
-            waiting={!added}
-            ahead="In a clan? It shows up here."
-            doneLine={
-              live?.clan?.name ? clanStepLine(live.clan.name, added) : null
-            }
-          >
-            {live?.clan?.name
-              ? null
-              : "Once Elixir sees your clan, it follows it for you: your clanmates, who joins and leaves, and the River Race."}
-          </Step>
-          <Step
-            n={4}
-            title="Prove it’s you"
-            optional
-            done={player?.verified === true}
-            waiting={!added}
-            ahead="One battle with a deck Elixir picks. Unlocks your clan role."
-            doneLine={player?.verified ? "Proved." : null}
-          >
-            Play one battle with the deck Elixir gives you. Win or lose, it
-            counts. Then Elixir knows this player is yours, and you can act as
-            Elder, Co-Leader or Leader in your clan.{" "}
-            <Link to={`${SETTINGS}/players/verify`}>Prove it</Link>
-          </Step>
-        </ol>
+        <div className="kit-home__main">
+          {added ? (
+            <>
+              <div role="status">
+                <p className="kit-tiny m-0">
+                  Added <TagText>{player.name ?? player.player_tag}</TagText>.
+                </p>
+                <FirstRead
+                  compact
+                  player={player}
+                  journey={journey}
+                  onCheck={() => answer?.refresh()}
+                  busy={Boolean(answer?.loading)}
+                  onStopped={() => invalidate()}
+                />
+              </div>
+              <OnboardingPeople
+                progress={peopleProgress}
+                onOpenTimeline={onOpenTimeline}
+                onFollowed={onFollowed}
+              />
+            </>
+          ) : null}
+          <Steps className={added ? "kit-onboarding__setup" : undefined}>
+            {added ? <summary>Finish your setup</summary> : null}
+            <ol className="kit-steps">
+              <Step
+                n={1}
+                title="Add your player"
+                done={added}
+                doneLine={
+                  added ? (
+                    <>
+                      <TagText>{player?.name ?? player?.player_tag}</TagText>,
+                      your main player.
+                    </>
+                  ) : null
+                }
+              >
+                <AddPlayer
+                  onAdded={() => {
+                    // The player is added, so #add-player has done its work; left
+                    // on, the Timeline would send an account with a player to Settings.
+                    if (window.location.hash === ADD_PLAYER_HASH)
+                      navigate({ to: "/timeline", hash: "", replace: true });
+                    invalidate();
+                  }}
+                />
+              </Step>
+              <Step
+                n={2}
+                title="Your battles"
+                done={Boolean(landed)}
+                waiting={!added}
+                ahead="Your recent battles show up here, usually within a minute."
+                doneLine={
+                  landed
+                    ? player.battles_30d > 0
+                      ? `${player.battles_30d} ${player.battles_30d === 1 ? "battle" : "battles"} on record.`
+                      : "Your profile is on record."
+                    : null
+                }
+              >
+                <FirstRead
+                  player={player}
+                  journey={journey}
+                  onCheck={() => answer?.refresh()}
+                  busy={Boolean(answer?.loading)}
+                  onStopped={() => invalidate()}
+                />
+              </Step>
+              <Step
+                n={3}
+                title="Your clan"
+                done={Boolean(live?.clan?.name)}
+                waiting={!added}
+                ahead="In a clan? It shows up here."
+                doneLine={
+                  live?.clan?.name ? clanStepLine(live.clan.name, added) : null
+                }
+              >
+                {live?.clan?.name
+                  ? null
+                  : "Once Elixir sees your clan, it follows it for you: your clanmates, who joins and leaves, and the River Race."}
+              </Step>
+              <Step
+                n={4}
+                title="Prove it’s you"
+                optional
+                done={player?.verified === true}
+                waiting={!added}
+                ahead="One battle with a deck Elixir picks. Unlocks your clan role."
+                doneLine={player?.verified ? "Proved." : null}
+              >
+                Play one battle with the deck Elixir gives you. Win or lose, it
+                counts. Then Elixir knows this player is yours, and you can act
+                as Elder, Co-Leader or Leader in your clan.{" "}
+                <Link to={`${SETTINGS}/players/verify`}>Prove it</Link>
+              </Step>
+            </ol>
+          </Steps>
+        </div>
         <aside className="kit-inbox">
           <h2>In your inbox</h2>
           <p>
@@ -262,7 +294,14 @@ function AddPlayer({ onAdded }) {
   );
 }
 
-function FirstRead({ player, journey, onCheck, busy, onStopped }) {
+function FirstRead({
+  player,
+  journey,
+  onCheck,
+  busy,
+  onStopped,
+  compact = false,
+}) {
   const [err, setErr] = useState("");
   if (!player) return null;
   if (journey.notFound)
@@ -322,6 +361,14 @@ function FirstRead({ player, journey, onCheck, busy, onStopped }) {
           Check again
         </button>
       </>
+    );
+  if (compact)
+    return (
+      <p className="kit-tiny">
+        {player.battlelog_observed_at
+          ? "Your battles are ready in the Timeline."
+          : "Your battles are on their way. Find your people while Elixir reads them."}
+      </p>
     );
   return (
     <>
