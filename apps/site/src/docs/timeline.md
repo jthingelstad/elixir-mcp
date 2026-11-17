@@ -346,6 +346,48 @@ counts the cheers on items about your own verified players, never naming
 who ([the bell](/docs/your-account#notifications)). You can give
 up to 120 cheers an hour.
 
+## Posts
+
+You can write a post of your own: a few words to the people who follow
+you and to your clanmates. You need a [verified player](/docs/verified-players)
+of your own, and the post goes out as that player.
+
+- **Start one** at the top of your Timeline: tap **Write a post or ask a
+  question**, or on a phone tap **Post** above the feed.
+- **Ask a question** marks it a **Question**. People answer it under the
+  post.
+- **Add a deck:** in Clash Royale, tap **Copy deck** on any deck, then
+  paste the link into your post. Elixir shows the eight cards with their
+  art, the deck's name, its average elixir and a **Copy deck** button. The
+  link itself doesn't go in the post.
+- **Or add cards:** tap **Add cards** and search by name, up to 8.
+
+A post is words only: up to 500 characters, with no links, photos or
+@-names. Every post is checked before it goes up. A check can say no, for
+example to bullying, to asking where people live or how old they are, to
+trading accounts or to "add me on" another app. It tells you why in one
+line and keeps your words so you can change them. You can write 5 posts
+a day, one a minute.
+
+Who sees it:
+
+- **People who follow you** or your player, on their Timeline.
+- **Your clanmates**, in your clan's Feed.
+- **Your account page and your player's page** list your posts too, for
+  those same people. Your own posts are on your Profile.
+
+Anyone who can see a post can cheer it. Notifications tell you how many
+cheered your posts, never who. Nobody you've blocked, or who has blocked
+you, sees your posts. You don't see theirs.
+
+**Delete** takes your post away at once. **Report** hides someone else's
+post from you right away, and Elixir takes a look.
+
+Treat a post as public. Today it shows on the Timeline, in your clan's
+Feed, on your Profile and on your player's page. Elixir's emails,
+notifications, RSS feeds, Discord channels, agents and shared pages may
+carry posts later.
+
 ## Your RSS link
 
 Your timeline can also be read in a feed reader app. **Settings ›

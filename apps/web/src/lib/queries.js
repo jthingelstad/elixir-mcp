@@ -682,9 +682,10 @@ export const itemSubjects = (it) =>
     ),
   ];
 
-/** After a comment write: the item's thread and Home's feed (its card's
- *  count and latest) read again. A block also ends follows, so it
- *  refreshes everything that is yours. */
+/** After a comment write: the item's thread and every card that shows
+ *  its count and latest read again: Home's feed, a page's post list and
+ *  Clan's Feed (a post's answers, #1104). A block also ends follows, so
+ *  it refreshes everything that is yours. */
 export function useCommentsChanged() {
   const queryClient = useQueryClient();
   return useCallback(
@@ -693,6 +694,11 @@ export function useCommentsChanged() {
         return queryClient.invalidateQueries({ queryKey: keys.me });
       if (itemId)
         queryClient.invalidateQueries({ queryKey: commentsKey(itemId) });
+      queryClient.invalidateQueries({ queryKey: ["me", "posts"] });
+      queryClient.invalidateQueries({
+        queryKey: ["me", "clan", "record"],
+        predicate: (q) => q.queryKey.at(-1) === "feed",
+      });
       return queryClient.invalidateQueries({ queryKey: HOME_FEED_KEY });
     },
     [queryClient],
