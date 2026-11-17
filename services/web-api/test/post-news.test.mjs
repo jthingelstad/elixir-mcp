@@ -143,3 +143,29 @@ test("poll counts honor notify, block, report and moderation state live", async 
   await ctx.db.query(`delete from account_post where post_id = $1`, [post.id]);
   assert.equal(await count(), 0);
 });
+
+test("PostgreSQL microseconds do not count an already read post again", async () => {
+  const post = await people.post({ at: new Date(Date.now() - 60_000) });
+  await ctx.db.query(
+    `update account_post set created_at = date_trunc('milliseconds', created_at) + interval '456 microseconds'
+     where post_id = $1`,
+    [post.id],
+  );
+  const refreshed = body(await call("reader", "/api/me/home/feed"));
+  assert.equal(
+    body(
+      await call("reader", "/api/me/home/feed/new", {
+        since: refreshed.watermark,
+      }),
+    ).new,
+    0,
+  );
+  assert.equal(
+    body(
+      await call("reader", "/api/me/home/feed/new", {
+        since: new Date(Date.parse(refreshed.watermark) - 1).toISOString(),
+      }),
+    ).new,
+    1,
+  );
+});
