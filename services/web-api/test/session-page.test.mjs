@@ -198,6 +198,7 @@ test("one opaque link opens the canonical update, no history, aliases or social 
   const res = await get(`/api/public/shared-items/${shared.id}`);
   assert.equal(res.statusCode, 200, res.body);
   assert.equal(res.headers["cache-control"], "no-store");
+  assert.equal(res.headers["referrer-policy"], "no-referrer");
   assert.match(res.headers["x-robots-tag"], /noindex, nofollow/);
   const body = data(res);
   assert.equal(body.item.id, item.id);
@@ -249,6 +250,7 @@ test("the HTML preview escapes hostile names and is only this item", async () =>
   const res = await get(`/share/${id}`);
   assert.equal(res.statusCode, 200, res.body);
   assert.equal(res.headers["cache-control"], "no-store");
+  assert.equal(res.headers["referrer-policy"], "no-referrer");
   assert.ok(
     res.body.includes("&lt;b&gt;Al&amp;der&lt;/b&gt;&quot; onload=&quot;x"),
   );
@@ -263,6 +265,7 @@ test("the picture is PNG and contains only unaltered card art", async () => {
   const body = data(await get(`/api/public/shared-items/${shared.id}`));
   const png = await get(`/share/${shared.id}.png`);
   assert.equal(png.statusCode, 200, png.body);
+  assert.equal(png.headers["referrer-policy"], "no-referrer");
   const bytes = Buffer.from(png.body, "base64");
   assert.equal(bytes.readUInt32BE(16), 1200);
   assert.equal(bytes.readUInt32BE(20), 630);

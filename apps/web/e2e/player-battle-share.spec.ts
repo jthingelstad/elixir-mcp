@@ -345,3 +345,245 @@ test("a signed-out bare battle cannot mint a public link", async ({ page }) => {
   ).toHaveCount(0);
   expect(minted).toEqual([]);
 });
+
+const NEXT_SHARE_URL =
+  "https://elixir.poapkings.com/share/zyxwvutsrqponmlkjihgfedc";
+const NEXT_BATTLE = {
+  ...BATTLE,
+  battle: {
+    ...BATTLE.battle,
+    id: "b".repeat(64),
+    short_id: "b".repeat(12),
+    url: "https://elixir.poapkings.com/battle/" + "b".repeat(12),
+    image: "https://elixir.poapkings.com/battle/" + "b".repeat(12) + ".png",
+  },
+};
+const targetShots = process.env.SHARE_TARGET_SHOTS;
+
+test("warm cached battles reset shares and optional context", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 900 });
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await outbound(page);
+  const rows = [BATTLE, NEXT_BATTLE].map((record) => ({
+    ...BATTLE.sitting[0]!,
+    url: record.battle.url,
+    battle_time: record.battle.battle_time,
+  }));
+  const issued: unknown[] = [];
+  await mockApi(
+    page,
+    signedIn({
+      "GET /api/me": [200, own],
+      [`GET /api/me/battles/${BATTLE.battle.short_id}`]: [
+        200,
+        { ...BATTLE, sitting: rows, meetings: [] },
+      ],
+      [`GET /api/me/battles/${NEXT_BATTLE.battle.short_id}`]: [
+        200,
+        { ...NEXT_BATTLE, sitting: rows, meetings: [] },
+      ],
+      "POST /api/me/item-shares": (route) => {
+        const target = route.request().postDataJSON();
+        issued.push(target);
+        return [
+          200,
+          {
+            url:
+              target.battle_ref === BATTLE.battle.id
+                ? SHARE_URL
+                : NEXT_SHARE_URL,
+          },
+        ];
+      },
+    }),
+  );
+  const jump = async (short: string) => {
+    await page
+      .locator(`.battle-rows a[href="/battle/${short}"]`)
+      .first()
+      .click();
+    await expect(page).toHaveURL(new RegExp(`/battle/${short}$`));
+  };
+  await page.goto(path);
+  await page.evaluate(() =>
+    Reflect.set(window, "shareWarmMarker", "same document"),
+  );
+  // Fill both query-cache entries before minting. The final A→B switch
+  // has no loading unmount to hide state leaking across target identity.
+  await jump(NEXT_BATTLE.battle.short_id);
+  await jump(BATTLE.battle.short_id);
+  await preview(page);
+  await jump(NEXT_BATTLE.battle.short_id);
+  expect(
+    await page.evaluate(() => Reflect.get(window, "shareWarmMarker")),
+  ).toBe("same document");
+  const sharing = page.getByRole("region", { name: "Share this battle" });
+  await expect(sharing.getByRole("link", { name: "Share image" })).toHaveCount(
+    0,
+  );
+  await expect(
+    sharing.getByRole("button", { name: "Copy for a post" }),
+  ).toHaveCount(0);
+  await expect(
+    sharing.getByRole("button", { name: "Share with your context" }),
+  ).toHaveCount(0);
+  await expect(page.getByLabel("Message preview")).toHaveCount(0);
+  const share = sharing.getByRole("button", { name: "Share", exact: true });
+  await expect(share).toBeEnabled();
+  expect((await share.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+  for (const width of [320, 390, 1280]) {
+    await page.setViewportSize({ width, height: 900 });
+    await sharing.scrollIntoViewIfNeeded();
+    expect((await share.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+    if (targetShots)
+      await page.screenshot({ path: `${targetShots}/reset-${width}.png` });
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth - innerWidth,
+      ),
+    ).toBeLessThanOrEqual(0);
+  }
+  await share.click();
+  await expect(sharing.getByLabel("Share link")).toHaveValue(NEXT_SHARE_URL);
+  await expect(
+    sharing.getByRole("link", { name: "Share image" }),
+  ).toHaveAttribute("href", NEXT_SHARE_URL + ".png");
+  expect(issued).toEqual([
+    { source: "battle", battle_ref: BATTLE.battle.id },
+    { source: "battle", battle_ref: NEXT_BATTLE.battle.id },
+  ]);
+  await sharing
+    .getByRole("button", { name: "Share with your context" })
+    .click();
+  await expect(page.getByLabel(/Why did this battle matter/)).toHaveValue("");
+  await page
+    .getByLabel(/Why did this battle matter/)
+    .fill("Words for the second battle only.");
+  await page.getByRole("button", { name: "Preview message" }).click();
+  await expect(page.getByLabel("Message preview")).toHaveValue(
+    new RegExp(NEXT_SHARE_URL + "$"),
+  );
+  expect(await page.getByLabel("Message preview").inputValue()).not.toContain(
+    words,
+  );
+  for (const width of [320, 390, 1280]) {
+    await page.setViewportSize({ width, height: 900 });
+    await sharing.scrollIntoViewIfNeeded();
+    if (targetShots)
+      await page.screenshot({ path: `${targetShots}/next-${width}.png` });
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth - innerWidth,
+      ),
+    ).toBeLessThanOrEqual(0);
+  }
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth - innerWidth,
+    ),
+  ).toBeLessThanOrEqual(0);
+  const results = await new AxeBuilder({ page })
+    .withTags(["wcag2a", "wcag2aa"])
+    .analyze();
+  expect(
+    results.violations
+      .filter((v) => ["serious", "critical"].includes(v.impact ?? ""))
+      .map((v) => v.id),
+  ).toEqual([]);
+});
+
+test("a late first-battle share cannot replace the next warm battle's outbound link", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 900 });
+  await outbound(page);
+  const rows = [BATTLE, NEXT_BATTLE].map((record) => ({
+    ...BATTLE.sitting[0]!,
+    url: record.battle.url,
+    battle_time: record.battle.battle_time,
+  }));
+  let release = () => {};
+  const pending = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  await mockApi(
+    page,
+    signedIn({
+      "GET /api/me": [200, own],
+      [`GET /api/me/battles/${BATTLE.battle.short_id}`]: [
+        200,
+        { ...BATTLE, sitting: rows, meetings: [] },
+      ],
+      [`GET /api/me/battles/${NEXT_BATTLE.battle.short_id}`]: [
+        200,
+        { ...NEXT_BATTLE, sitting: rows, meetings: [] },
+      ],
+    }),
+  );
+  // The shared fixture map is synchronous; this one route deliberately
+  // holds A while navigation and B's response complete independently.
+  await page.route("**/api/me/item-shares", async (route) => {
+    const first =
+      route.request().postDataJSON().battle_ref === BATTLE.battle.id;
+    if (first) await pending;
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ url: first ? SHARE_URL : NEXT_SHARE_URL }),
+    });
+  });
+  const jump = async (short: string) => {
+    await page
+      .locator(`.battle-rows a[href="/battle/${short}"]`)
+      .first()
+      .click();
+    await expect(page).toHaveURL(new RegExp(`/battle/${short}$`));
+  };
+  try {
+    await page.goto(path);
+    await jump(NEXT_BATTLE.battle.short_id);
+    await jump(BATTLE.battle.short_id);
+    const sharing = page.getByRole("region", { name: "Share this battle" });
+    await sharing.getByRole("button", { name: "Share", exact: true }).click();
+    await expect(
+      sharing.getByRole("button", { name: "Getting link…" }),
+    ).toBeDisabled();
+    await jump(NEXT_BATTLE.battle.short_id);
+    await sharing.getByRole("button", { name: "Share", exact: true }).click();
+    await expect(sharing.getByLabel("Share link")).toHaveValue(NEXT_SHARE_URL);
+    const firstResponse = page.waitForResponse(
+      (response) =>
+        response.request().method() === "POST" &&
+        response.url().endsWith("/api/me/item-shares") &&
+        response.request().postDataJSON().battle_ref === BATTLE.battle.id,
+    );
+    release();
+    await (await firstResponse).finished();
+    await page.evaluate(
+      () =>
+        new Promise<void>((resolve) => requestAnimationFrame(() => resolve())),
+    );
+    expect(
+      await page.evaluate(() =>
+        Reflect.get(window, "outbound").shares.map(
+          (entry: ShareData) => entry.url,
+        ),
+      ),
+    ).toEqual([NEXT_SHARE_URL]);
+    expect(
+      await page.evaluate(() => Reflect.get(window, "outbound").copies),
+    ).toEqual([]);
+    await expect(sharing.getByLabel("Share link")).toHaveValue(NEXT_SHARE_URL);
+    await sharing
+      .getByRole("button", { name: "Share with your context" })
+      .click();
+    await page.getByRole("button", { name: "Preview message" }).click();
+    await expect(page.getByLabel("Message preview")).toHaveValue(
+      new RegExp(NEXT_SHARE_URL + "$"),
+    );
+  } finally {
+    release();
+  }
+});
