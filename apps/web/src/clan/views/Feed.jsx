@@ -72,8 +72,8 @@ function ClanTimeline({ clan }) {
       {head}
       {items.length === 0 ? (
         <Empty title="Nothing in the last seven days">
-          Joins, departures, promotions, members&rsquo; moments and posts
-          appear here as Elixir records them.
+          Joins, departures, promotions, members&rsquo; moments and posts appear
+          here as Elixir records them.
         </Empty>
       ) : (
         <div className="kit-feed">

@@ -420,7 +420,7 @@ const TWELVE_EVIDENCE = {
 /** The session page's read (GET /api/player/session). */
 export const TWELVE_PAGE = {
   player: { tag: ME_TAG, name: "King Thing" },
-  you: { own: true, can_highlight: true },
+  you: { own: true, can_post: true },
   item: {
     id: sessionTwelve.id,
     kind: sessionTwelve.kind,
@@ -444,7 +444,7 @@ export const TWELVE_PAGE = {
 
 export const ONE_PAGE = {
   player: { tag: ADA, name: "Ada" },
-  you: { own: false, can_highlight: false },
+  you: { own: false, can_post: false },
   item: {
     id: sessionOne.id,
     kind: sessionOne.kind,
@@ -545,6 +545,6 @@ export const SHARED_PUBLIC = {
  *  its comments open and the reader's own marks. */
 export const SHARED_MEMBER = {
   ...SHARED_PUBLIC,
-  you: { own: false, can_highlight: false },
+  you: { own: false, can_post: false },
   item: { ...sharedItem, comments: { count: 2, latest: [], open: true } },
 };

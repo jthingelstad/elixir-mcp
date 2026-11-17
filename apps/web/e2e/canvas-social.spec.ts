@@ -107,7 +107,6 @@ const ADA = {
   ],
   timeline_more: 0,
   moments: [],
-  highlights: [],
 };
 
 for (const [label, width] of [
@@ -267,7 +266,7 @@ for (const [label, width] of [
       await accessible(page, "player page, cheered");
     });
 
-    test("a battle page: its highlight's cheers signed in, nothing signed out", async ({
+    test("a battle page: its post's cheers signed in, nothing signed out", async ({
       page,
     }) => {
       const asked: string[] = [];
@@ -287,9 +286,9 @@ for (const [label, width] of [
               items: [
                 {
                   id: "tl_00000000000000000003",
-                  kind: "highlight",
+                  kind: "battle_highlight",
                   at: "2026-09-03T14:20:00.000Z",
-                  text: "Posted a highlight: a three-crown win.",
+                  text: "Posted about a three-crown win.",
                   cheers: { royal: 2 },
                   my_cheer: null,
                 },
@@ -313,7 +312,7 @@ for (const [label, width] of [
       await page.goto(`/battle/${BATTLE.battle.short_id}`);
       const cheers = page.getByRole("region", { name: "Cheers" });
       await expect(
-        cheers.getByText("Posted a highlight: a three-crown win."),
+        cheers.getByText("Posted about a three-crown win."),
       ).toBeVisible();
       await expect(
         cheers.locator(".kit-cheers .sr-only").filter({ hasText: "2 people" }),

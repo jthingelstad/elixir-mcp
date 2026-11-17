@@ -54,7 +54,7 @@ test("@narrow recorder home fits a phone and tablet", async ({ page }) => {
       "Follow a friend",
       "Bring your clan",
       "The clan directory",
-      "Highlight a battle",
+      "Post about a battle",
     ])
       await expect(
         page.locator(".home-row").getByRole("link", { name }),

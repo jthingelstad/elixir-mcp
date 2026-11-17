@@ -43,7 +43,6 @@ const BEN_PAGE = {
   timeline: [],
   timeline_more: 0,
   moments: [],
-  highlights: [],
 };
 
 /** A signed-in leader of Example Clan who also holds a player in Elixir
@@ -231,15 +230,27 @@ const FEED = {
   more: 0,
   items: [
     {
-      id: "hl-1",
-      kind: "battle_highlight",
+      // A member's post about a battle (0292), drawn as the Timeline
+      // draws a post.
+      id: "tl_00000000000000000021",
+      kind: "post",
       at: "2026-09-12T15:00:00Z",
-      text: "Zed posted a highlight: “Three crowns with seconds left”",
-      // As the Timeline draws it (2026-11-17): its subject and its facts.
+      sort_at: "2026-09-12T15:00:00Z",
+      subject_tag: "#0LJL008R",
+      text: "Zed posted.",
       subjects: [{ kind: "player", tag: "#0LJL008R", name: "Zed" }],
-      facts: {
-        words: "Three crowns with seconds left",
-        battle: { url: "https://elixir.test/battle/example-1" },
+      comments: { count: 0, latest: [], open: false },
+      post: {
+        id: "21",
+        text: "Three crowns with seconds left",
+        author: { player_tag: "#0LJL008R", name: "Zed" },
+        battle: {
+          battle_id: "example-1",
+          url: "https://elixir.test/battle/example-1",
+          outcome: "win",
+          crowns: 3,
+          crowns_against: 2,
+        },
       },
     },
     {

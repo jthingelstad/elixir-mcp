@@ -461,12 +461,9 @@ async function writeChecked(db, accountId, tag, battleId, input, cfg) {
     };
   const [post] = await postItems(
     db,
-    await readRows(
-      db,
-      `p.post_id = $2::bigint`,
-      [accountId, rows[0].post_id],
-      { plain: true },
-    ),
+    await readRows(db, `p.post_id = $2::bigint`, [accountId, rows[0].post_id], {
+      plain: true,
+    }),
     accountId,
   );
   return { ok: true, post };

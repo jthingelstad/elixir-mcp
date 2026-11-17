@@ -16,7 +16,7 @@ import {
  * A session's public page (2026-11-17): /session/<tag>/<id>/<start> opens
  * for anyone with the link and no account, the same session the member
  * page draws, read as nobody: game names only and unlinked, no comments,
- * no highlight, no verified mark, and the way in. Signed in, the same
+ * no Post, no verified mark, and the way in. Signed in, the same
  * address opens the member page. Invented players only.
  */
 const SHOTS = process.env.SHARE_SESSION_SHOTS ?? null;
@@ -87,9 +87,11 @@ for (const [label, width, tag] of [
     await expect(
       rows.first().getByRole("link", { name: /^Battle/ }),
     ).toHaveAttribute("href", /^\/battle\/[0-9a-f]+$/);
-    // None of a member's things: comments, highlight, Follow from here.
+    // None of a member's things: comments, Post, Follow from here.
     await expect(page.getByRole("region", { name: "Comments" })).toHaveCount(0);
-    await expect(page.getByRole("link", { name: /^Highlight/ })).toHaveCount(0);
+    await expect(
+      page.getByRole("link", { name: /^Post about the battle/ }),
+    ).toHaveCount(0);
     await expect(
       page.getByRole("region", { name: "Follow from here" }),
     ).toHaveCount(0);

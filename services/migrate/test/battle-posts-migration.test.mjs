@@ -145,10 +145,7 @@ test("0292 copies every highlight into a post under the id the timeline served",
   await runFile();
   const got = await posts();
   const id = (h) => storyId("battle_highlight", h);
-  assert.deepEqual(
-    Object.keys(got).sort(),
-    Object.values(H).map(id).sort(),
-  );
+  assert.deepEqual(Object.keys(got).sort(), Object.values(H).map(id).sort());
   const shared = got[id(H.shared)];
   assert.equal(shared.account_id, account);
   assert.equal(shared.player_tag, TAG);
@@ -181,9 +178,10 @@ test("0292 copies every highlight into a post under the id the timeline served",
 test("after 0292 the old table refuses writes, and a delete takes the post", async () => {
   const db = scratch.db;
   await assert.rejects(
-    db.query(`update battle_highlight set words = 'x' where highlight_id = $1`, [
-      H.plain,
-    ]),
+    db.query(
+      `update battle_highlight set words = 'x' where highlight_id = $1`,
+      [H.plain],
+    ),
     (err) => err.code === "25006",
   );
   await assert.rejects(

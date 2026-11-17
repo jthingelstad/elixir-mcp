@@ -151,7 +151,6 @@ test.describe("arriving at a clan", () => {
             timeline: [],
             timeline_more: 0,
             moments: [],
-            highlights: [],
           },
         ],
       }),

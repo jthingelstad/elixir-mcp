@@ -91,8 +91,8 @@ test("a member sees five tabs, and Run is refused", async ({ page }) => {
     await expect(clanTab(page, name)).toBeVisible();
   await expect(clanTab(page, /^Feed/)).toHaveAttribute("aria-selected", "true");
   await expect(clanTab(page, "Run")).toHaveCount(0);
-  await expect(page.getByText("Zed posted a highlight")).toBeVisible();
-  await expect(page.getByText(/Three crowns with seconds left/)).toBeVisible();
+  await expect(page.getByText("Three crowns with seconds left")).toBeVisible();
+  await expect(page.getByText("A 3-2 win")).toBeVisible();
   // Typing Run's address shows the refusal, never Run's tools.
   await page.goto("/clan/0QC8RCGY/run/about");
   await expect(
@@ -156,7 +156,7 @@ test("@narrow the Feed and Policy read on a phone", async ({ page }) => {
     }),
   );
   await page.goto("/clan/0QC8RCGY/feed");
-  await expect(page.getByText("Zed posted a highlight")).toBeVisible();
+  await expect(page.getByText("Three crowns with seconds left")).toBeVisible();
   expect(await fitsTheScreen(page)).toBe(true);
   await accessible(page, "narrow feed");
   await page.screenshot({

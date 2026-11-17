@@ -238,8 +238,7 @@ export function postsRoutes({
     "POST /api/me/post-discord": async (db, event, body) => {
       const { account, refused } = await person(db, event, true);
       if (refused) return refused;
-      if (!/^[1-9][0-9]{0,18}$/.test(String(body?.id ?? "")))
-        return notFound();
+      if (!/^[1-9][0-9]{0,18}$/.test(String(body?.id ?? ""))) return notFound();
       if (!clanDiscord)
         return json(503, {
           error: "unavailable",

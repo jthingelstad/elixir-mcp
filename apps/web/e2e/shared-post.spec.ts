@@ -11,7 +11,7 @@ import { BATTLE } from "./battle-fixture.ts";
 const PLAYER = BATTLE.sides[0]!.players[0]!;
 const POST = {
   ...BATTLE,
-  highlight: {
+  post: {
     share_id: "k7q2mabcdefghij",
     url: "https://elixir.example.test/h/k7q2mabcdefghij",
     image: "https://elixir.example.test/h/k7q2mabcdefghij.png",
@@ -49,7 +49,7 @@ for (const [label, width] of [
     await page.setViewportSize({ width, height: 900 });
     await mockApi(page, {
       "GET /api/me": [200, SIGNED_OUT],
-      "GET /api/public/highlights/k7q2mabcdefghij": [200, POST],
+      "GET /api/public/posts/k7q2mabcdefghij": [200, POST],
     });
     await page.goto("/h/k7q2mabcdefghij");
     await expect(
