@@ -10,4 +10,4 @@ Highlights are now posts. A great battle you want to show off is a post with the
 
 [Post about a battle](/docs/battles#post-about-a-battle) has the details.
 
-MCP 13.9.0. JSON API 5.1.0 unchanged.
+MCP 13.11.0. JSON API 5.1.0 unchanged.
