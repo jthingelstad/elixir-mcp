@@ -212,7 +212,7 @@ export async function sweepOperational(databaseUrl) {
         `delete from magic_login where expires_at < now() - interval '30 days'`,
       )
     ).rowCount;
-    // Comments (0281): a removed comment stays 30 days for an admin to
+    // Comments (0282): a removed comment stays 30 days for an admin to
     // read back, then goes; every check row (and a refusal's words)
     // goes at 35 days, as the privacy page says.
     out.comment_removed = (
