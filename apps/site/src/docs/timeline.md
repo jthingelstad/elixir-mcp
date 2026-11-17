@@ -295,7 +295,7 @@ seven days and at most 50 items, newest first.
 - **Reset** makes a new link and stops the old one at once; **Turn off**
   ends it. Closing your account ends it too.
 - **What it carries:** each item's words with players by their game names,
-  a link to the battle or the player, and when. Never your nicknames for
+  a link to the session, the battle or the player, and when. Never your nicknames for
   players, your email, your account's own items, leaders-only facts or
   cheers.
 - A feed reader may read it up to 60 times an hour.
@@ -369,8 +369,8 @@ page. Connections and agent pages show whether sharing is on.
   is posted. The cross-post's place never moves your read pointer, a
   reader's, or `meta.timeline_pending`.
 - **One line per item:** the item's sentence with names made literal,
-  then links back to Elixir (the battle, the race week, the member, the
-  subject), never previewed. Discord's post time says when; only an item
+  then links back to Elixir (the battle, a session's own page, the race
+  week, the member, the subject), never previewed. Discord's post time says when; only an item
   over three hours old (a late proof, a quiet rung) adds how long ago
   (`<t:{at_unix}:R>`, from a sitting's last battle). Nothing pings
   anyone.

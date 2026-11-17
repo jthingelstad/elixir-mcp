@@ -271,9 +271,11 @@ switch from daily to weekly never tells an item twice.
 **What it reads.** `buildTimeline` in-process over the reader's subjects
 (`subjectsFor`: claims and clans with notify on), basis `observed` (what
 the record learned since the last digest, so a battle captured late is
-told once, never skipped), filtered before the cap to `DIGEST_KINDS`:
-`battle_highlight`, the big firsts (`BIG_FIRST_KINDS`), clan moves
-and returns. Card unlocks and badges stay a count (`progress`), as the
+told once, never skipped), filtered before the cap to `DIGEST_KINDS`: the sittings
+(`battle_session`, `session_standout`, 2026-11-16), `battle_highlight`,
+the big firsts (`BIG_FIRST_KINDS`), clan moves and returns. Its cap is
+`DIGEST_TIMELINE_CAP` (2000), not MCP's 150, so a busy week of sittings
+never pushes a highlight out of the read. Card unlocks and badges stay a count (`progress`), as the
 friends mail counted them. Attested facts never enter
 (`services/jobs/test/digest-mail.test.mjs`).
 
@@ -285,6 +287,20 @@ friends mail counted them. Attested facts never enter
   highlight is the timeline's sentence with the words carried apart and
   drawn as a quote; each item links the battle's public page when the
   record knows the battle. A highlight's share link is never carried.
+- **Sittings (2026-11-16, `docs/notes/2026-11-16-digest-sessions.md`).**
+  Each person's own sittings (`facts.player_tag`), the three with the
+  most battles (`SITTINGS_PER_PERSON`, ties to the newest), told newest
+  first, `more_sittings` counting the rest. The issue stores each as
+  `{kind, at, facts, scores, deck, path}` (`digestSitting`: the facts the
+  words are made from, never the timeline's sentence or a nickname), and
+  the render says it with `@elixir-mcp/ui/session-story`, the module the
+  web's session card uses: `sessionHeadline` linked to `path` (the
+  session page, `sessionPathOf`; `sittingUrl` accepts only that shape),
+  the figures, `sessionChips` and `modeChips`, and `deckCaption`. One or
+  two battles (`compactSitting`) is one line. The deck's eight cards are
+  drawn once a person, on their biggest sitting with a deck, from the
+  mirrored art (`cardImg`, never altered). The reader's own sittings are
+  not retold under You.
 - **Each player once (2026-11-12).** Following a whole clan is common,
   so people are told only under themselves: a followed clanmate carries
   `clanmate: {tag, name}` ("In <clan>"), and a `clan_joined`/`clan_left`
@@ -366,7 +382,9 @@ whose own verified players had another person's cheer
 last day. Facts: the bell's own read, `readAwayActivity`
 (`packages/tools/src/activity/bell.mjs`), with `since` the latest of
 `bell_seen`, the account's last activity mail and a day ago; counts per
-item and per own player, never who. Nothing new, nothing sent. Issue:
+item and per own player, never who. A cheered sitting links its session
+page (`session_path`, 2026-11-16), before any battle. Nothing new, nothing
+sent. Issue:
 period key the local date, subject key the account, so one a day. The
 switch's default is `ACTIVITY_MAIL_DEFAULT_ON` in contracts
 (`emailKindDefault`), read by the candidates' query and
