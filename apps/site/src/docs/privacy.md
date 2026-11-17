@@ -103,6 +103,20 @@ removes is kept 30 days for review, then deleted. Comments are deleted
 after a year, or with your account. The people you block are listed in
 your settings, and they are never told.
 
+**Posts.** A post you write is kept with your account and shown in Elixir
+to the people who follow you or your player and to your clanmates. Treat
+a post as public: it may also go out in Elixir's emails and notifications
+to those people, in the RSS feeds and Discord channels that carry your
+timeline, to agents connected to Elixir, and on pages anyone with the
+link can open. Inside Elixir, people in a block with you don't see your
+posts. A deck or cards you add are kept as the cards, never as a link.
+Before it posts, its words go to Anthropic, whose Claude model checks
+them, as for a comment, and for nothing else. A post you delete goes at
+once, here and from any page of Elixir's; a copy already sent by email
+or to Discord can't be taken back. One an admin removes is kept 30 days
+for review, then deleted. Posts are deleted after a year, or with your
+account.
+
 **Sign-in check.** The sign-in forms, on this site and on the page an
 app sends you to when it connects to Elixir, use Cloudflare
 [Turnstile](https://www.cloudflare.com/application-services/products/turnstile/)
