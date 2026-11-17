@@ -5,8 +5,10 @@
  *
  *  The page is the most specific one a reader in the clan's channel may
  *  open, signed in as a member of the clan:
- *  - one member's battle (a promotion, a crossing, a sitting's best win,
- *    a highlight) when the record holds it: the battle's public page;
+ *  - one member's sitting (2026-11-16): the session's own page, which
+ *    holds its battles, its best win among them;
+ *  - one member's battle (a promotion, a crossing, a highlight) when the
+ *    record holds it: the battle's public page;
  *  - a war story: the clan's War;
  *  - an award the clan granted: the clan's Standings;
  *  - another story about one member: their player page;
@@ -22,6 +24,7 @@
  *  Pure. */
 import { ELIXIR_ORIGIN, DISCORD_CONTENT_MAX } from "@elixir-mcp/contracts";
 import { activityCategory, storyBattleId } from "@elixir-mcp/clan-engine";
+import { sessionPathOf } from "@elixir-mcp/ui/session-story";
 
 const tagPath = (tag) =>
   encodeURIComponent(String(tag ?? "").replace(/^#/, ""));
@@ -63,6 +66,10 @@ export function storyLink(items, { clanTag, battles = new Map() }) {
     return clanPageUrl(clanTag, "war");
   const players = new Set(told.map((it) => it.facts?.player_tag ?? null));
   if (players.size !== 1 || players.has(null)) return feed;
+  // One sitting told (a story may carry its growth and a moment within
+  // it): the session's page. Two sittings have no one page.
+  const sessions = new Set(told.map(sessionPathOf).filter(Boolean));
+  if (sessions.size === 1) return `${ELIXIR_ORIGIN}${[...sessions][0]}`;
   for (const it of told) {
     const battle = battles.get(storyItemBattleId(it));
     if (battle?.url) return battle.url;

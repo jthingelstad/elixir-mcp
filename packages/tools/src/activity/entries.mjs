@@ -496,6 +496,28 @@ const SPARK = Symbol("session spark");
 /** The battles of a battle_session or session_standout item, in order, or
  *  null for any other item. */
 export const sessionSpark = (item) => item?.[SPARK] ?? null;
+/** A sitting's score facts from its battles in order (sessionSpark), or
+ *  null when the record kept no crowns. Read by Home's feed, the session
+ *  page and the digest (2026-11-16). The widest win (ties: the earlier) and the wins
+ *  that took three crowns. Facts only: no judgement of the sitting. */
+export function scoresOf(spark) {
+  if (!Array.isArray(spark)) return null;
+  const scored = spark.filter(
+    (b) =>
+      b.outcome === "win" &&
+      typeof b.crowns === "number" &&
+      typeof b.against === "number",
+  );
+  if (scored.length === 0) return null;
+  let best = scored[0];
+  for (const b of scored)
+    if (b.crowns - b.against > best.crowns - best.against) best = b;
+  return {
+    best_win: `${best.crowns}-${best.against}`,
+    three_crowns: scored.filter((b) => b.crowns >= 3).length,
+  };
+}
+
 /** A sitting's deck for the website's deck row (design canvas,
  *  2026-11-13): the most played deck of its most played archetype, as
  *  `{label, cards: [{id, name, form, elixir_cost}]}`. Web-only, like the
@@ -4356,10 +4378,10 @@ async function readFactItems(
  *  window past the cap keeps its newest items and the rest are counted,
  *  not paged: a reader catching up lands on the present. `items` is
  *  newest first. */
-export function capTimeline(items) {
+export function capTimeline(items, cap = TIMELINE_CAP) {
   return {
-    kept: items.slice(0, TIMELINE_CAP),
-    cut: items.slice(TIMELINE_CAP),
+    kept: items.slice(0, cap),
+    cut: items.slice(cap),
   };
 }
 
@@ -4407,6 +4429,11 @@ export async function buildTimeline(
     // window, and a player entry's battles.late_captures): off only when
     // the caller serves no entry, only items.
     lateCounts = true,
+    // Items kept after the filter. TIMELINE_CAP is sized to MCP's result
+    // cap; the digest, which keeps no response under it and picks its own
+    // few per person, reads further (DIGEST_TIMELINE_CAP), so a busy
+    // week's sittings never push a highlight out of the mail.
+    cap = TIMELINE_CAP,
   },
 ) {
   const entries = [];
@@ -4578,6 +4605,7 @@ export async function buildTimeline(
   const pageMs = basis === "occurred" ? sortMs : observedOf;
   const { kept, cut } = capTimeline(
     [...items].sort((a, b) => pageMs(b) - pageMs(a)),
+    cap,
   );
   const keptSet = new Set(kept);
   more += cut.length;

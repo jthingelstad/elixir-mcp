@@ -1,7 +1,7 @@
 import { cheerCounts } from "../home/cheer-set.js";
 // player.js first: it, moved.js and clan/lib/base.js import each other,
 // and player.js reads HOME as it loads.
-import { playerHref } from "../lib/player.js";
+import { isSessionPath, playerHref } from "../lib/player.js";
 import { passportHref } from "../lib/passport.js";
 import { SETTINGS } from "../lib/settings.js";
 import { eventGroup, eventLabel } from "../views/account/events.js";
@@ -191,7 +191,12 @@ export function reactionRow(r) {
     counts,
     words: counts.map((c) => `${c.label} ${c.count}`).join(", "),
     total: r.total,
-    to: battle.startsWith("/battle/") ? battle : null,
+    // A sitting opens its own page (2026-11-16); a moment its battle.
+    to: isSessionPath(String(r.session_path ?? "").split("?")[0])
+      ? r.session_path
+      : battle.startsWith("/battle/")
+        ? battle
+        : null,
     new: r.new === true,
   };
 }

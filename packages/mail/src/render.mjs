@@ -23,6 +23,15 @@ import {
 } from "./shell.mjs";
 import { monthDayAt, whenAt } from "@elixir-mcp/ui/time";
 import { cardImg } from "./cards.mjs";
+import {
+  compactSitting,
+  deckCaption,
+  modeChips,
+  sessionChips,
+  sessionHeadline,
+  signedCount,
+  trophyNet,
+} from "@elixir-mcp/ui/session-story";
 import { MAIL_PATHS } from "./paths.mjs";
 
 export const KIND_LABELS = {
@@ -277,6 +286,98 @@ function digestItem(it, c) {
   return `<div style="font-family:${FONT};font-size:16px;line-height:1.5;color:${M.muted};margin-top:8px;">${esc(sentence(it.text))}${battle}</div>${it.words ? quote(it.words) : ""}`;
 }
 
+/** A sitting's own page on Elixir's origin, or null: the path the issue
+ *  stored (session-story's sessionPathOf), never anything else. */
+const sittingUrl = (path) =>
+  typeof path === "string" &&
+  /^\/home\/player\/[^/?#]+\/session\/[^/?#]+(\?|$)/.test(path)
+    ? `${SITE}${path}`
+    : null;
+
+/** A sitting's eight cards in a row, the art as mirrored (never altered;
+ *  width and height scale it), each cell an eighth of the row so it fits a
+ *  phone. Alt text names each card, which is what the text part prints. */
+const deckRow = (cards) =>
+  `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:8px;max-width:360px;"><tr>${cards
+    .slice(0, 8)
+    .map(
+      (card) =>
+        `<td width="12.5%" valign="top" style="width:12.5%;padding:0 2px;">${cardImg(card, 42, { radius: 4 })}</td>`,
+    )
+    .join("")}</tr></table>`;
+
+/** A sitting in the digest, as the web's session card tells it
+ *  (2026-11-16, @elixir-mcp/ui/session-story): the headline from its
+ *  facts, linked to its own page; then the figures (record, trophies,
+ *  when), the chips as plain text, and the deck played most with the other
+ *  decks named. One or two battles is one line. `art` draws the deck's
+ *  eight cards (one sitting a person, to keep the mail light). Every
+ *  string is escaped here. */
+function digestSitting(sit, c, { art = false } = {}) {
+  const f = sit.facts ?? {};
+  const url = sittingUrl(sit.path);
+  const head = esc(sessionHeadline(f));
+  const title = url ? c.link(url, head, "font-weight:700;") : head;
+  const net = trophyNet(f);
+  const netHtml = (v) =>
+    `<span style="color:${v > 0 ? M.win : v < 0 ? M.loss : M.faint};white-space:nowrap;">${esc(signedCount(v))} trophies</span>`;
+  const when = sit.at ? esc(c.dayTime({ at: sit.at })) : "";
+  const caption = deckCaption(f);
+  const dot = ` <span style="color:${M.dim};">·</span> `;
+  if (compactSitting(f)) {
+    const tail = [
+      ...modeChips(f).map((x) => esc(x.text)),
+      caption ? esc(caption.label) : null,
+      when || null,
+    ].filter(Boolean);
+    return `<div style="font-family:${FONT};font-size:14px;line-height:1.5;color:${M.faint};margin-top:8px;">${title}${net !== null ? ` ${netHtml(net)}` : ""}${tail.length ? `${dot}${tail.join(dot)}` : ""}</div>`;
+  }
+  const figures = [
+    recHtml(f.won ?? 0, f.lost ?? 0),
+    (f.drawn ?? 0) > 0 ? `${n(f.drawn)} drawn` : null,
+    net !== null ? netHtml(net) : null,
+    when || null,
+  ].filter(Boolean);
+  const chips = [...sessionChips(f, sit.scores ?? null), ...modeChips(f)];
+  const deck =
+    art && sit.deck?.cards?.length && sit.deck.label === caption?.label
+      ? deckRow(sit.deck.cards)
+      : "";
+  const captionHtml = caption
+    ? `<div style="font-family:${FONT};font-size:13px;line-height:1.5;color:${M.faint};margin-top:${deck ? 4 : 2}px;"><strong style="color:${M.muted};">${esc(caption.label)}</strong>${caption.count ? ` · ${esc(caption.count)}` : ""}${caption.more ? ` · ${esc(caption.more)}` : ""}</div>`
+    : "";
+  return `<div style="margin-top:12px;padding:0 0 0 10px;border-left:2px solid ${M.row};">
+      <div style="font-family:${FONT};font-size:16px;line-height:1.4;">${title}</div>
+      <div style="font-family:${FONT};font-size:13px;line-height:1.5;color:${M.faint};margin-top:2px;">${figures.join(dot)}</div>
+      ${chips.length ? `<div style="font-family:${FONT};font-size:13px;line-height:1.5;color:${M.muted};margin-top:2px;">${chips.map((x) => esc(x.text)).join(dot)}</div>` : ""}
+      ${deck}${captionHtml}
+    </div>`;
+}
+
+/** A person's sittings: each as above, the deck's art on their biggest
+ *  one, and how many more on their page. */
+function digestSittings(x, c) {
+  const list = Array.isArray(x.sittings) ? x.sittings : [];
+  if (!list.length) return "";
+  let lead = -1;
+  list.forEach((sit, i) => {
+    const b = sit.facts?.battles ?? 0;
+    if (
+      !compactSitting(sit.facts ?? {}) &&
+      sit.deck?.cards?.length &&
+      (lead < 0 || b > (list[lead].facts?.battles ?? 0))
+    )
+      lead = i;
+  });
+  const more = x.more_sittings
+    ? c.small(
+        `${n(x.more_sittings)} more ${x.more_sittings === 1 ? "sitting" : "sittings"} on ${c.link(playerUrl(x.tag), "their page")}.`,
+        "margin-top:6px;",
+      )
+    : "";
+  return `${list.map((sit, i) => digestSitting(sit, c, { art: i === lead })).join("")}${more}`;
+}
+
 /** A person in the digest: their name, their sittings and record, then
  *  what they posted and reached, the rest counted. Tone, not outlines
  *  (DECISIONS "Flat: tone, not outlines"). */
@@ -301,6 +402,7 @@ function digestPerson(x, c) {
     <div style="font-family:${FONT};font-size:16px;line-height:1.5;font-weight:700;">${c.P(x.tag, x.name)}${x.nickname ? ` <span style="font-weight:400;color:${M.faint};">(${esc(x.nickname)})</span>` : ""}</div>
     ${x.clanmate ? `<div style="font-family:${FONT};font-size:12px;line-height:1.5;color:${M.faint};">In ${c.K(x.clanmate.tag, x.clanmate.name ?? x.clanmate.tag)}</div>` : ""}
     ${(x.items ?? []).map((it) => digestItem(it, c)).join("")}
+    ${digestSittings(x, c)}
     ${progress ? c.small(esc(sentence(capFirst(progress))), "margin-top:8px;") : ""}
     <div style="margin-top:8px;font-family:${FONT};font-size:12px;line-height:1.5;color:${M.faint};">${record}${trophies}</div>${more}
   </td></tr></table>`;
@@ -695,7 +797,8 @@ function feedbackAnswer(f, c) {
  * about engagement on their posts today"): cheers on your own players'
  * items and new followers that you have not seen in Elixir. Counts only,
  * never who (DECISIONS "Reactions, not comments"). Each line links to its
- * item: the battle when it has one, else the player. Item text is the
+ * item: a sitting's own page, else the battle when it has one, else the
+ * player. Item text is the
  * timeline's own line (game names, never a nickname), escaped.
  */
 function activityToday(f, c) {
@@ -721,7 +824,9 @@ function activityToday(f, c) {
       return null;
     }
   };
+  // A sitting opens its own page (2026-11-16); a moment its battle.
   const itemUrl = (i) =>
+    sittingUrl(i.session_path) ||
     (i.battle_url && battleOn(i.battle_url)) ||
     (i.subject_tag ? playerUrl(i.subject_tag) : `${SITE}/home`);
   const cheerRows = cheers.map((i) => ({

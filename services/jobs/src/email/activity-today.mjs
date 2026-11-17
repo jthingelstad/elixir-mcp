@@ -111,6 +111,8 @@ export function activityFacts(activity) {
       at: i.at,
       battle_url: i.battle_url,
       subject_tag: i.subject_tag,
+      // A sitting's own page (2026-11-16), which its line opens.
+      ...(i.session_path ? { session_path: i.session_path } : {}),
       fresh: i.fresh,
       total: i.total,
     })),
