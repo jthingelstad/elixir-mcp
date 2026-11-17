@@ -72,9 +72,10 @@ badges. None is a push or a headline; the bell carries no moments.
 
 ## In the app
 
-A badge, years played, maxed card, King Tower, best run or 12-win
-moment (not a close friend's, not a clan item, no comments) is a small
-moment: one line with its card art or a mark. Two or more in a row fold
+A badge, years played, maxed card, best run or 12-win moment (not a
+close friend's, not a clan item, no comments) is a small moment (a King
+Tower level keeps its own card: the owner, 2026-11-17, "King tower level
+ups should be timeline material"): one line with its card art or a mark. Two or more in a row fold
 into one row, "4 moments from Pip, Ash and 2 others", that opens in
 place, as short sessions do; each keeps its own cheer. A Mastery roll-up
 shows up to four of its cards, whole (`moment_cards`).

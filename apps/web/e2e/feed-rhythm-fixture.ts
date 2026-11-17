@@ -380,11 +380,13 @@ const ITEMS = [
   moment(
     ROWAN,
     306,
-    "king_tower_leveled",
-    "Rowan reached King Tower level 15.",
+    "badge_earned",
+    "Rowan has played Clash Royale for 5 years.",
     {
-      level: 15,
-      prior_level: 14,
+      badge: "YearsPlayed",
+      badge_label: "Years Played",
+      level: 5,
+      prior_level: 4,
     },
   ),
   moment(

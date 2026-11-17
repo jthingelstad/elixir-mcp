@@ -624,14 +624,14 @@ export function shortSession(it) {
 }
 
 /** The moments small enough for one line (2026-11-17, the owner's profile
- *  moments): a badge level, a maxed card, a King Tower level, a best
- *  challenge run, a 12-win run. A headline (a new best, league or Arena)
- *  and a new card or form keep their card. Never a clan's item (it wears
+ *  moments): a badge level, a maxed card, a best challenge run, a 12-win
+ *  run. A headline (a new best, league or Arena), a new card or form and
+ *  a King Tower level (the owner, 2026-11-17: timeline material) keep
+ *  their card. Never a clan's item (it wears
  *  its clan's band), a close friend's, or one with comments. */
 const SMALL_MOMENTS = new Set([
   "badge_earned",
   "card_maxed",
-  "king_tower_leveled",
   "challenge_best_run",
   "twelve_win_run",
 ]);
