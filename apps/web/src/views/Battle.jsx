@@ -355,9 +355,7 @@ export function BattleView({
         />
       )}
 
-      {signedIn && !standIn && (
-        <BattlePosts battle={battle} sides={sides} />
-      )}
+      {signedIn && !standIn && <BattlePosts battle={battle} sides={sides} />}
 
       {signedIn && cheers && !standIn && <BattleCheers battle={battle} />}
 

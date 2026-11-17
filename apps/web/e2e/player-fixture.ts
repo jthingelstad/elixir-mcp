@@ -34,5 +34,4 @@ export const ADA = {
       text: "Reached Path of Legends.",
     },
   ],
-  highlights: [],
 };

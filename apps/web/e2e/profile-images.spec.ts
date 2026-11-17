@@ -74,7 +74,6 @@ const PLAYER = {
   timeline: [],
   timeline_more: 0,
   moments: [],
-  highlights: [],
 };
 
 for (const [label, width] of [

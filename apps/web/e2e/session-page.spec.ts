@@ -8,7 +8,7 @@ import { sessionDayApi } from "./session-fixture.ts";
  * its facts, a one-battle sitting is a lighter card, the deck switch is
  * said, and the whole card opens the session's page, where every game
  * shows both decks, the facts that marked it, and (for your own verified
- * player) a way to highlight it. Phone first, then wide; invented players.
+ * player) a way to post about it. Phone first, then wide; invented players.
  */
 async function noSideways(page: Page) {
   const over = await page.evaluate(
@@ -119,7 +119,7 @@ for (const [label, width, tag] of [
       page.locator(".kit-sgame b", { hasText: /^Quill$/ }),
     ).toHaveCount(0);
     // An opponent opens their page; a game opens its battle, and your own
-    // verified player's game offers Highlight one tap away.
+    // verified player's game offers Post one tap away.
     const first = rows.first();
     await expect(first.locator(".kit-sgame__name").first()).toHaveAttribute(
       "href",
@@ -129,15 +129,15 @@ for (const [label, width, tag] of [
       .getByRole("link", { name: /^Battle/ })
       .getAttribute("href");
     await expect(
-      first.getByRole("link", { name: /^Highlight/ }),
-    ).toHaveAttribute("href", `${go}#highlight`);
+      first.getByRole("link", { name: /^Post about the battle/ }),
+    ).toHaveAttribute("href", `${go}#post`);
     await expect(page.locator(".kit-session__honest")).toContainText(
       "Only battles Elixir recorded are here",
     );
     await noSideways(page);
     await accessible(page, `${label} session page`);
 
-    // Someone else's one battle: no Highlight, and the counted gap said.
+    // Someone else's one battle: no Post, and the counted gap said.
     await page.goto("/home/player/00C298UC/session/tl_s1");
     await expect(
       page.getByRole("heading", {
@@ -145,7 +145,9 @@ for (const [label, width, tag] of [
         name: "Lost a Trophy Road battle",
       }),
     ).toBeVisible();
-    await expect(page.getByRole("link", { name: /^Highlight/ })).toHaveCount(0);
+    await expect(
+      page.getByRole("link", { name: /^Post about the battle/ }),
+    ).toHaveCount(0);
     await noSideways(page);
     await accessible(page, `${label} one-battle page`);
 

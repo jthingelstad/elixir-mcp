@@ -83,7 +83,6 @@ const PAGE = {
   timeline: [],
   timeline_more: 0,
   moments: [],
-  highlights: [],
 };
 
 /** The bell's read before and after the marker moves: once opened, the

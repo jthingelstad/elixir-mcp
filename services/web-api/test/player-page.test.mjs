@@ -209,8 +209,7 @@ test("a verified player's page: record, badges, follows and followers by game na
     no_player: 2,
     unnamed: 2,
   });
-  for (const k of ["timeline", "moments"])
-    assert.ok(Array.isArray(page[k]), k);
+  for (const k of ["timeline", "moments"]) assert.ok(Array.isArray(page[k]), k);
   // Posts about the player's battles are posts (0292): the page reads
   // them with the player's other posts (GET /api/me/posts?player=), and
   // its timeline carries no record item for them beside.

@@ -7,7 +7,7 @@ import { ME, mockApi, signedIn } from "./fixtures.ts";
  * Two polish fixes of 2026-11-12, at phone width. G8: on Settings › What
  * members see every control, the lens's battle included, is at least 44 px
  * tall, and a follow slot's row is one target that opens the player. G9:
- * the battle page's posted highlight leads with its words, Share and Edit
+ * the battle page's post leads with its words, Share and Edit
  * words are ordinary buttons rather than full-width ones, and Delete is a
  * quiet link. Invented players; local mocks only.
  */
@@ -108,7 +108,7 @@ test("What members see: every control is a 44 px target, and a slot's row opens 
   await expect(page).toHaveURL(/\/home\/player\/0VJ2QV$/);
 });
 
-test("the battle page: a highlight's words lead, its buttons are ordinary, Delete is quiet", async ({
+test("the battle page: a post's words lead, its buttons are ordinary, Delete is quiet", async ({
   page,
 }) => {
   const tag = BATTLE.sides[0]!.players[0]!.player_tag as string;
@@ -132,17 +132,23 @@ test("the battle page: a highlight's words lead, its buttons are ordinary, Delet
         },
       ],
       [`GET /api/public/battles/${BATTLE.battle.short_id}`]: [200, BATTLE],
-      "GET /api/me/highlights": [
+      "GET /api/me/posts": [
         200,
         {
           battle_id: BATTLE.battle.id,
-          can_highlight_as: [tag],
-          highlights: [
+          can_post_as: [tag],
+          posts: [
             {
-              highlight_id: "11111111-1111-4111-8111-111111111111",
-              player_tag: tag,
-              words: "Held the bridge at the last second",
-              share_url: null,
+              id: "tl_00000000000000000011",
+              kind: "post",
+              subject_tag: tag,
+              post: {
+                id: "11",
+                text: "Held the bridge at the last second",
+                battle: { battle_id: BATTLE.battle.id },
+                share_url: null,
+                clan_discord: null,
+              },
             },
           ],
         },
@@ -150,7 +156,7 @@ test("the battle page: a highlight's words lead, its buttons are ordinary, Delet
     }),
   );
   await page.goto(`/battle/${BATTLE.battle.short_id}`);
-  const panel = page.getByRole("region", { name: "Highlight this battle" });
+  const panel = page.getByRole("region", { name: "Post about this battle" });
   const words = panel.getByText("“Held the bridge at the last second”");
   const where = panel.getByText(`On ${name}’s timeline`);
   await expect(words).toBeVisible();
@@ -164,10 +170,10 @@ test("the battle page: a highlight's words lead, its buttons are ordinary, Delet
   }
   const del = panel.getByRole("button", { name: "Delete" });
   await expect(del).toHaveClass(/\blink\b/);
-  await accessible(page, "battle highlight, phone");
+  await accessible(page, "battle post, phone");
   // Delete still asks first.
   await del.click();
   await expect(
-    page.getByRole("dialog", { name: "Delete this highlight?" }),
+    page.getByRole("dialog", { name: "Delete this post?" }),
   ).toBeVisible();
 });

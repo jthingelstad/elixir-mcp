@@ -411,9 +411,7 @@ test("a plain post cannot be shared", async () => {
     body: { id: p.id },
   });
   assert.equal(r.status, 404);
-  await db.query(`delete from account_post where post_id = $1::bigint`, [
-    p.id,
-  ]);
+  await db.query(`delete from account_post where post_id = $1::bigint`, [p.id]);
 });
 
 test("a shared post's page escapes the name and the words in its tags", async () => {

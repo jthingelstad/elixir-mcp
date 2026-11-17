@@ -254,7 +254,7 @@ const SESSION_PAGE: [number, unknown] = [
   200,
   {
     player: { tag: TAG, name: "King Thing" },
-    you: { own: true, can_highlight: true },
+    you: { own: true, can_post: true },
     item: SITTING,
     games: {
       ...(EVIDENCE[1] as object),

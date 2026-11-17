@@ -179,8 +179,7 @@ export function PlayerView({ page, initialTab = "timeline" }) {
   const items = [
     ...PLAYER_TABS.map((t) => ({
       ...t,
-      count:
-        t.key === "moments" ? page.moments.length : null,
+      count: t.key === "moments" ? page.moments.length : null,
     })),
     ...(inClan.clan ? [CLAN_TAB] : []),
   ];

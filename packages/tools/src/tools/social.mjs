@@ -143,7 +143,7 @@ export const socialTools = {
         notes: notes(
           found.length === 0 ? "This player has posted no highlights." : null,
         ),
-        docs: docsRef("timeline", "highlights"),
+        docs: docsRef("timeline", "posts-about-battles"),
         meta: responseMeta({ as_of: new Date().toISOString() }),
       };
     },

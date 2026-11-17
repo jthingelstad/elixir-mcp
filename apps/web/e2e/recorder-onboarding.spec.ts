@@ -56,7 +56,6 @@ const PLAYER_PAGE = {
   timeline: [],
   timeline_more: 0,
   moments: [],
-  highlights: [],
 };
 const battle = {
   battle_id: "abc123abc123",

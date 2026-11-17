@@ -528,7 +528,9 @@ export function makeHandler({
       clanDiscord: discord?.outbox
         ? {
             state: (d, accountId, id) =>
-              battlePostClanDiscord(d, accountId, id, { policyFor: clanPolicy }),
+              battlePostClanDiscord(d, accountId, id, {
+                policyFor: clanPolicy,
+              }),
             post: (d, accountId, id) =>
               postBattlePostToClan(d, accountId, id, {
                 outbox: discord.outbox,

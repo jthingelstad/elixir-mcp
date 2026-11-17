@@ -833,7 +833,9 @@ test(
         .getAttribute("href"),
     ).toBe("/battle/aaaaaaaaaaa1");
     expect(
-      screen.getByRole("tab", { name: /Timeline/ }).getAttribute("aria-selected"),
+      screen
+        .getByRole("tab", { name: /Timeline/ })
+        .getAttribute("aria-selected"),
     ).toBe("true");
   },
 );

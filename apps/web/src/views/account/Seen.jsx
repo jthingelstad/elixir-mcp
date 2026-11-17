@@ -194,8 +194,8 @@ export function Seen({ me }) {
             [
               "What a link carries",
               <>
-                The battle’s or the post’s id and nothing else: no account
-                id, nickname or email. Whoever has it can pass it on.
+                The battle’s or the post’s id and nothing else: no account id,
+                nickname or email. Whoever has it can pass it on.
               </>,
             ],
           ]}
