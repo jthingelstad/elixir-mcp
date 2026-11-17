@@ -89,6 +89,41 @@ function twelveWinRun(row) {
   };
 }
 
+/** The API's own badge icon host and shape: anything else is not kept
+ *  (a URL Elixir's mirror would not copy is no art at all). */
+const BADGE_ICON =
+  /^https:\/\/api-assets\.clashroyale\.com\/playerbadges\/\d+\/[A-Za-z0-9_-]+\.png$/;
+
+/**
+ * Badge art (0288, the owner 2026-11-17: "Yes use badge art"): each
+ * badge's icon at the level this profile shows it, one row per (name,
+ * level), level 0 for a badge with no tiers. The icon is one image per
+ * badge and tier, so a level's row never changes once written unless
+ * Supercell replaces the image; an unchanged row is not rewritten.
+ */
+async function recordBadgeArt(db, badges, fetchedAt) {
+  const art = badges
+    .map((b) => ({
+      name: b.name,
+      level: Number.isInteger(b.level) && b.level >= 0 ? b.level : 0,
+      icon_url: b.iconUrls?.large,
+    }))
+    .filter(
+      (b) => typeof b.icon_url === "string" && BADGE_ICON.test(b.icon_url),
+    );
+  if (art.length === 0) return;
+  await db.query(
+    `insert into badge_art (name, level, icon_url, first_seen_at, observed_at)
+     select b.name, b.level, b.icon_url, $2::timestamptz, $2::timestamptz
+       from jsonb_to_recordset($1::jsonb) as b(name text, level int, icon_url text)
+     on conflict (name, level) do update set
+       icon_url = excluded.icon_url, observed_at = excluded.observed_at
+     where badge_art.icon_url is distinct from excluded.icon_url
+       and badge_art.observed_at < excluded.observed_at`,
+    [JSON.stringify(art), fetchedAt],
+  );
+}
+
 export async function projectPlayerBadges(
   db,
   { playerTag, payload, fetchedAt, moments = true },
@@ -138,6 +173,8 @@ export async function projectPlayerBadges(
       fetchedAt,
     ],
   );
+
+  await recordBadgeArt(db, rows, fetchedAt);
 
   // The ledger gets one named row per badge moment; the first observation
   // writes nothing (a new tracking arrives with a whole shelf, and that is

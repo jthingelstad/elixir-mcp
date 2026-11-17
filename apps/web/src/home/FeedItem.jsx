@@ -502,12 +502,36 @@ function momentCardOf(it) {
         : (it.moment_cards?.[0] ?? null);
 }
 
-/** A moment's art (2026-11-17): the card's own art for a card it names
+/** A badge's own art (0288, 2026-11-17, the owner: "Yes use badge
+ *  art. For sure."): the mirror's unaltered copy of the game's icon,
+ *  sized by CSS width alone (never tinted, cropped or covered). A file
+ *  the mirror has not copied yet draws what the moment drew before. */
+function BadgeArt({ src, className, children }) {
+  const [failed, setFailed] = useState(false);
+  if (!src || failed) return children;
+  return (
+    <span className={className}>
+      <img src={src} alt="" loading="lazy" onError={() => setFailed(true)} />
+    </span>
+  );
+}
+
+/** A moment's art (2026-11-17): the badge's own art for a badge it
+ *  tells (badge_art), the card's own art for a card it names
  *  (never tinted, cropped or covered: the kit's CardArt draws it whole,
  *  its form's ribbon included), a day's Mastery cards side by side, a kit
  *  mark for an Arena or a league (Elixir has no Arena art, and invents
  *  none), else the medal. */
 function MomentArt({ it }) {
+  if ((it.moment_cards?.length ?? 0) > 1) return <MomentArtDrawn it={it} />;
+  return (
+    <BadgeArt src={it.badge_art} className="kit-mart kit-mart--badge">
+      <MomentArtDrawn it={it} />
+    </BadgeArt>
+  );
+}
+
+function MomentArtDrawn({ it }) {
   if ((it.moment_cards?.length ?? 0) > 1)
     return (
       <span className="kit-mart kit-mart--cards">
@@ -647,18 +671,23 @@ function MomentLine({ it, inGroup = false }) {
           <When it={it} />
         </div>
         <p className="kit-line__go">
-          {card ? (
-            <span className="kit-line__art">
-              <CardArt card={card} size={24} showLevel={false} />
-            </span>
-          ) : (
-            <span
-              className="kit-line__art kit-line__art--mark"
-              aria-hidden="true"
-            >
-              <Icon name="star" size={14} />
-            </span>
-          )}
+          <BadgeArt
+            src={it.badge_art}
+            className="kit-line__art kit-line__art--badge"
+          >
+            {card ? (
+              <span className="kit-line__art">
+                <CardArt card={card} size={24} showLevel={false} />
+              </span>
+            ) : (
+              <span
+                className="kit-line__art kit-line__art--mark"
+                aria-hidden="true"
+              >
+                <Icon name="star" size={14} />
+              </span>
+            )}
+          </BadgeArt>
           <span>
             <TagText>{momentSaid(it, who?.name ?? null)}</TagText>
           </span>

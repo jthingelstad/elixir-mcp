@@ -36,6 +36,15 @@
  *              (facts.badges, 2026-11-17): the cards those badges are
  *              for, `[{id, name}]`, highest level first, at most
  *              MOMENT_CARDS_CAP; the catalog's cards only.
+ *   badge_art  the badge's own art (0288, 2026-11-17, the owner: "Yes use
+ *              badge art. For sure."), a path on this origin to the
+ *              mirror's unaltered copy (contracts' badgeArtPath), for a
+ *              single badge moment and a 12-win run that rose a level:
+ *              the icon of the level the line tells (0 for a badge with
+ *              no tiers), never a neighbouring level's. Absent when no read
+ *              profile has carried that level's icon yet, and a Mastery
+ *              roll-up keeps its cards. The page falls back to what it
+ *              drew before when the mirror has not copied the file yet.
  *   avatar_card_id
  *              the profile image of the player the item's avatar draws
  *              (avatarTagOf), when an account verified that player and
@@ -50,7 +59,7 @@ import { battleLinks } from "@elixir-mcp/record/battle-links";
 import { masteryCard } from "@elixir-mcp/record/badge-names";
 import { verifiedAvatars } from "./avatars.mjs";
 import { proofOf } from "@elixir-mcp/tools/activity/bell";
-import { modeGroupOf } from "@elixir-mcp/contracts";
+import { badgeArtPath, modeGroupOf } from "@elixir-mcp/contracts";
 import {
   highlightVersus,
   scoresOf,
@@ -192,6 +201,35 @@ async function cardsByName(db, names) {
   return new Map(rows.map((r) => [r.name, r.card_id]));
 }
 
+/** The badge and the level whose art an item draws;
+ *  null for an item that draws none. A Mastery roll-up (facts.badges)
+ *  draws its cards, and a 12-win run that rose no level names none. */
+function badgeArtKeyOf(it) {
+  const f = it?.facts ?? {};
+  if (typeof f.badge !== "string" || !f.badge) return null;
+  if (it.kind === "legendary_badge_earned") return { name: f.badge, level: 0 };
+  if (it.kind === "badge_earned" && !Array.isArray(f.badges))
+    return { name: f.badge, level: Number.isInteger(f.level) ? f.level : 0 };
+  if (it.kind === "twelve_win_run" && Number.isInteger(f.level))
+    return { name: f.badge, level: f.level };
+  return null;
+}
+
+/** The badge art held for the badges on a page: one read, and none when
+ *  the page has no badge moment. */
+async function badgeArtByName(db, keys) {
+  const names = [...new Set(keys.filter(Boolean).map((k) => k.name))];
+  if (names.length === 0) return new Map();
+  const { rows } = await db.query(
+    `select name, level, icon_url from badge_art where name = any($1::text[])`,
+    [names],
+  );
+  return new Map(rows.map((r) => [`${r.name}|${r.level}`, r.icon_url]));
+}
+
+const badgeArtOf = (key, held) =>
+  key ? badgeArtPath(held.get(`${key.name}|${key.level}`)) : null;
+
 /** The timeline's items with Home's fields added. */
 export async function annotateFeed(db, timeline, subjects, close = null) {
   const items = timeline ?? [];
@@ -202,7 +240,10 @@ export async function annotateFeed(db, timeline, subjects, close = null) {
   const cards = await cardsByName(db, [...mastery, ...rolled.flat()]);
   const faces = items.map(avatarTagOf);
   const avatars = await verifiedAvatars(db, faces);
+  const badgeKeys = items.map(badgeArtKeyOf);
+  const badgeHeld = await badgeArtByName(db, badgeKeys);
   return items.map((it, i) => {
+    const badgeArt = badgeArtOf(badgeKeys[i], badgeHeld);
     const spark = sparkOf(it);
     const scores = scoresOf(sessionSpark(it));
     const link = proofs[i] ? links.get(proofs[i]) : null;
@@ -227,6 +268,7 @@ export async function annotateFeed(db, timeline, subjects, close = null) {
         ? { moment_card: { id: cards.get(mastery[i]), name: mastery[i] } }
         : {}),
       ...(many.length > 1 ? { moment_cards: many } : {}),
+      ...(badgeArt ? { badge_art: badgeArt } : {}),
       ...(faces[i] && avatars.has(faces[i])
         ? { avatar_card_id: avatars.get(faces[i]) }
         : {}),

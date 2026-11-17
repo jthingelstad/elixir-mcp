@@ -171,6 +171,89 @@ test("a Mastery badge names its card, from one catalog read for the page", async
   assert.equal(reads.filter((s) => /from card/.test(s)).length, 1);
 });
 
+test("a badge moment draws its own art, from one read for the page; absent when none is held (0288)", async () => {
+  // Opaque ids are made up; the shape is the API's.
+  const icon = (id) =>
+    `https://api-assets.clashroyale.com/playerbadges/512/${id}.png`;
+  const reads = [];
+  const db = {
+    async query(sql, params) {
+      reads.push(sql);
+      if (/from badge_art/.test(sql)) {
+        assert.deepEqual(params[0].sort(), [
+          "ClanWarWins",
+          "Classic12Wins",
+          "MasteryKnight",
+          "YearsPlayed",
+        ]);
+        return {
+          rows: [
+            { name: "YearsPlayed", level: 5, icon_url: icon("yp5") },
+            { name: "YearsPlayed", level: 6, icon_url: icon("yp6") },
+            { name: "MasteryKnight", level: 10, icon_url: icon("mk10") },
+            { name: "Classic12Wins", level: 2, icon_url: icon("c12-2") },
+            // A URL the mirror would not copy is no art.
+            {
+              name: "ClanWarWins",
+              level: 0,
+              icon_url: "https://x.example/a.png",
+            },
+          ],
+        };
+      }
+      return { rows: [] };
+    },
+  };
+  const item = (kind, facts) => ({
+    kind,
+    subjects: [{ tag: FRIEND, kind: "player" }],
+    text: "A moment.",
+    facts: { player_tag: FRIEND, ...facts },
+  });
+  const out = await annotateFeed(
+    db,
+    [
+      // The level the line tells, which the game now shows, even when
+      // the jump crossed another rung.
+      item("badge_earned", { badge: "YearsPlayed", level: 6, rung: 5 }),
+      item("badge_earned", { badge: "YearsPlayed", level: 5 }),
+      // No row for this level yet: absence, never a neighbour's art.
+      item("badge_earned", { badge: "YearsPlayed", level: 7 }),
+      item("badge_earned", { badge: "MasteryKnight", level: 10 }),
+      // A Mastery roll-up keeps its cards.
+      item("badge_earned", {
+        badge: "MasteryKnight",
+        level: 10,
+        badges: [{ badge: "MasteryKnight", level: 10 }],
+      }),
+      item("twelve_win_run", { badge: "Classic12Wins", runs: 5, level: 2 }),
+      item("twelve_win_run", { badge: "Classic12Wins", runs: 6 }),
+      item("legendary_badge_earned", { badge: "ClanWarWins" }),
+      item("card_unlocked", { badge: "YearsPlayed", level: 6 }),
+    ],
+    SUBJECTS,
+  );
+  assert.deepEqual(
+    out.map((it) => it.badge_art ?? null),
+    [
+      "/assets/badges/yp6.png",
+      "/assets/badges/yp5.png",
+      null,
+      "/assets/badges/mk10.png",
+      null,
+      "/assets/badges/c12-2.png",
+      null,
+      null,
+      null,
+    ],
+  );
+  assert.equal(reads.filter((s) => /from badge_art/.test(s)).length, 1);
+  // A page with no badge moment reads nothing for it.
+  reads.length = 0;
+  await annotateFeed(db, [item("card_unlocked", { card_id: 1 })], SUBJECTS);
+  assert.equal(reads.filter((s) => /from badge_art/.test(s)).length, 0);
+});
+
 test("foldAccountLines: one line per kind and burst, however the kinds interleave", async () => {
   const { foldAccountLines } = await import("../src/bell.mjs");
   const at = (min) => new Date(Date.UTC(2026, 10, 12, 17, min)).toISOString();

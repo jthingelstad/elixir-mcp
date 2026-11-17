@@ -61,11 +61,13 @@ bash "$worktree/scripts/link-siblings.sh" "$source_tree" "$worktree"
 # The card-art cache (infra/scripts/mirror-card-art.mjs) ships with the
 # site when present, so a deploy from here must have it. A clone, not a
 # link: the site build copies it. On APFS the clone costs no space.
-cards=apps/site/src/assets/cards
-if [ -d "$source_tree/$cards" ] && [ ! -e "$worktree/$cards" ]; then
-  cp -cR "$source_tree/$cards" "$worktree/$cards" 2>/dev/null ||
-    cp -R "$source_tree/$cards" "$worktree/$cards"
-fi
+# Badge art (2026-11-17) is the same kind of cache, beside it.
+for cards in apps/site/src/assets/cards apps/site/src/assets/badges; do
+  if [ -d "$source_tree/$cards" ] && [ ! -e "$worktree/$cards" ]; then
+    cp -cR "$source_tree/$cards" "$worktree/$cards" 2>/dev/null ||
+      cp -R "$source_tree/$cards" "$worktree/$cards"
+  fi
+done
 
 npm ci --no-audit --no-fund --loglevel=error
 echo "worktree-setup: $worktree at origin/main $(git rev-parse --short HEAD), ready."

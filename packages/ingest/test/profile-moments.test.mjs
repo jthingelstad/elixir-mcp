@@ -244,3 +244,60 @@ test("a maxed card: the level-up that reached the top, never a card first seen t
   assert.equal(rows[0].payload.card_id, 26000021);
   assert.equal(rows[0].payload.level, 16, "on the shown scale");
 });
+
+test("badge art (0288): each badge and level's icon is kept from the first read; a non-API URL is not; an unchanged row is not rewritten", async () => {
+  const WREN = "#0VCP2L8Q";
+  await player(WREN);
+  // Opaque ids are made up; the shape is the API's.
+  const icon = (id) =>
+    `https://api-assets.clashroyale.com/playerbadges/512/${id}.png`;
+  const art = async () =>
+    (
+      await ctx.db.query(
+        `select name, level, icon_url, first_seen_at, observed_at
+           from badge_art where name in ('YearsPlayed', 'Played1Year', 'Odd')
+          order by name, level`,
+      )
+    ).rows;
+  await badges(
+    WREN,
+    [
+      { ...badge("YearsPlayed", 4), iconUrls: { large: icon("yp-4") } },
+      // A one-time badge has no level: level 0.
+      { name: "Played1Year", progress: 1, iconUrls: { large: icon("p1y") } },
+      { ...badge("Odd", 1), iconUrls: { large: "https://x.example/odd.png" } },
+    ],
+    "2026-11-10T10:00:00Z",
+  );
+  const first = await art();
+  assert.deepEqual(
+    first.map((r) => [r.name, r.level, r.icon_url]),
+    [
+      ["Played1Year", 0, icon("p1y")],
+      ["YearsPlayed", 4, icon("yp-4")],
+    ],
+  );
+  await badges(
+    WREN,
+    [
+      { ...badge("YearsPlayed", 5), iconUrls: { large: icon("yp-5") } },
+      { name: "Played1Year", progress: 1, iconUrls: { large: icon("p1y") } },
+    ],
+    "2026-11-11T10:00:00Z",
+  );
+  const second = await art();
+  assert.deepEqual(
+    second.map((r) => [r.name, r.level, r.icon_url]),
+    [
+      ["Played1Year", 0, icon("p1y")],
+      ["YearsPlayed", 4, icon("yp-4")],
+      ["YearsPlayed", 5, icon("yp-5")],
+    ],
+  );
+  const p1y = second.find((r) => r.name === "Played1Year");
+  assert.equal(
+    p1y.observed_at.toISOString(),
+    "2026-11-10T10:00:00.000Z",
+    "the same icon is not rewritten",
+  );
+});

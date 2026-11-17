@@ -208,8 +208,25 @@ test("small moments fold into one row that opens to a line each (2026-11-17)", a
   await page.route("**/assets/cards/**", (route) =>
     route.fulfill({ status: 200, contentType: "image/png", body: PNG }),
   );
+  // Badge art (0288): one file mirrored, the other not yet.
+  await page.route("**/assets/badges/**", (route) =>
+    route.request().url().endsWith("/g12-2.png")
+      ? route.fulfill({ status: 200, contentType: "image/png", body: PNG })
+      : route.fulfill({ status: 404, body: "" }),
+  );
   await mockApi(page, rhythmApi());
   await page.goto("/timeline");
+  // A badge moment whose art is not mirrored yet draws its card instead.
+  const knight = page
+    .locator(".kit-feed__item")
+    .filter({ hasText: "Knight Mastery level 10" })
+    .first();
+  await knight.scrollIntoViewIfNeeded();
+  await expect(knight.locator(".kit-line__art img")).toHaveAttribute(
+    "src",
+    /cards\//,
+  );
+  await expect(knight.locator(".kit-line__art--badge")).toHaveCount(0);
   const group = page
     .locator(".kit-feed__group")
     .filter({ hasText: "4 moments from Pip, Ash and 2 others" });
@@ -225,6 +242,15 @@ test("small moments fold into one row that opens to a line each (2026-11-17)", a
     "src",
     /cards\//,
   );
+  // A badge moment draws the badge's own art, whole: sized by width only.
+  const badgeArt = lines.nth(3).locator(".kit-line__art--badge img");
+  await expect(badgeArt).toHaveAttribute("src", "/assets/badges/g12-2.png");
+  expect(
+    await badgeArt.evaluate((img) => {
+      const cs = getComputedStyle(img);
+      return [cs.filter, cs.objectFit, cs.opacity, cs.mixBlendMode];
+    }),
+  ).toEqual(["none", "fill", "1", "normal"]);
   // One moment alone is one line.
   await expect(
     page

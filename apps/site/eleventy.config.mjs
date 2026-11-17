@@ -77,6 +77,10 @@ export default function (eleventyConfig) {
   // infra/scripts/mirror-card-art.mjs. Gitignored: it is a
   // cache, so a checkout that has not mirrored yet simply builds
   // without it rather than failing.
+  // Badge art (2026-11-17) is the same kind of cache; absent, the
+  // feed draws a badge moment without it.
+  if (existsSync(path.join(import.meta.dirname, "src/assets/badges")))
+    eleventyConfig.addPassthroughCopy("src/assets/badges");
   if (existsSync(path.join(import.meta.dirname, "src/assets/cards")))
     eleventyConfig.addPassthroughCopy("src/assets/cards");
   else

@@ -140,7 +140,11 @@ climbed a league or moved a rating in Ranked, a challenge run, or one
 played with or against a player you follow.
 
 Moments carry their art. A new card, a new Evo or Hero form and a Card
-Mastery show that card's own art, never changed. A new Arena, a new league
+Mastery show that card's own art, never changed. A badge moment (a new
+badge, a badge's new level, 12 wins in a challenge that raised the badge)
+shows the badge's own art from the game, never changed either. Badge art
+arrives as Elixir reads profiles: a badge level no profile it has read
+carries yet shows the moment's usual mark until one does. A new Arena, a new league
 in Ranked and a new best on Trophy Road read as the day's headline, with
 a mark of their own: Elixir has no Arena art and draws none. A clan's line
 wears the clan's mark on its band. A close friend's items show the small
