@@ -12,6 +12,7 @@ the steps that need a value are Jamie's, in the Secrets Manager console.
 | `db_password` | app secret; the RDS master password | the seven database functions and the `Database` resource | Database password |
 | `buttondown_api_token` | app secret | email-relay | Any other app-secret key |
 | `clan_sealing_secret` | app secret | web-api, email-relay, jobs, timeline-sync (`CLAN_MODEL_SECRET`): seals Clan's stored model keys and Discord webhooks, the timeline's Discord webhooks, and the outbox requests that carry them | Clan sealing secret |
+| `moderation_api_key` | app secret; an Anthropic API key of Elixir's own, for comment checks | email-relay (`MODERATION_API_KEY`), only when `CommentsEnabled=true` | Moderation key |
 | `turnstile_secret_key` | app secret; the secret of Cloudflare Turnstile widget "Elixir sign-in" | email-relay, when `TurnstileKeyInSecret=true` | Turnstile secret key |
 | `OriginSecret` | a NoEcho stack parameter | CloudFront sends it; web-api, mcp and collector require it | Origin secret |
 
@@ -159,6 +160,28 @@ It was the `session_secret` key of `elixir-clan/app`, the old standalone
 Clan app's secret, until it moved into the app secret as
 `clan_sealing_secret` (2026-10-08). Delete `elixir-clan/app` only after a
 deploy that reads `clan_sealing_secret` has succeeded.
+
+## Moderation key (once)
+
+Comments are checked by Claude on a key of Elixir's own, never a clan's
+(`docs/notes/2026-11-16-comments.md`). Only the email relay reads it; the
+web API never holds it. Until the key is there, every check answers
+`moderation_off` and nothing posts.
+
+1. Jamie, in the Anthropic Console: make an API key for Elixir comment
+   checks (a workspace spend limit of its own is a good second cap).
+2. Jamie, in the AWS console (us-east-1): Secrets Manager,
+   `elixir-mcp/app`, Retrieve secret value, Edit. Add the key
+   `moderation_api_key` with that value, Save.
+3. Deploy with `--param=CommentsEnabled=true` (and
+   `--param=CommentsMonthlyCapUsd=<dollars>` for a cap other than 10).
+4. Check: Admin, Comments shows checks this month with verdicts other
+   than `error`.
+
+To rotate it, put the new value in the same key and deploy with
+`--param=SecretEpoch=<YYYY-MM-DD>`. To turn comments off, deploy with
+`--param=CommentsEnabled=false`; the relay stops reading the key. Remove
+the key from the secret only after that deploy has succeeded.
 
 ## Any other app-secret key
 
