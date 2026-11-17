@@ -90,3 +90,11 @@ Nothing at once. From the first live battle-log read after it, a player
 whose third battle with a new deck arrives writes one row. Expect a few a
 day across followed players; the first hours carry only switches whose
 third battle was played in them.
+
+## Follow-up: observed at the read (Codex on #1110)
+
+The row's `window_end` was the third battle, so `evidence_observed_at`
+was too, and a poller whose pointer had passed that battle before the
+battle-log read delivered it never saw the switch. `window_end` is now
+the read's `fetchedAt` (never earlier than the battle); `occurred_at`
+stays the third battle.

@@ -171,6 +171,7 @@ const PROJECTORS = {
         await detectDeckSwitches(db, {
           playerTag: entityKey,
           mark: result.priorMark,
+          observedAt: fetchedAt,
           receiptId,
         })
       ).written;
