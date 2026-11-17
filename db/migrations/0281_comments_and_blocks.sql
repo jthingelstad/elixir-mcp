@@ -1,4 +1,4 @@
--- 0280: comments on timeline items, the check before each, blocks and
+-- 0281: comments on timeline items, the check before each, blocks and
 -- reports (2026-11-16).
 --
 -- Jamie, 2026-11-16: "I'm open to comments and I think we could use Haiku
@@ -64,7 +64,7 @@ create index timeline_comment_queue
   on timeline_comment (status, created_at) where status <> 'visible';
 
 comment on table timeline_comment is
-  'A person''s short comment on a timeline item about a verified player (0280).';
+  'A person''s short comment on a timeline item about a verified player (0281).';
 
 create table comment_report (
   comment_id  bigint not null references timeline_comment on delete cascade,
@@ -82,7 +82,7 @@ create index comment_report_open
 create index comment_report_account on comment_report (account_id);
 
 comment on table comment_report is
-  'One account''s report of one comment, for the admin queue (0280).';
+  'One account''s report of one comment, for the admin queue (0281).';
 
 create table comment_check (
   check_id    bigint generated always as identity primary key,
@@ -102,7 +102,7 @@ create index comment_check_account on comment_check (account_id, created_at desc
 create index comment_check_created on comment_check (created_at);
 
 comment on table comment_check is
-  'Every check before a comment: verdict, spend, and a refusal''s words for admins (0280).';
+  'Every check before a comment: verdict, spend, and a refusal''s words for admins (0281).';
 
 create table account_block (
   account_id         uuid not null references account,
@@ -114,7 +114,7 @@ create table account_block (
 create index account_block_blocked on account_block (blocked_account_id);
 
 comment on table account_block is
-  'A private block between two person accounts; read by server filters only (0280).';
+  'A private block between two person accounts; read by server filters only (0281).';
 
 create table comment_setting (
   account_id      uuid primary key references account,
@@ -124,4 +124,4 @@ create table comment_setting (
   updated_at      timestamptz not null default now());
 
 comment on table comment_setting is
-  'Who may comment on an account''s play, and an admin''s commenting suspension (0280).';
+  'Who may comment on an account''s play, and an admin''s commenting suspension (0281).';

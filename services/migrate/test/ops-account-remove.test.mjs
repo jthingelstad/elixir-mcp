@@ -205,7 +205,7 @@ before(async () => {
      values ($1, repeat('a', 64))`,
     [ids.person],
   );
-  // Comments (0280): one they wrote on the other person's item, one the
+  // Comments (0281): one they wrote on the other person's item, one the
   // other person wrote on theirs and reported, a check, a block each way
   // and their setting.
   await db.query(
