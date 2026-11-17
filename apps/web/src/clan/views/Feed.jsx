@@ -24,7 +24,7 @@ function byDay(items, dayHeading) {
   return days;
 }
 
-/** The clan's timeline: its items, its members' moments and highlights,
+/** The clan's timeline: its items, its members' moments and posts,
  *  newest first, as this reader reads them (`GET .../feed`), thirty items
  *  at a time, drawn by the Timeline's own components (2026-11-17) so the
  *  two cannot drift. Nothing opens in place here, and no item takes a
@@ -72,7 +72,7 @@ function ClanTimeline({ clan }) {
       {head}
       {items.length === 0 ? (
         <Empty title="Nothing in the last seven days">
-          Joins, departures, promotions, members&rsquo; moments and highlights
+          Joins, departures, promotions, members&rsquo; moments and posts
           appear here as Elixir records them.
         </Empty>
       ) : (

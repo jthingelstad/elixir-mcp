@@ -2,52 +2,52 @@ import { useEffect, useId, useState } from "react";
 import { useWrite } from "../client/index.ts";
 import { ConfirmAction, Icon, WriteError, useFlash } from "@elixir-mcp/ui";
 import { api } from "../api.js";
-import { HOME_FEED_KEY, keys, useMyHighlights } from "../lib/queries.js";
+import { HOME_FEED_KEY, keys, useBattlePosts } from "../lib/queries.js";
 import { useAskOnOpen } from "../lib/own-refresh.js";
 
 /**
- * Highlight it (social slice 4, #762): a signed-in person whose own
- * verified player played this battle posts it to that player's timeline
- * with their words, then may share it as /h/<id>. The server decides who
- * may post (`can_highlight_as`); this panel only shows what it answered,
- * and draws nothing for anyone else.
+ * Post about this battle (social slice 4, #762; 2026-11-17, 0291: what
+ * was a highlight is a post with a battle attached). A signed-in person
+ * whose own verified player played this battle posts about it on that
+ * player's timeline, with words or without, then may share it as
+ * /h/<id> and post it once in the clan's Discord. The server decides who
+ * may post (`can_post_as`); this panel only shows what it answered, and
+ * draws nothing for anyone else. The post itself is an ordinary post:
+ * the Timeline, a player's page and Clan's Feed draw it with its battle.
  */
 
 const WORDS_MAX = 500;
 const FEED = [...keys.me, "feed"];
 const count = (s) => [...s].length;
 
-export function BattleHighlight({ battle, sides }) {
-  const query = useMyHighlights(battle.id);
+export function BattlePosts({ battle, sides }) {
+  const query = useBattlePosts(battle.id);
   const data = query.data;
-  // A session page's Highlight lands here (#highlight, 2026-11-16): once
-  // the panel has drawn, it scrolls into view.
+  // A session page's Post lands here (#post, 2026-11-16; #highlight from
+  // a link made before): once the panel has drawn, it scrolls into view.
   useEffect(() => {
-    if (!data || window.location.hash !== "#highlight") return;
-    document.getElementById("highlight")?.scrollIntoView?.({ block: "start" });
+    if (!data || !["#post", "#highlight"].includes(window.location.hash))
+      return;
+    document.getElementById("post")?.scrollIntoView?.({ block: "start" });
   }, [data]);
   if (!data) return null;
-  const { can_highlight_as: players = [], highlights = [] } = data;
-  const posted = new Set(highlights.map((h) => h.player_tag));
+  const { can_post_as: players = [], posts = [] } = data;
+  const posted = new Set(posts.map((p) => p.subject_tag));
   const open = players.filter((tag) => !posted.has(tag));
-  if (highlights.length === 0 && open.length === 0) return null;
+  if (posts.length === 0 && open.length === 0) return null;
   const nameOf = (tag) =>
     sides.flatMap((s) => s.players).find((p) => p.player_tag === tag)?.name ??
     tag;
-  const invalidate = [keys.highlights(battle.id), FEED, HOME_FEED_KEY];
+  const invalidate = [keys.battlePosts(battle.id), FEED, HOME_FEED_KEY];
   return (
-    <section
-      id="highlight"
-      className="panel"
-      aria-label="Highlight this battle"
-    >
-      <div className="panel__head">Highlight this battle</div>
+    <section id="post" className="panel" aria-label="Post about this battle">
+      <div className="panel__head">Post about this battle</div>
       <div className="panel__body">
-        {highlights.map((h) => (
+        {posts.map((it) => (
           <Posted
-            key={h.highlight_id}
-            h={h}
-            name={nameOf(h.player_tag)}
+            key={it.id}
+            p={it.post}
+            name={nameOf(it.subject_tag)}
             invalidate={invalidate}
           />
         ))}
@@ -91,7 +91,7 @@ function Compose({ battle, players, nameOf, invalidate }) {
   useAskOnOpen(true);
   const [words, setWords] = useState("");
   const [as, setAs] = useState(players[0]);
-  const post = useWrite(api.postHighlight, { invalidate });
+  const post = useWrite(api.writeBattlePost, { invalidate });
   const player = players.includes(as) ? as : players[0];
   return (
     <form
@@ -100,14 +100,15 @@ function Compose({ battle, players, nameOf, invalidate }) {
         const r = await post.run({
           battle: battle.id,
           player_tag: player,
-          words,
+          text: words,
         });
         if (r.ok) setWords("");
       }}
     >
       <p className="footnote mb-3">
-        It goes on {nameOf(player)}’s timeline as this battle, with your words.
-        People who follow them see it; nobody else does until you share it.
+        It goes on {nameOf(player)}’s timeline as a post with this battle and
+        your words. People in Elixir see it there; nobody outside Elixir does
+        until you share it.
       </p>
       {players.length > 1 && (
         <>
@@ -140,28 +141,28 @@ function Compose({ battle, players, nameOf, invalidate }) {
           type="submit"
           disabled={post.busy || count(words) > WORDS_MAX}
         >
-          Post to your timeline
+          {post.busy ? "Checking" : "Post"}
         </button>
       </div>
     </form>
   );
 }
 
-function Posted({ h, name, invalidate }) {
+function Posted({ p, name, invalidate }) {
   const id = useId();
   const [editing, setEditing] = useState(false);
-  const [words, setWords] = useState(h.words);
+  const [words, setWords] = useState(p.text);
   const [copied, flash] = useFlash();
-  const edit = useWrite(api.editHighlight, { invalidate });
-  const share = useWrite(api.shareHighlight, { invalidate });
-  const remove = useWrite(api.deleteHighlight, { invalidate });
+  const edit = useWrite(api.editPost, { invalidate });
+  const share = useWrite(api.sharePost, { invalidate });
+  const remove = useWrite(api.deletePost, { invalidate });
   return (
     <div className="highlight-posted">
       {editing ? (
         <form
           onSubmit={async (event) => {
             event.preventDefault();
-            const r = await edit.run(h.highlight_id, words);
+            const r = await edit.run(p.id, words);
             if (r.ok) setEditing(false);
           }}
         >
@@ -169,13 +170,13 @@ function Posted({ h, name, invalidate }) {
           <WriteError error={edit.error} />
           <div className="share-actions">
             <button className="btn" type="submit" disabled={edit.busy}>
-              Save words
+              {edit.busy ? "Checking" : "Save words"}
             </button>
             <button
               className="btn"
               type="button"
               onClick={() => {
-                setWords(h.words);
+                setWords(p.text);
                 setEditing(false);
               }}
             >
@@ -185,23 +186,27 @@ function Posted({ h, name, invalidate }) {
         </form>
       ) : (
         <p
-          className={`highlight-posted__words${h.words ? "" : " highlight-posted__words--none"}`}
+          className={`highlight-posted__words${p.text ? "" : " highlight-posted__words--none"}`}
         >
-          {h.words ? `“${h.words}”` : "No words, just the battle."}
+          {p.text ? `“${p.text}”` : "No words, just the battle."}
         </p>
       )}
       {/* The words lead (G9, 2026-11-12); where they are posted is the
           line under them, and the actions are ordinary-sized beside it. */}
-      <p className="highlight-posted__where">On {name}’s timeline</p>
-      {h.share_url && (
+      <p className="highlight-posted__where">
+        {p.status === "hidden"
+          ? "Only you see this one for now: it's waiting for a look."
+          : `On ${name}’s timeline`}
+      </p>
+      {p.share_url && (
         <div className="share-link">
           <Icon name="link-2" size={15} />
-          <span className="share-link__url">{h.share_url}</span>
+          <span className="share-link__url">{p.share_url}</span>
           <button
             type="button"
             className="btn btn--sm"
             onClick={() => {
-              navigator.clipboard?.writeText(h.share_url);
+              navigator.clipboard?.writeText(p.share_url);
               flash();
             }}
           >
@@ -214,12 +219,12 @@ function Posted({ h, name, invalidate }) {
       <WriteError error={remove.error} />
       {!editing && (
         <div className="highlight-posted__actions">
-          {!h.share_url && (
+          {!p.share_url && p.status !== "hidden" && (
             <button
               className="btn btn--sm"
               type="button"
               disabled={share.busy}
-              onClick={() => share.run(h.highlight_id)}
+              onClick={() => share.run(p.id)}
             >
               Share
             </button>
@@ -228,7 +233,7 @@ function Posted({ h, name, invalidate }) {
             className="btn btn--sm"
             type="button"
             onClick={() => {
-              setWords(h.words);
+              setWords(p.text);
               setEditing(true);
             }}
           >
@@ -237,33 +242,34 @@ function Posted({ h, name, invalidate }) {
           <ConfirmAction
             label="Delete"
             className="link highlight-posted__delete"
-            title="Delete this highlight?"
+            title="Delete this post?"
             body={
-              h.share_url
-                ? "It leaves the timeline, its words are deleted, and its link stops opening within about a minute."
-                : "It leaves the timeline and its words are deleted."
+              p.share_url
+                ? "It leaves the timeline with its cheers and comments, its words are deleted, and its link stops opening within about a minute."
+                : "It leaves the timeline with its cheers and comments, and its words are deleted."
             }
             confirm="Delete"
-            run={() => remove.run(h.highlight_id)}
+            run={() => remove.run(p.id)}
           />
         </div>
       )}
-      {h.share_url && (
+      {p.share_url && (
         <p className="footnote">
           Anyone with the link can open the post, no account needed: your words,{" "}
           {name}’s game name and the battle.
         </p>
       )}
-      {h.share_url && <ClanDiscord h={h} name={name} invalidate={invalidate} />}
+      {p.share_url && <ClanDiscord p={p} name={name} invalidate={invalidate} />}
     </div>
   );
 }
 
-/** A shared highlight in its player's clan's Discord (#767): offered only
- *  when the server says the clan's leaders allow it, and only once. */
-function ClanDiscord({ h, name, invalidate }) {
-  const post = useWrite(api.postHighlightToClan, { invalidate });
-  const state = h.clan_discord;
+/** A shared post about a battle in its player's clan's Discord (#767):
+ *  offered only when the server says the clan's leaders allow it, and
+ *  only once. */
+function ClanDiscord({ p, name, invalidate }) {
+  const post = useWrite(api.postToClanDiscord, { invalidate });
+  const state = p.clan_discord;
   if (state?.posted_at)
     return <p className="footnote">Posted in your clan’s Discord.</p>;
   if (!state?.available) return null;
@@ -273,9 +279,9 @@ function ClanDiscord({ h, name, invalidate }) {
         label="Post in your clan’s Discord"
         danger={false}
         title="Post in your clan’s Discord?"
-        body={`Everyone in the channel sees your words, ${name}’s game name, the result and the link. It is posted once, and editing or deleting the highlight later does not change it there.`}
+        body={`Everyone in the channel sees your words, ${name}’s game name, the result and the link. It is posted once, and editing or deleting the post later does not change it there.`}
         confirm="Post"
-        run={() => post.run(h.highlight_id)}
+        run={() => post.run(p.id)}
       />
     </div>
   );

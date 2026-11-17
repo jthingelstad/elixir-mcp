@@ -42,7 +42,7 @@
  * Discord, MCP or `/api/v1`, and an agent has no bell. Reads are bounded:
  * your own players' last seven days (the window a cheer can be given in) come from their stored week (bell_week, 0247;
  * readBellWeek), built on the read only when there is none, your players
- * changed or it is past three hours, and four small queries. Highlights,
+ * changed or it is past three hours, and four small queries. Battle posts,
  * attested facts and cheers are read live. Clan's waiting Actions are not
  * here: Home's needs read asks Clan on every request.
  */
@@ -282,7 +282,9 @@ async function readComments(db, accountId, seen) {
  *  reactions' rows: counts per cheer, never who, nobody's in a block with
  *  you. Read here, by the posts themselves, and only while posts are on:
  *  a post's cheer stamps no players (cheers.mjs setCheer), so the activity
- *  mail and push, which find their accounts by those, never carry one. */
+ *  mail and push, which find their accounts by those, never carry one. A
+ *  post about a battle is not read here: its cheers stamp its player and
+ *  reach the bell as the highlight it was did (readReactions). */
 async function readPostCheers(db, accountId, seen) {
   const { rows } = await db.query(
     `select p.item_id, p.player_tag, p.body, p.question, tc.cheer,
@@ -293,6 +295,7 @@ async function readPostCheers(db, accountId, seen) {
        from account_post p
        join timeline_cheer tc on tc.item_id = p.item_id
       where p.account_id = $1 and p.status <> 'removed'
+        and p.battle_id is null
         and p.created_at > now() - make_interval(days => $3)
         and tc.account_id <> $1
         and not ${blockedSql("tc.account_id", "$1::uuid")}

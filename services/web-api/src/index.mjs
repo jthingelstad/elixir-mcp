@@ -61,9 +61,14 @@ const handler = makeHandler({
     readStatus: makeStatusReader(process.env.OUTBOX_BUCKET),
     readHistory: makeHistoryReader(process.env.OUTBOX_BUCKET),
     notifyOwner,
-    // Clan's Feed holds members' posts while posts and comments are on.
+    // Clan's Feed holds members' posts about battles always, and their
+    // other posts while posts and comments are on; their comments while
+    // comments are on (the same test the handler's comments make).
     posts:
       process.env.POSTS_ENABLED === "true" &&
+      process.env.COMMENTS_ENABLED === "true" &&
+      Boolean(process.env.CLAN_MODEL_SECRET && process.env.OUTBOX_BUCKET),
+    comments:
       process.env.COMMENTS_ENABLED === "true" &&
       Boolean(process.env.CLAN_MODEL_SECRET && process.env.OUTBOX_BUCKET),
   }),

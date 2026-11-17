@@ -4,13 +4,18 @@ import {
   Chips,
   ConfirmAction,
   DeckRow,
+  DeckVersus,
   Icon,
+  Link,
+  TagText,
   avatarCardOf,
+  useFlash,
 } from "@elixir-mcp/ui";
 import { api } from "../api.js";
 import { useMe } from "../App.jsx";
 import { useCardCatalog, usePostsChanged } from "../lib/queries.js";
 import { useScope } from "../lib/scope.js";
+import { modeWord } from "./logic.js";
 import { ReportForm } from "./Comments.jsx";
 import {
   POST_CARDS_MAX,
@@ -31,6 +36,11 @@ import {
  * The words are the writer's: drawn as plain text, never as links,
  * Markdown or tags. No images, and no links: a deck link from the game is
  * read into the deck and leaves the words.
+ *
+ * A post may carry a battle instead of a deck or cards (0291: what was a
+ * highlight). It is written from the battle's own page (views/
+ * BattlePosts.jsx), its words optional, and drawn here with the battle:
+ * what happened, both decks with the score between, and Open battle.
  */
 export function usePostsOn() {
   const { me } = useMe();
@@ -327,14 +337,19 @@ function PostCards({ cards, onRemove = null }) {
 }
 
 /** A post's body in the feed: Question when it is one, the words as
- *  plain text, and its deck (the label, the average elixir, Copy deck) or
- *  its cards. */
+ *  plain text, and its battle, its deck (the label, the average elixir,
+ *  Copy deck) or its cards. */
 export function PostBody({ it }) {
   const p = it.post ?? {};
+  const words = String(p.text ?? "");
   return (
     <div className="kit-written">
       {p.question ? <p className="kit-written__label">Question</p> : null}
-      <p className="kit-written__text">{String(p.text ?? "")}</p>
+      {words ? <p className="kit-written__text">{words}</p> : null}
+      {p.battle ? (
+        <PostBattle battle={p.battle} versus={p.versus} who={p.author} />
+      ) : null}
+      {p.edited ? <p className="kit-tiny m-0">Edited</p> : null}
       {p.status === "hidden" ? (
         <p className="kit-tiny m-0">
           Only you see this one for now: it's waiting for a look.
@@ -342,6 +357,61 @@ export function PostBody({ it }) {
       ) : null}
       {p.deck ? <PostDeck deck={p.deck} /> : null}
       {p.cards?.length ? <PostCards cards={p.cards} /> : null}
+    </div>
+  );
+}
+
+const RESULT_WORD = { win: "win", loss: "loss", draw: "draw" };
+
+/** What the battle was, in a line: "A 3-1 win against Name (Ranked)". */
+export function battleLine(b) {
+  const result = RESULT_WORD[b?.outcome] ?? "battle";
+  const known =
+    typeof b?.crowns === "number" && typeof b?.crowns_against === "number";
+  const score = known ? `${b.crowns}-${b.crowns_against} ` : "";
+  const them = (b?.opponents ?? []).map((o) => o.name ?? o.player_tag);
+  const against = them.length ? ` against ${them.join(" and ")}` : "";
+  const mode = b?.mode_group ? modeWord(b.mode_group) : null;
+  return `A ${score}${result}${against}${mode ? ` (${mode})` : ""}`;
+}
+
+/** A post's battle: what happened, both decks with the score between when
+ *  the record kept them, and the battle's page. */
+function PostBattle({ battle: b, versus: v, who }) {
+  const known =
+    typeof b.crowns === "number" && typeof b.crowns_against === "number";
+  const result =
+    b.outcome === "win" ? "Won" : b.outcome === "loss" ? "Lost" : null;
+  const theirName = b.opponents?.length === 1 ? b.opponents[0].name : null;
+  const to = String(b.url ?? "").replace(/^https?:\/\/[^/]+/, "");
+  return (
+    <div className="kit-written__battle">
+      <p className="kit-feed__text">
+        <TagText>{battleLine(b)}</TagText>
+      </p>
+      {v?.mine && v?.theirs && known ? (
+        <DeckVersus
+          showCost
+          left={{
+            name: <TagText>{who?.name ?? who?.player_tag ?? "Them"}</TagText>,
+            label: v.mine.label ? <TagText>{v.mine.label}</TagText> : null,
+            cards: v.mine.cards,
+          }}
+          right={{
+            name: <TagText>{theirName ?? "Their deck"}</TagText>,
+            label: v.theirs.label ? <TagText>{v.theirs.label}</TagText> : null,
+            cards: v.theirs.cards,
+          }}
+          score={`${b.crowns}-${b.crowns_against}`}
+          scoreLabel={`${result ? `${result} ` : ""}${b.crowns} to ${b.crowns_against}`}
+          note={b.mode_group ? modeWord(b.mode_group) : null}
+        />
+      ) : null}
+      {to.startsWith("/battle/") ? (
+        <Link to={to} className="btn btn--sm">
+          Open battle
+        </Link>
+      ) : null}
     </div>
   );
 }
@@ -396,13 +466,15 @@ function PostDeck({ deck }) {
   );
 }
 
-/** What the reader may do about a post: delete their own, report or
- *  block someone else's. */
+/** What the reader may do about a post: edit or delete their own (and
+ *  copy a shared battle post's link), report or block someone else's. */
 export function PostActions({ it }) {
   const p = it.post ?? {};
   const changed = usePostsChanged();
   const [reporting, setReporting] = useState(false);
   const [reported, setReported] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [copied, flash] = useFlash();
   const name = p.author?.name ?? p.author?.player_tag ?? "this player";
   if (reported)
     return (
@@ -412,6 +484,29 @@ export function PostActions({ it }) {
     );
   return (
     <div className="kit-written__acts">
+      {p.share_url ? (
+        <button
+          type="button"
+          className="btn btn--quiet btn--sm"
+          onClick={() => {
+            navigator.clipboard?.writeText(p.share_url);
+            flash();
+          }}
+        >
+          <Icon name={copied ? "check" : "copy"} size={14} />
+          {copied ? "Copied" : "Copy share link"}
+        </button>
+      ) : null}
+      {p.can_edit && !editing ? (
+        <button
+          type="button"
+          className="btn btn--quiet btn--sm"
+          aria-expanded={editing}
+          onClick={() => setEditing(true)}
+        >
+          Edit
+        </button>
+      ) : null}
       {p.can_delete ? (
         <ConfirmAction
           label="Delete"
@@ -448,6 +543,16 @@ export function PostActions({ it }) {
           }}
         />
       ) : null}
+      {editing ? (
+        <EditForm
+          p={p}
+          onClose={() => setEditing(false)}
+          onDone={() => {
+            setEditing(false);
+            changed();
+          }}
+        />
+      ) : null}
       {reporting ? (
         <ReportForm
           id={p.id}
@@ -459,5 +564,70 @@ export function PostActions({ it }) {
         />
       ) : null}
     </div>
+  );
+}
+
+/** The author changes a post's words, through the same check as a new
+ *  post. A post about a battle may be left with no words. */
+function EditForm({ p, onClose, onDone }) {
+  const [text, setText] = useState(String(p.text ?? ""));
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState(null);
+  const fieldId = useId();
+  const left = POST_MAX - [...text.trim()].length;
+  const empty = !text.trim() && !p.battle;
+  const save = async (e) => {
+    e.preventDefault();
+    if (busy || empty || left < 0) return;
+    setBusy(true);
+    setError(null);
+    const res = await api.editPost(p.id, text);
+    setBusy(false);
+    if (res.ok) return onDone();
+    setError(refusalWords(res));
+  };
+  return (
+    <form className="kit-post-compose kit-post-edit" onSubmit={save}>
+      <textarea
+        id={fieldId}
+        aria-label="Your words"
+        className="kit-comments__field kit-post-compose__field"
+        rows={3}
+        maxLength={POST_MAX * 3}
+        value={text}
+        aria-invalid={error ? true : undefined}
+        aria-describedby={`${fieldId}-help`}
+        onChange={(e) => setText(e.target.value)}
+      />
+      <div className="kit-comments__send">
+        <span
+          id={`${fieldId}-help`}
+          className={left < 0 ? "field-error" : "kit-tiny"}
+        >
+          {left < 0 ? `${-left} too many` : `${left} left`}
+        </span>
+        <span className="kit-post-compose__acts">
+          <button
+            type="button"
+            className="btn btn--sm btn--quiet"
+            onClick={onClose}
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            className="btn btn--sm btn--primary"
+            disabled={busy || empty || left < 0}
+          >
+            {busy ? "Checking" : "Save"}
+          </button>
+        </span>
+      </div>
+      {error ? (
+        <p role="alert" className="field-error">
+          {error}
+        </p>
+      ) : null}
+    </form>
   );
 }

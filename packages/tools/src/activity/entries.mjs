@@ -29,6 +29,7 @@ import {
   playerEventProofSql,
 } from "@elixir-mcp/record/event-origin";
 import { battleLinks } from "@elixir-mcp/record/battle-links";
+import { blockedSql } from "@elixir-mcp/claims";
 import { daysSincePollSql } from "@elixir-mcp/record/read-facts";
 import { createHash } from "node:crypto";
 import { stampById } from "@elixir-mcp/stamps/catalog";
@@ -4296,19 +4297,25 @@ export async function peopleItems(
 }
 
 /**
- * The highlights the followed players posted in the window (social slice
- * 4, #762): each the one single-battle item, carrying the player's words
- * and the battle it names. It happened when it was posted (`at`, and the
- * occurred window); the record last learned it when its words last
- * changed (`observed_at`, and the observed window), so an edit is the
- * same story, at the same instant, grown to the highlight's revision
- * (0240): a poller is served the correction and a cross-posted line is
- * edited in place. Its share link is the owner's alone: served only when
+ * The posts about a battle the followed players wrote in the window: since
+ * 2026-11-17 a highlight is a post with a battle attached (account_post,
+ * 0291), and the timeline serves each as it served a highlight, kind
+ * `battle_highlight`, the one single-battle item, carrying the player's
+ * words and the battle it names. The MCP vocabulary keeps its name; a
+ * rename is a major, which is Jamie's call. It happened when it was
+ * posted (`at`, and the occurred window); the record last learned it when
+ * its words last changed (`observed_at`, and the observed window), so an
+ * edit is the same story, at the same instant, grown to the post's
+ * revision: a poller is served the correction and a cross-posted line is
+ * edited in place. Its id is the post's own item id (a highlight's old
+ * timeline id, kept by 0291), so cheers and comments name one item. Only
+ * a visible post by an approved person, never one by anyone in a block
+ * with the reader. Its share link is the owner's alone: served only when
  * the reader is the account that posted it, or one of its agents.
  * Section "battles"; public, like the battle it names.
  */
-/** One deck as jsonb for a highlight's two decks, inside the highlight's
- *  one statement: its stamped label (0148) unless unclassified, and its
+/** One deck as jsonb for a battle post's two decks, inside its one
+ *  statement: its stamped label (0148) unless unclassified, and its
  *  cards with their catalog costs. */
 export const VERSUS_DECK_SQL = (hash) => `(select jsonb_build_object(
           'label', case when d.archetype_family <> 'unclassified'
@@ -4320,6 +4327,115 @@ export const VERSUS_DECK_SQL = (hash) => `(select jsonb_build_object(
                       from unnest(d.card_ids, d.card_forms) as dc(card_id, form)
                       join card c on c.card_id = dc.card_id))
          from deck d where d.deck_hash = ${hash})`;
+
+/** The battle posts `where` names (its parameters from $2; $1 the reader's
+ *  account or null), with what their item needs: the
+ *  battle from the post's player's side, its opponents and both decks.
+ *  Visible posts only, unless `held` (a post hidden for review, which its
+ *  author still sees on the web). */
+async function battlePostRows(db, where, params, accountId, held = false) {
+  const { rows } = await db.query(
+    `select p.post_id::text as post_id, p.item_id, p.player_tag, p.battle_id,
+            p.body as words, p.share_id, p.created_at,
+            coalesce(p.updated_at, p.created_at) as updated_at, p.revision,
+            pl.name,
+            (p.account_id = (select coalesce(a.owned_by_account_id, a.account_id)
+                               from account a where a.account_id = $1::uuid)) as yours,
+            b.battle_time, b.type, b.event_tag, b.game_mode_name,
+            me.side, me.crowns, me.outcome, me.trophy_change,
+            (select coalesce(jsonb_agg(jsonb_build_object(
+                      'player_tag', o.player_tag, 'name', op.name,
+                      'crowns', o.crowns,
+                      'starting_trophies', o.starting_trophies)
+                    order by o.player_tag), '[]'::jsonb)
+               from battle_participant o
+               left join player op on op.player_tag = o.player_tag
+              where o.battle_id = p.battle_id and o.side <> me.side) as opponents,
+            ${VERSUS_DECK_SQL("me.deck_hash")} as my_deck,
+            (select ${VERSUS_DECK_SQL("o.deck_hash")}
+               from battle_participant o
+              where o.battle_id = p.battle_id and o.side <> me.side
+              order by o.player_tag limit 1) as their_deck
+       from account_post p
+       join account au on au.account_id = p.account_id
+                      and au.kind = 'person' and au.status = 'approved'
+       left join player pl on pl.player_tag = p.player_tag
+       join battle b on b.battle_id = p.battle_id
+       -- The post's player's row, by its primary key: joined plainly, the
+       -- planner can read it off the player's whole battle history once
+       -- per post (16,500 buffers for 40 posts over a year, 2026-11-13).
+       -- The limit keeps the lateral a probe.
+       cross join lateral (
+         select bp.side, bp.crowns, bp.outcome, bp.trophy_change, bp.deck_hash
+           from battle_participant bp
+          where bp.battle_id = p.battle_id and bp.player_tag = p.player_tag
+          limit 1) me
+      where p.battle_id is not null
+        and ${held ? "p.status <> 'removed'" : "p.status = 'visible'"}
+        and ($1::uuid is null or not ${blockedSql("p.account_id", "$1::uuid")})
+        and ${where}`,
+    [accountId, ...params],
+  );
+  return rows;
+}
+
+/** A battle post's battle as its item carries it, and its two decks for
+ *  the website (`{mine, theirs}`, theirs null unless one opponent). */
+function battleOfRow(r, links) {
+  const opponents = r.opponents.map((o) => ({
+    player_tag: o.player_tag,
+    name: o.name ?? null,
+    starting_trophies: o.starting_trophies ?? null,
+  }));
+  const mine = versusSide(r.my_deck);
+  return {
+    battle: {
+      battle_id: r.battle_id,
+      url: links.get(r.battle_id)?.url ?? null,
+      battle_time: iso(r.battle_time),
+      mode_group: modeGroupOf(r.type, r.event_tag),
+      game_mode: r.game_mode_name ?? null,
+      outcome: r.outcome ?? null,
+      crowns: r.crowns ?? null,
+      crowns_against: r.opponents.reduce(
+        (m, o) =>
+          typeof o.crowns === "number" ? Math.max(m ?? 0, o.crowns) : m,
+        null,
+      ),
+      trophy_change: r.trophy_change ?? null,
+      opponents,
+    },
+    versus: mine
+      ? {
+          mine,
+          theirs: opponents.length === 1 ? versusSide(r.their_deck) : null,
+        }
+      : null,
+  };
+}
+
+/**
+ * The battles of these posts (their item ids), as the timeline carries
+ * them, for the web API's own post items (services/web-api posts.mjs):
+ * `Map<item_id, {battle, versus}>`. Who may read each post is the
+ * caller's to decide (its author sees one hidden for review); this reads
+ * only posts by approved people that are not removed.
+ */
+export async function battlePostFacts(db, itemIds) {
+  if (itemIds.length === 0) return new Map();
+  const rows = await battlePostRows(
+    db,
+    "p.item_id = any($2::text[])",
+    [itemIds],
+    null,
+    true,
+  );
+  const links = await battleLinks(
+    db,
+    rows.map((r) => r.battle_id),
+  );
+  return new Map(rows.map((r) => [r.item_id, battleOfRow(r, links)]));
+}
 
 async function highlightItems(
   db,
@@ -4333,43 +4449,17 @@ async function highlightItems(
     ]),
   ];
   if (players.length === 0) return [];
-  const col = basis === "occurred" ? "created_at" : "updated_at";
-  const { rows } = await db.query(
-    `select h.highlight_id, h.player_tag, h.battle_id, h.words, h.share_id,
-            h.created_at, h.updated_at, h.revision, p.name,
-            (h.account_id = (select coalesce(a.owned_by_account_id, a.account_id)
-                               from account a where a.account_id = $2::uuid)) as yours,
-            b.battle_time, b.type, b.event_tag, b.game_mode_name,
-            me.side, me.crowns, me.outcome, me.trophy_change,
-            (select coalesce(jsonb_agg(jsonb_build_object(
-                      'player_tag', o.player_tag, 'name', op.name,
-                      'crowns', o.crowns,
-                      'starting_trophies', o.starting_trophies)
-                    order by o.player_tag), '[]'::jsonb)
-               from battle_participant o
-               left join player op on op.player_tag = o.player_tag
-              where o.battle_id = h.battle_id and o.side <> me.side) as opponents,
-            ${VERSUS_DECK_SQL("me.deck_hash")} as my_deck,
-            (select ${VERSUS_DECK_SQL("o.deck_hash")}
-               from battle_participant o
-              where o.battle_id = h.battle_id and o.side <> me.side
-              order by o.player_tag limit 1) as their_deck
-       from battle_highlight h
-       join player p on p.player_tag = h.player_tag
-       join battle b on b.battle_id = h.battle_id
-       -- The highlighted player's row, by its primary key: joined plainly,
-       -- the planner can read it off the player's whole battle history
-       -- once per highlight (16,500 buffers for 40 highlights over a
-       -- year, 2026-11-13). The limit keeps the lateral a probe.
-       cross join lateral (
-         select bp.side, bp.crowns, bp.outcome, bp.trophy_change, bp.deck_hash
-           from battle_participant bp
-          where bp.battle_id = h.battle_id and bp.player_tag = h.player_tag
-          limit 1) me
-      where h.player_tag = any($1::text[])
-        and h.${col} >= ${ts(fromMs + 1)} and h.${col} < ${ts(toMs + 1)}
-      order by h.${col}`,
-    [players, accountId],
+  const col =
+    basis === "occurred"
+      ? "p.created_at"
+      : "coalesce(p.updated_at, p.created_at)";
+  const rows = await battlePostRows(
+    db,
+    `p.player_tag = any($2::text[])
+        and ${col} >= ${ts(fromMs + 1)} and ${col} < ${ts(toMs + 1)}
+      order by ${col}`,
+    [players],
+    accountId ?? null,
   );
   if (rows.length === 0) return [];
   const links = await battleLinks(
@@ -4377,11 +4467,7 @@ async function highlightItems(
     rows.map((r) => r.battle_id),
   );
   return rows.map((r) => {
-    const opponents = r.opponents.map((o) => ({
-      player_tag: o.player_tag,
-      name: o.name ?? null,
-      starting_trophies: o.starting_trophies ?? null,
-    }));
+    const { battle, versus } = battleOfRow(r, links);
     return {
       subject_tag: r.player_tag,
       subject_name: r.name ?? r.player_tag,
@@ -4393,36 +4479,19 @@ async function highlightItems(
       facts: {
         player_tag: r.player_tag,
         name: r.name ?? null,
-        highlight_id: r.highlight_id,
+        // The post's id (0291: a highlight is a post with a battle
+        // attached). highlight_id carries the same value, so a reader
+        // keyed on it still finds one id per highlight; before 0291 it was
+        // the highlight's uuid.
+        highlight_id: r.post_id,
+        post_id: r.post_id,
         words: r.words,
-        battle: {
-          battle_id: r.battle_id,
-          url: links.get(r.battle_id)?.url ?? null,
-          battle_time: iso(r.battle_time),
-          mode_group: modeGroupOf(r.type, r.event_tag),
-          game_mode: r.game_mode_name ?? null,
-          outcome: r.outcome ?? null,
-          crowns: r.crowns ?? null,
-          crowns_against: r.opponents.reduce(
-            (m, o) =>
-              typeof o.crowns === "number" ? Math.max(m ?? 0, o.crowns) : m,
-            null,
-          ),
-          trophy_change: r.trophy_change ?? null,
-          opponents,
-        },
+        battle,
         ...(r.yours && r.share_id ? { share_url: postUrl(r.share_id) } : {}),
       },
-      ...(versusSide(r.my_deck)
-        ? {
-            [VERSUS]: {
-              mine: versusSide(r.my_deck),
-              theirs: opponents.length === 1 ? versusSide(r.their_deck) : null,
-            },
-          }
-        : {}),
+      ...(versus ? { [VERSUS]: versus } : {}),
       [STORY]: {
-        ...moment("battle_highlight", r.highlight_id),
+        id: r.item_id,
         revision: Math.max(1, Number(r.revision) || 1),
       },
     };
@@ -4430,8 +4499,8 @@ async function highlightItems(
 }
 
 /**
- * A player's highlights, newest first, for their player page (slice 6,
- * #764): every one they posted, not a window's, finished as the timeline
+ * A player's highlights (their posts about battles), newest first, for
+ * players_highlights (slice 6, #764): every one they posted, not a window's, finished as the timeline
  * serves an item. Read with no account, so no share link is served.
  */
 export async function playerHighlights(
@@ -4456,7 +4525,7 @@ export async function playerHighlights(
 function finishedStory(it, fromMs, basis, timezone) {
   const { [STORY]: story, ...rest } = it;
   const out = {
-    id: storyId(...story.key),
+    id: story.id ?? storyId(...story.key),
     revision: story.revision ?? 1,
     ...rest,
   };
@@ -5007,7 +5076,7 @@ export async function buildTimeline(
     const { [STORY]: named, ...rest } = it;
     const story = named ?? moment("item", dedupeKey(it));
     return {
-      id: storyId(...story.key),
+      id: story.id ?? storyId(...story.key),
       revision: story.revision ?? 1,
       ...rest,
     };
@@ -5357,9 +5426,10 @@ export async function timelineNews(
     player_highlights:
       players.length &&
       // Observed when its words last changed: a post, or an edit (0240).
-      `exists (select 1 from battle_highlight h
-                where h.player_tag = any(p.players)
-                  and ${inWindow("h.updated_at")})`,
+      `exists (select 1 from account_post h
+                where h.player_tag = any(p.players) and h.battle_id is not null
+                  and h.status = 'visible'
+                  and ${inWindow("coalesce(h.updated_at, h.created_at)")})`,
     clan_ledger:
       clans.length &&
       `exists (select 1 from clan_event e

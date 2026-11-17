@@ -8,8 +8,9 @@ import { clanPosts } from "./posts.mjs";
 /**
  * Clan's Feed (slice 8, #766): the clan's timeline for one signed-in member,
  * newest first. The clan's own items and its members' moments come from the
- * clan subject read comprehensively, its current members' highlights ride
- * along, and nothing of the reader's own account (feedback answers, mail)
+ * clan subject read comprehensively, its current members' posts ride along
+ * (their posts about battles always, 0291; the rest while posts are on),
+ * and nothing of the reader's own account (feedback answers, mail)
  * is in it.
  *
  * Who sees what is the timeline's own reader rule (`factItems`): a verified
@@ -39,22 +40,12 @@ const feedItem = (it) => {
   return out;
 };
 
-/** The clan's current members, as the record holds them. */
-async function currentMembers(db, clanTag) {
-  const { rows } = await db.query(
-    `select player_tag from clan_membership
-      where clan_tag = $1 and left_observed_at is null`,
-    [clanTag],
-  );
-  return rows.map((r) => r.player_tag);
-}
-
 export async function readClanFeed(
   db,
   account,
   clanTag,
   now = Date.now(),
-  { posts = false } = {},
+  { posts = false, comments = false } = {},
 ) {
   const perf = {};
   const started = Date.now();
@@ -67,8 +58,11 @@ export async function readClanFeed(
       timezone: account.timezone ?? "UTC",
       accountId: account.accountId,
       interactive: true,
-      highlightTags: await currentMembers(db, clanTag),
-      filter: (it) => it.section !== "account",
+      // A post about a battle is read below as the post it is, so the
+      // record's own line for it (kind battle_highlight) is left out here:
+      // one item, not two.
+      filter: (it) =>
+        it.section !== "account" && it.kind !== "battle_highlight",
       // The Feed draws items, never a clan entry's activity counts, so it
       // skips the late-capture count (2026-11-12, "a clan's late counts
       // are read only when a read says them"): that count walks every
@@ -89,15 +83,18 @@ export async function readClanFeed(
   );
   // Its members' posts now (2026-11-17), read live: a clanmate sees a
   // member's posts here as they see the member's play. Never anyone's in
-  // a block with the reader (posts.mjs).
+  // a block with the reader (posts.mjs). Posts about battles always (what
+  // highlights were, 0291); posts about nothing in the record while posts
+  // are on.
   // A post takes cheers and answers here too, so each carries the
   // reader's cheers and comments, as the Timeline's do (#1100, Codex).
   const found =
-    posts && account.kind === "person"
+    account.kind === "person"
       ? await clanPosts(db, account.accountId, {
           clanTag,
           fromMs: now - FEED_DAYS * DAY_MS,
           toMs: now,
+          plain: posts,
         })
       : [];
   const extra = found.length
@@ -105,7 +102,7 @@ export async function readClanFeed(
         db,
         await withCheers(db, found, account.accountId),
         account.accountId,
-        { enabled: true },
+        { enabled: comments },
       )
     : [];
   const items = extra.length

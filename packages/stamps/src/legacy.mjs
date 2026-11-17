@@ -49,7 +49,7 @@ const iso = (v) => (v ? new Date(v).toISOString() : null);
  * already settled as of launch), history (the operator's backfill has
  * read its ladder history before launch, 0273, or the account was
  * approved after launch: until then it could not sign in, so it has no
- * follows, cheers or highlights from before launch to read) }, or null
+ * follows, cheers or battle posts from before launch to read) }, or null
  * when there is no launch row (a database before 0272) or no such
  * account. Every move from requested to approved sets decided_at
  * (packages/auth gate.mjs); an account with none waits, the safe side.
@@ -260,7 +260,7 @@ async function ladderLevelsAt(db, accountId, stampIds, at) {
  *
  * For an account made before launch whose ladder history the backfill
  * has not read yet (0273), a ladder level that is not legacy is neither:
- * it waits. History not yet read (an older friendly, a highlight, a
+ * it waits. History not yet read (an older friendly, a battle post, a
  * cheer) may reach that level before launch, and an ordinary grant, a
  * bell line, can never be refiled. The facts stay; the account's next
  * earning call after the backfill grants it.

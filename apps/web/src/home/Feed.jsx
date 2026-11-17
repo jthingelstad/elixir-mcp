@@ -54,7 +54,7 @@ import { PostComposer } from "./Post.jsx";
  * nothing a connection has read (standing ruling, 2026-10-20).
  *
  * An item is a session with its sparkline, a moment with its art and its
- * battle, a highlight in its player's words, or a clan's line, identified
+ * battle, a post in its player's words (perhaps about a battle), or a clan's line, identified
  * by its band; short sessions are one line, and short sessions in a row one
  * group that opens in place (FeedItem.jsx, 2026-11-17).
  * Every player's name opens their page, and every item carries its

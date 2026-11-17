@@ -92,17 +92,18 @@ export function Seen({ me }) {
               </>,
             ],
             [
-              "A highlight you post",
+              "A post you write about a battle",
               <>
-                On that player’s timeline, for every member who follows the
-                player: its game name, your words and the battle. Not your
+                On that player’s timeline and page, for members who follow the
+                player or are in their clan, and on the player’s page for any
+                member: its game name, your words and the battle. Not your
                 account.
                 <Note>
                   A follower who cross-posts their timeline to a Discord channel
                   sends it there too, where everyone in the channel reads it,
-                  and an edit to your words is edited there. Deleting the
-                  highlight takes it off the timeline; a line already posted to
-                  Discord stays.
+                  and an edit to your words is edited there. Deleting the post
+                  takes it off the timeline; a line already posted to Discord
+                  stays.
                 </Note>
               </>,
             ],
@@ -179,13 +180,13 @@ export function Seen({ me }) {
               </>,
             ],
             [
-              "A highlight you share",
+              "A post about a battle you share",
               <>
                 Opens with no account: your player’s game name and your words
                 over the battle as its own link shows it. Its picture carries
                 the name, the words and the link.
                 <Note>
-                  Delete the highlight and its link stops opening within about a
+                  Delete the post and its link stops opening within about a
                   minute.
                 </Note>
               </>,
@@ -193,7 +194,7 @@ export function Seen({ me }) {
             [
               "What a link carries",
               <>
-                The battle’s or the highlight’s id and nothing else: no account
+                The battle’s or the post’s id and nothing else: no account
                 id, nickname or email. Whoever has it can pass it on.
               </>,
             ],
@@ -271,7 +272,7 @@ export function Seen({ me }) {
             href={`${SETTINGS}/connections/discord`}
           />
           <Row
-            title="Your highlights"
+            title="Your posts about battles"
             detail="Post, edit, share or delete one on the battle’s own page; your Timeline links each battle."
             href="/timeline"
           />

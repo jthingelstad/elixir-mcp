@@ -22,7 +22,7 @@ import { useMe, useNav } from "../App.jsx";
 import { playerHref } from "../lib/player.js";
 import { statsPlayers } from "../stats/stats.js";
 import { BattleCheers } from "./BattleCheers.jsx";
-import { BattleHighlight } from "./BattleHighlight.jsx";
+import { BattlePosts } from "./BattlePosts.jsx";
 import { FollowFromHere } from "./FollowFromHere.jsx";
 import { PlayerBattleShare } from "./PlayerBattleShare.jsx";
 import { CopyButton, Invite, JoinLine } from "./JoinElixir.jsx";
@@ -356,7 +356,7 @@ export function BattleView({
       )}
 
       {signedIn && !standIn && (
-        <BattleHighlight battle={battle} sides={sides} />
+        <BattlePosts battle={battle} sides={sides} />
       )}
 
       {signedIn && cheers && !standIn && <BattleCheers battle={battle} />}

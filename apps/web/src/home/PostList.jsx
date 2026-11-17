@@ -1,13 +1,14 @@
 import { postsKey, usePosts } from "../lib/queries.js";
 import { FeedItem } from "./FeedItem.jsx";
-import { usePostsOn } from "./Post.jsx";
+import { useScope } from "../lib/scope.js";
 
 /** A player's or an account's posts (2026-11-17), on their page: the ones
  *  the reader may see, newest first, each drawn as the Timeline draws it,
- *  with its cheers and comments. Nothing while posts are off or there are
- *  none. */
+ *  with its cheers and comments. Posts about battles always (0291: what
+ *  highlights were); the rest only while posts are on, which the server
+ *  decides. Never under an agent's scope, and nothing when there are none. */
 export function PostList({ player = null, account = null, mine = false }) {
-  const on = usePostsOn();
+  const on = !useScope();
   const ask = { player, account, mine };
   const read = usePosts(ask, on);
   const posts = read.data?.posts ?? [];

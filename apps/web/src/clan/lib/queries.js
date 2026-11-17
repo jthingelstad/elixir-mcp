@@ -188,7 +188,7 @@ export const useMyPlace = (enabled = true) =>
   useGated(keys.place, () => api.myPlace(), { enabled });
 
 /** The Feed's timeline: the clan's items, its members' moments and
- *  highlights, newest first, as this reader reads them. */
+ *  posts, newest first, as this reader reads them. */
 export const useFeed = (tag) =>
   useGated(keys.feed(tag), () => manageApi.feed(tag));
 

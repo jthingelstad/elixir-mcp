@@ -9,7 +9,8 @@
  *
  * What it reads, all per account and all dated before launch:
  *  - the setup Stamps as the account stood at launch (settleLegacy);
- *  - Storyteller: the account's own highlights with words;
+ *  - Storyteller: the account's own posts about battles with words (what
+ *    were highlights until 0291);
  *  - Played Together: recorded friendlies with a followed player, the
  *    same rule as the owner's reconciliation (earn.mjs friendlyBattles),
  *    over the year the record keeps, one local day once;
@@ -22,7 +23,7 @@
  * It only adds: a fact or level already held is left alone, nothing is
  * removed, and a level only after-launch evidence completes is left for
  * the account's own next earning call (onlyLegacy). It can only
- * undercount: a cheer taken back, a highlight deleted, a place saved
+ * undercount: a cheer taken back, a post deleted, a place saved
  * again after launch, battles past the record's year are gone.
  *
  * One account, one transaction: everything runs in a transaction the
@@ -43,7 +44,7 @@ export const BACKFILL = Object.freeze({
   HISTORY_DAYS: 365,
   /** Pages of qualifying friendlies read (RECONCILE.BATTLES each). */
   BATTLE_PAGES: 10,
-  /** Own highlights read, oldest first. */
+  /** Own posts about battles read, oldest first. */
   HIGHLIGHTS: 200,
 });
 
@@ -137,11 +138,12 @@ async function storyteller(db, accountId, line, { now }) {
   if ((await factCount(db, accountId, "storyteller")) >= FACT_CAPS.storyteller)
     return { accepted: 0, legacy: [] };
   const { rows } = await db.query(
-    `select highlight_id::text as highlight_id, battle_id, created_at
-       from battle_highlight
-      where account_id = $1::uuid and words ~ '[^[:space:]]'
+    `select post_id::text as post_id, battle_id, created_at
+       from account_post
+      where account_id = $1::uuid and battle_id is not null
+        and status <> 'removed' and body ~ '[^[:space:]]'
         and created_at < $2::timestamptz
-      order by created_at, highlight_id
+      order by created_at, post_id
       limit $3::int`,
     [accountId, line.launched_at, BACKFILL.HIGHLIGHTS],
   );
@@ -150,7 +152,7 @@ async function storyteller(db, accountId, line, { now }) {
     accountId,
     rows.map((h) => ({
       stamp_id: "storyteller",
-      source: `highlight:${h.highlight_id}`,
+      source: `post:${h.post_id}`,
       battle_id: h.battle_id,
       event_at: h.created_at,
     })),

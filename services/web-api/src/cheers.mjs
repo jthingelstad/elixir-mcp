@@ -77,17 +77,18 @@ async function feedItemsFor(db, { accountId, tags, subjects }) {
   };
 }
 
-/** The item as the person's own feed holds it now, or null. With `posts`
- *  on (2026-11-17), a post the person may see is one too: its own read,
- *  no feed rebuilt (posts.mjs). */
+/** The item as the person's own feed holds it now, or null. A post the
+ *  person may see is one too: its own read, no feed rebuilt (posts.mjs);
+ *  a post about a battle always (0291: what was a highlight), a post
+ *  about nothing in the record only while `posts` are on. */
 export async function ownFeedItem(
   db,
   { accountId, itemId, tags, subjects, posts = false },
 ) {
-  if (posts) {
-    const post = await visiblePost(db, accountId, itemId, subjects);
-    if (post) return post;
-  }
+  const post = await visiblePost(db, accountId, itemId, subjects, {
+    plain: posts,
+  });
+  if (post) return post;
   const { items } = await feedItemsFor(db, { accountId, tags, subjects });
   return items.find((it) => it.id === itemId) ?? null;
 }
@@ -146,15 +147,13 @@ export async function setCheer(db, accountId, itemId, cheer, item = null) {
        do update set cheer = excluded.cheer, updated_at = now(),
                      subject_tags = coalesce(excluded.subject_tags,
                                              timeline_cheer.subject_tags)`,
-      // A post's cheer stamps no players (2026-11-17): the activity mail
-      // and push find their accounts by these tags, and posts reach
-      // neither; the web bell reads post cheers by the post itself.
-      [
-        accountId,
-        itemId,
-        cheer,
-        item && item.kind !== "post" ? itemSubjectTags(item) : null,
-      ],
+      // A post about nothing in the record stamps no players (2026-11-17):
+      // the activity mail and push find their accounts by these tags, and
+      // those posts reach neither; the web bell reads their cheers by the
+      // post itself. A post about a battle stamps its player, as the
+      // highlight it was did (0291), so its cheers keep reaching the mail,
+      // push and the bell.
+      [accountId, itemId, cheer, item ? stampedTags(item) : null],
     );
   const found = (await cheersFor(db, [itemId], accountId)).get(itemId);
   return {
@@ -162,6 +161,13 @@ export async function setCheer(db, accountId, itemId, cheer, item = null) {
     cheers: found?.cheers ?? {},
     my_cheer: found?.my_cheer ?? null,
   };
+}
+
+/** The players a cheer on this item stamps: none for a post about
+ *  nothing in the record. */
+export function stampedTags(item) {
+  if (item.kind === "post" && !item.post?.battle) return null;
+  return itemSubjectTags(item);
 }
 
 /** What the request names, or why it is refused. */
@@ -194,7 +200,7 @@ export function readCheerBody(body) {
  *  the tags the page sends back with a cheer (the follows the items came
  *  through). A player page asks for the player (followed, or through the
  *  clan they are in now); a battle page for the battle's players and their
- *  clans, keeping only the items that battle proves or that highlight it.
+ *  clans, keeping only the items that battle proves or that post about it.
  *  Null when the page names nothing (an unknown battle). */
 export async function cheersOnPage(
   db,

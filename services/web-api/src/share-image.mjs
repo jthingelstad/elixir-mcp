@@ -387,11 +387,11 @@ export function drawBattle(read, f) {
     `<line x1="0" y1="578" x2="${SHARE_WIDTH}" y2="578" stroke="${C.lineSoft}"/>`,
   );
   const cut = DISCLAIMER.indexOf(". ") + 1;
-  // A shared highlight (#762) says whose post it is and their words on
+  // A shared post about a battle (#762, 0291) says whose post it is and their words on
   // one line, fitted beside the disclaimer, over the post's own link;
   // a battle's picture carries the battle's link alone. Each string is
   // escaped by text() as it is written, never before.
-  const h = read.highlight ?? null;
+  const h = read.post ?? null;
   if (h) {
     const room =
       RIGHT_X -

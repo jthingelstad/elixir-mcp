@@ -17,7 +17,7 @@
  *    call. A place save is repaired there by asking Clan whether a
  *    place is set now (a boolean, never the place).
  *  - Storyteller is repaired by the same reconciliation, which reads the
- *    account's own highlights with words.
+ *    account's own posts about battles with words.
  *  - Cheerleader is not repaired: a cheer's "other people's item" test
  *    needs the feed as it was at the tap. A day whose only cheers all
  *    failed their hook is lost; any later accepted cheer that day

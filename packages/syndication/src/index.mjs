@@ -5,7 +5,7 @@ export {
   accountsToWake,
   clansToWake,
   wakeAfterFact,
-  wakeAfterHighlight,
+  wakeAfterPost,
   wakeClosingSittings,
   wakeSyndication,
 } from "./wake.mjs";
@@ -33,6 +33,6 @@ export {
   WEBHOOK_PURPOSE,
 } from "./seal.mjs";
 export {
-  highlightClanDiscord,
-  postHighlightToClan,
-} from "./highlight-share.mjs";
+  battlePostClanDiscord,
+  postBattlePostToClan,
+} from "./battle-post-share.mjs";

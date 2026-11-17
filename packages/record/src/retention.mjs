@@ -77,7 +77,7 @@ export const TRIMMED = Object.freeze([
   {
     ...plain("battle", "battle_time", YEAR),
     kind: "battle",
-    note: "takes its player_event rows, rounds, participants and (by cascade) their highlights; decks stay",
+    note: "takes its player_event rows, rounds, participants and (by cascade) the posts about it; decks stay",
   },
   plain("player_event", "window_end", YEAR),
   plain("clan_event", "window_end", YEAR),
@@ -183,7 +183,8 @@ export const CHILDREN = Object.freeze({
   email_send: "goes with its issue (on delete cascade)",
   battle_participant: "goes with its battle",
   battle_participant_round: "goes with its battle",
-  battle_highlight: "goes with its battle (on delete cascade)",
+  battle_highlight:
+    "goes with its battle (on delete cascade); frozen since 0291, its rows copied to account_post, dropped by the next contract migration",
   war_attendance_day: "goes with its war week",
   war_participation: "goes with its war week",
   war_period_log: "goes with its war week",
@@ -303,7 +304,8 @@ async function deleteBatch(db, entry, limits) {
       `delete from battle_participant_round where battle_id = any($1::text[])`,
       [ids],
     );
-    // battle_highlight goes by cascade from its participant.
+    // A post about the battle (account_post, 0291) goes by cascade from
+    // its participant, as the frozen battle_highlight rows do.
     const parts = await db.query(
       `delete from battle_participant where battle_id = any($1::text[])`,
       [ids],
@@ -516,14 +518,14 @@ export async function retentionDryRun(db) {
                  where b.battle_time < now() - $1::interval)::bigint as participants,
                (select count(*) from battle_participant_round p join battle b using (battle_id)
                  where b.battle_time < now() - $1::interval)::bigint as rounds,
-               (select count(*) from battle_highlight h join battle b using (battle_id)
-                 where b.battle_time < now() - $1::interval)::bigint as highlights`,
+               (select count(*) from account_post h join battle b using (battle_id)
+                 where b.battle_time < now() - $1::interval)::bigint as posts`,
             [entry.window],
           );
           row.children_due = {
             battle_participant: Number(k.participants),
             battle_participant_round: Number(k.rounds),
-            battle_highlight: Number(k.highlights),
+            account_post: Number(k.posts),
           };
         }
         const {

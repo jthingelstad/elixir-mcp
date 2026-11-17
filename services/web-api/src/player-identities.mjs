@@ -39,7 +39,7 @@ export async function withPlayerVerifications(db, route, response) {
     route === "GET /api/accounts/*" ||
     /^GET \/api\/me\/(home|people|timeline|bell)(?:\/|$)/.test(route) ||
     /^GET \/api\/clan(?:\/|$)/.test(route) ||
-    /^GET \/api\/public\/(battles|highlights)\//.test(route) ||
+    /^GET \/api\/public\/(battles|posts)\//.test(route) ||
     route === "POST /api/me/tool" ||
     route === "POST /api/me/stats";
   if (

@@ -20,7 +20,7 @@
  *   deck       a sitting's deck row: its most played deck's label and
  *              eight cards, each `{id, name, form, elixir_cost}`, kept at
  *              build time. A week stored before it was kept has none.
- *   versus     a highlight's two decks, `{mine, theirs}`, each
+ *   versus     a battle post's two decks, `{mine, theirs}`, each
  *              `{label, cards}`; theirs null unless one opponent.
  *   proof_mode the mode group of the battle that proved a moment
  *              ("ladder"), for the line under its result.

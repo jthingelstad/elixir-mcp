@@ -35,7 +35,7 @@ import { FollowFromHere } from "./FollowFromHere.jsx";
  * Highlight, 2026-11-13): who won and the score, both decks with the score
  * between, four numbers side by side, and a way to the battle's own public
  * page, which has every number. Everything here is
- * /api/public/highlights/<id>, the one projection the preview tags and the
+ * /api/public/posts/<id>, the one projection the preview tags and the
  * picture read too. A deleted post is "No post at this link".
  */
 export function PostPage() {
@@ -62,7 +62,7 @@ export function Post({ shareId, me }) {
     queryFn: answered(() => api.publicPost(shareId)),
   });
   const read = query.data?.ok ? query.data.data : null;
-  const h = read?.highlight ?? null;
+  const h = read?.post ?? null;
   const who = h ? (h.name ?? h.player_tag) : null;
   const gone = query.isSuccess && !h;
 
@@ -165,7 +165,7 @@ function PostCard({ read, h, who, viewer }) {
           </span>
           <span className="kit-feed__time">
             {[
-              h.created_at ? `highlighted ${when(h.created_at)}` : null,
+              h.created_at ? `posted ${when(h.created_at)}` : null,
               [mode, battle.battle_time ? when(battle.battle_time) : null]
                 .filter(Boolean)
                 .join(", "),
@@ -181,7 +181,7 @@ function PostCard({ read, h, who, viewer }) {
       {h.words ? (
         <p className="kit-feed__words kit-post__words">{h.words}</p>
       ) : (
-        <p className="kit-feed__sub">{who} highlighted this battle.</p>
+        <p className="kit-feed__sub">{who} posted about this battle.</p>
       )}
       {decks ? (
         <DeckVersus

@@ -11,8 +11,8 @@
  *  admissions is one sync. The collector calls this after its commit and
  *  never fails a submission on it; so does Clan after a leader's
  *  attested fact (a departure's answer, an award), which no collector
- *  admits, and so does a person's highlight when it is posted or its
- *  words change (wakeAfterHighlight).
+ *  admits, and so does a person's post about a battle when it is posted
+ *  or its words change (wakeAfterPost).
  *
  *  A clan that posts its activity to a channel of its own (Clan
  *  Settings, Social) is woken the same way, by its own tag or a
@@ -103,16 +103,13 @@ export async function wakeAfterFact(db, fact, { outbox, now = Date.now() }) {
   }
 }
 
-/** After a highlight is posted or its words change (#762): wake what its
- *  player reaches, as an admission about that player does. A deletion
- *  wakes nothing: no sync takes a line back. Never fails the write it
- *  follows. */
-export async function wakeAfterHighlight(
-  db,
-  highlight,
-  { outbox, now = Date.now() },
-) {
-  const playerTag = highlight?.player_tag;
+/** After a post about a battle is written or its words change (#762;
+ *  until 0291, a highlight): wake what its player reaches, as an
+ *  admission about that player does. A post about nothing in the record
+ *  is on no synced timeline and wakes nothing; nor does a deletion: no
+ *  sync takes a line back. Never fails the write it follows. */
+export async function wakeAfterPost(db, post, { outbox, now = Date.now() }) {
+  const playerTag = post?.player_tag;
   if (!outbox || !playerTag) return 0;
   try {
     return await wakeSyndication(db, playerTag, { outbox, now });

@@ -114,7 +114,7 @@ function whoOf(it) {
 }
 
 /** Where an item opens: a sitting's own page (2026-11-16), the battle
- *  that proved it, a highlight's battle, else the player's page, else
+ *  that proved it, a battle post's battle, else the player's page, else
  *  the Timeline. */
 function linkOf(it) {
   const session = sessionPathOf(it);

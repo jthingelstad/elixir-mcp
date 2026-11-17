@@ -12,7 +12,8 @@ import {
 /**
  * The social layer's player reads (DECISIONS "Agents read the social layer
  * and never write it"): who a player follows and who follows them, and the
- * highlights they posted, exactly as their player page shows them. A
+ * posts about battles they wrote (the highlights they posted; since 0291 a
+ * highlight is a post with a battle attached), newest first. A
  * person's own connection reads as that person; an agent reads as its
  * owner. Never a nickname, an email or a
  * Discord username.
@@ -108,7 +109,7 @@ export const socialTools = {
   },
   players_highlights: {
     description:
-      "The highlights a player posted, newest first, as their player page shows them: each one's sentence, the words they wrote and a link to the battle. Every one they posted, not a window's. Defaults to your primary player. For a person's own connection and their agents; reading never posts or cheers.",
+      "The highlights a player posted, newest first: their posts about one of their battles (a highlight is a post with a battle attached), each one's sentence, the words they wrote and a link to the battle. Every one they posted, not a window's; posts about no battle are not here. Defaults to your primary player. For a person's own connection and their agents; reading never posts or cheers.",
     inputSchema: {
       type: "object",
       properties: {
