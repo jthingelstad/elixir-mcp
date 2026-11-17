@@ -10,9 +10,10 @@
  * Collection events follow the badge rule: the upsert reports what it
  * changed, the first observation of a player is silent (a newly added
  * player arrives with a whole collection, and that is history, not
- * news), and the things worth a nod get three topics - card_unlocked
+ * news), and the things worth a nod get their topics - card_unlocked
  * (a card the player did not have), card_leveled (a level went up) and
- * card_form_unlocked (an Evolution or Hero form newly unlocked, #110).
+ * card_form_unlocked (an Evolution or Hero form newly unlocked, #110), and
+ * card_maxed (a card that reached its top level since the last read, 0286).
  * Counts ticking toward the next level are recorded, never announced.
  */
 
@@ -123,6 +124,9 @@ export async function projectPlayerCards(
 ) {
   const rows = [];
   const seen = [];
+  // Each card's top level on the shown scale, through the one seam that
+  // maps rarity-relative levels (displayLevel: +(16 - maxLevel)).
+  const topOf = new Map();
   for (const [kind, list] of [
     ["card", payload?.cards],
     ["support", payload?.supportCards],
@@ -130,6 +134,8 @@ export async function projectPlayerCards(
     for (const c of Array.isArray(list) ? list : []) {
       if (!Number.isInteger(c?.id)) continue;
       seen.push({ card_id: c.id, name: c.name, kind });
+      if (typeof c.maxLevel === "number")
+        topOf.set(c.id, displayLevel(c.maxLevel, c.maxLevel));
       rows.push({
         card_id: c.id,
         level:
@@ -224,6 +230,21 @@ export async function projectPlayerCards(
                 ? {}
                 : { level: row.new_level, prior_level: row.prior_level }),
             },
+          });
+        // A card at its top level (0286): the level-up that reached it,
+        // on the second observation, never a card first seen there.
+        const top = topOf.get(row.card_id);
+        if (
+          !row.is_new &&
+          leveled(row) &&
+          typeof top === "number" &&
+          row.new_level >= top &&
+          row.prior_level < top
+        )
+          await emitEvent(db, "card_maxed", {
+            tag: playerTag,
+            windowEnd: fetchedAt,
+            payload: { ...named, level: row.new_level },
           });
         // Stamped at the read that saw it: the unlock happened no later
         // than this, after a read the record may not hold (collectors

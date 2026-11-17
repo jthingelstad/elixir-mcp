@@ -7898,6 +7898,29 @@ a.kit-line__go:hover {
 .kit-line__net--down {
   color: var(--loss-ink);
 }
+/* A small moment's mark in its line (2026-11-17): the card's own art,
+   small and whole, or the medal's star. */
+/* A small moment's line keeps its art beside the words, which wrap. */
+.kit-feed__item--moment .kit-line__go {
+  flex-wrap: nowrap;
+}
+.kit-line__art {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+}
+.kit-line__art--mark {
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--info-fill);
+  color: var(--accent-bright);
+}
+/* A day's Mastery cards side by side, each whole. */
+.kit-mart--cards {
+  gap: 4px;
+}
 /* Short sessions in a row: one row that opens in place. */
 .kit-feed__group {
   border-bottom: 1px solid var(--line-soft);

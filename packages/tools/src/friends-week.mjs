@@ -23,8 +23,9 @@ import { clanSummaryParts, itemText } from "./activity/summary.mjs";
 /** The big firsts the digest and Home's Friends tell one by one (Jamie,
  *  2026-10-08, chose them for the milestone mail, retired 2026-11-12): a new arena
  *  or league, a new best trophy band, a new Evolution or Hero form, the
- *  career milestones, career wins and Collection Level steps, and a
- *  legendary badge. Card unlocks and badge levels (card_unlocked,
+ *  career milestones, career wins and Collection Level steps, a
+ *  legendary badge, and (2026-11-17) a King Tower level, a best challenge
+ *  run and a 12-win run. Card unlocks and badge levels (card_unlocked,
  *  badge_earned) are only counted (progressOf). */
 export const BIG_FIRST_KINDS = new Set([
   "arena_changed",
@@ -34,6 +35,11 @@ export const BIG_FIRST_KINDS = new Set([
   "career_wins_step",
   "collection_level_step",
   "legendary_badge_earned",
+  // Profile moments (the owner, 2026-11-17): a King Tower level, a new
+  // best challenge run, a 12-win run. A maxed card is counted.
+  "king_tower_leveled",
+  "challenge_best_run",
+  "twelve_win_run",
 ]);
 
 /** Game-mode names as the mail says them. The tool rows are keyed by the

@@ -217,7 +217,7 @@ test("a 2v2 pair's sittings are both told, each naming the other as teammate", a
   const bea = items.find((it) => it.facts.player_tag === BEA);
   assert.ok(ann && bea, "both sittings are items: never thinned");
   assert.notEqual(ann.id, bea.id);
-  assert.equal(ann.schema, "session_standout/5");
+  assert.equal(ann.schema, "session_standout/6");
   assert.deepEqual(ann.facts.teammate, {
     player_tag: BEA,
     name: "Bea",

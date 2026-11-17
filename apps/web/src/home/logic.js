@@ -623,6 +623,35 @@ export function shortSession(it) {
   return modeChips(it.facts).every((c) => c.key === "league");
 }
 
+/** The moments small enough for one line (2026-11-17, the owner's profile
+ *  moments): a badge level, a maxed card, a King Tower level, a best
+ *  challenge run, a 12-win run. A headline (a new best, league or Arena)
+ *  and a new card or form keep their card. Never a clan's item (it wears
+ *  its clan's band), a close friend's, or one with comments. */
+const SMALL_MOMENTS = new Set([
+  "badge_earned",
+  "card_maxed",
+  "king_tower_leveled",
+  "challenge_best_run",
+  "twelve_win_run",
+]);
+export function smallMoment(it) {
+  if (!SMALL_MOMENTS.has(it?.kind)) return false;
+  if ((it.subjects ?? []).some((s) => s.kind === "clan")) return false;
+  if ((it.groups ?? []).includes("close")) return false;
+  return !((it.comments?.count ?? 0) > 0);
+}
+
+/** A small moment's sentence without its player's name, which the row
+ *  already shows: "Maxed Hog Rider.", "Best challenge run is now 9 wins.".
+ *  The whole sentence when it does not start with the name. */
+export function momentSaid(it, name) {
+  const text = String(it?.text ?? "");
+  if (!name || !text.startsWith(name)) return text;
+  const rest = text.slice(name.length).replace(/^('s)?\s+/, "");
+  return rest ? `${rest.charAt(0).toUpperCase()}${rest.slice(1)}` : text;
+}
+
 /**
  * A day's rows as the Timeline draws them (2026-11-17): every item in the
  * feed's own order, newest first, nothing moved. A short session alone is
@@ -634,19 +663,32 @@ export function shortSession(it) {
 export function feedRows(rows) {
   const out = [];
   let run = [];
+  // What the run holds: short sessions, or small moments (2026-11-17),
+  // which group the same way and never with each other.
+  let runOf = null;
   const flush = () => {
-    if (run.length === 1) out.push({ type: "line", ...run[0] });
+    const moments = runOf === "moment";
+    if (run.length === 1)
+      out.push({ type: moments ? "moment" : "line", ...run[0] });
     else if (run.length > 1)
       out.push({
-        type: "group",
+        type: moments ? "moments" : "group",
         it: run[0].it,
         rows: run,
         newLine: run.at(-1).newLine,
       });
     run = [];
+    runOf = null;
   };
   for (const row of rows) {
-    if (shortSession(row.it)) {
+    const of = shortSession(row.it)
+      ? "session"
+      : smallMoment(row.it)
+        ? "moment"
+        : null;
+    if (of) {
+      if (runOf !== of) flush();
+      runOf = of;
       run.push(row);
       if (row.newLine) flush();
     } else {
@@ -656,6 +698,25 @@ export function feedRows(rows) {
   }
   flush();
   return out;
+}
+
+/** What a group of small moments says (2026-11-17): "4 moments from Pip";
+ *  "5 moments from Pip, Ash and 2 others". Names are the game's: escaped
+ *  where they are drawn. */
+export function momentsSaid(items) {
+  const g = groupSaid(items);
+  const names =
+    g.people.length <= 3
+      ? g.people.map((p) => p.name)
+      : [
+          ...g.people.slice(0, 2).map((p) => p.name),
+          `${g.people.length - 2} others`,
+        ];
+  const list =
+    names.length === 1
+      ? names[0]
+      : `${names.slice(0, -1).join(", ")} and ${names.at(-1)}`;
+  return { people: g.people, title: `${items.length} moments from ${list}` };
 }
 
 /** What a group of short sessions says, as facts: whose, how many

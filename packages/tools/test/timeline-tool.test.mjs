@@ -903,6 +903,185 @@ test("9.14.0: a form unlock is an item and the only news a player needs", async 
   assert.ok(only.body.timeline.every((it) => it.kind === "card_form_unlocked"));
 });
 
+// The owner, 2026-11-17: a badge's rung (written since 0286) is told; a day
+// of one badge is one item at its latest level; a day of one player's
+// Mastery badges is one item; a row from before 0286 keeps its rule.
+test("13.5.0: badge rungs, one story per badge and per player's Mastery a day, the old rule for old rows", async () => {
+  const { rows: mem } = await ctx.db.query(
+    `select cm.player_tag, p.name from clan_membership cm join player p on p.player_tag = cm.player_tag
+      where cm.clan_tag = $1 and cm.left_observed_at is null and p.name is not null
+      order by cm.player_tag asc limit 1`,
+    [CLAN],
+  );
+  const member = mem[0];
+  const write = (tag, payload, hour) =>
+    emitEvent(ctx.db, "badge_earned", {
+      tag,
+      windowStart: `2026-09-22T${hour}:00:00Z`,
+      windowEnd: `2026-09-22T${hour}:30:00Z`,
+      payload,
+    });
+  for (const tag of [PROFILE, member.player_tag]) {
+    // An old row (no rung): level 7 hides, as it always did.
+    await write(
+      tag,
+      { name: "MasteryKnight", level: 7, prior_level: 6, max_level: 10 },
+      "08",
+    );
+    // Two badges' worth of Mastery rungs, one of them crossed twice.
+    await write(
+      tag,
+      { name: "MasteryHogRider", level: 6, prior_level: 3, rung: 5 },
+      "09",
+    );
+    await write(
+      tag,
+      { name: "MasteryMinions", level: 5, prior_level: 4, rung: 5 },
+      "09",
+    );
+    await write(
+      tag,
+      { name: "MasteryHogRider", level: 10, prior_level: 9, rung: 10 },
+      "11",
+    );
+    // A tiered badge levelled twice in the day: one item, its latest.
+    await write(tag, { name: "2v2", level: 2, prior_level: 1, rung: 2 }, "09");
+    await write(tag, { name: "2v2", level: 3, prior_level: 2, rung: 3 }, "11");
+    await write(
+      tag,
+      { name: "YearsPlayed", level: 5, prior_level: 4, rung: 5 },
+      "11",
+    );
+  }
+  const read = (from, to) =>
+    call("elixir_timeline", {
+      from,
+      to,
+      kinds: ["badge_earned"],
+      mark_read: false,
+    });
+  const { body, isError } = await read(
+    "2026-09-22T00:00:00Z",
+    "2026-09-22T23:00:00Z",
+  );
+  assert.equal(isError, false, JSON.stringify(body));
+  for (const tag of [PROFILE, member.player_tag]) {
+    const mine = body.timeline.filter(
+      (it) => (it.facts.player_tag ?? it.subject_tag) === tag,
+    );
+    const said = mine.map((it) =>
+      it.text.replace(/^.*? (?=(took|reached|earned|has played))/, ""),
+    );
+    assert.deepEqual(
+      said.sort(),
+      [
+        "has played Clash Royale for 5 years.",
+        "reached Mastery level 10 with 1 card and level 5 with 1 card.",
+        "took 2v2 to level 3.",
+      ].sort(),
+      JSON.stringify(mine.map((it) => it.text)),
+    );
+    const mastery = mine.find((it) => Array.isArray(it.facts.badges));
+    assert.equal(mastery.facts.badge_count, 2);
+    assert.equal(mastery.facts.level, 10);
+    assert.equal(mastery.facts.badge, "MasteryHogRider");
+    assert.equal(mastery.revision, 3, "three level-ups in the story");
+    assert.equal(mastery.schema, "badge_earned/3");
+    const two = mine.find((it) => it.facts.badge === "2v2");
+    assert.equal(two.facts.prior_level, 1, "from the day's first level");
+    assert.equal(two.revision, 2);
+  }
+  // The player's story and the member's are one story each, the same id
+  // whatever the window holds of the day.
+  const morning = await read("2026-09-22T00:00:00Z", "2026-09-22T10:00:00Z");
+  const id = (b, tag) =>
+    b.timeline.find(
+      (it) =>
+        (it.facts.player_tag ?? it.subject_tag) === tag &&
+        Array.isArray(it.facts.badges),
+    )?.id;
+  assert.equal(
+    id(morning.body, PROFILE),
+    id(body, PROFILE),
+    "a window over part of the day tells the same story",
+  );
+});
+
+test("13.5.0: profile moments are items with their sentences", async () => {
+  await ctx.db.query(
+    `insert into card (card_id, name, kind, rarity) values (26000021, 'Hog Rider', 'card', 'rare')
+     on conflict (card_id) do nothing`,
+  );
+  const write = (type, payload, minute) =>
+    emitEvent(ctx.db, type, {
+      tag: PROFILE,
+      windowStart: "2026-09-23T09:00:00Z",
+      windowEnd: `2026-09-23T10:${minute}:00Z`,
+      payload,
+    });
+  await write(
+    "card_maxed",
+    { card_id: 26000021, name: "Hog Rider", rarity: "rare", level: 16 },
+    "01",
+  );
+  await write("king_tower_leveled", { level: 15, prior_level: 14 }, "02");
+  await write("challenge_best_run", { best: 9, best_before: 7 }, "03");
+  await write(
+    "twelve_win_run",
+    { name: "Grand12Wins", runs: 6, runs_before: 5 },
+    "04",
+  );
+  await write(
+    "twelve_win_run",
+    { name: "Classic12Wins", runs: 4, runs_before: 1 },
+    "05",
+  );
+  const { body, isError } = await call("elixir_timeline", {
+    from: "2026-09-23T10:00:00Z",
+    to: "2026-09-23T11:00:00Z",
+    mark_read: false,
+  });
+  assert.equal(isError, false, JSON.stringify(body));
+  // PROFILE is also a member of the clan the account follows: one story,
+  // told once, on whichever timeline serves it.
+  const mine = body.timeline.filter(
+    (it) => (it.facts.player_tag ?? it.subject_tag) === PROFILE,
+  );
+  const text = (kind, pick = () => true) =>
+    mine
+      .find((it) => it.kind === kind && pick(it))
+      ?.text.replace(/^.*? (?=(maxed|reached|won))|^.*?(?='s best)/, "");
+  assert.equal(text("card_maxed"), "maxed Hog Rider.");
+  assert.equal(text("king_tower_leveled"), "reached King Tower level 15.");
+  assert.equal(
+    text("challenge_best_run"),
+    "'s best challenge run is now 9 wins.",
+  );
+  assert.equal(
+    text("twelve_win_run", (it) => it.facts.badge === "Grand12Wins"),
+    "won 12 in Grand Challenge.",
+  );
+  assert.equal(
+    text("twelve_win_run", (it) => it.facts.badge === "Classic12Wins"),
+    "won 12 in Classic Challenge 3 times.",
+  );
+  // On a clan's timeline a member's moment is a standout; on the
+  // player's own, its section (collection for a card or the King Tower,
+  // battles for a challenge).
+  const want = {
+    card_maxed: "collection",
+    king_tower_leveled: "collection",
+    challenge_best_run: "battles",
+    twelve_win_run: "battles",
+  };
+  for (const it of mine)
+    assert.ok(
+      [want[it.kind], "standouts"].includes(it.section),
+      `${it.kind} in ${it.section}`,
+    );
+  assert.equal(mine.length, 5);
+});
+
 test("player_tag keeps one member's items, before the cap; a bad tag is refused (7.1.5, Gym #253)", async () => {
   // A closed window: an open one is capped at 30 days before now, which
   // passed the fixture's September on 2026-10-24.
@@ -1190,7 +1369,7 @@ test("11.15.0, 2026-11-16: a ranked sitting's trophy_net is Trophy Road's alone;
   assert.equal(isError, false, JSON.stringify(body));
   const item = body.timeline.find((it) => it.facts.player_tag === tag);
   assert.ok(item, JSON.stringify(body.timeline));
-  assert.equal(item.schema, "session_standout/5");
+  assert.equal(item.schema, "session_standout/6");
   assert.equal(item.facts.trophy_net, 12, "Trophy Road's alone");
   assert.deepEqual(item.facts.trophy_net_by_mode, { ladder: 12 });
   assert.deepEqual(item.facts.ranked, {

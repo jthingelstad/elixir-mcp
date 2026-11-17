@@ -1,5 +1,6 @@
 import { latestSnapshotOrder } from "@elixir-mcp/record/latest-snapshot";
 import { playerEventOriginSql } from "@elixir-mcp/record/event-origin";
+import { badgeRung, TWELVE_WIN_BADGES } from "@elixir-mcp/record/badge-names";
 /**
  * Player snapshot projector — DESIGN §4.5.
  *
@@ -60,6 +61,34 @@ import { upsertArenaNames } from "./catalog-upserts.mjs";
  * class (engine/emitters/player.py); with 50 tracked players it is the
  * difference between a feed and an outage.
  */
+/**
+ * A 12-win challenge run, from a 12-win badge's progress (its count of
+ * completed runs) rising between two observations (0286): the badge's
+ * name, the runs before and after, and its tier when that rose too. A
+ * badge newly on the profile is its first run (runs_before null: the
+ * record never saw it at zero). Null when the progress did not rise.
+ */
+function twelveWinRun(row) {
+  if (!(row.name in TWELVE_WIN_BADGES)) return null;
+  const now = row.new_progress;
+  if (typeof now !== "number" || now < 1) return null;
+  const before = row.is_new ? null : row.prior_progress;
+  if (!row.is_new && !(typeof before === "number" && now > before)) return null;
+  const rose =
+    typeof row.new_level === "number" &&
+    (row.is_new ||
+      (typeof row.prior_level === "number" && row.new_level > row.prior_level));
+  return {
+    name: row.name,
+    runs: now,
+    ...(typeof before === "number" ? { runs_before: before } : {}),
+    ...(rose ? { level: row.new_level } : {}),
+    ...(rose && typeof row.prior_level === "number"
+      ? { prior_level: row.prior_level }
+      : {}),
+  };
+}
+
 export async function projectPlayerBadges(
   db,
   { playerTag, payload, fetchedAt, moments = true },
@@ -72,7 +101,7 @@ export async function projectPlayerBadges(
   if (rows.length === 0) return { changed: 0, feedEvents: [] };
   const { rows: changed } = await db.query(
     `with prior as (
-       select name, level from player_badge where player_tag = $1
+       select name, level, progress from player_badge where player_tag = $1
      ),
      upserted as (
        insert into player_badge (player_tag, name, level, max_level, progress, target, observed_at)
@@ -88,9 +117,10 @@ export async function projectPlayerBadges(
            or player_badge.progress is distinct from excluded.progress
            or player_badge.target is distinct from excluded.target
            or player_badge.max_level is distinct from excluded.max_level)
-       returning name, level, max_level
+       returning name, level, max_level, progress
      )
      select u.name, u.level as new_level, u.max_level, p.level as prior_level,
+            u.progress as new_progress, p.progress as prior_progress,
             (p.name is null) as is_new,
             (select count(*) from prior) as prior_count
        from upserted u left join prior p on p.name = u.name`,
@@ -111,7 +141,8 @@ export async function projectPlayerBadges(
 
   // The ledger gets one named row per badge moment; the first observation
   // writes nothing (a new tracking arrives with a whole shelf, and that is
-  // history, not news). Progress inside a level is recorded, never a row.
+  // history, not news). Progress inside a level is recorded, never a row,
+  // except a 12-win badge's, which counts the runs (twelve_win_run).
   const firstObservation = Number(changed[0]?.prior_count ?? 0) === 0;
   if (!firstObservation && moments) {
     for (const row of changed) {
@@ -121,7 +152,25 @@ export async function projectPlayerBadges(
       else if (row.is_new && level !== null) type = "badge_earned";
       else if (row.prior_level !== null && level > row.prior_level)
         type = "badge_earned";
+      const run = twelveWinRun(row);
+      if (run)
+        await emitEvent(db, "twelve_win_run", {
+          tag: playerTag,
+          windowEnd: fetchedAt,
+          payload: run,
+        });
       if (!type) continue;
+      // The rung it crossed (0286): what the timeline tells. Every
+      // level-up is still a row; one that crossed no rung carries none.
+      const rung =
+        type === "badge_earned"
+          ? badgeRung({
+              name: row.name,
+              level,
+              prior_level: row.prior_level,
+              max_level: row.max_level,
+            })
+          : null;
       await emitEvent(db, type, {
         tag: playerTag,
         windowEnd: fetchedAt,
@@ -134,6 +183,7 @@ export async function projectPlayerBadges(
           ...(row.prior_level !== null && row.prior_level !== undefined
             ? { prior_level: row.prior_level }
             : {}),
+          ...(rung !== null ? { rung } : {}),
         },
       });
     }
@@ -351,7 +401,8 @@ export async function projectPlayerSnapshot(
   // the same day. donation_reset is the exception: the weekly counter is
   // a column the roster writes too, so it reads donationBaselines below.
   const SNAPSHOT_BASELINE = `select snapshot_date, profile_observed_at as observed_at, donations, battle_count,
-            arena_id, best_trophies, wins, collection_level, pol_league
+            arena_id, best_trophies, wins, collection_level, pol_league,
+            king_tower_level, challenge_max_wins
      from player_snapshot_daily`;
   const { rows: prevRows } = await db.query(
     `${SNAPSHOT_BASELINE}
@@ -1007,6 +1058,31 @@ async function ledgerMilestones(
     await write("collection_level_step", {
       level: payload.collectionLevel,
       step: collectionLevelStep(payload.collectionLevel),
+    });
+
+  // Profile moments (0286), on the second observation of a value that
+  // rose: a baseline the record holds as null (a row from before the
+  // column was kept) says nothing, so the first comparison after a deploy
+  // is silent. Stamped at the read that saw it, as the badges are.
+  const kingTower = intOrNull(payload.kingTowerLevel);
+  if (
+    kingTower !== null &&
+    typeof prev.king_tower_level === "number" &&
+    kingTower > prev.king_tower_level
+  )
+    await write("king_tower_leveled", {
+      level: kingTower,
+      prior_level: prev.king_tower_level,
+    });
+  const bestRun = intOrNull(payload.challengeMaxWins);
+  if (
+    bestRun !== null &&
+    typeof prev.challenge_max_wins === "number" &&
+    bestRun > prev.challenge_max_wins
+  )
+    await write("challenge_best_run", {
+      best: bestRun,
+      best_before: prev.challenge_max_wins,
     });
 
   const league = payload.currentPathOfLegendSeasonResult?.leagueNumber ?? null;

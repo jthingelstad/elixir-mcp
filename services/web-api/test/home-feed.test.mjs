@@ -208,6 +208,38 @@ test("a sitting's score facts are its widest win and its three-crown wins", () =
     ]),
     { best_win: "3-0", three_crowns: 2 },
   );
+  // Since 2026-11-17 a battle says how it was won (winOf): a duel's
+  // summed three crowns is no three-crown win, and a level-crowns win the
+  // tiebreaker decided is an overtime win.
+  assert.deepEqual(
+    scoresOf([
+      {
+        outcome: "win",
+        margin: 1,
+        crowns: 3,
+        against: 2,
+        three: false,
+        overtime: false,
+      },
+      {
+        outcome: "win",
+        margin: 0,
+        crowns: 1,
+        against: 1,
+        three: false,
+        overtime: true,
+      },
+      {
+        outcome: "win",
+        margin: 3,
+        crowns: 3,
+        against: 0,
+        three: true,
+        overtime: false,
+      },
+    ]),
+    { best_win: "3-0", three_crowns: 1, overtime_wins: 1 },
+  );
   // A week stored before crowns were kept says nothing.
   assert.equal(scoresOf([{ outcome: "win", margin: 3 }]), null);
   assert.equal(scoresOf([{ outcome: "loss", crowns: 0, against: 1 }]), null);

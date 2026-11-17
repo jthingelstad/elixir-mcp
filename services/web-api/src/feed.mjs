@@ -29,8 +29,13 @@
  *              moment can show that card's art (2026-11-17). From the
  *              badge's own identifier (masteryCard) and the catalog, in
  *              one read for the page; absent when the catalog has no card
- *              by that name. A card unlocked or a form names its card in
- *              its own facts (`card_id`, `form`) and needs none.
+ *              by that name. A card unlocked, maxed or a form names its
+ *              card in its own facts (`card_id`, `form`) and needs none.
+ *   moment_cards
+ *              a day of one player's Mastery badges told as one item
+ *              (facts.badges, 2026-11-17): the cards those badges are
+ *              for, `[{id, name}]`, highest level first, at most
+ *              MOMENT_CARDS_CAP; the catalog's cards only.
  *   avatar_card_id
  *              the profile image of the player the item's avatar draws
  *              (avatarTagOf), when an account verified that player and
@@ -164,6 +169,16 @@ const BADGE_KINDS = new Set(["badge_earned", "legendary_badge_earned"]);
 export const masteryCardOf = (it) =>
   BADGE_KINDS.has(it?.kind) ? masteryCard(it.facts?.badge) : null;
 
+/** How many cards a Mastery roll-up shows. */
+const MOMENT_CARDS_CAP = 4;
+
+/** The cards a Mastery roll-up's badges are for, by shown name, highest
+ *  level first (the facts' order); [] for any other item. */
+export const masteryCardsOf = (it) =>
+  it?.kind === "badge_earned" && Array.isArray(it.facts?.badges)
+    ? it.facts.badges.map((b) => masteryCard(b.badge)).filter(Boolean)
+    : [];
+
 /** The catalog's cards by shown name, for the Mastery badges on a page: one
  *  read, and none when the page has no Mastery badge. */
 async function cardsByName(db, names) {
@@ -183,7 +198,8 @@ export async function annotateFeed(db, timeline, subjects, close = null) {
   const proofs = items.map(proofOf);
   const links = await battleLinks(db, proofs.filter(Boolean));
   const mastery = items.map(masteryCardOf);
-  const cards = await cardsByName(db, mastery);
+  const rolled = items.map(masteryCardsOf);
+  const cards = await cardsByName(db, [...mastery, ...rolled.flat()]);
   const faces = items.map(avatarTagOf);
   const avatars = await verifiedAvatars(db, faces);
   return items.map((it, i) => {
@@ -193,6 +209,10 @@ export async function annotateFeed(db, timeline, subjects, close = null) {
     const deck = sessionDeck(it);
     const versus = highlightVersus(it);
     const proofMode = proofs[i] ? proofModeOf(it) : null;
+    const many = rolled[i]
+      .filter((name) => cards.has(name))
+      .slice(0, MOMENT_CARDS_CAP)
+      .map((name) => ({ id: cards.get(name), name }));
     return {
       ...it,
       groups: groupsOf(it, subjects, close),
@@ -206,6 +226,7 @@ export async function annotateFeed(db, timeline, subjects, close = null) {
       ...(mastery[i] && cards.has(mastery[i])
         ? { moment_card: { id: cards.get(mastery[i]), name: mastery[i] } }
         : {}),
+      ...(many.length > 1 ? { moment_cards: many } : {}),
       ...(faces[i] && avatars.has(faces[i])
         ? { avatar_card_id: avatars.get(faces[i]) }
         : {}),

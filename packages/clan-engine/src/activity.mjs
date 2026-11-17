@@ -36,7 +36,7 @@ export const ACTIVITY_CATEGORIES = {
   },
   milestones: {
     label: "Milestones",
-    why: "Members' standout sessions, badges, arenas, ranked promotions, new bests, collection levels, career wins and card unlocks, and the clan's own awards.",
+    why: "Members' standout sessions, badges, arenas, ranked promotions, new bests, collection levels, career wins, card unlocks and maxed cards, King Tower levels, challenge runs, and the clan's own awards.",
     kinds: [
       "session_standout",
       "badge_earned",
@@ -48,6 +48,10 @@ export const ACTIVITY_CATEGORIES = {
       "career_wins_step",
       "card_unlocked",
       "card_form_unlocked",
+      "card_maxed",
+      "king_tower_leveled",
+      "challenge_best_run",
+      "twelve_win_run",
       "award_granted",
     ],
   },
