@@ -50,7 +50,13 @@ function route(pathname) {
   // So is a shared highlight's (#762, the /h/* behavior).
   if (/^\/h\/[a-z2-7]{15}$/.test(key)) return "/app.html";
   if (key === "/clan" || key.startsWith("/clan/")) return "/app.html";
-  if (key === "/home" || key.startsWith("/home/")) return "/app.html";
+  if (
+    key === "/home" ||
+    key.startsWith("/home/") ||
+    key === "/timeline" ||
+    key.startsWith("/timeline/")
+  )
+    return "/app.html";
   if (key === "/settings" || key.startsWith("/settings/")) return "/app.html";
   if (key === "/signin") return "/app.html";
   return `${key}/index.html`;

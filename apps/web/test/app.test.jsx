@@ -174,7 +174,7 @@ test(
     // move to Home), and on a slow runner that move took the next test's
     // page away (CI on 80dc908c, "tracking renders claims").
     expect(await screen.findByText("Welcome to Elixir")).toBeTruthy();
-    expect(window.location.pathname).toBe("/home");
+    expect(window.location.pathname).toBe("/timeline");
   },
 );
 
@@ -515,7 +515,7 @@ test("the tab title names the page, most specific part first", async () => {
   expect(t("/settings/admin/collectors")).toBe("Collectors - Admin - Elixir");
   expect(t("/settings/admin/fleet")).toBe("Fleet - Admin - Elixir");
   expect(t("/settings/profile")).toBe("Profile - Settings - Elixir");
-  expect(t("/home/player/20JJJ2CCRU")).toBe("Player - Home - Elixir");
+  expect(t("/home/player/20JJJ2CCRU")).toBe("Player - Timeline - Elixir");
   // Every surface wears the site's own name, never "Elixir MCP".
   expect(titleFor("/signin")).toBe("Sign in - Elixir");
   expect(t("/clan")).toBe("Clan - Elixir");
@@ -606,7 +606,6 @@ test("the route table has no page under /console: the Console folded", async () 
   ).toEqual([
     "battle/$ref",
     "h/$id",
-    "home",
     "home/@{$handle}",
     "home/account/$id",
     "home/account/$id/passport",
@@ -620,6 +619,7 @@ test("the route table has no page under /console: the Console folded", async () 
     "settings/$",
     "settings/admin/$",
     "signin",
+    "timeline",
   ]);
   // Explore folded (2026-11-12): no /console address is a page, and since
   // 2026-11-13 none forwards.

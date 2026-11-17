@@ -60,7 +60,7 @@ import {
   statsLegal,
   statsTitle,
 } from "./stats/stats.js";
-import { HOME, SIGN_IN, movedTo } from "./lib/moved.js";
+import { HOME, SIGN_IN, TIMELINE, movedTo } from "./lib/moved.js";
 import { FOLLOW_ME, isPlayerPath, isSessionPath } from "./lib/player.js";
 import { PASSPORT, isPassportPath } from "./lib/passport.js";
 import { ACCOUNT, accountIdOf, isAccountPath } from "./lib/account.js";
@@ -223,7 +223,7 @@ export function barArea(path, me = null) {
   const clean = path.replace(/(.)\/$/, "$1");
   if (ownPlayerPath(clean, me)) return "you";
   // A session's page (2026-11-16) is the feed's: one of your own players'
-  // is You's, anyone else's Home's, where its card sat.
+  // is Profile's, anyone else's the Timeline's, where its card sat.
   if (isSessionPath(path))
     return ownPlayerPath(clean.replace(/\/session\/[^/]+$/, ""), me)
       ? "you"
@@ -271,13 +271,15 @@ function ownPlayerPath(clean, me) {
   );
 }
 
-/** Find and You (slice 7, #765): pages under /home, which the distribution
- *  already sends to this app [engineering, 2026-11-12]. */
+/** Find and Profile (slice 7, #765): pages under /home, which the
+ *  distribution already sends to this app [engineering, 2026-11-12]. The
+ *  Timeline, the feed, is `/timeline` since 2026-11-17; `/home` itself
+ *  forwards there (lib/moved.js). Profile keeps the address `/home/you`. */
 const FIND = `${HOME}/find`;
 const YOU = `${HOME}/you`;
-const HOME_PATHS = new Set([HOME, FIND, YOU]);
-/** Home, Find and You, and the player page and Follow me links under Home
- *  (#764). */
+const HOME_PATHS = new Set([TIMELINE, FIND, YOU]);
+/** The Timeline, Find and Profile, and the player page and Follow me links
+ *  under /home (#764). */
 const isHome = (path) =>
   HOME_PATHS.has(path.replace(/(.)\/$/, "$1")) ||
   isPlayerPath(path) ||
@@ -338,14 +340,14 @@ export function titleFor(path) {
   if (isHome(path)) {
     const tab = path.split("/")[2];
     if (tab === "find") return `Find - ${SITE}`;
-    if (tab === "you") return `You - ${SITE}`;
+    if (tab === "you") return `Profile - ${SITE}`;
     if (tab === "passport" || isPassportPath(path))
-      return `Passport - Home - ${SITE}`;
-    if (tab === "account") return `Account - Home - ${SITE}`;
-    if (isSessionPath(path)) return `Session - Home - ${SITE}`;
+      return `Passport - Timeline - ${SITE}`;
+    if (tab === "account") return `Account - Timeline - ${SITE}`;
+    if (isSessionPath(path)) return `Session - Timeline - ${SITE}`;
     const name =
       tab === "player" ? "Player" : tab === "follow" ? "Follow" : null;
-    return name ? `${name} - Home - ${SITE}` : `Home - ${SITE}`;
+    return name ? `${name} - Timeline - ${SITE}` : `Timeline - ${SITE}`;
   }
   if (isStats(path)) return statsTitle(path, SITE);
   if (isClan(path)) {
@@ -470,7 +472,8 @@ const signedInPath = (path) => {
     return (
       isStats(url.pathname) ||
       isClan(url.pathname) ||
-      isHome(url.pathname) ||
+      // An old Home address, remembered before the move, forwards.
+      isHome(movedTo(url.pathname) ?? url.pathname) ||
       isSettings(url.pathname) ||
       BATTLE_PATH.test(url.pathname) ||
       POST_PATH.test(url.pathname)
@@ -546,20 +549,20 @@ export function StaffOnly() {
   return (
     <StatePage
       title="This page is for Elixir’s staff"
-      sub="You’re signed in, and your account is fine. Your own pages are on Home."
+      sub="You’re signed in, and your account is fine. Your Timeline and Profile are a tap away."
     />
   );
 }
 
 /** A signed-in page with nothing to show (an address the app never had, a
- *  staff page): Home's page head and one way back, flat like Home rather
- *  than a centred card (2026-11-13). */
+ *  staff page): the Timeline's page head and one way back, flat like the
+ *  Timeline rather than a centred card (2026-11-13). */
 function StatePage({ title, sub }) {
   return (
     <div className="kit-home">
       <PageHead title={title} sub={sub} />
-      <Link to={HOME} className="btn btn--primary kit-home__go">
-        Go to Home
+      <Link to={TIMELINE} className="btn btn--primary kit-home__go">
+        Go to your Timeline
       </Link>
     </div>
   );
@@ -608,7 +611,7 @@ function MissingPage() {
 /** What the distribution routes to this app; the rest is the static site.
  *  `/console`, `/ladder` and `/data/service` left it on 2026-11-13: a link
  *  to one loads the site's 404. */
-const APP_PATHS = /^\/(home|signin|settings|clan|battle|h)(\/|$)/;
+const APP_PATHS = /^\/(home|timeline|signin|settings|clan|battle|h)(\/|$)/;
 
 const rootRoute = createRootRoute({
   beforeLoad: ({ location }) => {
@@ -649,7 +652,7 @@ const signInRoute = createRoute({
     const [completing, setCompleting] = useContext(SignInProgress);
     // The static site's bar always says "Sign in" (it cannot know the
     // session), so a reader who is signed in arrives here too: send them
-    // on to Home. Not when a login link brought a token: that is
+    // on to the Timeline. Not when a login link brought a token: that is
     // a sign-in (or a device hand-off) to finish, signed in or not.
     const location = useLocation();
     const destination = new URLSearchParams(location.searchStr).get(
@@ -666,7 +669,7 @@ const signInRoute = createRoute({
     const here = location.pathname;
     useEffect(() => {
       if (forward && here === SIGN_IN)
-        navigate(takeAfterSignIn() ?? HOME, { replace: true });
+        navigate(takeAfterSignIn() ?? TIMELINE, { replace: true });
     }, [forward, here, navigate]);
     if (forward || (me === null && !token)) return null;
     return (
@@ -675,8 +678,9 @@ const signInRoute = createRoute({
         discordLogin={me?.features?.discord_login === true}
         onAuthed={async () => {
           setCompleting(true);
-          // A new account's first sign-in lands on Home's first steps too.
-          const next = takeAfterSignIn() ?? HOME;
+          // A new account's first sign-in lands on the Timeline's first
+          // steps too.
+          const next = takeAfterSignIn() ?? TIMELINE;
           try {
             // A new login can be a different person. Remove the previous
             // account's private data before any next-account view mounts.
@@ -741,9 +745,10 @@ const statsRoute = createRoute({
   ),
 });
 
+/** The Timeline, the feed (`/timeline` since 2026-11-17; `/home` forwards). */
 const homeRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: HOME,
+  path: TIMELINE,
   component: lazyRouteComponent(
     () => import("./pages/HomePage.jsx"),
     "HomePage",
@@ -758,7 +763,8 @@ const findRoute = createRoute({
   component: lazyRouteComponent(() => import("./home/Find.jsx"), "FindPage"),
 });
 
-/** You: your own account page with Your stats, and your account rows. */
+/** Profile (You until 2026-11-17): your own account page with Your stats,
+ *  and your account rows. */
 const youRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: YOU,
@@ -880,7 +886,7 @@ export function useHere() {
       here: { rail: "settings", ...settingsHere(pathname) },
       search: search ?? {},
     };
-  // Home, Find, You, the player page, Clan and the battle and post pages
+  // The Timeline, Find, Profile, the player page, Clan and the battle and post pages
   // say where they are themselves.
   return { path: pathname, here: {}, search: search ?? {} };
 }

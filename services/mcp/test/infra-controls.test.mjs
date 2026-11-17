@@ -1131,7 +1131,7 @@ test("the static router only resolves documents; native app behaviors bypass it"
     assert.equal(request.uri, document);
   }
   const behaviors = cacheBehaviours(template);
-  for (const root of ["home", "settings", "clan"])
+  for (const root of ["home", "timeline", "settings", "clan"])
     for (const pattern of [`/${root}`, `/${root}/*`]) {
       const behavior = behaviors.find(([path]) => path === pattern)?.[1];
       assert.ok(behavior, pattern);

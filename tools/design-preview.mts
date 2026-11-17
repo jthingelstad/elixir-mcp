@@ -79,7 +79,7 @@ const server = http.createServer(async (req, res) => {
   }
 });
 server.listen(port, "127.0.0.1", () =>
-  console.log(`Invented-player preview: http://127.0.0.1:${port}/home`),
+  console.log(`Invented-player preview: http://127.0.0.1:${port}/timeline`),
 );
 for (const signal of ["SIGINT", "SIGTERM"] as const)
   process.on(signal, () => {

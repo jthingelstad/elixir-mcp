@@ -11,7 +11,26 @@ const renderApp = async (input) =>
  *  `/ladder` and `/data/service` left on 2026-11-13: a bucket miss there
  *  fails over here and must read as the site's 404 (routes/site-miss.mjs),
  *  never the app. */
-const APP_PATH = /^\/(?:clan|home|settings|signin)(?:\/|$)/;
+const APP_PATH = /^\/(?:clan|home|settings|signin|timeline)(?:\/|$)/;
+
+/** Home's own address forwards to the Timeline for good (2026-11-17,
+ *  DECISIONS "Timeline, Profile and Notifications"): mail already sent,
+ *  Discord posts, push notifications, bookmarks and the installed app's old
+ *  start URL all name `/home`. The query rides along; a browser keeps the
+ *  fragment itself when the Location has none (RFC 9110 10.2.2). Only the
+ *  bare address: every page under `/home/` keeps its own. The app's router
+ *  forwards the same address (apps/web/src/lib/moved.js) as the fallback.
+ *  Not cached, so a rollback is not stuck behind a browser's copy. */
+const HOME_ROOT = /^\/home\/?$/;
+const TIMELINE = "/timeline";
+
+/** The Timeline as the site's behaviour sends it: an edge that does not yet
+ *  route `/timeline` to this API (a deploy's distribution change is still
+ *  propagating) asks the site bucket for `/timeline/index.html` and fails
+ *  over here with no cookie. Rendering that would show a signed-in reader
+ *  the signed-out page, so it gets the bare app shell with no bootstrap,
+ *  and the browser reads the session itself through `/api/me`. */
+const TIMELINE_VIA_SITE = /^\/timeline\/index\.html$/;
 const safeJson = (value) =>
   JSON.stringify(value)
     .replace(/</g, "\\u003c")
@@ -26,7 +45,38 @@ export function makeAppPages({
   render = renderApp,
 }) {
   let shellPromise;
+  const readShell = () =>
+    (shellPromise ??= shell().catch((error) => {
+      shellPromise = null;
+      throw error;
+    }));
   return async (request, context) => {
+    if (
+      ["GET", "HEAD"].includes(request.method) &&
+      HOME_ROOT.test(request.path)
+    )
+      return {
+        statusCode: 301,
+        headers: {
+          location:
+            TIMELINE +
+            (request.rawQueryString ? `?${request.rawQueryString}` : ""),
+          "cache-control": "no-store",
+        },
+        body: "",
+      };
+    if (
+      ["GET", "HEAD"].includes(request.method) &&
+      TIMELINE_VIA_SITE.test(request.path)
+    )
+      return {
+        statusCode: 200,
+        headers: {
+          "content-type": "text/html; charset=utf-8",
+          "cache-control": "private, no-store",
+        },
+        body: request.method === "HEAD" ? "" : await readShell(),
+      };
     if (
       !["GET", "HEAD"].includes(request.method) ||
       !APP_PATH.test(request.path)
@@ -79,10 +129,7 @@ export function makeAppPages({
         data: JSON.parse(clanSession.body),
       };
     }
-    const html = await (shellPromise ??= shell().catch((error) => {
-      shellPromise = null;
-      throw error;
-    }));
+    const html = await readShell();
     const content = await render({
       url:
         request.path +
