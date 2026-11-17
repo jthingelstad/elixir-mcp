@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Empty, Skeleton, useClock, ErrorState } from "@elixir-mcp/ui";
 import { FeedRows } from "../../home/FeedItem.jsx";
 import { CLAN, clanPath } from "../lib/base.js";
-import { useFeed, useRace } from "../lib/queries.js";
+import { keys, useFeed, useRace } from "../lib/queries.js";
 import { n, ordinal } from "../lib/words.js";
 import { ActionsNow, WeekCard, YouCard } from "./Waiting.jsx";
 
@@ -28,7 +28,8 @@ function byDay(items, dayHeading) {
  *  newest first, as this reader reads them (`GET .../feed`), thirty items
  *  at a time, drawn by the Timeline's own components (2026-11-17) so the
  *  two cannot drift. Nothing opens in place here, and no item takes a
- *  cheer: cheers live on the reader's own Timeline. */
+ *  cheer: cheers live on the reader's own Timeline, save a post's: a clanmate may
+ *  cheer and answer it here. */
 function ClanTimeline({ clan }) {
   const { dayHeading } = useClock();
   const { state, load } = useFeed(clan.clan_tag);
@@ -83,7 +84,10 @@ function ClanTimeline({ clan }) {
               aria-label={day.head || undefined}
             >
               {day.head ? <h4 className="kit-day__head">{day.head}</h4> : null}
-              <FeedRows rows={day.rows} />
+              <FeedRows
+                rows={day.rows}
+                cheerWhere={{ key: keys.feed(clan.clan_tag), list: "items" }}
+              />
             </section>
           ))}
         </div>

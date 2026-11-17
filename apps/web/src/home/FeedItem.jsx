@@ -216,7 +216,12 @@ function When({ it }) {
   );
 }
 
-export function FeedItem({ it, open = false, onToggle = null }) {
+export function FeedItem({
+  it,
+  open = false,
+  onToggle = null,
+  cheerWhere = undefined,
+}) {
   const sitting = SITTINGS.has(it.kind);
   const clan = isClanItem(it);
   const who = subjectOf(it);
@@ -322,7 +327,7 @@ export function FeedItem({ it, open = false, onToggle = null }) {
       {moment && it.battle_url ? <MomentBattle it={it} /> : null}
       {post ? <PostActions it={it} /> : null}
       <footer className="kit-feed__foot">
-        {"cheers" in it ? <Cheers it={it} /> : null}
+        {"cheers" in it ? <Cheers it={it} where={cheerWhere} /> : null}
         <span className="share-actions kit-feed__links">{links}</span>
       </footer>
       {"comments" in it ? <Comments it={it} /> : null}
@@ -650,6 +655,7 @@ export function FeedRows({
   openId = null,
   onToggle = null,
   below = null,
+  cheerWhere = undefined,
 }) {
   return feedRows(rows).map((row, i) => (
     <div key={row.it.id ?? i}>
@@ -662,6 +668,7 @@ export function FeedRows({
           it={row.it}
           open={openId === row.it.id}
           onToggle={onToggle ? () => onToggle(row.it.id) : null}
+          cheerWhere={cheerWhere}
         />
       )}
       {row.type === "item" && openId === row.it.id && below

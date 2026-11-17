@@ -1,5 +1,7 @@
 import { buildTimeline, shownAt } from "@elixir-mcp/tools/activity/entries";
 import { feedOrder } from "@elixir-mcp/tools/activity/home-feed";
+import { withCheers } from "./cheers.mjs";
+import { withComments } from "./comments.mjs";
 import { annotateFeed } from "./feed.mjs";
 import { clanPosts } from "./posts.mjs";
 
@@ -27,7 +29,9 @@ const DAY_MS = 86_400_000;
  *  Clan's Feed and the Timeline share one component and cannot drift. The
  *  reader is the same member the timeline's reader rule already let read
  *  this item; nothing of Home's own is sent (the reader's groups, the
- *  Follow offer, cheers, comments), and `at` is the instant it sorts by. */
+ *  Follow offer, cheers, comments; only a post carries its cheers and
+ *  comments, since a clanmate may cheer and answer it here), and `at` is
+ *  the instant it sorts by. */
 const HOME_ONLY = ["groups", "offer_follow", "section"];
 const feedItem = (it) => {
   const out = { ...it, at: shownAt(it) || it.at || null };
@@ -86,7 +90,9 @@ export async function readClanFeed(
   // Its members' posts now (2026-11-17), read live: a clanmate sees a
   // member's posts here as they see the member's play. Never anyone's in
   // a block with the reader (posts.mjs).
-  const extra =
+  // A post takes cheers and answers here too, so each carries the
+  // reader's cheers and comments, as the Timeline's do (#1100, Codex).
+  const found =
     posts && account.kind === "person"
       ? await clanPosts(db, account.accountId, {
           clanTag,
@@ -94,6 +100,14 @@ export async function readClanFeed(
           toMs: now,
         })
       : [];
+  const extra = found.length
+    ? await withComments(
+        db,
+        await withCheers(db, found, account.accountId),
+        account.accountId,
+        { enabled: true },
+      )
+    : [];
   const items = extra.length
     ? [...(built.timeline ?? []), ...extra].sort(feedOrder)
     : (built.timeline ?? []);
