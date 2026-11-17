@@ -18,6 +18,7 @@
  *
  * An agent has no bell, and none of this reaches MCP or `/api/v1`.
  */
+import { blockedSql } from "@elixir-mcp/claims";
 import { battleLinks } from "@elixir-mcp/record/battle-links";
 import { shownAt } from "./entries.mjs";
 import { ownVerifiedPlayers, readBellWeek } from "./home-feed.mjs";
@@ -61,7 +62,8 @@ export async function markBellSeen(db, accountId) {
 }
 
 /** Other people's cheers on your own players' items of the last seven
- *  days (the cheer window), grouped by item. `seen` is the instant after
+ *  days (the cheer window), grouped by item, leaving out anyone in a
+ *  block with you either way (2026-11-16). `seen` is the instant after
  *  which a cheer is new (null: all of them); `fresh` on an item counts its
  *  new cheers. `maxAgeMs` (the jobs' reads) serves the stored week only
  *  while it is younger than that, so an item made since is in it. */
@@ -87,6 +89,7 @@ export async function readReactions(
             max(updated_at) as last_at
        from timeline_cheer
       where item_id = any($1::text[]) and account_id <> $2
+        and not ${blockedSql("account_id", "$2::uuid")}
       group by item_id, cheer`,
     [[...byId.keys()], accountId, seen],
   );
@@ -143,6 +146,7 @@ export async function readReactions(
  *  tag another account verified names nobody), as the followers list on a
  *  player page names them (packages/tools social.mjs followersOf). An
  *  account with no player at all is counted in `no_player`, never named.
+ *  Nobody in a block with you, either way (2026-11-16).
  *  `fresh_by` counts the new ones per own player, naming nobody: what
  *  mail and push may say. */
 export async function readFollowers(db, accountId, own, seen) {
@@ -178,6 +182,7 @@ export async function readFollowers(db, accountId, own, seen) {
       where f.player_tag = any($1::text[]) and f.relationship = 'friend'
         and coalesce(a.kind, 'person') = 'person'
         and f.account_id <> $2
+        and not ${blockedSql("f.account_id", "$2::uuid")}
         and f.created_at > now() - make_interval(days => $4)
       order by f.created_at desc, v.player_tag`,
     [own.map((p) => p.tag), accountId, seen, BELL_DAYS],

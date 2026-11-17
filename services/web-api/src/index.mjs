@@ -1,6 +1,7 @@
 import { makeAppPages } from "./app-pages.mjs";
 import { makeHttpApp, listen } from "@elixir-mcp/http/server";
 import { modelStorage } from "@elixir-mcp/clan/model-storage.mjs";
+import { createModelBridge } from "@elixir-mcp/clan/model-bridge.mjs";
 /** Lambda entrypoint: env wiring + outbox mail. The VPC has no route to
  *  SQS or the internet, so mail leaves as an object in the outbox bucket
  *  and the relay sends it (outbox.mjs). Owner notifications go to
@@ -150,6 +151,23 @@ const handler = makeHandler({
     assets: shareAssetsIn(new URL("./share/", import.meta.url)),
     cardArt: makeCardArt(process.env.SITE_BUCKET),
   }),
+  // Comments (2026-11-16): on only with the stack's CommentsEnabled. The
+  // check rides the clan model bridge to the relay, which alone holds
+  // Elixir's moderation key; this function never sees it.
+  comments:
+    process.env.COMMENTS_ENABLED === "true" &&
+    process.env.CLAN_MODEL_SECRET &&
+    process.env.OUTBOX_BUCKET
+      ? {
+          enabled: true,
+          capUsd: Number(process.env.COMMENTS_CAP_USD ?? 0),
+          moderate: createModelBridge({
+            secret: process.env.CLAN_MODEL_SECRET,
+            storage: modelStorage(process.env.OUTBOX_BUCKET),
+            timeoutMs: 20_000,
+          }).moderate,
+        }
+      : null,
 });
 
 listen(

@@ -163,7 +163,10 @@ test("the browser session carries no Clan switch: Clan is part of Elixir", async
       headers: signedIn ? { cookie: `__Host-elixir_session=${token}` } : {},
     });
     assert.equal(result.statusCode, 200, result.body);
-    assert.deepEqual(data(result).features, { discord_login: false });
+    assert.deepEqual(data(result).features, {
+      discord_login: false,
+      comments: false,
+    });
     assert.equal(data(result).authenticated, signedIn);
   }
 });

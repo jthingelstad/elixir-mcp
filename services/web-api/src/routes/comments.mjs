@@ -1,0 +1,316 @@
+/** Comments, blocks and reports (2026-11-16): comments.mjs and
+ *  @elixir-mcp/claims blocks.mjs do the work.
+ *
+ *  - `GET /api/me/comments?item=<id>&subjects=<tag,…>`: one item's
+ *    comments, for an item in the reader's own feed now.
+ *  - `POST /api/me/comments` `{ item_id, subjects, text }`: post one,
+ *    after the check (comment-check.mjs).
+ *  - `DELETE /api/me/comments/<id>`: the author's own goes; the item
+ *    owner's removal keeps it for admins.
+ *  - `POST /api/me/comment-reports` `{ id, reason }`.
+ *  - `GET` / `PUT /api/me/comment-setting` `{ who }`.
+ *  - `GET /api/me/blocks`, `POST /api/me/blocks` `{ account_id }` or
+ *    `{ player_tag }` or `{ comment_id }`, `DELETE /api/me/blocks/<page id>`.
+ *  - Admin: `GET /api/admin/comments`, `POST /api/admin/comments/remove`
+ *    `{ id }`, `POST /api/admin/comments/dismiss` `{ id }`,
+ *    `POST /api/admin/comment-suspensions` `{ account_id, days }`.
+ *
+ *  A person's only: an agent is refused, and no agent console reaches
+ *  them (AGENT_SCOPED_ROUTES does not list them). With comments off
+ *  (the stack's CommentsEnabled false) every write here answers 404
+ *  `comments_off` and the reads answer nothing. */
+import { checkRateLimit } from "@elixir-mcp/auth";
+import {
+  accountOfPage,
+  blockAccount,
+  listBlocks,
+  unblockAccount,
+  verifierOf,
+} from "@elixir-mcp/claims";
+import { normalizeTag } from "@elixir-mcp/contracts";
+import { ITEM_ID_RE } from "@elixir-mcp/tools/activity/cheers";
+import { subjectsFor } from "@elixir-mcp/tools/activity/entries";
+import { ownFeedItem } from "../cheers.mjs";
+import {
+  commentQueue,
+  commentSettingOf,
+  commentsOnItem,
+  deleteComment,
+  dismissReports,
+  postComment,
+  removeComment,
+  reportComment,
+  setCommentSetting,
+  suspendCommenting,
+} from "../comments.mjs";
+import { json } from "../http.mjs";
+
+/** Item reads one person may make in an hour: each rebuilds a slice of
+ *  their feed, as a page's cheers read does. */
+const COMMENT_READS_PER_HOUR = 240;
+/** Block and unblock taps in an hour. */
+const BLOCKS_PER_HOUR = 60;
+/** Reports in an hour. */
+const REPORTS_PER_HOUR = 30;
+
+const off = () =>
+  json(404, { error: "comments_off", message: "Comments aren't on yet." });
+const notFound = () => json(404, { error: "not_found" });
+const limited = () =>
+  json(
+    429,
+    { error: "rate_limited", message: "Too many in an hour. Try again later." },
+    { "retry-after": "600" },
+  );
+
+/** Subject tags a request names (at most eight; anything not a tag is
+ *  dropped). */
+function tagsOf(raw) {
+  const list = Array.isArray(raw)
+    ? raw
+    : String(raw ?? "")
+        .split(",")
+        .filter(Boolean);
+  const tags = [];
+  for (const t of list.slice(0, 8)) {
+    try {
+      tags.push(normalizeTag(String(t)));
+    } catch {
+      // Not a tag: it names nothing the account follows.
+    }
+  }
+  return tags;
+}
+
+export function commentsRoutes({ resolveAccount, comments = null }) {
+  const enabled = comments?.enabled === true;
+  const person = async (db, event, write) => {
+    const account = await resolveAccount(db, event, {
+      requireContractHeader: write,
+    });
+    if (!account) return { refused: json(401, { error: "unauthenticated" }) };
+    if (account.kind !== "person")
+      return { refused: json(403, { error: "not_entitled" }) };
+    return { account };
+  };
+  const admin = async (db, event, write) => {
+    const account = await resolveAccount(db, event, {
+      requireContractHeader: write,
+    });
+    if (!account?.isAdmin)
+      return { refused: json(403, { error: "not_entitled" }) };
+    return { account };
+  };
+  const feedItem = async (db, account, itemId, tags) =>
+    ITEM_ID_RE.test(itemId)
+      ? ownFeedItem(db, {
+          accountId: account.accountId,
+          itemId,
+          tags,
+          subjects: await subjectsFor(db, account.accountId),
+        })
+      : null;
+
+  return {
+    "GET /api/me/comments": async (db, event) => {
+      const { account, refused } = await person(db, event, false);
+      if (refused) return refused;
+      if (!enabled) return off();
+      const q = event.queryStringParameters ?? {};
+      if (
+        !(await checkRateLimit(db, {
+          bucket: `commentread#${account.accountId}`,
+          max: COMMENT_READS_PER_HOUR,
+        }))
+      )
+        return limited();
+      const item = await feedItem(
+        db,
+        account,
+        String(q.item ?? ""),
+        tagsOf(q.subjects),
+      );
+      if (!item) return notFound();
+      return json(200, await commentsOnItem(db, account.accountId, item));
+    },
+
+    "POST /api/me/comments": async (db, event, body) => {
+      const { account, refused } = await person(db, event, true);
+      if (refused) return refused;
+      if (!enabled) return off();
+      if (typeof body?.text !== "string")
+        return json(400, {
+          error: "bad_request",
+          message: "Write something first.",
+        });
+      const item = await feedItem(
+        db,
+        account,
+        String(body?.item_id ?? ""),
+        tagsOf(body?.subjects),
+      );
+      if (!item)
+        return json(404, {
+          error: "not_found",
+          message: "That item is not in your feed now.",
+        });
+      const out = await postComment(db, account, item, body.text, comments);
+      if (out.ok) return json(201, { comment: out.comment });
+      const status =
+        out.error === "refused"
+          ? 422
+          : out.error === "rate_limited" || out.error === "cooldown"
+            ? 429
+            : out.error === "unavailable" || out.error === "paused"
+              ? 503
+              : 403;
+      return json(status, out);
+    },
+
+    "DELETE /api/me/comments/*": async (db, event) => {
+      const { account, refused } = await person(db, event, true);
+      if (refused) return refused;
+      if (!enabled) return off();
+      const out = await deleteComment(db, account, event.pathParam);
+      return out.error ? notFound() : json(200, out);
+    },
+
+    "POST /api/me/comment-reports": async (db, event, body) => {
+      const { account, refused } = await person(db, event, true);
+      if (refused) return refused;
+      if (!enabled) return off();
+      if (
+        !(await checkRateLimit(db, {
+          bucket: `commentreport#${account.accountId}`,
+          max: REPORTS_PER_HOUR,
+        }))
+      )
+        return limited();
+      const out = await reportComment(
+        db,
+        account,
+        body?.id,
+        String(body?.reason ?? ""),
+      );
+      if (out.error === "invalid_reason")
+        return json(400, { error: "invalid_reason" });
+      return out.error ? notFound() : json(200, out);
+    },
+
+    "GET /api/me/comment-setting": async (db, event) => {
+      const { account, refused } = await person(db, event, false);
+      if (refused) return refused;
+      if (!enabled) return off();
+      return json(200, await commentSettingOf(db, account.accountId));
+    },
+
+    "PUT /api/me/comment-setting": async (db, event, body) => {
+      const { account, refused } = await person(db, event, true);
+      if (refused) return refused;
+      if (!enabled) return off();
+      const out = await setCommentSetting(db, account.accountId, body?.who);
+      return out.error ? json(400, out) : json(200, out);
+    },
+
+    "GET /api/me/blocks": async (db, event) => {
+      const { account, refused } = await person(db, event, false);
+      if (refused) return refused;
+      if (!enabled) return off();
+      return json(200, { blocks: await listBlocks(db, account.accountId) });
+    },
+
+    // Block: by an account's page id, a player (its verified owner) or a
+    // comment (its author). Silent: nothing tells the blocked person.
+    "POST /api/me/blocks": async (db, event, body) => {
+      const { account, refused } = await person(db, event, true);
+      if (refused) return refused;
+      if (!enabled) return off();
+      if (
+        !(await checkRateLimit(db, {
+          bucket: `block#${account.accountId}`,
+          max: BLOCKS_PER_HOUR,
+        }))
+      )
+        return limited();
+      let target = null;
+      if (body?.account_id) target = await accountOfPage(db, body.account_id);
+      else if (body?.player_tag) {
+        try {
+          target = await verifierOf(db, normalizeTag(String(body.player_tag)));
+        } catch {
+          target = null;
+        }
+      } else if (body?.comment_id != null) {
+        const id = String(body.comment_id);
+        if (/^[1-9][0-9]{0,18}$/.test(id)) {
+          const { rows } = await db.query(
+            `select account_id from timeline_comment where comment_id = $1::bigint`,
+            [id],
+          );
+          target = rows[0]?.account_id ?? null;
+        }
+      }
+      const out = await blockAccount(db, account, target);
+      if (out.error === "self")
+        return json(400, { error: "self", message: "That's you." });
+      if (out.error === "too_many")
+        return json(429, {
+          error: "too_many",
+          message: "That's a lot of blocks.",
+        });
+      if (out.error) return notFound();
+      return json(200, {
+        ok: true,
+        blocks: await listBlocks(db, account.accountId),
+      });
+    },
+
+    "DELETE /api/me/blocks/*": async (db, event) => {
+      const { account, refused } = await person(db, event, true);
+      if (refused) return refused;
+      if (!enabled) return off();
+      const target = await accountOfPage(db, event.pathParam);
+      if (!target) return notFound();
+      await unblockAccount(db, account, target);
+      return json(200, {
+        ok: true,
+        blocks: await listBlocks(db, account.accountId),
+      });
+    },
+
+    "GET /api/admin/comments": async (db, event) => {
+      const { refused } = await admin(db, event, false);
+      if (refused) return refused;
+      return json(200, {
+        enabled,
+        cap_usd: comments?.capUsd ?? null,
+        ...(await commentQueue(db)),
+      });
+    },
+
+    "POST /api/admin/comments/remove": async (db, event, body) => {
+      const { refused } = await admin(db, event, true);
+      if (refused) return refused;
+      const id = String(body?.id ?? "");
+      if (!/^[1-9][0-9]{0,18}$/.test(id)) return notFound();
+      const done = await removeComment(db, id, "admin");
+      return done ? json(200, { ok: true }) : notFound();
+    },
+
+    "POST /api/admin/comments/dismiss": async (db, event, body) => {
+      const { refused } = await admin(db, event, true);
+      if (refused) return refused;
+      const out = await dismissReports(db, body?.id);
+      return out.error ? notFound() : json(200, out);
+    },
+
+    "POST /api/admin/comment-suspensions": async (db, event, body) => {
+      const { refused } = await admin(db, event, true);
+      if (refused) return refused;
+      const target = await accountOfPage(db, body?.account_id);
+      if (!target) return notFound();
+      const out = await suspendCommenting(db, target, body?.days);
+      return out.error ? json(400, out) : json(200, out);
+    },
+  };
+}

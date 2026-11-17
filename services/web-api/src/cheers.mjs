@@ -26,6 +26,7 @@
  * would not show them [engineering, 2026-11-12: the narrow reading].
  * `cheersOnPage` names those items; everything else on the page has none.
  */
+import { blockedSql } from "@elixir-mcp/claims";
 import { normalizeTag } from "@elixir-mcp/contracts";
 import { resolveBattleRef } from "@elixir-mcp/record/battle-links";
 import { buildTimeline, shownAt } from "@elixir-mcp/tools/activity/entries";
@@ -246,7 +247,8 @@ export async function cheersReceived(db, accountId, tag, fromMs, toMs) {
   if (ids.length === 0) return 0;
   const { rows } = await db.query(
     `select count(*)::int as n from timeline_cheer
-      where item_id = any($1::text[]) and account_id <> $2`,
+      where item_id = any($1::text[]) and account_id <> $2
+        and not ${blockedSql("account_id", "$2::uuid")}`,
     [ids, accountId],
   );
   return rows[0].n;

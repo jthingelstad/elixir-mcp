@@ -54,6 +54,7 @@ import { principalsRoutes } from "./routes/principals.mjs";
 import { battleRoutes } from "./routes/battle.mjs";
 import { highlightRoutes } from "./routes/highlight.mjs";
 import { cheersRoutes } from "./routes/cheers.mjs";
+import { commentsRoutes } from "./routes/comments.mjs";
 import { bellRoutes } from "./routes/bell.mjs";
 import { peopleRoutes } from "./routes/people.mjs";
 import { passportRoutes } from "./routes/passport.mjs";
@@ -248,6 +249,10 @@ export function makeHandler({
    *  (tools activity/home-feed.mjs homeWeekWake); null = a stale week is
    *  served until it is past serving, then the read builds it. */
   homeWake = null,
+  /** Comments (2026-11-16): `{ enabled, capUsd, moderate }`, `moderate`
+   *  the model bridge's check (comment-check.mjs); null = comments off
+   *  everywhere. */
+  comments = null,
 }) {
   database ??= makeDatabase({
     connectionString: databaseUrl,
@@ -448,6 +453,7 @@ export function makeHandler({
       notifyOwner,
       capture,
       discordLogin: Boolean(discordLogin),
+      comments: comments?.enabled === true,
     }),
     ...discordRoutes({
       resolveAccount,
@@ -466,6 +472,7 @@ export function makeHandler({
       clan,
       // A stored week past fresh asks the timeline-sync lane for a new one.
       wake: homeWake,
+      comments: comments?.enabled === true,
     }),
     ...playerRoutes({ resolveAccount, live: liveRead }),
     // Your own battles read now (2026-11-14): the same live lane, and the
@@ -481,11 +488,18 @@ export function makeHandler({
     ...verifyRoutes({ resolveAccount, logEvent }),
     ...battleRoutes({ siteShell, shareImage }),
     ...cheersRoutes({ resolveAccount }),
+    // Comments, blocks and reports (2026-11-16), off unless the stack's
+    // CommentsEnabled is true.
+    ...commentsRoutes({ resolveAccount, comments }),
     // The bell's stored week rides the same wake (bell_week, 0247).
-    ...bellRoutes({ resolveAccount, wake: homeWake }),
-    ...peopleRoutes({ resolveAccount }),
+    ...bellRoutes({
+      resolveAccount,
+      wake: homeWake,
+      comments: comments?.enabled === true,
+    }),
+    ...peopleRoutes({ resolveAccount, blocks: comments?.enabled === true }),
     ...passportRoutes({ resolveAccount }),
-    ...accountsRoutes({ resolveAccount }),
+    ...accountsRoutes({ resolveAccount, blocks: comments?.enabled === true }),
     ...highlightRoutes({
       resolveAccount,
       siteShell,

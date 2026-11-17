@@ -34,6 +34,16 @@ export {
   verifierOf,
 } from "./linked.mjs";
 export { setClose } from "./close.mjs";
+export {
+  BLOCK_MAX,
+  accountOfPage,
+  blockAccount,
+  blockedEitherWay,
+  blockedSql,
+  blockedWith,
+  listBlocks,
+  unblockAccount,
+} from "./blocks.mjs";
 
 /**
  * Who is subscribed to what, and therefore what gets recorded.
@@ -292,6 +302,28 @@ export async function addPlayer(
       if (own.length === 0) {
         await db.query("rollback");
         return { ok: false, error: "no_own_player" };
+      }
+    }
+
+    // A block, either way, with the account that verified this player
+    // means no follow (blocks.mjs, 2026-11-16). Said as not found: the
+    // reader is never told of a block.
+    if (relationship === "friend" && !agent) {
+      const { rows: barred } = await db.query(
+        `select 1 from claim c
+          where c.player_tag = $2 and c.status = 'verified'
+            and (c.is_primary or c.relationship in ('primary', 'alt'))
+            and c.account_id <> $1
+            and exists (
+              select 1 from account_block ab
+               where (ab.account_id = $1 and ab.blocked_account_id = c.account_id)
+                  or (ab.account_id = c.account_id and ab.blocked_account_id = $1))
+          limit 1`,
+        [account.accountId, tag],
+      );
+      if (barred.length) {
+        await db.query("rollback");
+        return { ok: false, error: "not_found" };
       }
     }
 

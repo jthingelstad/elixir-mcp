@@ -29,6 +29,7 @@
  * addPlayer and removePlayer each run their own transaction, so these
  * run between them, never inside one.
  */
+import { blockedEitherWay } from "./blocks.mjs";
 import { addPlayer, removePlayer } from "./index.mjs";
 import { settleCloseLink } from "./close.mjs";
 
@@ -112,10 +113,15 @@ async function logEvent(db, accountId, kind, detail) {
 
 /**
  * The account follow itself: idempotent, refused past the cap. Returns
- * `{ ok, added }` or `{ error: "self" | "too_many" }`.
+ * `{ ok, added }` or `{ error: "self" | "too_many" | "not_found" }`
+ * (not_found: a block stands between them, said as nothing to follow).
  */
 async function writeAccountFollow(db, readerId, ownerId, via) {
   if (readerId === ownerId) return { error: "self" };
+  // A block, either way, means no follow between them (blocks.mjs). The
+  // refusal reads as not found: the reader is never told of a block.
+  if (await blockedEitherWay(db, readerId, ownerId))
+    return { error: "not_found" };
   await db.query("begin");
   try {
     await db.query(
@@ -209,7 +215,12 @@ export async function followAccountLinked(
  * or claims as their own is left alone. Idempotent. Returns
  * `{ ok, account_removed, unfollowed: [tag] }`.
  */
-export async function unfollowAccountLinked(db, account, ownerId, { via }) {
+export async function unfollowAccountLinked(
+  db,
+  account,
+  ownerId,
+  { via, quiet = false },
+) {
   const readerId = account.accountId;
   const { rows: gone } = await db.query(
     `delete from account_follow
@@ -217,7 +228,9 @@ export async function unfollowAccountLinked(db, account, ownerId, { via }) {
       returning ${PAGE_ID_SQL} as page_id`,
     [readerId, ownerId],
   );
-  if (gone.length)
+  // `quiet`: a block ends the blocked person's follow, and their own
+  // history must not show an unfollow they never made (blocks.mjs).
+  if (gone.length && !quiet)
     await logEvent(db, readerId, "account_unfollowed", {
       account_id: gone[0].page_id,
       via,
@@ -323,9 +336,27 @@ export async function linkNewVerified(
         and not exists (
           select 1 from account_follow f
            where f.account_id = c.account_id and f.followed_account_id = $2)
+        and not exists (
+          select 1 from account_block ab
+           where (ab.account_id = c.account_id and ab.blocked_account_id = $2)
+              or (ab.account_id = $2 and ab.blocked_account_id = c.account_id))
       order by c.account_id`,
     [tag, ownerId],
   );
+  // A person in a block with the new owner stops following the player
+  // now theirs, as the block would have ended it (blocks.mjs).
+  const { rows: barred } = await db.query(
+    `select c.account_id from claim c
+      where c.player_tag = $1 and c.relationship = 'friend'
+        and not c.is_primary and c.account_id <> $2
+        and exists (
+          select 1 from account_block ab
+           where (ab.account_id = c.account_id and ab.blocked_account_id = $2)
+              or (ab.account_id = $2 and ab.blocked_account_id = c.account_id))`,
+    [tag, ownerId],
+  );
+  for (const { account_id: readerId } of barred)
+    await removePlayer(db, { accountId: readerId }, { tag, via: "linked" });
   for (const { account_id: readerId } of rows) {
     const r = await followAccountLinked(db, { accountId: readerId }, ownerId, {
       via,

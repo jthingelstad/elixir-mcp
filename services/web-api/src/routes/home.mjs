@@ -27,6 +27,7 @@ import { json } from "../http.mjs";
 import { toolDeadlineMs } from "../deadline.mjs";
 import { annotateFeed, closeTags, groupsOf } from "../feed.mjs";
 import { cheersReceived, withCheers } from "../cheers.mjs";
+import { withComments } from "../comments.mjs";
 import { firstAnswer } from "../first-answer.mjs";
 import { readCircle } from "../circle.mjs";
 import { homeClan, myClans } from "./clans.mjs";
@@ -682,7 +683,7 @@ function readCursor(raw) {
  *  none to serve; `cursor` reads on in the same week. Each page carries its
  *  own items' chips, sparklines, battle links and cheers, and the first says
  *  how many items each chip holds across the whole week. */
-async function readFeed(db, account, cursor, wake) {
+async function readFeed(db, account, cursor, wake, comments = false) {
   const started = Date.now();
   const { timezone, seenTo: seen_to } = await homeAccount(
     db,
@@ -714,10 +715,18 @@ async function readFeed(db, account, cursor, wake) {
     seen_to,
     // The chips, sparklines and battle links, and each item's cheers:
     // counts and the reader's own, never who (slice 7, #765).
-    timeline: await withCheers(
+    // And each item's comments (2026-11-16): a count, the newest two and
+    // whether the reader may add one, read live for the page, never
+    // stored, so a count is as fresh as the page; a person's only.
+    timeline: await withComments(
       db,
-      await annotateFeed(db, page, week.subjects, close),
-      account.accountId,
+      await withCheers(
+        db,
+        await annotateFeed(db, page, week.subjects, close),
+        account.accountId,
+      ),
+      account.kind === "person" ? account.accountId : null,
+      { enabled: comments },
     ),
     total: all.length,
     next:
@@ -882,6 +891,8 @@ export function homeRoutes({
   toolRegistry,
   clan,
   wake = null,
+  /** Comments are on (2026-11-16): the feed's items carry them. */
+  comments = false,
 }) {
   return {
     // What the first paint needs, and all it waits for.
@@ -992,7 +1003,7 @@ export function homeRoutes({
       if (q.evidence_item_id) return readFeedEvidence(db, account, q);
       const cursor = q.cursor ? readCursor(q.cursor) : null;
       if (q.cursor && !cursor) return json(400, { error: "invalid_cursor" });
-      return json(200, await readFeed(db, account, cursor, wake));
+      return json(200, await readFeed(db, account, cursor, wake, comments));
     },
 
     // Your circle this week (2026-11-16): the close friends the reader

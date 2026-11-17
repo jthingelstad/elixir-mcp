@@ -8,6 +8,7 @@ import { checkRateLimit } from "@elixir-mcp/auth";
 import { HOURLY_RATE_LIMIT } from "@elixir-mcp/tools/quota";
 import { json } from "../http.mjs";
 import { peopleWithAvatars } from "../avatars.mjs";
+import { blockedPeople, withoutBlocked } from "../blocks.mjs";
 import { panel } from "./home.mjs";
 import {
   battlePeople,
@@ -23,7 +24,7 @@ import {
 /** Three reads a visit at most, as Home's panels are counted. */
 const PEOPLE_RATE_LIMIT = 3 * HOURLY_RATE_LIMIT;
 
-export function peopleRoutes({ resolveAccount }) {
+export function peopleRoutes({ resolveAccount, blocks = false }) {
   const read = (name, fn) => async (db, event) => {
     const account = await resolveAccount(db, event);
     if (!account) return json(401, { error: "unauthenticated" });
@@ -36,10 +37,18 @@ export function peopleRoutes({ resolveAccount }) {
     )
       return json(429, { error: "rate_limited" });
     // Each listed player's profile image, one statement for the list.
+    // Nobody in a block with the reader, either way, is suggested
+    // (blocks.mjs, 2026-11-16).
     return json(
       200,
       await panel(name, async () =>
-        peopleWithAvatars(db, await fn(db, account.accountId)),
+        peopleWithAvatars(
+          db,
+          withoutBlocked(
+            await fn(db, account.accountId),
+            await blockedPeople(db, account.accountId, { enabled: blocks }),
+          ),
+        ),
       ),
     );
   };
