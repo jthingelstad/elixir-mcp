@@ -46,7 +46,7 @@ const asked = [];
 let next = () => ({ allow: true, category: "none" });
 const moderate = async (input) => {
   asked.push(input);
-  const say = next(input);
+  const say = await next(input);
   if (say instanceof Error) throw say;
   if (say?.ok === false) return say;
   return {
@@ -406,6 +406,10 @@ test("reports: two hide a comment, the reporter stops seeing it at once, the aut
   const report = (who, reason = "bullying") =>
     call(who, "POST", "/api/me/comment-reports", { id: mine.id, reason });
   assert.equal((await report(FAN, "rude")).statusCode, 400);
+  // Someone the item is not in the feed of may not report its comments,
+  // whatever id they guess (Codex on #1078).
+  const outsider = await person("cm-outsider");
+  assert.equal((await report(outsider)).statusCode, 404);
   assert.equal((await report(READER)).statusCode, 404, "never your own");
   assert.equal((await report(FAN)).statusCode, 200);
   assert.ok(
@@ -504,6 +508,21 @@ test("a block is silent, ends the follows and hides each side's comments from th
     data(await call(READER, "GET", "/api/me/blocks")).blocks,
     [],
   );
+  // Cheers on the owner's item: READER's (blocked) is left out of the
+  // owner's bell, FAN's (no block) still counts. An unqualified column
+  // in the block predicate once got both wrong (Codex on #1078).
+  await scratch.db.query(
+    `insert into timeline_cheer (account_id, item_id, cheer)
+     values ($1, $3, 'royal'), ($2, $3, 'wow')`,
+    [READER, FAN, ITEM],
+  );
+  const cheered = data(await call(OWNER, "GET", "/api/me/bell"));
+  const reaction = cheered.reactions.items.find((x) => x.item_id === ITEM);
+  assert.deepEqual(reaction?.cheers, { wow: 1 }, JSON.stringify(cheered));
+  await scratch.db.query(
+    "delete from timeline_cheer where item_id = $1 and account_id = any($2::uuid[])",
+    [ITEM, [READER, FAN]],
+  );
   // The owner's bell leaves READER's comments out.
   const after = data(await call(OWNER, "GET", "/api/me/bell"));
   assert.ok(after.comments.items.every((c) => !c.text.startsWith("that Hog")));
@@ -582,6 +601,33 @@ test("admin removal and suspension", async () => {
     days: 0,
   });
   assert.equal(data(await list(FAN)).open, true);
+});
+
+test("posts from one account are checked one at a time (Codex on #1078)", async () => {
+  let release;
+  const gate = new Promise((r) => {
+    release = r;
+  });
+  // A clean minute for the owner: earlier tests spent their limits.
+  await scratch.db.query("delete from comment_check where account_id = $1", [
+    OWNER,
+  ]);
+  next = async () => {
+    await gate;
+    return { allow: true, category: "none" };
+  };
+  const first = post(OWNER, "one at a time please");
+  // The first is with the model; a second waits for nothing and is told so.
+  await new Promise((r) => setTimeout(r, 200));
+  const second = await post(OWNER, "and another one");
+  assert.equal(second.statusCode, 429, second.body);
+  assert.match(data(second).message, /still being checked/);
+  release();
+  const firstOut = await first;
+  assert.equal(firstOut.statusCode, 201, firstOut.body);
+  next = () => ({ allow: true, category: "none" });
+  // The lock is let go: the next post is checked as usual.
+  assert.equal((await post(OWNER, "and now another")).statusCode, 201);
 });
 
 test("an agent never reaches the comment routes", async () => {

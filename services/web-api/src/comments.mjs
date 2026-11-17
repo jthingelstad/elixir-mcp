@@ -377,6 +377,31 @@ export async function postComment(db, account, item, raw, comments) {
       error: "not_open",
       message: "You can't comment on this one.",
     };
+  // One post at a time per account: the limits count logged checks, and a
+  // check is logged only once the model answers, so parallel posts could
+  // all pass the count (Codex on #1078). A second post while one is being
+  // checked is told to wait; the session lock goes with the request's
+  // connection if anything dies.
+  const key = `comment-post:${readerId}`;
+  const { rows: got } = await db.query(
+    "select pg_try_advisory_lock(hashtext($1)) as ok",
+    [key],
+  );
+  if (!got[0]?.ok)
+    return {
+      error: "rate_limited",
+      retry: 5,
+      message: "Your last comment is still being checked. Try again soon.",
+    };
+  try {
+    return await postChecked(db, readerId, item, raw, comments, tag, owner);
+  } finally {
+    await db.query("select pg_advisory_unlock(hashtext($1))", [key]);
+  }
+}
+
+/** The rest of postComment, under the account's post lock. */
+async function postChecked(db, readerId, item, raw, comments, tag, owner) {
   const slow = await throttled(db, readerId);
   if (slow?.error === "cooldown")
     return {
@@ -428,7 +453,7 @@ async function commentRow(db, id) {
   if (!/^[1-9][0-9]{0,18}$/.test(String(id ?? ""))) return null;
   const { rows } = await db.query(
     `select comment_id::text as comment_id, account_id, owner_account_id,
-            status, item_id
+            status, item_id, subject_tag
        from timeline_comment where comment_id = $1::bigint`,
     [String(id)],
   );
@@ -473,13 +498,17 @@ export async function removeComment(db, id, by) {
 
 /** Report a comment the reader can see. Two reports from different
  *  accounts hide it until an admin decides. Never told to its author. */
-export async function reportComment(db, account, id, reason) {
+export async function reportComment(db, account, id, reason, canSee) {
   if (!REPORT_REASONS.includes(reason)) return { error: "invalid_reason" };
   const row = await commentRow(db, id);
-  if (!row || row.status === "removed") return { error: "not_found" };
+  if (!row || row.status !== "visible") return { error: "not_found" };
   if (row.account_id === account.accountId) return { error: "not_found" };
   const blocked = await blockedWith(db, account.accountId);
   if (blocked.has(row.account_id)) return { error: "not_found" };
+  // Only a comment the reporter may read: its item in their own feed, as
+  // the list and the post require. Ids are sequential, so without this two
+  // accounts could hide comments they were never shown (Codex on #1078).
+  if (!(await canSee(row))) return { error: "not_found" };
   await db.query(
     `insert into comment_report (comment_id, account_id, reason)
      values ($1::bigint, $2, $3)

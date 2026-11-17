@@ -246,9 +246,9 @@ export async function cheersReceived(db, accountId, tag, fromMs, toMs) {
   const ids = (built.timeline ?? []).filter(cheerable).map((it) => it.id);
   if (ids.length === 0) return 0;
   const { rows } = await db.query(
-    `select count(*)::int as n from timeline_cheer
-      where item_id = any($1::text[]) and account_id <> $2
-        and not ${blockedSql("account_id", "$2::uuid")}`,
+    `select count(*)::int as n from timeline_cheer tc
+      where item_id = any($1::text[]) and tc.account_id <> $2
+        and not ${blockedSql("tc.account_id", "$2::uuid")}`,
     [ids, accountId],
   );
   return rows[0].n;
