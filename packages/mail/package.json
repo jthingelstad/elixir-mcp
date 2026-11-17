@@ -20,6 +20,7 @@
     "@aws-sdk/client-s3": "^3.1161.0",
     "@elixir-mcp/contracts": "0.1.0",
     "@elixir-mcp/ui": "0.1.0",
-    "@elixir-mcp/auth": "0.1.0"
+    "@elixir-mcp/auth": "0.1.0",
+    "@elixir-mcp/posts": "0.1.0"
   }
 }

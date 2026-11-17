@@ -158,3 +158,32 @@ test("the budget counts UTF-8 bytes: long CJK highlights still leave the footer 
   assert.ok(words(html).includes("3 more on your timeline."));
   assert.ok(html.includes(words500));
 });
+
+test("plain posts retain deck/cards and member actions within the digest byte budget", () => {
+  const facts = read("tracking_report");
+  const rapid = facts.people.find((p) => p.name === "Rapid Clear");
+  const deck = rapid.sittings.find((s) => s.deck?.cards?.length).deck;
+  const postWords = "皇家巨人推進".repeat(84).slice(0, 500);
+  facts.people = Array.from({ length: 12 }, (_, i) => ({
+    ...rapid,
+    battles: 0,
+    sessions: 0,
+    sittings: [],
+    items: [0, 1, 2].map((j) => ({
+      kind: "post",
+      words: postWords,
+      post: { id: String(i * 3 + j + 1), question: j === 0, deck, cards: [] },
+    })),
+    more_items: 0,
+  }));
+  const { html, subject } = renderMail("tracking_report", facts, links);
+  const size = Buffer.byteLength(html, "utf8");
+  assert.ok(size < 100_000, `${size} bytes`);
+  assert.ok(html.includes("api/email/unsubscribe?t=x"));
+  assert.ok(html.includes("/home/post/1?"));
+  assert.ok(words(html).includes("Hog Rider"));
+  assert.ok(words(html).includes("3 more on your timeline."));
+  assert.match(subject, /36 posts/);
+  assert.match(words(html), /36 posts/);
+  assert.doesNotMatch(html, /\/h\//);
+});

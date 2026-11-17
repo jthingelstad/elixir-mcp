@@ -21,7 +21,7 @@
  *  in-process, as Home's feed and elixir_timeline read it): for each
  *  person they follow, their sittings and battles counted, then the
  *  moments worth a line, each with the battle that made it when the
- *  record knows it, and their posts about battles with their own words. Then the
+ *  record knows it, and their posts with their own words. Then the
  *  clans they track, their own news only (clanNews), and their own week.
  *  Nothing is derived a second time: every number is the timeline
  *  entry's, every person's sentence the timeline's (itemText).
@@ -41,6 +41,7 @@ import { itemText } from "@elixir-mcp/tools/activity/summary";
 import { BIG_FIRST_KINDS, progressOf } from "@elixir-mcp/tools/friends-week";
 import { verifiedPlayerIdentities } from "@elixir-mcp/auth/player-identities";
 import { battleLinks } from "@elixir-mcp/record/battle-links";
+import { readVisiblePosts } from "@elixir-mcp/posts";
 
 /** The items a digest tells: a post about a battle (kind battle_highlight), the big
  *  firsts the milestone mail told (each with the battle that made it),
@@ -69,7 +70,7 @@ const DIGEST_SPAN_MS = {
   daily: 86400_000,
 };
 
-/** Items a person shows, newest battle posts first; the rest counted. */
+/** Items a person shows, newest plain/battle posts first; the rest counted. */
 const ITEMS_PER_PERSON = 3;
 /** Sittings a person shows: their biggest, told newest first; the rest
  *  counted. [engineering, 2026-11-16] */
@@ -177,6 +178,23 @@ const battleRef = (f) =>
  *  record knows the battle. A post's share link is never carried: a
  *  follower's digest is not the owner's. */
 function digestItem(it, tz, links) {
+  if (it.kind === "post") {
+    const p = it.post;
+    return {
+      kind: "post",
+      at: it.at,
+      text: p.question ? "Asked a question" : "Posted",
+      words: p.text,
+      // Delivery facts contain no share token, private account machinery,
+      // moderation controls, or comments. Art is the canonical attachment.
+      post: {
+        id: p.id,
+        question: p.question,
+        cards: p.cards,
+        deck: p.deck ? { cards: p.deck.cards, label: p.deck.label } : null,
+      },
+    };
+  }
   const f = it.facts ?? {};
   const isHighlight = it.kind === "battle_highlight";
   const text = isHighlight
@@ -281,36 +299,89 @@ export async function buildDigest({
   cadence,
   window,
   fold = FOLD_ALL,
+  posts = process.env.POSTS_ENABLED === "true",
 }) {
   const subjects = await subjectsFor(db, account.accountId);
-  if (subjects.length === 0) return null;
+  const livePosts = posts
+    ? await readVisiblePosts(db, account.accountId, {
+        subjects,
+        fromMs: window.fromMs,
+        toMs: window.toMs,
+        plain: true,
+        visibleOnly: true,
+        plainOnly: true,
+        createdOnly: true,
+        limit: DIGEST_TIMELINE_CAP,
+      })
+    : [];
+  if (subjects.length === 0 && livePosts.length === 0) return null;
   const tz = account.timezone;
   const followedTags = new Set(
     subjects.filter((s) => s.kind === "player").map((s) => s.tag),
   );
-  const { entries, timeline: items } = await buildTimeline(db, subjects, {
-    fromMs: window.fromMs,
-    toMs: window.toMs,
-    timezone: tz,
-    // What the record learned since the last digest: a battle recorded
-    // late is told once, in the digest after it was learned, never
-    // skipped. [engineering, 2026-11-12]
-    basis: "observed",
-    cap: DIGEST_TIMELINE_CAP,
-    accountId: account.accountId,
-    // The mail goes to the person's own address, nowhere else.
-    interactive: true,
-    // With the clan part off, a followed player's role change is told
-    // under them, as their joins and departures are (Codex on #919): the
-    // clan's item about them, kept only when they are someone followed.
-    filter: (it) =>
-      DIGEST_KINDS.has(it.kind) ||
-      (!fold.clan &&
-        it.kind === "member_role_changed" &&
-        (it.subjects ?? []).some(
-          (s) => s.kind === "player" && followedTags.has(s.tag),
-        )),
-  });
+  const { entries, timeline: recorded } = subjects.length
+    ? await buildTimeline(db, subjects, {
+        fromMs: window.fromMs,
+        toMs: window.toMs,
+        timezone: tz,
+        // What the record learned since the last digest: a battle recorded
+        // late is told once, in the digest after it was learned, never
+        // skipped. [engineering, 2026-11-12]
+        basis: "observed",
+        cap: DIGEST_TIMELINE_CAP,
+        accountId: account.accountId,
+        // The mail goes to the person's own address, nowhere else.
+        interactive: true,
+        // With the clan part off, a followed player's role change is told
+        // under them, as their joins and departures are (Codex on #919): the
+        // clan's item about them, kept only when they are someone followed.
+        filter: (it) =>
+          DIGEST_KINDS.has(it.kind) ||
+          (!fold.clan &&
+            it.kind === "member_role_changed" &&
+            (it.subjects ?? []).some(
+              (s) => s.kind === "player" && followedTags.has(s.tag),
+            )),
+      })
+    : { entries: [], timeline: [] };
+  const items = [...recorded, ...livePosts].sort(
+    (a, b) => shownMs(b) - shownMs(a),
+  );
+  const knownTags = new Set(
+    subjects.filter((s) => s.kind === "player").map((s) => s.tag),
+  );
+  const additional = livePosts.filter((it) => !knownTags.has(it.subject_tag));
+  const ownTags = additional
+    .filter((it) => it.post.mine)
+    .map((it) => it.subject_tag);
+  const ownRelations = ownTags.length
+    ? new Map(
+        (
+          await db.query(
+            `select player_tag, relationship from claim
+      where account_id = $1 and player_tag = any($2::text[])
+        and (is_primary or relationship in ('primary', 'alt'))`,
+            [account.accountId, ownTags],
+          )
+        ).rows.map((r) => [r.player_tag, r.relationship]),
+      )
+    : new Map();
+  const extraSubjects = new Map(
+    additional.map((it) => [
+      it.subject_tag,
+      {
+        kind: "player",
+        tag: it.subject_tag,
+        relationship: it.post.mine
+          ? (ownRelations.get(it.subject_tag) ?? "primary")
+          : "watching",
+        nickname: null,
+      },
+    ]),
+  );
+  const digestSubjects = [...subjects, ...extraSubjects.values()];
+  const accountPosts = additional.some((it) => !it.post.mine);
+
   const links = await battleLinks(
     db,
     items.map((it) => battleRef(it.facts)).filter(Boolean),
@@ -359,11 +430,11 @@ export async function buildDigest({
         (it.subject_tag === tag || it.subjects?.some((s) => s.tag === tag)) &&
         !toldByClan(it),
     );
-    // Posts about battles first (the player's own words), then the rest; each
+    // Posts first (the player's own words), then the rest; each
     // group newest first, the timeline's own order.
     const ordered = [
-      ...mine.filter((it) => it.kind === "battle_highlight"),
-      ...mine.filter((it) => it.kind !== "battle_highlight"),
+      ...mine.filter((it) => ["battle_highlight", "post"].includes(it.kind)),
+      ...mine.filter((it) => !["battle_highlight", "post"].includes(it.kind)),
     ];
     const sat = pickSittings(items, tag);
     return {
@@ -418,7 +489,7 @@ export async function buildDigest({
         : [it.subject_tag],
     ),
   );
-  const bare = subjects.filter(
+  const bare = digestSubjects.filter(
     (s) => s.kind === "player" && !entered.has(s.tag) && told.has(s.tag),
   );
   const names = bare.length
@@ -481,7 +552,7 @@ export async function buildDigest({
     );
   // A quiet primary has no entry; an alt that played still makes the
   // reader's own stretch, under the primary's name (Codex on #783).
-  const primarySubject = subjects.find(
+  const primarySubject = digestSubjects.find(
     (s) => s.kind === "player" && s.relationship === "primary",
   );
   let you = primary ? person(primary) : null;
@@ -526,6 +597,7 @@ export async function buildDigest({
       tags.map((tag) => [tag, identities.has(tag)]),
     ),
     cadence,
+    ...(accountPosts ? { account_posts: true } : {}),
     window: {
       from: new Date(window.fromMs).toISOString(),
       to: new Date(window.toMs).toISOString(),
@@ -543,7 +615,9 @@ export async function buildDigest({
         }
       : null,
     following,
-    coverage: coverageOf(following, followed.length, cadence),
+    coverage: accountPosts
+      ? "This digest includes posts from accounts you follow. A gap in the game record means unknown. It does not mean they didn’t play."
+      : coverageOf(following, followed.length, cadence),
   };
 }
 

@@ -51,6 +51,64 @@ export function mailPreviewCases() {
         "You follow nobody yet, so this week is yours alone. A gap means unknown. It does not mean they didn’t play.",
     }),
   );
+  const postCards = digest.people
+    .find((p) => p.sittings?.some((s) => s.deck?.cards?.length))
+    .sittings.find((s) => s.deck?.cards?.length)
+    .deck.cards.map(({ id, name }) => ({ id, name }));
+  cases.push(
+    product("tracking_report-posts", "tracking_report", {
+      ...digest,
+      window: {
+        from: "2026-11-16T11:00:00.000Z",
+        to: "2026-11-17T11:00:00.000Z",
+      },
+      cadence: "daily",
+      account_posts: true,
+      following: 0,
+      clans: [],
+      you: null,
+      people: [
+        {
+          tag: "#0PGQ2UYL",
+          name: "Invented Ada",
+          relationship: "watching",
+          sessions: 0,
+          battles: 0,
+          wins: 0,
+          losses: 0,
+          items: [
+            {
+              kind: "post",
+              text: "Asked a question",
+              words:
+                "Which card would you swap in this deck? I’m trying it in Trophy Road.",
+              post: {
+                id: "401",
+                question: true,
+                deck: { cards: postCards, label: null },
+                cards: [],
+              },
+            },
+            {
+              kind: "post",
+              text: "Posted",
+              words:
+                "Trying these two cards today. What have you been playing?",
+              post: {
+                id: "402",
+                question: false,
+                deck: null,
+                cards: postCards.slice(0, 2),
+              },
+            },
+          ],
+          more_items: 0,
+        },
+      ],
+      coverage:
+        "This digest includes posts from accounts you follow. A gap in the game record means unknown. It does not mean they didn’t play.",
+    }),
+  );
   const collector = read("collector_activity");
   cases.push(
     product("collector_activity-silent", "collector_activity", {

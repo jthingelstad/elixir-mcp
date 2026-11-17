@@ -41,6 +41,11 @@ only choose what the page draws: your place moves when you open the feed,
 whichever chip is on, so **New** means the same under every chip. Your
 choice is kept for your next visit on the same device.
 
+While the Timeline is open, **N new** tells you when new items are ready,
+including new posts and questions from the people you follow. Tap it to
+refresh when you are ready. Editing a post changes its words on refresh;
+it does not count as another new post.
+
 ### By mode
 
 The **Mode** list beside the chips chooses which game mode the feed
@@ -451,6 +456,10 @@ Who sees it:
 - **Your clanmates**, in your clan's Feed.
 - **Your account page and your player's page** list your posts too, for
   those same people. Your own posts are on your Profile.
+- **Your existing digest** can include new posts and questions from the
+  people and accounts you follow, with their deck or cards. Its weekly,
+  daily or off setting stays yours. **Read and reply** opens the post in
+  Elixir after sign-in.
 
 Anyone who can see a post can cheer it. Notifications tell you how many
 cheered your posts, never who. Nobody you've blocked, or who has blocked

@@ -1329,7 +1329,7 @@ test("Home's feed serves its stored week until it is past serving, then builds i
   assert.equal(await storedCount(), 2);
 });
 
-test("Home's N new: the stored week's items newer than the newest shown, one statement, nothing built (2026-11-14)", async () => {
+test("Home's N new: the stored week's items newer than the newest shown, nothing built (2026-11-14)", async () => {
   const id = await person("home-feed-new");
   const { db } = scratch;
   const now = Date.now();
