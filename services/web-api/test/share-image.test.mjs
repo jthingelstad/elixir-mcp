@@ -135,10 +135,10 @@ test("a 1v1: both names, both decks, the score, the towers, the link", () => {
   );
 });
 
-test("a shared highlight's picture: the owner's name and words, escaped, over the post's link", () => {
+test("a shared battle post's picture: the author's name and words, escaped, over the post's link", () => {
   const svg = draw({
     ...READ,
-    highlight: {
+    post: {
       share_id: "abcdefghijk2345",
       url: "https://elixir.poapkings.com/h/abcdefghijk2345",
       image: "https://elixir.poapkings.com/h/abcdefghijk2345.png",

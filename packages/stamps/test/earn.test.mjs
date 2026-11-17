@@ -368,7 +368,7 @@ test("Cheerleader: retries, other emoji and more cheers that day do not multiply
   assert.deepEqual(await levels(me, "cheerleader"), [1, 2]);
 });
 
-test("Storyteller: reconciliation reads highlights with words, once per battle", async () => {
+test("Storyteller: reconciliation reads battle posts with words, once per battle", async () => {
   const me = await person();
   await claim(me, ME, "primary", true);
   const battles = (
@@ -378,16 +378,20 @@ test("Storyteller: reconciliation reads highlights with words, once per battle",
       [ME],
     )
   ).rows.map((r) => r.battle_id);
+  // Posts about battles (0291): with words, with none, with words.
   await db.query(
-    `insert into battle_highlight (player_tag, battle_id, account_id, words)
-     values ($1, $2, $5, 'Close one.'), ($1, $3, $5, '   '),
-            ($1, $4, $5, 'Again!')`,
+    `insert into account_post (item_id, player_tag, battle_id, account_id, body)
+     values ('tl_000000000000000005a1', $1, $2, $5, 'Close one.'),
+            ('tl_000000000000000005a2', $1, $3, $5, ''),
+            ('tl_000000000000000005a3', $1, $4, $5, 'Again!')`,
     [ME, ...battles, me],
   );
-  // The hook already counted the first; reconciliation adds the third.
-  const [{ highlight_id: firstId, created_at }] = (
+  // The first was a highlight, counted by the hook before 0291 under its
+  // old source: reconciliation reads it as a post now, and the battle
+  // qualifier keeps it from counting twice. It adds the third.
+  const [{ created_at }] = (
     await db.query(
-      `select highlight_id::text, created_at from battle_highlight
+      `select created_at from account_post
         where account_id = $1 and battle_id = $2`,
       [me, battles[0]],
     )
@@ -397,7 +401,7 @@ test("Storyteller: reconciliation reads highlights with words, once per battle",
     me,
     {
       stamp_id: "storyteller",
-      source: `highlight:${firstId}`,
+      source: "highlight:00000000-0000-4000-8000-0000000005a1",
       battle_id: battles[0],
       event_at: created_at,
     },

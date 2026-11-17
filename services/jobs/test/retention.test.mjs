@@ -121,8 +121,8 @@ async function seed() {
       [id, A],
     );
     await db.query(
-      `insert into battle_highlight (player_tag, battle_id, account_id)
-       values ($1, $2, $3)`,
+      `insert into account_post (item_id, player_tag, battle_id, account_id, body)
+       values ('tl_' || substr(md5(random()::text), 1, 20), $1, $2, $3, '')`,
       [A, id, account_id],
     );
     // An event the battle produced, stamped recent so only the battle
@@ -182,7 +182,7 @@ test("the trim takes what is past its window, with what goes with it", async () 
   assert.deepEqual(due.battle.children_due, {
     battle_participant: 2,
     battle_participant_round: 1,
-    battle_highlight: 1,
+    account_post: 1,
   });
   assert.equal(due.mcp_call_audit.rows_due, 1);
   assert.equal(due.api_receipt.rows_due, 1);
@@ -233,7 +233,7 @@ test("the trim takes what is past its window, with what goes with it", async () 
     await count(`select count(*) n from battle_participant_round`),
     1,
   );
-  assert.equal(await count(`select count(*) n from battle_highlight`), 1);
+  assert.equal(await count(`select count(*) n from account_post`), 1);
   assert.equal(await count(`select count(*) n from player_event`), 1);
   assert.equal(
     await count(`select count(*) n from deck where deck_hash = 'deck-shared'`),

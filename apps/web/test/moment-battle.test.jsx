@@ -81,7 +81,7 @@ test("a crossing and a promotion both name their battle's result, score and oppo
   ]);
 });
 
-test("a highlight shows its words on the rule and both decks with the score between", async () => {
+test("a post about a battle shows its words, the battle, and both decks with the score between", async () => {
   const card = (id, name, cost, form = "base") => ({
     id,
     name,
@@ -101,17 +101,20 @@ test("a highlight shows its words on the rule and both decks with the score betw
   });
   items.splice(0, items.length, {
     id: "tl_00000000000000000009",
-    kind: "battle_highlight",
+    kind: "post",
     at: AGO(30),
-    observed_at: AGO(29),
+    sort_at: AGO(30),
     subject_tag: "#00JQ20",
     subject_name: "Invented 1",
     subjects: [{ tag: "#00JQ20", kind: "player", name: "Invented 1" }],
-    groups: ["friends"],
-    text: "Invented 1 highlighted a 2-1 win against Slate Owl (Ranked): “Held on.”",
-    facts: {
-      words: "Held on.",
+    text: "Invented 1 posted.",
+    comments: { count: 0, latest: [], open: false },
+    post: {
+      id: "9",
+      text: "Held on.",
+      author: { player_tag: "#00JQ20", name: "Invented 1" },
       battle: {
+        battle_id: "abc",
         url: "https://elixir.example.test/battle/abc",
         mode_group: "ranked",
         outcome: "win",
@@ -119,17 +122,15 @@ test("a highlight shows its words on the rule and both decks with the score betw
         crowns_against: 1,
         opponents: [{ name: "Slate Owl" }],
       },
-    },
-    versus: {
-      mine: eight(26000000, "Invented cycle"),
-      theirs: eight(26000100, "Invented beatdown"),
+      versus: {
+        mine: eight(26000000, "Invented cycle"),
+        theirs: eight(26000100, "Invented beatdown"),
+      },
     },
   });
   renderWithProviders(<HomeFeed />);
-  await screen.findByText(
-    "Invented 1 highlighted a 2-1 win against Slate Owl (Ranked).",
-  );
-  expect(document.querySelector(".kit-feed__words").textContent).toBe(
+  await screen.findByText("A 2-1 win against Slate Owl (Ranked)");
+  expect(document.querySelector(".kit-written__text").textContent).toBe(
     "Held on.",
   );
   expect(document.querySelectorAll(".kit-vs .kit-deckrow")).toHaveLength(2);

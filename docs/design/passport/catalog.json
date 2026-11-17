@@ -139,10 +139,10 @@
     "icon": "message-square",
     "shape": "square",
     "ink": "violet",
-    "rule": "Highlight 1, 5 and 20 different battles with words of your own.",
-    "action": "Your highlights",
+    "rule": "Post about 1, 5 and 20 different battles with words of your own.",
+    "action": "Your posts",
     "destination": "player",
     "thresholds": [1, 5, 20],
-    "unit": "highlights"
+    "unit": "battle posts"
   }
 ]

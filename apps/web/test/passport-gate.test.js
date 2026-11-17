@@ -97,7 +97,7 @@ test("a write landing while a run is on its way keeps the gate open", async () =
   const run = reconcileOnOpen(call, { now });
   // An open while the run is on its way joins it.
   expect(reconcileOnOpen(call, { now })).toBe(run);
-  noteWrite("POST", "/api/me/highlights", { ok: true, status: 200 });
+  noteWrite("POST", "/api/me/posts", { ok: true, status: 200 });
   release();
   await run;
   expect(call).toHaveBeenCalledTimes(1);
@@ -113,8 +113,8 @@ test("the writes that can earn, by the app's own paths", () => {
     ["POST", "/api/me/avatar"],
     ["PUT", "/api/me/email"],
     ["PUT", "/api/me/cheers"],
-    ["POST", "/api/me/highlights"],
-    ["PUT", "/api/me/highlights/abc123"],
+    ["POST", "/api/me/posts"],
+    ["PUT", "/api/me/posts/123"],
     ["POST", "/api/me/passport/map"],
     ["PUT", "/api/clan/me/place"],
   ])
@@ -122,8 +122,8 @@ test("the writes that can earn, by the app's own paths", () => {
   for (const [method, path] of [
     ["GET", "/api/me/passport"],
     ["POST", "/api/me/passport/reconcile"],
-    ["POST", "/api/me/highlights/share"],
-    ["POST", "/api/me/highlights/discord"],
+    ["POST", "/api/me/post-shares"],
+    ["POST", "/api/me/post-discord"],
     ["POST", "/api/agent/abc/players"],
     ["PUT", "/api/me/bell/seen"],
     ["DELETE", "/api/clan/me/place/x"],

@@ -6,7 +6,7 @@ import { BATTLE } from "../e2e/battle-fixture.ts";
 import { renderWithProviders } from "./helpers.jsx";
 
 /**
- * A shared post, /h/<id> (canvas Highlight, 2026-11-13): who won and the
+ * A shared post, /h/<id> (canvas Highlight, 2026-11-13; a post about a battle since 0291): who won and the
  * score, both decks with the score between, four numbers side by side and
  * the way to the battle's own page. Invented players only.
  */
@@ -18,7 +18,7 @@ const post = (side = "left") => {
   return {
     ...BATTLE,
     sides,
-    highlight: {
+    post: {
       share_id: "k7q2mabcdefghij",
       url: "https://elixir.example.test/h/k7q2mabcdefghij",
       image: "https://elixir.example.test/h/k7q2mabcdefghij.png",

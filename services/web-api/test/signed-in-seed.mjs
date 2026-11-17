@@ -255,14 +255,14 @@ export async function seedSignedIn(
      select account_id, $2, 'unverified', 'friend', false from accounts`,
     [clanTag, leaderTag],
   );
-  // The reader's highlights: one battle a week over the year, every
-  // fourth shared.
+  // The reader's posts about battles: one battle a week over the year,
+  // every fourth shared.
   await db.query(
-    `insert into battle_highlight (player_tag, battle_id, account_id, words, share_id, shared_at, created_at, updated_at)
-     select $1, x.battle_id, $2, 'What a game ' || x.n,
+    `insert into account_post (item_id, player_tag, battle_id, account_id, body, share_id, shared_at, created_at, updated_at)
+     select 'tl_' || substr(md5(random()::text), 1, 20), $1, x.battle_id, $2, 'What a game ' || x.n,
             case when x.n % 4 = 0 then lpad(translate(x.n::text, '0123456789', 'abcdefghij'), 15, 'q') end,
             case when x.n % 4 = 0 then x.battle_time + interval '1 hour' end,
-            x.battle_time + interval '1 hour', x.battle_time + interval '1 hour'
+            x.battle_time + interval '1 hour', null
        from (select bp.battle_id, bp.battle_time,
                     row_number() over (order by bp.battle_time desc) n
                from battle_participant bp

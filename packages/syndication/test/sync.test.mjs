@@ -543,7 +543,7 @@ test("the setting: a Discord webhook only, a hello on each new start, never the 
   assert.notEqual(open(sent[2].message.webhook, owner), HOOK);
 });
 
-test("a highlight is posted once, and edited in place when its words change", async () => {
+test("a post about a battle is posted once, and edited in place when its words change", async () => {
   const db = ctx.db;
   await enable(person, "2026-09-10T00:00Z");
   const {
@@ -554,12 +554,13 @@ test("a highlight is posted once, and edited in place when its words change", as
     [OBSERVER],
   );
   const {
-    rows: [{ highlight_id: highlightId }],
+    rows: [{ post_id: postId }],
   } = await db.query(
-    `insert into battle_highlight (player_tag, battle_id, account_id, words,
-                                   created_at, updated_at)
-     values ($1, $2, $3, 'first words', '2026-09-10T12:00Z', '2026-09-10T12:00Z')
-     returning highlight_id`,
+    `insert into account_post (item_id, player_tag, battle_id, account_id,
+                               body, created_at)
+     values ('tl_00000000000000005c01', $1, $2, $3, 'first words',
+             '2026-09-10T12:00Z')
+     returning post_id::text`,
     [OBSERVER, battleId, person],
   );
   const { sent, outbox } = recorder();
@@ -570,17 +571,17 @@ test("a highlight is posted once, and edited in place when its words change", as
     now: Date.parse("2026-09-10T12:02Z"),
   });
   const [posted] = lines();
-  assert.ok(posted, "the highlight is posted");
+  assert.ok(posted, "the post is posted");
   assert.match(posted.content, /first words/);
 
-  // The owner edits the words (as editHighlight writes them): the next
-  // sync edits the same line at a higher revision.
+  // The author edits the words (as editPost writes them): the next sync
+  // edits the same line at a higher revision.
   await db.query(
-    `update battle_highlight
-        set words = 'better words', revision = revision + 1,
+    `update account_post
+        set body = 'better words', revision = revision + 1,
             updated_at = '2026-09-10T15:00Z'
-      where highlight_id = $1`,
-    [highlightId],
+      where post_id = $1::bigint`,
+    [postId],
   );
   await syncAccount(db, person, {
     outbox,
@@ -601,7 +602,7 @@ test("a highlight is posted once, and edited in place when its words change", as
     now: Date.parse("2026-09-10T15:30Z"),
   });
   assert.equal(lines().length, before);
-  await db.query(`delete from battle_highlight where highlight_id = $1`, [
-    highlightId,
+  await db.query(`delete from account_post where post_id = $1::bigint`, [
+    postId,
   ]);
 });

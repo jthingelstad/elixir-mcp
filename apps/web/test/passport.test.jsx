@@ -208,7 +208,7 @@ test("helpers: the highest level each, two latest marks, and where to earn", () 
   expect(destinationHref("map-view")).toBe("/settings/profile#place");
   expect(destinationHref("verification")).toBe("/settings/players/verify");
   expect(unitWord("cheerleader", 1)).toBe("day");
-  expect(unitWord("storyteller", 5)).toBe("highlighted battles");
+  expect(unitWord("storyteller", 5)).toBe("battles posted about");
 });
 
 test("every account's menu has a Passport link, with or without a player", () => {
@@ -464,7 +464,6 @@ test(
         timeline: [],
         timeline_more: 0,
         moments: [],
-        highlights: [],
         passport: {
           id: THEIRS,
           count: 4,

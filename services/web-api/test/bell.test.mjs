@@ -183,9 +183,9 @@ before(async () => {
     cookies[who] = await signIn(
       { owner: OWNER, friend: FRIEND, fan: FAN, stranger: STRANGER }[who],
     );
-  const made = await call("POST", "/api/me/highlights", {
+  const made = await call("POST", "/api/me/posts", {
     who: "owner",
-    body: { battle: battle.battle_id, words: "A close one" },
+    body: { battle: battle.battle_id, text: "A close one" },
   });
   assert.equal(made.status, 201, JSON.stringify(made.body));
   // An answered piece of the owner's feedback, not yet read.

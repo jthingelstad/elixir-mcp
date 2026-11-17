@@ -45,7 +45,7 @@ function sideCardsUnread() {
 
 describe("Feed", () => {
   // Drawn by the Timeline's own components (2026-11-17).
-  test("the clan's timeline, its highlights' words and battles, newest first", async () => {
+  test("the clan's timeline, its members' posts about battles with their words, newest first", async () => {
     sideCardsUnread();
     vi.spyOn(manageApi, "feed").mockResolvedValue({
       ok: true,
@@ -56,14 +56,25 @@ describe("Feed", () => {
         more: 0,
         items: [
           {
-            id: "h1",
-            kind: "battle_highlight",
+            id: "tl_00000000000000000041",
+            kind: "post",
             at: "2026-11-12T10:00:00Z",
-            text: "Ada posted a highlight: “Three crowns at last”",
+            sort_at: "2026-11-12T10:00:00Z",
+            subject_tag: "#0QG0JPUC",
+            text: "Ada posted.",
             subjects: [{ kind: "player", tag: "#0QG0JPUC", name: "Ada" }],
-            facts: {
-              words: "Three crowns at last",
-              battle: { url: "https://elixir.test/battle/abc" },
+            comments: { count: 0, latest: [], open: false },
+            post: {
+              id: "41",
+              text: "Three crowns at last",
+              author: { player_tag: "#0QG0JPUC", name: "Ada" },
+              battle: {
+                battle_id: "abc",
+                url: "https://elixir.test/battle/abc",
+                outcome: "win",
+                crowns: 3,
+                crowns_against: 0,
+              },
             },
           },
           {
@@ -76,13 +87,11 @@ describe("Feed", () => {
       },
     });
     renderWithProviders(<Feed clan={member} navigate={vi.fn()} />);
-    expect(await screen.findByText("Ada posted a highlight.")).toBeTruthy();
-    expect(screen.getByText(/Three crowns at last/)).toBeTruthy();
+    expect(await screen.findByText("Three crowns at last")).toBeTruthy();
+    expect(screen.getByText("A 3-0 win")).toBeTruthy();
     expect(
       screen.getByRole("link", { name: "Open battle" }).getAttribute("href"),
     ).toBe("/battle/abc");
-    // No cheer here: cheers live on the reader's own Timeline.
-    expect(screen.queryByRole("button", { name: /^Cheer(ed)?: / })).toBeNull();
     expect(screen.getByText("Bo joined the clan")).toBeTruthy();
     expect(
       screen.getByRole("heading", { name: "Feed", level: 2 }),

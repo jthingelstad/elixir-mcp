@@ -209,8 +209,13 @@ test("a verified player's page: record, badges, follows and followers by game na
     no_player: 2,
     unnamed: 2,
   });
-  for (const k of ["timeline", "moments", "highlights"])
+  for (const k of ["timeline", "moments"])
     assert.ok(Array.isArray(page[k]), k);
+  // Posts about the player's battles are posts (0291): the page reads
+  // them with the player's other posts (GET /api/me/posts?player=), and
+  // its timeline carries no record item for them beside.
+  assert.equal("highlights" in page, false);
+  assert.ok(!page.timeline.some((it) => it.kind === "battle_highlight"));
   assert.equal(page.window_days, 30);
   assert.ok(!r.body.includes(NICK), "no nickname, the reader's included");
   assert.ok(!r.body.includes(DISCORD), "that a Discord is linked, never which");
@@ -584,7 +589,7 @@ test("a session's own page: the item, its games newest first, the reader's side,
   assert.equal(own.statusCode, 200, own.body);
   const body = data(own);
   assert.equal(body.player.name, "Alder");
-  assert.deepEqual(body.you, { own: true, can_highlight: true });
+  assert.deepEqual(body.you, { own: true, can_post: true });
   assert.equal(body.item.id, sitting.id);
   assert.equal(body.item.evidence.version, sitting.evidence.version);
   assert.equal(body.games.order, "newest_first");
@@ -595,14 +600,14 @@ test("a session's own page: the item, its games newest first, the reader's side,
   assert.deepEqual(body.marks, []);
   assert.ok(!own.body.includes(NICK));
 
-  // Another reader sees the same public games, and may not highlight.
+  // Another reader sees the same public games, and may not post them.
   const other = data(await ask(R, { tag: A, id: sitting.id }));
-  assert.deepEqual(other.you, { own: false, can_highlight: false });
+  assert.deepEqual(other.you, { own: false, can_post: false });
   assert.equal(other.games.battles.length, 3);
   // Y follows A (a friend claim): not theirs either.
   assert.deepEqual(data(await ask(Y, { tag: A, id: sitting.id })).you, {
     own: false,
-    can_highlight: false,
+    can_post: false,
   });
 
   assert.equal(

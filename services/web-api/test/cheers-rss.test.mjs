@@ -174,10 +174,10 @@ before(async () => {
      values ($1, $2, $3)`,
     [friendId, PLAYER, NICKNAME],
   );
-  // The owner posts a highlight: an item of the last seven days.
-  const made = await call("POST", "/api/me/highlights", {
+  // The owner posts about a battle: an item of the last seven days.
+  const made = await call("POST", "/api/me/posts", {
     who: "owner",
-    body: { battle: battle.battle_id, words: WORDS },
+    body: { battle: battle.battle_id, text: WORDS },
   });
   assert.equal(made.status, 201, JSON.stringify(made.body));
 });
@@ -372,7 +372,7 @@ test("the RSS link: shown once, kept as a hash, reset and turned off", async () 
     xml,
     /^<\?xml version="1\.0" encoding="UTF-8"\?>\n<rss version="2\.0">/,
   );
-  // The highlight, its player's game name and words escaped.
+  // The battle post, its player's game name and words escaped.
   assert.ok(xml.includes(xmlText(HOSTILE_NAME)));
   assert.ok(xml.includes(xmlText(WORDS)));
   assert.equal(xml.includes("<b>Fixture"), false);

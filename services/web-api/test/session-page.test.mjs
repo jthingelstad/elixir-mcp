@@ -389,5 +389,5 @@ test("the signed-in session page names its public page and picture", async () =>
   const body = data(res);
   assert.equal(body.url, `https://elixir.poapkings.com/session/${rest}`);
   assert.equal(body.image, `${body.url}.png`);
-  assert.deepEqual(body.you, { own: true, can_highlight: true });
+  assert.deepEqual(body.you, { own: true, can_post: true });
 });

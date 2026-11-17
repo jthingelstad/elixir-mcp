@@ -1,6 +1,6 @@
 /**
  * The digest (tracking_report, #767) over a scratch database: a followed
- * friend's highlight with their words and the battle's page, a nothing
+ * friend's post about a battle with their words and the battle's page, a nothing
  * window with no mail, and attested facts never entering it. A clan's attested facts are for the
  * people who read the clan's timeline, and an away is for a leader
  * reading it themselves, never a mail (DECISIONS, "Attested facts"). The
@@ -99,7 +99,7 @@ before(async () => {
             ('b1', $2, 1, '2026-09-15T11:00:00Z', 'loss', 'PvP', 'pvp')`,
     [LEADER, OPP],
   );
-  // The friend's win, and their highlight of it with their own words,
+  // The friend's win, and their post about it with their own words,
   // posted by the friend's own account.
   await db.query(
     `insert into battle (battle_id, battle_time, type, type_class, created_at)
@@ -118,8 +118,8 @@ before(async () => {
     )
   ).rows[0].account_id;
   await db.query(
-    `insert into battle_highlight (player_tag, battle_id, account_id, words, created_at, updated_at)
-     values ($1, 'b2', $2, $3, '2026-09-16T21:00:00Z', '2026-09-16T21:00:00Z')`,
+    `insert into account_post (item_id, player_tag, battle_id, account_id, body, created_at)
+     values ('tl_' || substr(md5(random()::text), 1, 20), $1, 'b2', $2, $3, '2026-09-16T21:00:00Z')`,
     [FRIEND, poster, WORDS],
   );
   await db.query(
@@ -220,7 +220,7 @@ test("a leader's digest holds no attested kind, and the facts do not crowd out t
   assert.ok(!/private line|away from|personal best/.test(body), body);
 });
 
-test("a followed friend's highlight comes with their words and the battle's page, never their share link", async () => {
+test("a followed friend's post about a battle comes with their words and the battle's page, never their share link", async () => {
   const mail = await buildDigest({
     db,
     account: { accountId, timezone: "UTC" },
@@ -235,7 +235,7 @@ test("a followed friend's highlight comes with their words and the battle's page
   assert.equal(h.kind, "battle_highlight");
   // The words as typed: escaping is the render's, at its output.
   assert.equal(h.words, WORDS);
-  assert.match(h.text, /highlighted a 3-0 win/);
+  assert.match(h.text, /posted about a 3-0 win/);
   assert.ok(
     !h.text.includes("at last"),
     "the words are not in the sentence too",
@@ -325,7 +325,7 @@ async function reader(label, claims) {
   return id;
 }
 
-test("a followed player who only posted is told: a highlight of an older battle, with no battles in the window", async () => {
+test("a followed player who only posted is told: a post about an older battle, with no battles in the window", async () => {
   const QUIET = "#0P0LQ0C9";
   const POSTER = "#08LV2GGR";
   const id = await reader("post-only", [
@@ -342,8 +342,8 @@ test("a followed player who only posted is told: a highlight of an older battle,
     [POSTER],
   );
   await db.query(
-    `insert into battle_highlight (player_tag, battle_id, account_id, words, created_at, updated_at)
-     values ($1, 'b3', $2, 'Still my best game', '2026-10-03T12:00:00Z', '2026-10-03T12:00:00Z')`,
+    `insert into account_post (item_id, player_tag, battle_id, account_id, body, created_at)
+     values ('tl_' || substr(md5(random()::text), 1, 20), $1, 'b3', $2, 'Still my best game', '2026-10-03T12:00:00Z')`,
     [POSTER, id],
   );
   const mail = await buildDigest({

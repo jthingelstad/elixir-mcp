@@ -99,7 +99,8 @@ const facts = (id, stamp) =>
   );
 const ids = (rows) => rows.map((g) => `${g.stamp_id}:${g.level}`).sort();
 
-async function highlight(accountId, at) {
+/** A post about a battle with words (0291; a highlight before). */
+async function story(accountId, at) {
   const {
     rows: [b],
   } = await db.query(
@@ -110,10 +111,11 @@ async function highlight(accountId, at) {
   const {
     rows: [h],
   } = await db.query(
-    `insert into battle_highlight (player_tag, battle_id, account_id, words,
-                                   created_at)
-     values ($1, $2, $3, 'Close one.', $4)
-     returning highlight_id::text, battle_id, created_at`,
+    `insert into account_post (item_id, player_tag, battle_id, account_id,
+                               body, created_at)
+     values ('tl_' || substr(md5(random()::text), 1, 20), $1, $2, $3,
+             'Close one.', $4)
+     returning post_id::text, battle_id, created_at`,
     [ME, b.battle_id, accountId, at],
   );
   return h;
@@ -184,14 +186,15 @@ test("a pre-launch account's first settle files what stood at launch as legacy; 
     assert.equal(row.earned_on, null);
     assert.equal(row.legacy_before, "2026-09-01");
   }
-  // A highlight written before launch, counted now: legacy, no line.
-  const h = await highlight(me, "2026-08-20T00:00:00Z");
+  // A post about a battle written before launch, counted now: legacy,
+  // no line.
+  const h = await story(me, "2026-08-20T00:00:00Z");
   const told = await earnFact(
     db,
     me,
     {
       stamp_id: "storyteller",
-      source: `highlight:${h.highlight_id}`,
+      source: `post:${h.post_id}`,
       battle_id: h.battle_id,
       event_at: h.created_at,
     },
@@ -341,7 +344,7 @@ test("the backfill: a dry run writes nothing and reports what an apply writes; a
   const me = await person();
   await claim(me, ME, "primary", { verified: BEFORE });
   await claim(me, RIVAL, "friend");
-  await highlight(me, "2026-08-20T00:00:00Z");
+  await story(me, "2026-08-20T00:00:00Z");
   const cheers = [
     { source: "cheer:9001", event_at: "2026-08-03T10:00:00Z" },
     { source: "cheer:9002", event_at: "2026-08-04T10:00:00Z" },
