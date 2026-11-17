@@ -327,6 +327,8 @@ for (const width of [320, 390, 1280]) {
         }),
       );
       await page.goto("/home");
+      await expect(trigger(page)).toBeVisible();
+      await expect(page.locator("main")).toBeVisible();
       await expect(trigger(page).locator(".kit-bell__dot")).toHaveCount(0);
       await captureClosed(page, "empty", width);
       // Opening it moves nothing on the page: the bar and the feed stay put.
