@@ -8,11 +8,12 @@ official API is current-state only), served on one origin,
 | Path | What | Code |
 | --- | --- | --- |
 | `/`, `/docs`, `/updates` | the site and the public docs | `apps/site` (Eleventy) |
-| `/home` | Home: one feed beside your week and clan, with Find (`/home/find`) and You; a player's page (`/home/player/<tag>`, its Record tab the game record); where signing in lands | `apps/web/src/home` |
+| `/timeline` | the Timeline: one feed beside your week and clan; `/home` 301s here for good | `apps/web/src/home` |
+| `/home/*` | Find (`/home/find`) and Profile (`/home/you`); a player's page (`/home/player/<tag>`, its Record tab the game record); where signing in lands | `apps/web/src/home` |
 | `/signin` | signing in | `apps/web` |
 | `/settings` | Settings: your account and agents, with its left rail; Admin (`/settings/admin/*`) for staff | `apps/web` |
 | `/console`, `/ladder`, `/data/service` | nothing: the Console folded on 2026-11-12 and its old addresses stopped forwarding on 2026-11-13 (Jamie: "It is fine to break url support"); CloudFront has no behaviour for them, so they are the site's 404 | none |
-| `/home/you/stats` | Stats (Ladder until 2026-11-12): your season, read back, You's last tab | `apps/web/src/stats` |
+| `/home/you/stats` | Stats (Ladder until 2026-11-12): your season, read back, Profile's last tab | `apps/web/src/stats` |
 | `/clan`, `/api/clan` | Clan, a part of Elixir: running a clan on its policy | `packages/clan*` |
 | `/battle/<id>` | a battle's public page | `services/web-api` |
 | `/mcp`, `/a/<id>/mcp`, `/oauth/*`, `/.well-known/*` | the MCP and OAuth doors | `services/mcp`, `packages/tools` |
@@ -72,7 +73,7 @@ not a feature to preserve.
 
 | Area | Guide |
 | --- | --- |
-| Home, Settings, Admin and the shared web shell | `apps/web/AGENTS.md` |
+| the Timeline, Settings, Admin and the shared web shell | `apps/web/AGENTS.md` |
 | Stats | `apps/web/src/stats/AGENTS.md` |
 | Clan | `packages/clan/AGENTS.md` (engine, state and views: their own short guides) |
 | MCP tools | `packages/tools/AGENTS.md` |

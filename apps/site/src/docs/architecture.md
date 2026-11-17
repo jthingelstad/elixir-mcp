@@ -73,7 +73,7 @@ description of record**; there is no fuller internal one.
 
 Everything cloud-side is serverless: RDS Postgres, S3 and eight Lambdas in
 one CloudFormation stack, inside a VPC with no NAT. The **web API** serves
-Home, Stats, Clan, battle pages and Sign in with Elixir's
+the Timeline, Stats, Clan, battle pages and Sign in with Elixir's
 `GET /api/v1/me`; **MCP**
 serves the MCP and OAuth doors; **collector** is the collector door;
 **scheduler** plans fetch jobs into the Postgres job ledger on every tick;
@@ -251,12 +251,12 @@ API budget. For players the scheduler runs **the session clock**:
 
 - **Thirty minutes while playing, doubling to a two-hour ceiling when
   not.** A battle is about three minutes and the API's log holds 30, so
-  a sitting fills it in about 90 minutes. A battle-log read that
+  a session fills it in about 90 minutes. A battle-log read that
   delivered battles is followed by another in 30 minutes; after a read
   that found nothing the wait doubles, and never passes two hours. The
   recorder measured its own loss against the game's lifetime battle
   counter before choosing the ceiling: about 4% of all battles, nearly
-  all from long sittings that began inside a long wait, and the two-hour
+  all from long sessions that began inside a long wait, and the two-hour
   ceiling was the setting that ended it.
 - **A reader cap keeps the players you ask about fresh.** Asking about a
   player through any tool marks that player as read, and their battle
@@ -350,7 +350,7 @@ archive, content-addressed and queryable with SQL over S3. Site visits
 are counted anonymously with Tinylytics; see [Privacy](/docs/privacy).
 
 The web API assembles feature-specific route modules behind shared session
-resolution. The account application separates Home, agents, connections,
+resolution. The account application separates the Timeline, agents, connections,
 usage and feedback pages. The migration Lambda dispatches operational commands
 to separate modules; ordered migrations still run only through its deploy path.
 The shared metadata contract is checked when an envelope is built and after a

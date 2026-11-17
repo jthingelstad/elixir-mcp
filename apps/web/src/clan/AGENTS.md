@@ -13,8 +13,8 @@ Clan's views. Read `packages/clan/AGENTS.md` first, and
   `Unavailable` page (`src/shell/Unavailable.jsx`), which `ClanLayout`
   also shows when the clan read goes unanswered. The notice after
   sign-in is the app's verify notice (`src/components/VerifyPlayer.jsx`).
-  Links into Home and Settings use the app's own paths (`HOME`,
-  `SETTINGS`, `VERIFY`, `playerHref`), and follow buttons are Home's
+  Links into the Timeline and Settings use the app's own paths (`TIMELINE`, `HOME`,
+  `SETTINGS`, `VERIFY`, `playerHref`), and follow buttons are the Timeline's
   (`src/home/FollowClan.jsx`), imported directly.
 - **Data:** `api.js` calls `/api/clan` with the shared session, CSRF
   header and the kit's client; drafting calls get a longer timeout. Query

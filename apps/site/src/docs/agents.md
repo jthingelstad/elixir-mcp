@@ -115,7 +115,7 @@ An agent never reads a person's view in Clan: `clans_my_view`
 answers only a person's own connection
 ([Your own view](/docs/clan-your-own-view#your-own-view)). An agent's one read
 of Clan is the clan directory, the same public part of each policy
-Home's Clans page shows, through `clans_directory`
+the clan directory in Find shows, through `clans_directory`
 ([Clan directory](/docs/clan-directory)).
 
 ## Knowing which human is asking

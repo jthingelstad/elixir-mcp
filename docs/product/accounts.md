@@ -13,7 +13,7 @@ An account is how a person joins Elixir: who they are in the game, who
 they follow, where their mail goes, and the agents and apps that act as
 them. Elixir is for its members, so everyone signs in, to read as well
 as to follow, cheer, highlight and run a clan. One account is one
-person; everything in Elixir (Home, Stats, Clan, mail, a connected
+person; everything in Elixir (the Timeline, Stats, Clan, mail, a connected
 agent) acts as that same person. [Jamie, 2026-09-03, 2026-11-11]
 
 ## Who it serves

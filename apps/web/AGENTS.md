@@ -1,7 +1,7 @@
 # apps/web: the signed-in app and the shared shell
 
 The React application behind every path a session or a live read draws:
-Home (`/home`), Settings (`/settings`, Admin under it for staff), Stats (`/home/you/stats`, guide in `src/stats/`),
+the Timeline (`/timeline`; `/home` forwards to it), Settings (`/settings`, Admin under it for staff), Stats (`/home/you/stats`, guide in `src/stats/`),
 Clan (`/clan`, guide in `src/clan/`) and the public battle page
 (`/battle/<id>`). The root `AGENTS.md` golden rules apply; product
 behaviour is in `apps/site/src/docs/`, not here.
@@ -16,7 +16,7 @@ behaviour is in `apps/site/src/docs/`, not here.
   Stats' `["me", "stats"]`).
 - **Paths carry their prefix.** Every Stats path is written with `STATS`,
   not a router basepath, because the kit's `Link` renders `to` verbatim.
-- **One build serves three surfaces.** CloudFront routes `/home`, `/signin`,
+- **One build serves three surfaces.** CloudFront routes `/timeline`, `/home`, `/signin`,
   `/settings`, `/clan` and their descendants to the web/API Web Function for
   session-aware server rendering; every other path is a site document
   (`apps/site`). Site tests evaluate the static router and pin the
@@ -64,19 +64,20 @@ behaviour is in `apps/site/src/docs/`, not here.
   `/api` proxy (port 4319) has nothing behind it. A signed-in check against
   the real door waits for the deploy.
 
-## Home and the shell
+## The Timeline and the shell
 
-`src/home/` is Home (`/home`, one feed), Find (`/home/find`), You
-(`/home/you`, your own account page with Your stats, since 2026-11-15) and the
+`src/home/` is the Timeline (`/timeline`, one feed), Find (`/home/find`),
+Profile (`/home/you`, your own account page with Your stats, since 2026-11-15) and the
 player page (`/home/player/<tag>`), and
 `src/shell/Shell.jsx` is the top bar, bottom tabs and footer every page wears,
 with the bell (`src/shell/Bell.jsx`, its logic `bell-logic.js`, its read
 `services/web-api/src/bell.mjs`).
 `src/lib/moved.js`, read by the root route, forwards only the addresses
 Elixir still sends that are not a page themselves (a clan's bare address and
-its Actions list, to the Feed). Old addresses stopped forwarding on
+its Actions list, to the Feed) and the feed's old `/home` (to `/timeline`,
+which the web API also 301s; kept for good). Old addresses stopped forwarding on
 2026-11-13 (Jamie: "It is fine to break url support"); a page that moves
-changes its producers instead. Home's rules are in
+changes its producers instead. The Timeline's rules are in
 `docs/product/home.md`; its reads are `services/web-api/src/routes/home.mjs`,
 and the feed's extra fields are `services/web-api/src/feed.mjs`.
 

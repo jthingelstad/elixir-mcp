@@ -29,7 +29,7 @@ has no ring. The ring stays when a player uses initials, has not chosen a
 profile image, or the image cannot load. Choosing a card image does not
 verify a player.
 
-The rings follow the player through Home, Find, their player page, Stats,
+The rings follow the player through the Timeline, Find, their player page, Stats,
 clan lists and shared battles. They come from the current claims; a
 follow, nickname or clan role cannot grant one.
 
@@ -56,8 +56,8 @@ An account page shows a person on Elixir:
 
 Tap **Follow** to follow an account. You also follow every player it has
 verified, now and later, and its news (Stamps, places, verified players)
-shows on your Home. Elixir tells you first what the follow uses of your
-player slots. **You** is your own account page.
+shows on your Timeline. Elixir tells you first what the follow uses of your
+player slots. **Profile** is your own account page.
 
 An account can have an [@handle](/docs/your-account#your-handle). Then
 its page leads with it, its main player under it, and `/home/@handle`
@@ -82,7 +82,7 @@ don't have a player of your own yet), it skips that one and your bell
 says so. You still follow the rest.
 
 A verification is big news: once an account verifies a player, nobody
-else can claim them. It shows on the account's timeline and on Home for
+else can claim them. It shows on the account's timeline and on the Timeline for
 anyone who follows the account or the player.
 
 [Verify your player](/docs/verify) to prove it is yours.

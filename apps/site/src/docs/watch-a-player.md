@@ -43,8 +43,8 @@ rise: lead a clan you follow, or run a collector.
 ## What you see
 
 A watched player is a subject of your **timeline** while its
-**Notifications** switch is on: sittings, new arenas, promotions, clan
-changes, on Home and through `elixir_timeline`.
+**Notifications** switch is on: sessions, new arenas, promotions, clan
+changes, on your Timeline and through `elixir_timeline`.
 
 In **[your digest](/docs/email#your-digest)**, the players you watch
 come after your [friends](/docs/follow-a-friend), whoever has the most

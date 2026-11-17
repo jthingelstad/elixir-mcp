@@ -131,9 +131,10 @@ refused rather than quietly answering about the wrong subject.
 
 ## Where things are
 
-The top bar holds **Home**, **Find** and **Clan**, with search, Help and the
-bell beside them. A phone has **Home**, **Find**, **Clan**, **You** and the
-bell as tabs at its foot; on a wide screen the account menu is You. **You**
+The top bar holds **Timeline**, **Find** and **Clan**, with search, Help and
+**Notifications** (the bell) beside them. A phone has **Timeline**, **Find**,
+**Clan**, **Profile** and the bell as tabs at its foot; on a wide screen the
+account menu is Profile. **Profile**
 is your own account page, with **Your stats** (your season, read back). **Settings**, in the
 account menu, holds what we
 record for you and who can call on your behalf, and each agent you own has a
@@ -142,10 +143,10 @@ on a phone it folds into one row above the page.
 
 | Page | What it does |
 |---|---|
-| Home | one feed of the last seven days, newest first, beside your week and your clan: what happened to the players and clans you follow, your clan and you, the same items your connections read with `elixir_timeline` ([Home's feed](/docs/timeline#homes-feed)). A new account opens on its six [Your profile](/docs/timeline#your-profile) steps until they are done. Opening Home marks what is new since your last visit; it never changes what your connections have read ([its own place](#home-keeps-its-own-place-in-the-timeline)) |
+| Timeline | one feed of the last seven days, newest first, beside your week and your clan: what happened to the players and clans you follow, your clan and you, the same items your connections read with `elixir_timeline` ([Your Timeline](/docs/timeline#your-timeline)). A new account opens on its six [Your profile](/docs/timeline#your-profile) steps until they are done. Opening your Timeline marks what is new since your last visit; it never changes what your connections have read ([its own place](#your-timeline-keeps-its-own-place)) |
 | Find | your clan's members, search and **Follow a friend** by tag, the players you met in your battles, the clan directory and your own Follow me link ([Find](/docs/follow-a-friend#find)) |
-| You | your primary player's own page once you have [verified](/docs/verify) it, with a **Stats** tab ([your season, read back](/docs/ladder)); your other players, listed to you alone; Settings, Play Drop and signing out. With no verified player, You says how to verify one |
-| The bell | what is about you, not your friends: cheers on your items (counts, never who), new followers, your clan's Actions waiting on you as a leader, an old key still trying to connect, answers to your feedback, and what changed on your account ([the bell](/docs/your-account#the-bell)). Its number counts what needs you and what came since you last opened it |
+| Profile | your primary player's own page once you have [verified](/docs/verify) it, with a **Stats** tab ([your season, read back](/docs/ladder)); your other players, listed to you alone; Settings, Play Drop and signing out. With no verified player, Profile says how to verify one |
+| Notifications | the bell. What is about you, not your friends: cheers on your items (counts, never who), new followers, your clan's Actions waiting on you as a leader, an old key still trying to connect, answers to your feedback, and what changed on your account ([Notifications](/docs/your-account#notifications)). Its number counts what needs you and what came since you last opened it |
 | Search | the magnifier on the top bar: your players and clans as you type, a tag finds anyone on record, each player row naming the tag, clan and trophies and opening the [player page](/docs/player-page), **Follow this tag** asks before it follows, and a war week in your clan opens Clan's War tab |
 | Help | the question mark on the top bar: what the page you are on is for, a link to read more, and **Send feedback**, which carries the page along. **Feedback**, in Settings, keeps what you filed and what the maintainer answered |
 
@@ -177,12 +178,12 @@ Overview links its **Timeline** (newest first, the items it reads with
 **Feedback** (what it has filed and what the maintainer answered; new feedback
 is filed as you).
 
-### Home keeps its own place in the timeline
+### Your Timeline keeps its own place
 
-Home's feed has a place of its own in the
+Your Timeline has a place of its own in the
 [timeline](/docs/timeline), apart from every read pointer. Showing the
 feed moves it to the end of the window the feed showed; it never moves
-back. A dot on the Home tab shows while the recorder has admitted
+back. A dot on the Timeline tab shows while the recorder has admitted
 something for one of your subjects since that place. The page marks each
 item the record learned since the place it opened from (by `observed_at`)
 **New**, and draws a **New since your last visit** rule under the last of

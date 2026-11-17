@@ -12,7 +12,7 @@ reviewed: "2026-11-12 against contract 11.21.0"
 
 # A player's page
 
-A player's name opens their page, wherever the name is: Home, Find, the
+A player's name opens their page, wherever the name is: the Timeline, Find, the
 search sheet, a battle, Stats and the email. The address is
 `/home/player/<tag>`, the tag without its `#`. You need to be signed in, as
 for every read of Elixir.
@@ -31,16 +31,16 @@ their follows and followers. Under it:
 | Follows | who the player's account follows, and who follows it |
 | Record | the recorded profile: the last 30 days in battles, wins, losses, trophies and the deck played most, and the profile's trophies, best and lifetime counts as of its last capture |
 
-A sitting on the Timeline tab is the same card as on Home: its headline,
+A session on the Timeline tab is the same card as on your Timeline: its headline,
 its figures and bar chart, and the deck played most. Tap it for the
-session's own page ([Your timeline](/docs/timeline)). You's Timeline is the same.
+session's own page ([Your timeline](/docs/timeline)). Profile's Timeline tab is the same.
 
 An item on the Timeline, Highlights or Moments tab takes a cheer, with its
 counts, while it is in your own feed: from the last seven days, about a
 player or clan you follow ([Cheers](/docs/timeline#cheers)). Older items,
 and items on the page of a player you do not follow, show no cheers.
 
-**You** (`/home/you`) is your own [account page](/docs/verified-players#account-pages),
+**Profile** (`/home/you`) is your own [account page](/docs/verified-players#account-pages),
 with **Your stats**: [your season, read back](/docs/ladder). Each of your
 players opens its own page from there. Your players' pages offer **Your stats**, and a clanmate's page
 **Open in Clan** when your clan runs Clan.

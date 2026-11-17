@@ -22,7 +22,7 @@ Elixir fixes that.
 
 - **Follow the players you care about.** Their sessions, their firsts (a new
   Arena, a new league) and their best battles land in one feed on
-  [Home](/home), newest first, with your own play in it.
+  [your Timeline](/timeline), newest first, with your own play in it.
 - **Cheer them on.** Every item takes one of six cheers.
 - **Show off.** Highlight one of your own battles and tell the story in your
   own words.

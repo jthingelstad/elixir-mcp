@@ -38,7 +38,7 @@ timeline_more_to, entries: [...], entries_skipped, quiet: [...], subjects,
 next_cursor, has_more, notes, docs, meta }`.
 
 - `timeline` is **newest first** by `sort_at`, like a newsfeed: when the
-  story happened (a sitting's last battle, else `at`). `applied.basis`
+  story happened (a session's last battle, else `at`). `applied.basis`
   says what the window bounded.
 - `next_cursor` is always `window.to`. Pass it back as `from` to continue
   from the present.
@@ -121,16 +121,16 @@ section, text, visibility, publishable, facts, follow }`:
 | field | what it is |
 |---|---|
 | `id` | the story the item tells: opaque (`tl_` and 20 hex characters), the same in every read and every window. It names the happening, not the reader, and a read serves each `id` once ([One story, one item](#one-story-one-item)). Never a ledger sequence number |
-| `revision` | how far the story has grown: 1 for a moment that never grows. A sitting's is its battles the record holds so far, so a sitting told at 20 battles and read again at 40 is the same `id` at a higher `revision`; a crossing's is its proof's attachment revision; a highlight's counts the times its words were written |
+| `revision` | how far the story has grown: 1 for a moment that never grows. A session's is its battles the record holds so far, so a session told at 20 battles and read again at 40 is the same `id` at a higher `revision`; a crossing's is its proof's attachment revision; a highlight's counts the times its words were written |
 | `at` | when it happened; what that means for each kind is in [the facts table](#the-facts-keys-by-kind) |
-| `sort_at` | the instant the feed is ordered by and an occurred window selects on: a sitting's last battle, else `at` |
+| `sort_at` | the instant the feed is ordered by and an occurred window selects on: a session's last battle, else `at` |
 | `at_unix` | `sort_at` in Unix seconds, for a renderer's own clock |
 | `local` | `sort_at` on the reader's clock: `date` (`YYYY-MM-DD`), `time` (`HH:MM`), `weekday` (`Sat`) and `tz` |
 | `observed_at` | when the record learned it, which an `observed` window selects on; a polled moment can be learned well after `at` |
 | `late` | an `observed` read learned it, but it happened before `from`; always `false` on an occurred read |
 | `subject_tag`, `subject_name` | whose story it is: a player or a clan, by the in-game name; `subject_tag` is null on your account's items |
 | `nickname` | your private nickname for the subject player, when you set one; never in `text`, never published |
-| `subjects` | every player and clan the story is about, `{ tag, kind, name }`, players first: a member's sitting names the member and the clan |
+| `subjects` | every player and clan the story is about, `{ tag, kind, name }`, players first: a member's session names the member and the clan |
 | `kind`, `section` | what it is (below); `section` is the entry section it belongs to, so `sections` filters items and entries together |
 | `schema` | `<kind>/<version>`: the shape its `facts` follow. A kind's version moves when its facts or the meaning of its `at` change |
 | `text` | one sentence a person can read, with no time in it: render the time from `at_unix` or `local` |
@@ -140,8 +140,8 @@ section, text, visibility, publishable, facts, follow }`:
 
 | kind | subject | what it is |
 |---|---|---|
-| `battle_session` | player | a run of recorded battles with no gap of 30 minutes or more, `open` while it may still be going. On a player's own timeline every sitting is an item, a single battle included; a clan's members' ordinary sessions are not items there (see `session_standout`, and `player_tag` below). A reader that moves its pointer sees each sitting once; a member read (`player_tag`) keeps no pointer, so a sitting still being learned can come back with a running total under the same `id` at a higher `revision`: update, never retell. |
-| `session_standout` | a clan's member | a member's session that crossed a disclosed rung: `won_in_a_row` 5 / 10 / 20, ladder `trophy_net` ±150 / ±300 / ±500 (each rung is the net's distance from zero, gained or lost: a sitting that falls to -150 crosses `trophy_net>=150`), `battles` 20 / 40 in one sitting. Once per rung: a session is never re-reported, and a window that learns more of the same session without a new rung carries nothing; a new rung is the sitting's `id` at a higher `revision`. The clan entry lists the five strongest under `standouts.sessions` with the rungs under `standouts.session_rungs`. Absolute trophy bands on purpose - a win is worth about the same at every ladder floor |
+| `battle_session` | player | a run of recorded battles with no gap of 30 minutes or more, `open` while it may still be going. On a player's own timeline every session is an item, a single battle included; a clan's members' ordinary sessions are not items there (see `session_standout`, and `player_tag` below). A reader that moves its pointer sees each session once; a member read (`player_tag`) keeps no pointer, so a session still being learned can come back with a running total under the same `id` at a higher `revision`: update, never retell. |
+| `session_standout` | a clan's member | a member's session that crossed a disclosed rung: `won_in_a_row` 5 / 10 / 20, ladder `trophy_net` ±150 / ±300 / ±500 (each rung is the net's distance from zero, gained or lost: a session that falls to -150 crosses `trophy_net>=150`), `battles` 20 / 40 in one session. Once per rung: a session is never re-reported, and a window that learns more of the same session without a new rung carries nothing; a new rung is the session's `id` at a higher `revision`. The clan entry lists the five strongest under `standouts.sessions` with the rungs under `standouts.session_rungs`. Absolute trophy bands on purpose - a win is worth about the same at every ladder floor |
 | `battle_highlight` | player | one battle its player highlighted with their own words, posted from the battle's page by the person who verified that player: the one single-battle item. Its `at` is when it was posted; the battle keeps its own time in `facts.battle`. When the player changes the words, the record learns it again: a poller is served it in the window that holds the edit, the same `id` and `at` at a higher `revision`, with the new words. Deleting the highlight removes it, words and all; a reader that already served it is not told. On your own reads (the account that posted it, or your agents) it carries `facts.share_url` once you have shared it |
 | `badge_earned`, `legendary_badge_earned` | player, or a clan's member | a tiered badge levelled up, or a one-off badge: `facts.badge` is the badge's API identifier (`MasterySkeletonWarriors`), `facts.badge_label` the badge as a player says it (`Guards Mastery`), `facts.name` the member on a clan's timeline. A level-up is an item only at the badge's final level or a multiple of five (`max_level` is absent on the oldest rows); the entry's `badges` counts every level-up |
 | `arena_changed` | player, or a clan's member | arena moved, named from the arena catalog. When the record holds the crossing, `facts.promoted_by` names the win that reached the new arena's floor and `at` is that battle's instant rather than the poll's; absent means a recording gap, never a guess |
@@ -206,7 +206,7 @@ backfill, a log polled late) is a late recording: counted in the entry's
 
 A story about a player you follow who is also a member of a clan you
 follow is news on both timelines, and is still **one item**: the
-player's (`subject_tag`), naming both in `subjects`. A member's sitting
+player's (`subject_tag`), naming both in `subjects`. A member's session
 that is also a clan standout is served as the `session_standout`, which
 carries everything the session would. So a consumer never sees one `id`
 twice in a read, and `text` names everyone by their in-game name.
@@ -233,7 +233,7 @@ story or how to name the moment to it:
 
 | kind | `follow` |
 |---|---|
-| `battle_session`, `session_standout` | this item's own [recorded evidence](#recorded-evidence) (`elixir_timeline` with `evidence_item_id`, this window and basis), then `battles_performance` over the sitting's span; a standout's `best_win` is also a `battles_query` address |
+| `battle_session`, `session_standout` | this item's own [recorded evidence](#recorded-evidence) (`elixir_timeline` with `evidence_item_id`, this window and basis), then `battles_performance` over the session's span; a standout's `best_win` is also a `battles_query` address |
 | `battle_highlight` | its battle (`battles_query` by `battle_id`), then `players_summary` |
 | `ranked_promotion`, `arena_changed`, `best_trophies_band`, `career_wins_step` | the battle that proved it (`battles_query` by `battle_id`), when the record holds it, then `players_summary` |
 | `badge_earned`, `legendary_badge_earned` | `players_profile` |
@@ -264,9 +264,9 @@ clock time in prose: `game_clock` is the schedule.
 
 **Open session** and **Open crossing** open the read-only evidence in place. Sessions list exact canonical games in play order (time, then game
 ID), 25 per page, with links to their existing public battle pages. These
-are the games of the sitting the item counts, from its first battle through
+are the games of the session the item counts, from its first battle through
 its last, which can reach before the read window: a standout's evidence is
-its whole sitting, so `evidence.count` and `facts.battles` agree, and the
+its whole session, so `evidence.count` and `facts.battles` agree, and the
 battle that crossed each rung is in `facts.crossings`. Page controls appear
 only when more canonical games remain; closing the panel returns to its row.
 
@@ -275,11 +275,11 @@ Every supported item carries `evidence.kind`, `version`, `status`,
 `observed_at_basis` says where `observed_at` came from: `recorded_observation`
 or `recorded_capture` is the time it was recorded, and `legacy_window` means an
 old row keeps the original reading window, as their proof's attachment time was
-not recorded. A sitting's `status` says `recorded_only`: its
+not recorded. A session's `status` says `recorded_only`: its
 `capture_completeness` is **unknown**, even when all its recorded games are
 listed, and it also carries `from` and `through`. Its `completeness` is
 `recorded_sitting` or `anchor_bound`; `anchor_bound` means the 200-step search
-may omit its beginning. `open`: the sitting was still open at this read. Boat defenses and games
+may omit its beginning. `open`: the session was still open at this read. Boat defenses and games
 recorded more than a day late remain outside these sessions.
 
 A crossing says `proved` only when its canonical game establishes it.
@@ -320,7 +320,7 @@ Each result belongs to its game's mode (above). Agents and people get the same f
 Evidence is limited to the reader's visible timeline subjects. Private
 attested facts keep their membership and role checks and carry no game
 links. References point at canonical history; no battle payload or extra
-history copy is stored. Home's seven-day view is a read window, not
+history copy is stored. The Timeline's seven-day view is a read window, not
 a retention limit. This panel does not create an
 Action, draft a message, send a notification, or grant an award.
 
@@ -335,8 +335,8 @@ about a player, a member's moment on a clan's timeline included, carries
 
 | kind | version | `at` is | `facts` |
 |---|---|---|---|
-| `battle_session` | 4 | the sitting's first battle; `sort_at` is its last | `player_tag`, `name`, `started_at`, `ended_at`, `duration_s`, `battles`, `won`, `lost`, `drawn`, `by_mode` (battles per mode group), `trophy_net` (the session's Trophy Road net), `trophy_net_peak` (its value furthest from 0), `trophy_net_by_mode` (each trophy mode's net; a challenge's +1 a win is its counter, and Ranked's +30 a win below Ultimate Champion moves no standing: both are left out), `won_in_a_row`, `open`, `decks` (up to three `{ label, battles }`, by archetype label; a deck the player did not bring, from a draft, a pick or a preset, has none), `events` (`{ event_tag, name, battles, won, lost, game_mode, drawn_decks?, run_wins? }` per event or challenge played: `name` is the event's title on one line, `game_mode` its ruleset, `drawn_decks` true when its decks were drafted or handed out, `run_wins` the most wins its challenge counter reached in the sitting, absent for an event with no counter), [`ranked`] (the sitting's Ranked battles: `{ battles, won, lost, league_from, league_from_name, league_to, league_to_name, promotions, rating? }`; a league is the one a battle started in; `promotions[]` is each climb the sitting's own battles show, `{ from, to, from_name, to_name, battle_id, at }`, the last win at the lower league; `rating` is `{ from, to }` over its Ultimate Champion battles), [`together`] (up to three players the record follows met in the sitting, `{ player_tag, name, with, against }`: 2v2 partners and friendly or clanmate opponents, by battles; a player the record does not follow is never named) |
-| `session_standout` | 5 | the battle that crossed the first new rung; `sort_at` is the sitting's last battle | the session's keys, plus `crossed` (every rung passed, as `won_in_a_row>=5`, `trophy_net>=300`, `battles>=20`; a trophy rung's label names its band either way, so read the crossing's signed `value` for the direction), `newly` (the rungs this window learned) and `crossings` (each rung's `{ rung, key, threshold, value, at, battle_id }`: the value at the battle that crossed it, signed, so a trophy rung crossed going down reads negative, and that battle), [`teammate`] (`{ player_tag, name, battles }`, the 2v2 partner: tell a pair's sittings once), [`best_win`] (the win over the highest-rated opponent, the battle shape below plus `mode`; only a win whose trophies are a standing is rated, never a challenge's win counter) |
+| `battle_session` | 4 | the session's first battle; `sort_at` is its last | `player_tag`, `name`, `started_at`, `ended_at`, `duration_s`, `battles`, `won`, `lost`, `drawn`, `by_mode` (battles per mode group), `trophy_net` (the session's Trophy Road net), `trophy_net_peak` (its value furthest from 0), `trophy_net_by_mode` (each trophy mode's net; a challenge's +1 a win is its counter, and Ranked's +30 a win below Ultimate Champion moves no standing: both are left out), `won_in_a_row`, `open`, `decks` (up to three `{ label, battles }`, by archetype label; a deck the player did not bring, from a draft, a pick or a preset, has none), `events` (`{ event_tag, name, battles, won, lost, game_mode, drawn_decks?, run_wins? }` per event or challenge played: `name` is the event's title on one line, `game_mode` its ruleset, `drawn_decks` true when its decks were drafted or handed out, `run_wins` the most wins its challenge counter reached in the session, absent for an event with no counter), [`ranked`] (the session's Ranked battles: `{ battles, won, lost, league_from, league_from_name, league_to, league_to_name, promotions, rating? }`; a league is the one a battle started in; `promotions[]` is each climb the session's own battles show, `{ from, to, from_name, to_name, battle_id, at }`, the last win at the lower league; `rating` is `{ from, to }` over its Ultimate Champion battles), [`together`] (up to three players the record follows met in the session, `{ player_tag, name, with, against }`: 2v2 partners and friendly or clanmate opponents, by battles; a player the record does not follow is never named) |
+| `session_standout` | 5 | the battle that crossed the first new rung; `sort_at` is the session's last battle | the session's keys, plus `crossed` (every rung passed, as `won_in_a_row>=5`, `trophy_net>=300`, `battles>=20`; a trophy rung's label names its band either way, so read the crossing's signed `value` for the direction), `newly` (the rungs this window learned) and `crossings` (each rung's `{ rung, key, threshold, value, at, battle_id }`: the value at the battle that crossed it, signed, so a trophy rung crossed going down reads negative, and that battle), [`teammate`] (`{ player_tag, name, battles }`, the 2v2 partner: tell a pair's sessions once), [`best_win`] (the win over the highest-rated opponent, the battle shape below plus `mode`; only a win whose trophies are a standing is rated, never a challenge's win counter) |
 | `battle_highlight` | 1 | when the player posted it; the battle's own time is `battle.battle_time` | `player_tag`, `name`, `highlight_id`, `words` (as the player wrote them, up to 500 characters; may be empty), `battle` (`{ battle_id, url, battle_time, mode_group, game_mode, outcome, crowns, crowns_against, trophy_change, opponents }`, each opponent `{ player_tag, name, starting_trophies }`), [`share_url`] (the post's public link, `/h/<id>`, on the owner's own reads once shared) |
 | `badge_earned` | 2 | the profile read that saw the level | `player_tag`, `name`, `badge`, `badge_label`, [`level`, `max_level`, `prior_level`] |
 | `legendary_badge_earned` | 2 | the profile read that saw it | `player_tag`, `name`, `badge`, `badge_label` |
@@ -477,7 +477,7 @@ a clan's timeline their member moments and sessions. It is
 applied before the item cap, `applied.player_tag` echoes it, a tag that is
 not one of your players or a member of your clans says so, and a member read
 never moves the read pointer. On a clan's timeline a member's session
-item is a sitting of two or more battles; on a player's own timeline a
+item is a session of two or more battles; on a player's own timeline a
 single battle is a session item too.
 
 Every window is **(from, to]**, by `sort_at` on an occurred read and by

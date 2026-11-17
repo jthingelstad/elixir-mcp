@@ -32,7 +32,7 @@ Or on **Find** (on the top bar, and a tab on a phone): under **Search**,
 **Follow by player tag** takes the tag and adds
 the player as a friend in one step. It asks for your own player first if you
 have none, and never makes the player your primary. If they verified
-their player on Elixir, their bell shows a new follower ([the bell](/docs/your-account#the-bell)),
+their player on Elixir, their bell shows a new follower ([the bell](/docs/your-account#notifications)),
 and you also follow their account and their other Verified players
 ([Linked follows](/docs/verified-players#linked-follows)).
 
@@ -47,12 +47,12 @@ Find is where you look for people to follow, in sections. It opens on
 | Near you | people who set a place in your country and region, each as the player they verified, with where ("Plays near you, in Austin") and a Follow button. People in your city come first, then by name. Never ranked, and never closer than the place each picked. You, your own players and people you already follow are left out. Below it, the **player map**: everyone who set a place, a pin at each one. You need [a place](/docs/your-account#your-place) of your own to see who's near you; without one it asks you to set it. There is nothing to join or leave: setting a place puts you on both, and removing it takes you off |
 | Your clan | your player's clan now: each member with their role (and **Free** when following costs nothing), and **Follow my clan**, asked once with the same pricing and refusal as following a clan from a player's page; then **Invite clanmates**, words to bring the rest of your clan to Elixir ([Bring your clanmates](/docs/bring-your-clan#bring-your-clanmates)) |
 | Search | the search sheet (players Elixir has seen, by name or tag; clans, cards and help), and **Follow by player tag** for anyone else |
-| From your battles | the players your own players met in the last 30 days, opponents and 2v2 teammates: players you had a friendly battle with first, then your 2v2 teammates, then the most met. How often, how it went for you ("A friendly battle · Met once · 1 win") and when last ("Last met today, 3:52 pm"), in Home's time format. From the log only, never a rating. Players you follow are marked, never hidden |
+| From your battles | the players your own players met in the last 30 days, opponents and 2v2 teammates: players you had a friendly battle with first, then your 2v2 teammates, then the most met. How often, how it went for you ("A friendly battle · Met once · 1 win") and when last ("Last met today, 3:52 pm"), in the Timeline's time format. From the log only, never a rating. Players you follow are marked, never hidden |
 | Clan directory | a link to every clan on Elixir |
 | Your link | your Follow me link ([A player's page](/docs/player-page#follow-me-links)) |
 
 Your clan, From your battles and Your link need a player of your own.
-Each person shows their game name and tag, never a nickname. Home's
+Each person shows their game name and tag, never a nickname. The Timeline's
 **People to follow** and **People you know** draw from the same places
 ([Beside the feed](/docs/timeline#beside-the-feed), [People you
 know](/docs/timeline#people-you-know)).
@@ -108,7 +108,7 @@ stays when you stop following the player, and an empty one clears it.
 Tap the star beside **Following** on a friend's page, or on their row in
 Settings › Players & following, to make them a close friend. Close
 friends get [your circle this week](/docs/timeline#your-circle-this-week)
-on Home and a **Close friends** chip on the feed. The star is private to
+on your Timeline and a **Close friends** chip on the feed. The star is private to
 you: the friend is never told and nobody else sees it. Unfollowing a
 friend, or switching them to watching, takes the star away. Starring a
 Verified player stars their account's other Verified players you follow
@@ -119,7 +119,7 @@ too.
 Each followed player has a **Notifications** switch, on from the start;
 a connected app can flip it with `elixir_follow_player` and `action:
 "notify_off"` or `"notify_on"`. With it on, the player is a subject of your timeline, which your connected apps
-and Home read. With it off, the player leaves your timeline and
+and your Timeline read. With it off, the player leaves your timeline and
 your digest too, while recording carries on.
 
 ## Stopping

@@ -52,7 +52,7 @@ signs a person in with Elixir is the Sign in with Elixir brief.
 | [The record](record.md) | what Elixir records, for whom, provenance and uncertainty, what is kept |
 | [Accounts and privacy](accounts.md) | the person, their players, verification, who sees what, Settings |
 | [MCP and agents](agents.md) | the tool surface and what a person's agent may read and do |
-| [Home](home.md) | the feed of the players you follow, Find, You, the bell and the player page |
+| [Timeline](home.md) | the feed of the players you follow, Find, Profile, the bell (Notifications) and the player page |
 | [Timeline](timeline.md) | what a story is, the newsfeed, cheers and highlights, who tells it |
 | [Mail](mail.md) | the digest and the operational mails, who gets each, what it may say |
 | [Stats](ladder.md) | a mirror of a player's season, for your own players and those you follow |

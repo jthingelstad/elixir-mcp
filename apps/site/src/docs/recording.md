@@ -110,7 +110,7 @@ slots. Nobody is removed for it: an account that ends up over its limit
 keeps everything it follows, and only a new follow that would take a slot is
 refused, with the count and the reason. Free follows are never refused.
 
-If your clans cannot be read, Home and the clans view of Players & following say
+If your clans cannot be read, your Timeline and the clans view of Players & following say
 so and offer **Try again**. A failed read does not mean that you stopped
 following a clan; any previously read clans stay available. Trying again reads
 your saved following without adding a clan or forcing a game fetch. An empty list

@@ -41,7 +41,7 @@ leaderboards, no game-wide statistics. [Jamie, VISION, 2026-09-23,
   battle link someone sends and a post its owner shares open without an
   account, with their link previews. [Jamie, 2026-11-11, "Everyone signs
   in; shared posts stay public"]
-- **Every surface.** Home, the player page, Stats, Clan, mail and MCP
+- **Every surface.** The Timeline, the player page, Stats, Clan, mail and MCP
   read the same functions over the same recorded facts:
   "shared facts have one derivation". [Jamie, 2026-09-19, 2026-09-25,
   2026-10-02]

@@ -16,9 +16,9 @@ callout: ["Open it at Stats › Season", "/home/you/stats", "Open Stats"]
 The game forgets: its battle log holds roughly your last 30 battles. Elixir keeps
 every battle it records, and **Stats**, at `/home/you/stats`, reads that record
 back to you as a season: what you played, in which mode, and how it went.
-Open it from **You**, your own account page (the account menu on a wide
-screen, a tab on a phone), with **Your stats**; its tabs lead back to You.
-It is signed in like Home. A bar at the top says whose
+Open it from **Profile**, your own account page (the account menu on a wide
+screen, a tab on a phone), with **Your stats**; its tabs lead back to Profile.
+It is signed in like your Timeline. A bar at the top says whose
 season, which season and which mode you are reading; four tabs under it are
 the pages: **Season**, **Battles**, **Decks** and **Cards**.
 
@@ -108,7 +108,7 @@ own yet, Stats offers **Add your player**.
 Stats also opens for a player you follow: their player page has a
 **Their stats** link. Their season reads the same way as yours, the same
 pages and the same numbers, with "their" where yours says "your", and a
-link back to their player page in place of You's tabs. Stats opens only
+link back to their player page in place of Profile's tabs. Stats opens only
 for your own players and the players you follow; a player you watch, or
 anyone else, is refused, and unfollowing closes it again.
 
@@ -121,7 +121,7 @@ session between reads can leave a gap, and a gap means unknown, not no battles.
 - **A verdict.** Nothing on Stats rates you, projects a pace ("at this
   rate, Arena 20 by Friday") or suggests a change. A record is evidence;
   what it means is yours to say.
-- **When you play.** The sittings on Battles say when you played, and
+- **When you play.** The sessions on Battles say when you played, and
   no chart sums them into an hour-of-day habit.
 - **Comparing two decks.** There is no deck-against-deck page; each deck's
   record sits in its own row, and a comparison across rows is only fair

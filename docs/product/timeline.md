@@ -17,13 +17,13 @@ it with a few words of their own; that battle is the one single-battle
 item. [Jamie, 2026-11-11, `VISION.md`, "Timeline shape"]
 
 It is also the spine of delivery: everything Elixir tells a person, on
-Home, in the digest, in Discord or to an agent, is a timeline item or a
+the Timeline, in the digest, in Discord or to an agent, is a timeline item or a
 digest of items, so one derivation feeds every surface and a story is
 got right in one place. [Jamie, 2026-10-12]
 
 ## Who it serves
 
-- **A person**, on Home, in the digest, in their RSS feed and, if they
+- **A person**, on the Timeline, in the digest, in their RSS feed and, if they
   turn it on, cross-posted to a Discord channel of their own: every
   player and clan they follow with notifications on. What the app shows
   as new is its own, "independent of what agents have seen via MCP".
@@ -64,7 +64,7 @@ got right in one place. [Jamie, 2026-10-12]
    on now. Two windows: what happened (occurred) and what the record
    learned (observed, so nothing learned late is skipped). [Jamie,
    2026-09-23]
-5. **The feed shows people's play.** Home's feed and the RSS feed carry
+5. **The feed shows people's play.** The Timeline and the RSS feed carry
    sessions, moments and highlights; the account's own notices go to the
    bell. Every item stays in the timeline an agent reads. [Jamie,
    2026-11-12, "The feed shows only people's play"]
@@ -88,7 +88,7 @@ got right in one place. [Jamie, 2026-10-12]
    battle link someone sends. [Jamie, 2026-11-11, "Everyone signs in;
    shared posts stay public"]
 10. **Storing it is a performance choice.** The timeline is computed from
-    the record unless a surface cannot reach 2 s at p95 that way; Home's
+    the record unless a surface cannot reach 2 s at p95 that way; the Timeline's
     week and the bell are stored and kept warm, and a stored item is
     never the authority over the record. [Jamie, 2026-11-09, 2026-11-12]
 11. **A person's cross-post is unfiltered and event-driven.** The owner
@@ -129,8 +129,8 @@ agent write a cheer or a highlight.
   [engineering, 2026-11-16]
 - **A shared post in the clan's Discord** through Clan's webhook (Jamie,
   2026-11-12) is not built: which webhook, and whether leaders opt in.
-- **One item for a pair's sitting.** Two followed players who played the
-  same 2v2 games each get their own sitting, and each names the other
+- **One item for a pair's session.** Two followed players who played the
+  same 2v2 games each get their own session, and each names the other
   (2026-11-16). Telling them as one item needs a story id for the pair
   and a rule for cheers on it. Default in force: one item per player.
 - **A Ranked season's result** as its own item: the record does not keep

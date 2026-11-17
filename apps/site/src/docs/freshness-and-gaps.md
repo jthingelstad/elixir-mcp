@@ -24,9 +24,9 @@ session clock**, one rule you can hold in your head:
 > hours. Your profile is read once a day, and once after a session.
 
 Why 30 minutes and two hours: a battle is about three minutes, and the
-API's battle log holds your last 30, so a sitting fills it in about 90
+API's battle log holds your last 30, so a session fills it in about 90
 minutes. Read inside a third of that and a session cannot roll past the
-recorder; read at least every two hours and a sitting that starts the
+recorder; read at least every two hours and a session that starts the
 moment after a read still fits. Elixir's staff measure what is still
 lost, per day, against the game's own lifetime battle counter.
 
@@ -56,7 +56,7 @@ fails just after 10:00Z is read again the same day. The retries come out
 of the same budget. A not-found answer is the exception: a subject the
 API answers 404 for is tried once a day.
 
-A sitting can still, rarely, roll past a
+A session can still, rarely, roll past a
 read; the public status endpoint publishes how many of the last day's
 reads found that it had (`capture_audit_24h` in `/api/public/status`, with
 no sign-in; [Status and data](/data#right-now) is the public page), and
@@ -76,7 +76,7 @@ it asks for your own battle log now:
 While it waits the chip says "Checking for new battles…". When the read
 lands, usually within a minute, your player page and its battles show
 the new games without a reload. When you tapped the chip yourself,
-Home's feed shows them too. When the app asked on its own, Home's feed
+your Timeline shows them too. When the app asked on its own, your Timeline
 doesn't move under you: an **N new** button appears over it instead, and
 a tap shows them. The chip's time keeps moving while the page is open.
 
