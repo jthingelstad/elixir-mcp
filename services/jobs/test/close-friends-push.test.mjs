@@ -82,15 +82,15 @@ async function setup(name) {
   const battle = async (
     tag,
     atMs,
-    { outcome = "win", eventTag = null } = {},
+    { outcome = "win", eventTag = null, league = null } = {},
   ) => {
     const id = `cf-${(battleN += 1)}`;
     const at = new Date(atMs).toISOString();
-    const type = eventTag ? "challenge" : "PvP";
+    const type = eventTag ? "challenge" : league ? "pathOfLegend" : "PvP";
     await db.query(
-      `insert into battle (battle_id, battle_time, type, type_class, event_tag)
-       values ($1, $2, $3, 'pvp', $4)`,
-      [id, at, type, eventTag],
+      `insert into battle (battle_id, battle_time, type, type_class, event_tag, league_number)
+       values ($1, $2, $3, 'pvp', $4, $5)`,
+      [id, at, type, eventTag, league],
     );
     await db.query(
       `insert into battle_participant
@@ -435,6 +435,72 @@ test("a backfilled old session is never told; a moment is told by the timeline's
     assert.equal((await t.notices()).length, 1, "a moment is told once");
   } finally {
     await t.s.drop();
+  }
+});
+
+test("a short Ranked session whose battles show a climb is told, with no profile event yet (Codex on #1090)", async () => {
+  const t = await setup("close_push_ranked");
+  try {
+    const T0 = Date.now();
+    await t.device(t.owner);
+    // Two Ranked battles: a win at league 3, then one at league 4.
+    await t.battle(F, T0 - 5 * MIN, { league: 3 });
+    await t.battle(F, T0, { league: 4, outcome: "loss" });
+    await t.run(T0 + 36 * MIN);
+    const [n] = await t.notices();
+    assert.ok(n, "the climb is told");
+    assert.equal(n.title, "Pip Ember");
+    assert.match(n.body, /\. Climbed .+ to .+$/);
+    assert.match(n.url, /^\/home\/player\/0QQG0JVQQ\/session\//);
+  } finally {
+    await t.s.drop();
+  }
+});
+
+test("a notice left sending is not delivered after a block or an unstar (Codex on #1090)", async () => {
+  for (const change of ["block", "unstar"]) {
+    const t = await setup(`close_push_retry_${change}`);
+    try {
+      const T0 = Date.now();
+      await t.device(t.owner);
+      await t.session(F, T0, 3);
+      // The outbox write fails: the notice stays sending, owed.
+      const down = async () => {
+        throw new Error("outbox down");
+      };
+      await runWebPush({
+        db: t.db,
+        outbox: down,
+        now: new Date(T0 + 36 * MIN),
+      });
+      const [owed] = (
+        await t.db.query(
+          `select status from push_notice where kind = 'close_friends'`,
+        )
+      ).rows;
+      assert.equal(owed.status, "sending");
+      if (change === "block")
+        await t.db.query(
+          `insert into account_block (account_id, blocked_account_id) values ($1, $2)`,
+          [t.friendAccount, t.owner],
+        );
+      else
+        await t.db.query(
+          `update claim set close = false where account_id = $1 and player_tag = $2`,
+          [t.owner, F],
+        );
+      // The next run resumes what was owed: nothing goes out.
+      await t.run(T0 + 37 * MIN);
+      assert.equal(t.out.length, 0, change);
+      const [after] = (
+        await t.db.query(
+          `select status from push_notice where kind = 'close_friends'`,
+        )
+      ).rows;
+      assert.equal(after.status, "dropped", change);
+    } finally {
+      await t.s.drop();
+    }
   }
 });
 
