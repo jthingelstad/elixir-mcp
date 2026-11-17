@@ -15,7 +15,7 @@
  *  first, with their ids unchanged, then the fourteen added 2026-11-17
  *  ("Reactions are glyphs alone; a larger set"). The web app names and
  *  draws them (apps/web/src/home/cheer-set.js); this list is what the
- *  database allows (0243, widened by 0286), and a test pins the lists
+ *  database allows (0243, widened by 0291), and a test pins the lists
  *  together. A kind is a word only to the app: mail, push, RSS and
  *  Discord never name one, and MCP serves the ids as counts. */
 export const CHEER_KEYS = [

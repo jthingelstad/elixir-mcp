@@ -5,7 +5,7 @@
  * and "Give 6 reactions to the user and even more on a tap for more
  * options."). Every one celebrates or plays: there is no thumbs-down, no
  * anger, nothing mocking, and players are often kids. The keys are the
- * server's (packages/tools/src/activity/cheers.mjs, 0243 and 0286); a test
+ * server's (packages/tools/src/activity/cheers.mjs, 0243 and 0291); a test
  * pins the two lists together, and the first six keep the ids they have
  * always had.
  *

@@ -265,8 +265,8 @@ test("a cheer on a page's post list shows at once, and a second tap takes it bac
     return reply({}, 404);
   });
   renderWithProviders(<PostList player="#0PGQ2UYL" />);
-  const cheer = () => screen.getByRole("button", { name: "Cheer" });
-  fireEvent.click(await screen.findByRole("button", { name: "Cheer" }));
+  const cheer = () => screen.getByRole("button", { name: /^Cheer(ed)?: / });
+  fireEvent.click(await screen.findByRole("button", { name: /^Cheer(ed)?: / }));
   await waitFor(() =>
     expect(cheer().getAttribute("aria-pressed")).toBe("true"),
   );

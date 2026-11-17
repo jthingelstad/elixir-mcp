@@ -82,7 +82,7 @@ describe("Feed", () => {
       screen.getByRole("link", { name: "Open battle" }).getAttribute("href"),
     ).toBe("/battle/abc");
     // No cheer here: cheers live on the reader's own Timeline.
-    expect(screen.queryByRole("button", { name: "Cheer" })).toBeNull();
+    expect(screen.queryByRole("button", { name: /^Cheer(ed)?: / })).toBeNull();
     expect(screen.getByText("Bo joined the clan")).toBeTruthy();
     expect(
       screen.getByRole("heading", { name: "Feed", level: 2 }),

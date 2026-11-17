@@ -70,7 +70,7 @@ test("the cheers are the database's twenty, the first six as they always were", 
   const sql = readFileSync(
     path.resolve(
       path.dirname(fileURLToPath(import.meta.url)),
-      "../../../db/migrations/0286_cheer_kinds_twenty.sql",
+      "../../../db/migrations/0291_cheer_kinds_twenty.sql",
     ),
     "utf8",
   );
