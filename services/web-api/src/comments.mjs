@@ -319,11 +319,13 @@ export async function commentsOnItem(db, readerId, item) {
 }
 
 /** Why the account may not start a check now, or null: the per-minute and
- *  per-day caps, and the cooldown after repeated refusals. */
+ *  per-day caps on comments, and the cooldown after repeated refusals of
+ *  comments and posts alike (posts.mjs keeps its own caps). */
 async function throttled(db, accountId) {
   const { rows } = await db.query(
-    `select count(*) filter (where created_at > now() - interval '1 minute')::int as minute,
-            count(*) filter (where created_at > now() - interval '1 day')::int as day,
+    `select count(*) filter (where kind = 'comment'
+                               and created_at > now() - interval '1 minute')::int as minute,
+            count(*) filter (where kind = 'comment')::int as day,
             count(*) filter (where verdict = 'refuse'
                                and created_at > now() - make_interval(mins => $2))::int as refused,
             min(created_at) filter (where verdict = 'refuse'
@@ -562,7 +564,7 @@ export async function commentQueue(db) {
   );
   const { rows: refused } = await db.query(
     `select cc.check_id::text as check_id, cc.created_at, cc.stage,
-            cc.category, cc.body, ap.passport_id as author_page,
+            cc.category, cc.body, cc.kind, ap.passport_id as author_page,
             pc.player_tag as author_tag, pp.name as author_name
        from comment_check cc
        left join account_passport ap on ap.account_id = cc.account_id
@@ -602,6 +604,7 @@ export async function commentQueue(db) {
       at: new Date(r.created_at).toISOString(),
       stage: r.stage,
       category: r.category,
+      kind: r.kind,
       text: r.body ?? "",
       author: {
         account_id: r.author_page ?? null,

@@ -1,5 +1,7 @@
 import { buildTimeline, shownAt } from "@elixir-mcp/tools/activity/entries";
+import { feedOrder } from "@elixir-mcp/tools/activity/home-feed";
 import { annotateFeed } from "./feed.mjs";
+import { clanPosts } from "./posts.mjs";
 
 /**
  * Clan's Feed (slice 8, #766): the clan's timeline for one signed-in member,
@@ -43,7 +45,13 @@ async function currentMembers(db, clanTag) {
   return rows.map((r) => r.player_tag);
 }
 
-export async function readClanFeed(db, account, clanTag, now = Date.now()) {
+export async function readClanFeed(
+  db,
+  account,
+  clanTag,
+  now = Date.now(),
+  { posts = false } = {},
+) {
   const perf = {};
   const started = Date.now();
   const built = await buildTimeline(
@@ -75,10 +83,24 @@ export async function readClanFeed(db, account, clanTag, now = Date.now()) {
       parts: perf,
     }),
   );
+  // Its members' posts now (2026-11-17), read live: a clanmate sees a
+  // member's posts here as they see the member's play. Never anyone's in
+  // a block with the reader (posts.mjs).
+  const extra =
+    posts && account.kind === "person"
+      ? await clanPosts(db, account.accountId, {
+          clanTag,
+          fromMs: now - FEED_DAYS * DAY_MS,
+          toMs: now,
+        })
+      : [];
+  const items = extra.length
+    ? [...(built.timeline ?? []), ...extra].sort(feedOrder)
+    : (built.timeline ?? []);
   return {
     clan_tag: clanTag,
     window_days: FEED_DAYS,
-    items: (await annotateFeed(db, built.timeline ?? [], [])).map(feedItem),
+    items: (await annotateFeed(db, items, [])).map(feedItem),
     more: built.timeline_more ?? 0,
   };
 }

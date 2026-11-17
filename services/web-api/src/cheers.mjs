@@ -38,6 +38,7 @@ import {
   withCheers,
 } from "@elixir-mcp/tools/activity/cheers";
 import { proofOf } from "./feed.mjs";
+import { canSeePost } from "./posts.mjs";
 
 export { CHEER_KEYS, withCheers };
 const KEYS = new Set(CHEER_KEYS);
@@ -75,8 +76,17 @@ async function feedItemsFor(db, { accountId, tags, subjects }) {
   };
 }
 
-/** The item as the person's own feed holds it now, or null. */
-export async function ownFeedItem(db, { accountId, itemId, tags, subjects }) {
+/** The item as the person's own feed holds it now, or null. With `posts`
+ *  on (2026-11-17), a post the person may see is one too: its own read,
+ *  no feed rebuilt (posts.mjs). */
+export async function ownFeedItem(
+  db,
+  { accountId, itemId, tags, subjects, posts = false },
+) {
+  if (posts) {
+    const post = await canSeePost(db, accountId, itemId, subjects);
+    if (post) return post;
+  }
   const { items } = await feedItemsFor(db, { accountId, tags, subjects });
   return items.find((it) => it.id === itemId) ?? null;
 }
@@ -135,7 +145,15 @@ export async function setCheer(db, accountId, itemId, cheer, item = null) {
        do update set cheer = excluded.cheer, updated_at = now(),
                      subject_tags = coalesce(excluded.subject_tags,
                                              timeline_cheer.subject_tags)`,
-      [accountId, itemId, cheer, item ? itemSubjectTags(item) : null],
+      // A post's cheer stamps no players (2026-11-17): the activity mail
+      // and push find their accounts by these tags, and posts reach
+      // neither; the web bell reads post cheers by the post itself.
+      [
+        accountId,
+        itemId,
+        cheer,
+        item && item.kind !== "post" ? itemSubjectTags(item) : null,
+      ],
     );
   const found = (await cheersFor(db, [itemId], accountId)).get(itemId);
   return {

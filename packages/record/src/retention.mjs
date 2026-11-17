@@ -137,6 +137,9 @@ export const TRIMMED = Object.freeze([
   // Comments (0282) go at a year like cheers; one an owner or an admin
   // removed goes 30 days after its removal (sweepOperational).
   plain("timeline_comment", "created_at", YEAR),
+  // Posts (0285) go at a year like comments; one an admin removed goes
+  // 30 days after its removal (sweepOperational).
+  plain("account_post", "created_at", YEAR),
   // A push told (0283): the caps read today, the activity mail a day.
   plain("push_notice", "created_at", DAYS_28),
   plain("claim_challenge", "created_at", YEAR, "outcome <> 'open'"),
@@ -186,6 +189,7 @@ export const CHILDREN = Object.freeze({
   war_period_log: "goes with its war week",
   war_week_clan: "goes with its war week",
   comment_report: "goes with its comment (on delete cascade)",
+  post_report: "goes with its post (on delete cascade)",
 });
 
 /** Not history over time, so not trimmed by age. */

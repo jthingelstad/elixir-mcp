@@ -238,6 +238,8 @@ export function createClanRequest({
   readHistory = async () => null,
   /** tells Jamie of a leader's thumbs down or note on a Discord post */
   notifyOwner = null,
+  /** Posts are on (2026-11-17): the Feed holds the members' posts. */
+  posts = false,
 }) {
   const appUrl = `${origin}/clan`;
   // The clan's activity channel: its webhook sealed as it is saved.
@@ -517,7 +519,8 @@ export function createClanRequest({
       // The clan directory, through the approved seam (#768).
       directory: () => readClanDirectory(db, account),
       // Clan's Feed (#766): the clan's timeline as this reader reads it.
-      feed: (clanTag) => readClanFeed(db, account, clanTag),
+      feed: (clanTag) =>
+        readClanFeed(db, account, clanTag, Date.now(), { posts }),
       // The clan card's race chip and the Feed's race bar (G5).
       race: (clanTag) => readClanRace(read, clanTag),
       // The roster's profile images, one statement a roster (2026-11-14).

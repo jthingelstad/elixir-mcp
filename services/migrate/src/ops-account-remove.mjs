@@ -222,6 +222,11 @@ async function removeAccount(db, { hash, accountId, dryRun }) {
           or owner_account_id = any($1::uuid[])`,
     ],
     ["comment_check", `comment_check where account_id = any($1::uuid[])`],
+    // Posts (0285): their reports of posts, then their posts (the reports
+    // on them go with them; the comments on them went above, as comments
+    // on their items).
+    ["post_report", `post_report where account_id = any($1::uuid[])`],
+    ["account_post", `account_post where account_id = any($1::uuid[])`],
     [
       "account_block",
       `account_block where account_id = any($1::uuid[])

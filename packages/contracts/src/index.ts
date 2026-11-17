@@ -16,6 +16,7 @@ export * from "./archetypes.js";
 export * from "./facts.js";
 export * from "./collector-release.js";
 export * from "./battle-link.js";
+export * from "./deck-link.js";
 export * from "./feedback.js";
 export * from "./card-art.js";
 export * from "./discord.js";

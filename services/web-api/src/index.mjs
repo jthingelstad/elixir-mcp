@@ -61,6 +61,11 @@ const handler = makeHandler({
     readStatus: makeStatusReader(process.env.OUTBOX_BUCKET),
     readHistory: makeHistoryReader(process.env.OUTBOX_BUCKET),
     notifyOwner,
+    // Clan's Feed holds members' posts while posts and comments are on.
+    posts:
+      process.env.POSTS_ENABLED === "true" &&
+      process.env.COMMENTS_ENABLED === "true" &&
+      Boolean(process.env.CLAN_MODEL_SECRET && process.env.OUTBOX_BUCKET),
   }),
   databaseUrl: process.env.DATABASE_URL,
   // Current and previous: a rotation signs nobody out, and a request
@@ -156,6 +161,10 @@ const handler = makeHandler({
   // Comments (2026-11-16): on only with the stack's CommentsEnabled. The
   // check rides the clan model bridge to the relay, which alone holds
   // Elixir's moderation key; this function never sees it.
+  // Posts (2026-11-17): the stack's PostsEnabled, effective only while
+  // comments are on (the handler checks): they share comments' check,
+  // cap and log.
+  posts: process.env.POSTS_ENABLED === "true",
   comments:
     process.env.COMMENTS_ENABLED === "true" &&
     process.env.CLAN_MODEL_SECRET &&

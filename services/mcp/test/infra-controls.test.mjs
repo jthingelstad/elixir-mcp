@@ -1540,6 +1540,24 @@ test("comments' moderation key (2026-11-17): its own secret, read by the relay a
   assert.equal(grants.length, 1);
 });
 
+test("posts (2026-11-17): off by default, effective only with comments on, preserved across deploys, no new secret or grant", async () => {
+  const template = await readFile(templateUrl, "utf8");
+  assert.match(
+    template,
+    /  PostsEnabled:\n\s+Type: String\n\s+Default: "false"\n\s+AllowedValues: \["true", "false"\]/,
+  );
+  assert.match(
+    template,
+    /HasPosts: !And\n\s+- !Condition HasComments\n\s+- !Equals \[!Ref PostsEnabled, "true"\]/,
+  );
+  // Only the web API reads the switch.
+  const env = [...template.matchAll(/POSTS_ENABLED: !If \[HasPosts, "true", !Ref AWS::NoValue\]/g)];
+  assert.equal(env.length, 1);
+  assert.equal([...template.matchAll(/POSTS_ENABLED/g)].length, 1);
+  const { PRESERVED_PARAMETERS } = await import("../../../infra/scripts/parameters.mjs");
+  assert.ok(PRESERVED_PARAMETERS.includes("PostsEnabled"));
+});
+
 test("a site miss fails over to the site's 404 page, on the site behaviour alone", async () => {
   const template = await readFile(templateUrl, "utf8");
   // The default (site) behaviour targets the group: the bucket first,
