@@ -2,6 +2,7 @@ import { useId, useState } from "react";
 import {
   Avatar,
   CardArt,
+  DeckRow,
   DeckVersus,
   Icon,
   Link,
@@ -427,6 +428,12 @@ function HighlightLinks({ facts }) {
 }
 
 const FORM_WORD = { evolution: "New Evo", hero: "New Hero" };
+/** A deck switch's kicker names its mode: modes are different games. */
+const SWITCH_KICKER = {
+  ladder: "New deck on Trophy Road",
+  ranked: "New deck in Ranked",
+  war: "New deck in Clan Wars",
+};
 
 /** What a moment's head says above its sentence (2026-11-17), from its
  *  facts only; null when the facts do not say it. */
@@ -466,6 +473,10 @@ export function momentHead(it) {
         : null;
     case "twelve_win_run":
       return f.challenge ? { kicker: "12 wins", title: f.challenge } : null;
+    case "deck_switched":
+      return f.deck
+        ? { kicker: SWITCH_KICKER[f.mode] ?? "New deck", title: f.deck }
+        : null;
     case "badge_earned":
       if (Array.isArray(f.badges) && f.badges.length > 1)
         return {
@@ -576,6 +587,31 @@ function MomentArtDrawn({ it }) {
  *  level). */
 function MomentBody({ it, text }) {
   const head = momentHead(it);
+  // A deck switch shows its deck (0289): the eight cards as a session's
+  // deck row draws them, under the sentence, in place of a medal.
+  if (it.kind === "deck_switched" && it.deck?.cards?.length)
+    return (
+      <div className="kit-feed__moment kit-feed__moment--deck">
+        <div className="kit-moment__said">
+          {head ? (
+            <p className="kit-moment__head">
+              <span className="kit-moment__kicker">{head.kicker}</span>
+              <span className="kit-moment__title">
+                <TagText>{head.title}</TagText>
+              </span>
+            </p>
+          ) : null}
+          {text}
+        </div>
+        <div className="kit-scard__deck">
+          <DeckRow
+            cards={it.deck.cards}
+            showCost
+            label={`${it.deck.label ?? "The deck"}, the new deck`}
+          />
+        </div>
+      </div>
+    );
   return (
     <div className="kit-feed__moment">
       <MomentArt it={it} />

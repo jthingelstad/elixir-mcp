@@ -122,7 +122,7 @@ section, text, visibility, publishable, facts, follow }`:
 |---|---|
 | `id` | the story the item tells: opaque (`tl_` and 20 hex characters), the same in every read and every window. It names the happening, not the reader, and a read serves each `id` once ([One story, one item](#one-story-one-item)). Never a ledger sequence number |
 | `revision` | how far the story has grown: 1 for a moment that never grows. A session's is its battles the record holds so far, so a session told at 20 battles and read again at 40 is the same `id` at a higher `revision`; a crossing's is its proof's attachment revision; a highlight's counts the times its words were written |
-| `at` | when it happened; what that means for each kind is in [the facts table](#the-facts-keys-by-kind) |
+| `at` | when it happened; what that means for each kind is in [Timeline kinds](/docs/timeline-kinds) |
 | `sort_at` | the instant the feed is ordered by and an occurred window selects on: a session's last battle, else `at` |
 | `at_unix` | `sort_at` in Unix seconds, for a renderer's own clock |
 | `local` | `sort_at` on the reader's clock: `date` (`YYYY-MM-DD`), `time` (`HH:MM`), `weekday` (`Sat`) and `tz` |
@@ -153,6 +153,7 @@ section, text, visibility, publishable, facts, follow }`:
 | `king_tower_leveled` | player, or a clan's member | the King Tower's level rose between two profile reads: `facts.level` and `prior_level` |
 | `challenge_best_run` | player, or a clan's member | the profile's most wins in a challenge run rose: `facts.best` and `best_before` |
 | `twelve_win_run` | player, or a clan's member | a 12-win run in Classic or Grand Challenge, counted by the game's Classic 12 Wins or Grand 12 Wins badge: `facts.challenge` (`Classic Challenge`, `Grand Challenge`), `badge`, `badge_label`, `runs` (the badge's count) and `runs_before` (null when the badge is new), plus `level` and `prior_level` when its tier rose. Two runs between reads are one item that says "2 times" |
+| `deck_switched` | player, or a clan's member | the player took up a new deck in one mode: `facts.mode` (`ladder`, `ranked` or `war`), `facts.deck` and `facts.prior_deck` (the new deck and the one played most in that mode in the 14 days before, by archetype label; a label is a noun, never a verdict), `facts.battles` and `facts.wins` (the new deck's run in that mode from its first battle, as the read that saw it counted). A switch is a label that names a win condition, played 3 times in one mode within 7 days of its first battle after 14 days without it there, with at least 3 battles on other decks in that mode in those 14 days and a record that reaches back that far; one a day per player per mode. Modes are never pooled; event, casual, duel and boat battles and decks the player did not bring never count. `at` is the third battle. Written from a live battle-log read going forward: battles recorded before 13.6.0 and battles captured more than a day late never write one |
 | `card_form_unlocked` | player, or a clan's member | an Evolution or Hero form the player newly unlocked: `facts.card` is the card, `facts.form` is `evolution` or `hero`, and the text says it as a player does ("unlocked Hero Valkyrie"). One item per form, so a card that gains both at once is two. `at` is the profile read that saw it: the unlock happened **no later than** that, after some earlier read the record may not hold (collectors skip a profile that has not changed), so no earlier bound is served. Recorded from 2026-09-28 and never backfilled: a form unlocked before then is in `players_collection`'s `forms_unlocked`, never here |
 | `clan_joined`, `clan_left` | player | the player moved clans. A join is one Elixir saw happen, between two roster reads of the clan: the first time Elixir sees a player in a clan (the clan's first roster read, or the first read that records that member) is a baseline, never a join (from 2026-10-08; moments written before then are unchanged) |
 | `member_joined`, `member_left`, `member_role_changed` | clan | who, with the role; a departure is raw, the game cannot tell a leave from a kick (a clan's leaders can, through Clan: `departure_classified`), so its sentence says the member departed, never that they left; a classified kick says the member was removed. The same baseline rule: a clan's first roster read, and the first read of a clan that was read only for its followed players before it was followed, name nobody as joining |
@@ -242,6 +243,7 @@ story or how to name the moment to it:
 | `ranked_promotion`, `arena_changed`, `best_trophies_band`, `career_wins_step` | the battle that proved it (`battles_query` by `battle_id`), when the record holds it, then `players_summary` |
 | `badge_earned`, `legendary_badge_earned`, `king_tower_leveled`, `challenge_best_run`, `twelve_win_run` | `players_profile` |
 | `collection_level_step` | `players_collection` |
+| `deck_switched` | `battles_decks` for the player in that mode |
 | `card_unlocked`, `card_form_unlocked`, `card_maxed` | `players_collection`, then `cards_catalog` for that card |
 | `member_joined`, `member_left`, `member_role_changed` | `players_summary` for the member, then `clans_roster` |
 | `clan_joined`, `clan_left` | `players_summary` (the clan may be one nobody records) |
@@ -331,74 +333,9 @@ Action, draft a message, send a notification, or grant an award.
 ### The `facts` keys, by kind
 
 `text` is written from `facts`, and `facts` is what a consumer branches on.
-Each kind is versioned on its own (`schema` on the item). The keys below
-are on every item of the kind (a value may be `null` where the row says
-so); keys in brackets appear only when the record holds them. Every item
-about a player, a member's moment on a clan's timeline included, carries
-`player_tag` and `name` (the in-game name).
-
-| kind | version | `at` is | `facts` |
-|---|---|---|---|
-| `battle_session` | 5 | the session's first battle; `sort_at` is its last | `player_tag`, `name`, `started_at`, `ended_at`, `duration_s`, `battles`, `won`, `lost`, `drawn`, `by_mode` (battles per mode group), `trophy_net` (the session's Trophy Road net), `trophy_net_peak` (its value furthest from 0), `trophy_net_by_mode` (each trophy mode's net; a challenge's +1 a win is its counter, and Ranked's +30 a win below Ultimate Champion moves no standing: both are left out), `won_in_a_row`, `open`, `decks` (up to three `{ label, battles }`, by archetype label; a deck the player did not bring, from a draft, a pick or a preset, has none), `events` (`{ event_tag, name, battles, won, lost, game_mode, drawn_decks?, run_wins? }` per event or challenge played: `name` is the event's title on one line, `game_mode` its ruleset, `drawn_decks` true when its decks were drafted or handed out, `run_wins` the most wins its challenge counter reached in the session, absent for an event with no counter), [`ranked`] (the session's Ranked battles: `{ battles, won, lost, league_from, league_from_name, league_to, league_to_name, promotions, rating? }`; a league is the one a battle started in; `promotions[]` is each climb the session's own battles show, `{ from, to, from_name, to_name, battle_id, at }`, the last win at the lower league; `rating` is `{ from, to }` over its Ultimate Champion battles), [`together`] (up to three players the record follows met in the session, `{ player_tag, name, with, against }`: 2v2 partners and friendly or clanmate opponents, by battles; a player the record does not follow is never named), [`three_crown_wins`] (wins that took the King Tower; never a duel's summed games or a boat battle), [`overtime_wins`] (wins the tiebreaker decided at the end of overtime, crowns level: a win by a tower in overtime looks like any other win in the log and is not counted) |
-| `session_standout` | 6 | the battle that crossed the first new rung; `sort_at` is the session's last battle | the session's keys, plus `crossed` (every rung passed, as `won_in_a_row>=5`, `trophy_net>=300`, `battles>=20`; a trophy rung's label names its band either way, so read the crossing's signed `value` for the direction), `newly` (the rungs this window learned) and `crossings` (each rung's `{ rung, key, threshold, value, at, battle_id }`: the value at the battle that crossed it, signed, so a trophy rung crossed going down reads negative, and that battle), [`teammate`] (`{ player_tag, name, battles }`, the 2v2 partner: tell a pair's sessions once), [`best_win`] (the win over the highest-rated opponent, the battle shape below plus `mode`; only a win whose trophies are a standing is rated, never a challenge's win counter) |
-| `battle_highlight` | 1 | when the player posted it; the battle's own time is `battle.battle_time` | `player_tag`, `name`, `highlight_id`, `words` (as the player wrote them, up to 500 characters; may be empty), `battle` (`{ battle_id, url, battle_time, mode_group, game_mode, outcome, crowns, crowns_against, trophy_change, opponents }`, each opponent `{ player_tag, name, starting_trophies }`), [`share_url`] (the post's public link, `/h/<id>`, on the owner's own reads once shared) |
-| `badge_earned` | 3 | the profile read that saw the latest level the item holds | `player_tag`, `name`, `badge`, `badge_label`, [`level`, `max_level`, `prior_level`, `badges`, `badge_count`] |
-| `legendary_badge_earned` | 2 | the profile read that saw it | `player_tag`, `name`, `badge`, `badge_label` |
-| `arena_changed` | 2 | the promoting battle when `promoted_by` is there, else the read that saw the move | `player_tag`, `name`, `from`, `to` (arena ids), `from_name`, `to_name`, [`promoted_by`] |
-| `ranked_promotion` | 2 | the promoting battle when `promoted_by` is there, else the read that saw the league | `player_tag`, `name`, `from`, `to` (league numbers), `from_name`, `to_name`, [`promoted_by`] |
-| `best_trophies_band` | 2 | the crossing battle when `crossed_by` is there, else the read that saw the best | `player_tag`, `name`, `best`, [`band`, `crossed_by`] |
-| `collection_level_step` | 2 | the profile read that saw the level | `player_tag`, `name`, `level`, `step` |
-| `career_wins_step` | 2 | the crossing win when `crossed_by` is there, else the read that saw the count | `player_tag`, `name`, `wins`, [`step`, `crossed_by`] |
-| `card_unlocked` | 2 | the profile read that saw the card | `player_tag`, `name`, `card`, `card_id`, `rarity` |
-| `card_maxed` | 1 | the profile read that saw the card at its top level | `player_tag`, `name`, `card`, `card_id`, `rarity`, `level` |
-| `king_tower_leveled` | 1 | the profile read that saw the level | `player_tag`, `name`, `level`, `prior_level` |
-| `challenge_best_run` | 1 | the profile read that saw the new best | `player_tag`, `name`, `best`, `best_before` |
-| `twelve_win_run` | 1 | the profile read that saw the run counted | `player_tag`, `name`, `badge`, `badge_label`, `challenge`, `runs`, `runs_before`, [`level`, `prior_level`] |
-| `card_form_unlocked` | 2 | the profile read that saw the form (it happened no later) | `player_tag`, `name`, `card`, `card_id`, `rarity`, `form` (`evolution` or `hero`) |
-| `clan_joined` | 2 | the roster read that saw the join | `player_tag`, `name`, `kind`, `clan_tag`, `clan_name`, `at` |
-| `clan_left` | 2 | the roster read that saw the departure | `player_tag`, `name`, `kind`, `clan_tag`, `clan_name`, `role`, `at` |
-| `member_joined` | 1 | the roster read that saw the join | `player_tag`, `name`, `role`, `roster_size_before`, `roster_size_after` |
-| `member_left` | 1 | the roster read that saw the departure | `player_tag`, `name`, `role_at_departure`, `joined_observed_at`, `roster_size_before`, `roster_size_after` |
-| `member_role_changed` | 1 | the roster read that saw the new role | `player_tag`, `name`, `role_before`, `role_after`, `direction`, `roster_size_before`, `roster_size_after` |
-| `bracket_observed` | 1 | the record's first sight of the week | `season_id`, `section_index`, `is_colosseum`, `rivals[]` (`tag`, `name`, `recorded`) |
-| `race_finished` | 1 | the finish, when the race log gives it, else the read that saw it | `season_id`, `section_index`, `fame`, `finish_time` |
-| `week_resolved` | 2 | the read that saw the week close | `season_id`, `section_index`, `is_colosseum`, `fame`, `rank`, `trophy_change`, `members` (`player_tag`, `name`, `decks_used`, `points`, most points first; `text` names the top three) |
-| `quiet_crossed` | 2 | the last battle plus the rung's days | `player_tag`, `name`, `rung` (5, 10 or 20), `days_quiet`, `days_since_poll`, [`role` on a clan's timeline] |
-| `returned` | 2 | the battle that ended the absence | `player_tag`, `name`, `after_days` |
-| `account` | 2 | the first event of the burst | other `account_*` kinds: the event's detail (a subject tag, a role), `count` (events in the burst), `apps` (apps named) |
-| `account_feedback_responded` | 3 | the answer | `feedback_id`, `status`, `response` (`null` on a pre-11.13.0 answer since replaced), `shipped_in`, `area`, `category`, `message` (600 characters), `filed_at`, `answered_at`, `count` (1), `apps` |
-| `departure_classified` | 1 | when it happened, as attested; selected by when Elixir recorded it | `kind`, [`left_at`], `player_tag`, `name`, `attested_by`, `visibility`; `role_at_departure` when known |
-| `role_change_made` | 1 | as above | `from`, `to`, `player_tag`, `name`, `attested_by`, `visibility` |
-| `award_granted` | 1 | as above | `award`, `season_id`, [`place`], `player_tag`, `name`, `attested_by`, `visibility` |
-| `award_standing` | 1 | as above | `award`, `award_id`, `season_id`, `place`, `value`, `unit`, `as_of`, [`previous_player_tag`], `player_tag`, `name`, `attested_by`, `visibility` |
-| `member_away` | 1 | as above | [`until`], `player_tag`, `name`, `attested_by`, `visibility` |
-| `clan_message` | 1 | as above | `channel`, [`title`], `body`, `attested_by`, `visibility` |
-| `personal_record` | 2 | as above | `game`, `score`, [`previous_best`], `player_tag`, `name`, `attested_by`, `visibility` |
-
-A `promoted_by`, `crossed_by` or `best_win` battle is the one shape described above
-(`battle_id`, `battle_time`, `type`, `opponent` or `opponents`, `crowns`,
-`crowns_against`, `trophy_change`, `trophies_after`, and `arena_floor` on the
-arena moment).
-
-A profile-derived moment (arena, ranked league, best band, collection
-level, badges, cards and their forms) is written once, by the first profile poll that
-sees it; later polls the same day rewrite the day's reading and never
-the moment. An arena move is polled for as soon as the player's own
-battles vouch for it (see [Recording](/docs/recording/), the profile
-arena request), so it arrives within the battle log's cadence rather
-than the profile's.
-
-Trophy Road arenas have floors: reaching the floor puts a player in the
-arena, and a loss never takes them below it again (a loss on the floor is
-reported by the game with no trophy change; a loss just above it is
-clamped). The last floor, 14,000, is where Trophy Road ends: a player
-there stays there whatever they lose, and the seasonal road beyond it
-resets each season. The promotion is therefore the win whose result first reaches
-the floor, whoever it was against - near a gate that is usually someone
-already standing on it, because matchmaking pairs a climber with the
-players sitting on the floor above, but it need not be. The floor is read
-from the record (the lowest trophies any reading has shown in that arena,
-or this player's own gated loss), never assumed.
+Each kind is versioned on its own (`schema` on the item). Every kind's
+keys, and what `at` means for it, are on
+[Timeline kinds](/docs/timeline-kinds).
 
 ## Entries
 

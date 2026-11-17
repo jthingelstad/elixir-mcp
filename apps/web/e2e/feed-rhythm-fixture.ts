@@ -262,6 +262,21 @@ const ITEMS = [
   session(QUILL, 8, { results: "l" }),
   session(ROWAN, 20, { results: "w" }),
   session(ELM, 31, { results: "wl" }),
+  // The deck switch (0289): a full moment with the new deck's cards.
+  moment(
+    FERN,
+    40,
+    "deck_switched",
+    "Fern switched to Hog Rider cycle on Trophy Road: 3 battles, 2 wins.",
+    {
+      mode: "ladder",
+      deck: "Hog Rider cycle",
+      prior_deck: "Giant beatdown",
+      battles: 3,
+      wins: 2,
+    },
+    { deck: { label: "Hog Rider cycle", cards: DECKS["Hog Rider cycle"] } },
+  ),
   session(FERN, 44, { results: "l", deck: "Hog Rider cycle" }),
   session(JUNIPER, 50, {
     results: "wwlw",

@@ -527,6 +527,8 @@ function clause(it) {
       return `maxed ${f.card ?? "a card"}`;
     case "king_tower_leveled":
       return `reached King Tower level ${num(f.level)}`;
+    case "deck_switched":
+      return `switched to ${f.deck ?? "a new deck"}`;
     case "challenge_best_run":
       return `set a best challenge run of ${plural(f.best ?? 0, "win")}`;
     case "twelve_win_run":

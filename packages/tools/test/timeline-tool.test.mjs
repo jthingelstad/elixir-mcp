@@ -1092,6 +1092,60 @@ test("13.5.0: profile moments are items with their sentences", async () => {
   assert.equal(mine.length, 5);
 });
 
+test("13.6.0: a deck switch is an item with its sentence, its decks by label and the deck row", async () => {
+  await ctx.db.query(
+    `insert into card (card_id, name, kind, rarity, elixir_cost) values (26000021, 'Hog Rider', 'card', 'rare', 4)
+     on conflict (card_id) do nothing`,
+  );
+  for (const [hash, label] of [
+    ["switch-hog", "Hog Rider cycle"],
+    ["switch-golem", "Golem beatdown"],
+  ])
+    await ctx.db.query(
+      `insert into deck (deck_hash, card_count, first_seen_at, last_seen_at,
+                         archetype_family, archetype_label, card_ids, card_forms)
+       values ($1, 8, '2026-09-01', '2026-09-24', 'cycle', $2, '{26000021}', '{0}')
+       on conflict do nothing`,
+      [hash, label],
+    );
+  await emitEvent(ctx.db, "deck_switched", {
+    tag: PROFILE,
+    windowStart: "2026-09-24T08:00:00Z",
+    windowEnd: "2026-09-24T10:30:00Z",
+    occurredAt: "2026-09-24T10:30:00Z",
+    payload: {
+      mode_group: "ladder",
+      deck_hash: "switch-hog",
+      prior_deck_hash: "switch-golem",
+      battles: 5,
+      wins: 3,
+    },
+  });
+  const { body, isError } = await call("elixir_timeline", {
+    from: "2026-09-24T10:00:00Z",
+    to: "2026-09-24T11:00:00Z",
+    mark_read: false,
+  });
+  assert.equal(isError, false, JSON.stringify(body));
+  const it = body.timeline.find(
+    (x) =>
+      x.kind === "deck_switched" &&
+      (x.facts.player_tag ?? x.subject_tag) === PROFILE,
+  );
+  assert.ok(it, "the switch is an item");
+  assert.equal(it.schema, "deck_switched/1");
+  assert.equal(it.at, "2026-09-24T10:30:00.000Z");
+  assert.ok(["battles", "standouts"].includes(it.section));
+  assert.equal(it.facts.mode, "ladder");
+  assert.equal(it.facts.deck, "Hog Rider cycle");
+  assert.equal(it.facts.prior_deck, "Golem beatdown");
+  assert.equal("deck_hash" in it.facts, false, "decks by label, never a hash");
+  assert.match(
+    it.text,
+    / switched to Hog Rider cycle on Trophy Road: 5 battles, 3 wins\.$/,
+  );
+});
+
 test("player_tag keeps one member's items, before the cap; a bad tag is refused (7.1.5, Gym #253)", async () => {
   // A closed window: an open one is capped at 30 days before now, which
   // passed the fixture's September on 2026-10-24.

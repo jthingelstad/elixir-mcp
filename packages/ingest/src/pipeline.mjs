@@ -28,6 +28,7 @@ import {
 import { followClanForPlayer } from "@elixir-mcp/claims";
 import { RACE_MATCHMAKING, admissionValue, admit } from "./admission.mjs";
 import { ingestBattlelog } from "./battles.mjs";
+import { detectDeckSwitches } from "./deck-switch.mjs";
 import { ingestClanRoster } from "./roster.mjs";
 import {
   projectPlayerBadges,
@@ -163,6 +164,16 @@ const PROJECTORS = {
           fetchedAt,
         );
     }
+    // The deck switch (0289): a live poll past a known mark that
+    // delivered battles; a first log and a replay say nothing.
+    if (fresh && result.priorMark && result.battlesSeen > result.battlesSkipped)
+      result.deckSwitches = (
+        await detectDeckSwitches(db, {
+          playerTag: entityKey,
+          mark: result.priorMark,
+          receiptId,
+        })
+      ).written;
     // The observer's battles named an arena (0101): if the snapshot does
     // not know it yet, the profile is owed a read now, not in eight hours.
     if (fresh && result.arenaEvidence) {

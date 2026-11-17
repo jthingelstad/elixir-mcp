@@ -44,6 +44,10 @@ const EVENT_TYPES = {
   king_tower_leveled: { stream: "player", timing: "estimated" },
   challenge_best_run: { stream: "player", timing: "estimated" },
   twelve_win_run: { stream: "player", timing: "estimated" },
+  // The battle moments (0289): each passes the instant it happened.
+  deck_switched: { stream: "player", timing: "exact" },
+  ranked_season_finished: { stream: "player", timing: "exact" },
+  card_first_win: { stream: "player", timing: "exact" },
 };
 
 const TABLE_BY_STREAM = {

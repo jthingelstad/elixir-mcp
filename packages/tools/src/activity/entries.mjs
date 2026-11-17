@@ -124,6 +124,9 @@ const PLAYER_MOMENT_KINDS = [
   "king_tower_leveled",
   "challenge_best_run",
   "twelve_win_run",
+  // The battle moments (0289, the owner 2026-11-17): a deck taken up in
+  // one mode (ingest/deck-switch.mjs).
+  "deck_switched",
 ];
 const CLAN_LEDGER_KINDS = [
   "member_joined",
@@ -571,6 +574,24 @@ function versusSide(d) {
     elixir_cost: c.elixir_cost ?? null,
   }));
   return cards.length ? { label: d.label ?? null, cards } : null;
+}
+/** A deck switch shows its deck as a sitting does (0289): the label and
+ *  eight cards under the deck symbol, for the website's deck row; MCP's
+ *  facts keep the label. Returns the spread for a ledger row, `{}` for
+ *  any other kind or a deck the record kept no cards for. */
+async function switchDecks(db, rows) {
+  const hashes = rows
+    .filter((r) => r.event_type === "deck_switched" && r.deck_hash)
+    .map((r) => r.deck_hash);
+  const ids = hashes.length ? await deckIdentities(db, hashes) : new Map();
+  return (r) => {
+    if (r.event_type !== "deck_switched") return {};
+    const identity = ids.get(r.deck_hash);
+    const cards = identity ? deckCardsWithCost(identity) : null;
+    return cards?.length
+      ? { [DECK]: { label: r.payload?.deck ?? null, cards } }
+      : {};
+  };
 }
 /** The deck symbol on an item, when the sitting has one. */
 const deckOf = (s) => (s.deckRow ? { [DECK]: s.deckRow } : {});
@@ -2185,6 +2206,7 @@ function sectionOfKind(kind) {
     case "career_wins_step":
     case "challenge_best_run":
     case "twelve_win_run":
+    case "deck_switched":
       return "battles";
     default:
       return "notables";
@@ -2217,6 +2239,12 @@ function decorate(kind, payload, arenaNames) {
   ) {
     const { name, ...rest } = payload;
     return { card: name, ...rest };
+  }
+  // A deck switch says its decks by label; the hashes stay server-side.
+  if (kind === "deck_switched") {
+    return Object.fromEntries(
+      Object.entries(payload).filter(([k]) => !k.endsWith("deck_hash")),
+    );
   }
   // A step recorded before the step rule (2026-09-18) carries no step:
   // said as null, so the key is always there and the note explains it
@@ -2566,9 +2594,11 @@ export async function buildPlayerEntry(
     (await timed(perf, "player.story_ids", () =>
       firstEventIds(db, "player_event", momentRows),
     ));
+  const switchDeck = await switchDecks(db, momentRows);
   for (const r of momentRows)
     items.push({
       ...subject,
+      ...switchDeck(r),
       at: iso(r.occurred_at ?? r.window_end),
       // When a poll saw it, which is what selects it into a window (Gym
       // #118); `at` is when it happened.
@@ -3729,8 +3759,10 @@ export async function buildClanEntry(
       [STORY]: ledgerStory("clan_event", clanFirstIds, e),
     });
   }
+  const memberDeck = await switchDecks(db, memberRows);
   const memberItems = memberRows.map((m) => ({
     ...subject,
+    ...memberDeck(m),
     subjects: aboutMember(m.player_tag, m.name),
     at: iso(m.occurred_at ?? m.window_end),
     observed_at: iso(m.evidence_observed_at ?? m.window_end),

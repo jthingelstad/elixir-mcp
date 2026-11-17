@@ -16,6 +16,14 @@ const FACT_COLUMNS = [
   "value_before",
   "value_after",
   "step",
+  // 0289: the battle moments' own facts, so two deck switches or two
+  // seasons a day apart are two moments, never one.
+  "mode_group",
+  "deck_hash",
+  "prior_deck_hash",
+  "battles",
+  "wins",
+  "season_month",
 ];
 export function playerEventOriginSql(alias) {
   return `coalesce(${alias}.origin_event_id,

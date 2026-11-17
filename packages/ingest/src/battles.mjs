@@ -689,6 +689,9 @@ export async function ingestBattlelog(
     // mark before (read above, no extra query) and one written now. An
     // empty log writes no mark, so it is not counted until battles come.
     firstLog: highWater && mark === null && newest !== null,
+    // The mark this poll read before it wrote (null without one, and
+    // always null for a replay): the deck switch reads past it.
+    priorMark: highWater ? mark : null,
     captureAudit:
       hadPriorCoverage && seen > 0
         ? { audited: true, gap }

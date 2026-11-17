@@ -160,6 +160,12 @@ export const TIMELINE_KIND_SCHEMAS = {
     ],
     optional: ["level", "prior_level"],
   },
+  // The battle moments (0289, the owner 2026-11-17).
+  deck_switched: {
+    version: 1,
+    at: "the run's third battle, when the switch became real",
+    facts: [...MEMBER, "mode", "deck", "prior_deck", "battles", "wins"],
+  },
   clan_joined: {
     version: 2,
     at: "the roster read that saw the join",

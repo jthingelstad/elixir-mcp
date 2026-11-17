@@ -199,6 +199,35 @@ test("Clan's Feed draws the same week with the Timeline's components", async ({
   ).toEqual([]);
 });
 
+test("a deck switch is a full moment with its mode, its deck and the deck's cards (0289)", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.clock.setFixedTime(new Date(FEED_NOW));
+  await page.route("**/assets/cards/**", (route) =>
+    route.fulfill({ status: 200, contentType: "image/png", body: PNG }),
+  );
+  await mockApi(page, rhythmApi());
+  await page.goto("/timeline");
+  const item = page
+    .locator(".kit-feed__item")
+    .filter({ hasText: "switched to Hog Rider cycle on Trophy Road" });
+  await expect(item).toBeVisible();
+  await expect(item.locator(".kit-moment__kicker")).toHaveText(
+    "New deck on Trophy Road",
+  );
+  await expect(item.locator(".kit-moment__title")).toHaveText(
+    "Hog Rider cycle",
+  );
+  await expect(item.locator(".kit-deckrow img")).toHaveCount(8);
+  if (shots) {
+    mkdirSync(shots, { recursive: true });
+    // Centred, so the tab bar does not cover the deck row.
+    await item.evaluate((el) => el.scrollIntoView({ block: "center" }));
+    await item.screenshot({ path: path.join(shots, "deck-switch-390.png") });
+  }
+});
+
 test("small moments fold into one row that opens to a line each (2026-11-17)", async ({
   page,
 }) => {

@@ -97,6 +97,16 @@ export function followFor(it, window) {
       return tag
         ? [{ tool: "players_profile", args: { player_tag: tag } }]
         : [];
+    // A deck switch's decks, read by the mode it was played in (0289).
+    case "deck_switched":
+      return tag
+        ? [
+            {
+              tool: "battles_decks",
+              args: { player_tag: tag, ...(f.mode ? { mode: f.mode } : {}) },
+            },
+          ]
+        : [];
     case "collection_level_step":
       return tag
         ? [{ tool: "players_collection", args: { player_tag: tag } }]

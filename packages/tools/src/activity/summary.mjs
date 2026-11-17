@@ -68,6 +68,12 @@ const modes = (byMode) =>
     .sort((x, y) => y[1] - x[1])
     .map(([m, n]) => `${n} ${MODE_WORDS[m] ?? m}`)
     .join(", ");
+/** Where a deck switch happened, as a sentence says it (0289). */
+const SWITCH_PLACE = {
+  ladder: "on Trophy Road",
+  ranked: "in Ranked",
+  war: "in Clan Wars",
+};
 /** A clan role as it reads in a sentence. The stored value stays. */
 const ROLE_WORDS = {
   member: "Member",
@@ -618,6 +624,8 @@ export function itemText(it, timeZone = "UTC") {
         typeof f.runs === "number" ? f.runs - (f.runs_before ?? 0) : 1;
       return `${member || subj} won 12 in ${f.challenge ?? badgeLabel(f.badge ?? f.name)}${times > 1 ? ` ${times} times` : ""}.`;
     }
+    case "deck_switched":
+      return `${member || subj} switched to ${f.deck ?? "a new deck"} ${SWITCH_PLACE[f.mode] ?? `in ${MODE_WORDS[f.mode] ?? f.mode}`}: ${plural(f.battles, "battle")}, ${plural(f.wins, "win")}.`;
     case "member_joined":
       return `${f.name ?? f.player_tag} joined ${subj}${f.role ? ` as ${roleWord(f.role)}` : ""}.`;
     // The roster sees only that a member went, never whether they left or

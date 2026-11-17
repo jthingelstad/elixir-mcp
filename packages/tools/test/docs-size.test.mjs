@@ -27,7 +27,9 @@ test("every docs page fits one elixir_docs result, with room for the meta", asyn
     largest = Math.max(largest, size);
     if (size > MCP_RESULT_MAX_CHARS - MARGIN) over.push(`${slug}: ${size}`);
   }
-  assert.ok(largest > 40_000, "the long pages were measured");
+  // 13.6.0 moved the facts table to timeline-kinds; the longest page is
+  // now under 40,000 characters.
+  assert.ok(largest > 30_000, "the long pages were measured");
   assert.deepEqual(
     over,
     [],

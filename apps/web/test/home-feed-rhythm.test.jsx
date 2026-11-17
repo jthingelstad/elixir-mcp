@@ -285,3 +285,18 @@ test("2026-11-17: the profile moments' heads", () => {
     }),
   ).toEqual({ kicker: "Years played", title: "5 years" });
 });
+
+test("0289: a deck switch's head names its mode and its deck; it is never a small moment", () => {
+  expect(
+    momentHead({
+      kind: "deck_switched",
+      facts: { mode: "ranked", deck: "Hog Rider cycle" },
+    }),
+  ).toEqual({ kicker: "New deck in Ranked", title: "Hog Rider cycle" });
+  expect(
+    momentHead({ kind: "deck_switched", facts: { mode: "ladder" } }),
+  ).toBeNull();
+  expect(smallMoment({ kind: "deck_switched", facts: {}, subjects: [] })).toBe(
+    false,
+  );
+});
