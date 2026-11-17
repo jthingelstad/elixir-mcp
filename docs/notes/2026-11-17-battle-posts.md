@@ -3,7 +3,7 @@
 Jamie, 2026-11-17: a highlight is a post with a battle attached. There was
 one kind of player writing (posts) and a second, older one (highlights)
 with its own table, routes, tab, share link and Discord path. Now there is
-one: a post, which may carry a battle. Ships in MCP 13.9.0 and migration
+one: a post, which may carry a battle. Ships in MCP 13.11.0 and migration
 0292; the JSON API is unchanged at 5.1.0.
 
 ## Migration 0292
@@ -50,7 +50,7 @@ fast rather than queueing ingest; the deploy can be retried.
 `services/migrate/test/battle-posts-migration.test.mjs` runs the file on a
 scratch database put back to 0291, with highlights in every state.
 
-## MCP 13.9.0
+## MCP 13.11.0
 
 - `elixir_timeline`: `battle_highlight` is schema version 2 and gains
   `facts.post_id`. `facts.highlight_id` carries the same value from now
