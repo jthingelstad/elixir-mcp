@@ -430,27 +430,47 @@ test("a take-back still goes when the item leaves the page before the cheer answ
 });
 
 test("a refused take-back goes back to what the server last confirmed", async () => {
-  let n = 0;
-  global.fetch = vi.fn(async (path, init = {}) => {
+  // The cheer answers only once the take-back is queued behind it.
+  let answerFirst;
+  global.fetch = vi.fn((path, init = {}) => {
     const body = JSON.parse(init.body);
     calls.push({ body });
-    n += 1;
-    if (n === 2)
-      return reply({ error: "rate_limited", message: "Too many" }, 429);
+    if (calls.length === 2)
+      return Promise.resolve(
+        reply({ error: "rate_limited", message: "Too many" }, 429),
+      );
     const after = withMyCheer(FRESH, body.cheer);
-    return reply({
-      item_id: ITEM.id,
-      cheers: after.cheers,
-      my_cheer: after.my_cheer,
+    return new Promise((resolve) => {
+      answerFirst = () =>
+        resolve(
+          reply({
+            item_id: ITEM.id,
+            cheers: after.cheers,
+            my_cheer: after.my_cheer,
+          }),
+        );
     });
   });
-  await feedWith(FRESH);
+  const r = await feedWith(FRESH);
+  // A player page's copy of the same item, cached from an earlier visit.
+  const page = ["me", "cheers", "player", "#0GVJ9V"];
+  r.queryClient.setQueryData(page, {
+    items: [{ id: ITEM.id, cheers: FRESH.cheers, my_cheer: null }],
+  });
   fireEvent.click(cheerButton());
   await waitFor(() => expect(calls).toHaveLength(1));
   fireEvent.click(cheerButton());
+  await waitFor(() =>
+    expect(cheerButton().getAttribute("aria-pressed")).toBe("false"),
+  );
+  answerFirst();
   expect(await screen.findByRole("status")).toBeTruthy();
   expect(cheerButton().getAttribute("aria-pressed")).toBe("true");
   expect(calls.map((c) => c.body.cheer)).toEqual(["well_played", null]);
+  // The other copy shows what the server confirmed too.
+  expect(r.queryClient.getQueryData(page).items[0].my_cheer).toBe(
+    "well_played",
+  );
 });
 
 test("on an agent's pages the counts show and nothing can be pressed", () => {

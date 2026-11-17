@@ -512,6 +512,21 @@ export function useCheer({ key = CHEER_FEED_KEY, list = "timeline" } = {}) {
     queryClient.setQueryData(key, (old) =>
       mapItems(old, list, (it) => (it.id === item.id ? item : it)),
     );
+  // Every other copy of the item (Home's feed, a player page's or a battle
+  // page's cheers read) takes what the server confirmed too, so a stale
+  // copy never shows the old cheer or sends it again.
+  const everyCopy = (id, data) => {
+    const patch = (it) =>
+      it.id === id
+        ? { ...it, cheers: data.cheers, my_cheer: data.my_cheer }
+        : it;
+    queryClient.setQueryData(CHEER_FEED_KEY, (old) =>
+      mapItems(old, "timeline", patch),
+    );
+    queryClient.setQueriesData({ queryKey: ["me", "cheers"] }, (old) =>
+      mapItems(old, "items", patch),
+    );
+  };
   const done = (id) => {
     const w = cheerWrites.get(id);
     if (w && --w.out === 0) cheerWrites.delete(id);
@@ -562,23 +577,12 @@ export function useCheer({ key = CHEER_FEED_KEY, list = "timeline" } = {}) {
       if (w) w.confirmed = data;
       if (w && w.newest !== context?.tap) return;
       put({ ...shown, cheers: data.cheers, my_cheer: data.my_cheer });
-      // Every other copy of the item (Home's feed, a player page's or a
-      // battle page's cheers read) takes the server's counts too, so a
-      // stale copy never shows the old cheer or sends it again.
-      const patch = (it) =>
-        it.id === shown.id
-          ? { ...it, cheers: data.cheers, my_cheer: data.my_cheer }
-          : it;
-      queryClient.setQueryData(CHEER_FEED_KEY, (old) =>
-        mapItems(old, "timeline", patch),
-      );
-      queryClient.setQueriesData({ queryKey: ["me", "cheers"] }, (old) =>
-        mapItems(old, "items", patch),
-      );
+      everyCopy(shown.id, data);
     },
     onError: (_err, { item }, context) => {
       const w = cheerWrites.get(item.id);
       if (!w || w.newest !== context?.tap) return;
+      if (w.confirmed) everyCopy(item.id, w.confirmed);
       put(
         w.confirmed
           ? {
