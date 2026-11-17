@@ -270,7 +270,7 @@ const ITEMS = [
     text: "Juniper played 4 battles in one session in Classic 2v2.",
     extra: {
       by_mode: { event: 4 },
-      events: [{ name: "Classic 2v2", event_tag: "2v2", run_wins: 0 }],
+      events: [{ name: "Classic 2v2", event_tag: "classic-2v2", run_wins: 0 }],
       together: [
         { player_tag: ROWAN.tag, name: ROWAN.name, with: 4, against: 0 },
       ],
