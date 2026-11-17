@@ -667,3 +667,44 @@ test("a post is 500 characters at most, longer than a comment", async () => {
   r = await write(CLANMATE, { text: `Long question ${"b".repeat(400)}?` });
   assert.equal(r.statusCode, 201, r.body);
 });
+
+test("with comments on and posts off, a post about a battle's author can be blocked from it; a plain post's cannot", async () => {
+  const { db } = scratch;
+  await db.query(
+    `insert into battle (battle_id, battle_time, type, type_class)
+     values ('ps-block-battle', now() - interval '1 hour', 'PvP', 'pvp')`,
+  );
+  await db.query(
+    `insert into battle_participant
+       (battle_id, player_tag, battle_time, side, type, type_class, outcome)
+     values ('ps-block-battle', $1, now() - interval '1 hour', 0, 'PvP', 'pvp', 'win')`,
+    [A],
+  );
+  const {
+    rows: [battlePost, plainPost],
+  } = await db.query(
+    `insert into account_post (item_id, account_id, player_tag, body, battle_id)
+     values ('tl_0000000000000000b10c', $1, $2, '', 'ps-block-battle'),
+            ('tl_0000000000000000b10d', $1, $2, 'words alone', null)
+     returning post_id::text as id`,
+    [AUTHOR, A],
+  );
+  const off = callWith(commentsOnlyHandler);
+  const plain = await off(STRANGER, "POST", "/api/me/blocks", {
+    post_id: plainPost.id,
+  });
+  assert.equal(plain.statusCode, 404, plain.body);
+  const r = await off(STRANGER, "POST", "/api/me/blocks", {
+    post_id: battlePost.id,
+  });
+  assert.equal(r.statusCode, 200, r.body);
+  const { rows } = await db.query(
+    `select 1 from account_block where account_id = $1 and blocked_account_id = $2`,
+    [STRANGER, AUTHOR],
+  );
+  assert.equal(rows.length, 1);
+  await db.query(`delete from account_block where account_id = $1`, [STRANGER]);
+  await db.query(`delete from account_post where item_id = any($1)`, [
+    ["tl_0000000000000000b10c", "tl_0000000000000000b10d"],
+  ]);
+});
