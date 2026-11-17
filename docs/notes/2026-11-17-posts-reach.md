@@ -15,6 +15,9 @@ record. A post counts by creation; editing does not create more news.
 Account-only follows and own posts work even without a cached game week.
 The count compares PostgreSQL timestamps at the same millisecond precision
 as normalized JSON items, so sub-millisecond creation times do not repeat.
+The poll budget is four statements (two session, one cached count, one
+live-post count), retaining its 80-buffer ceiling and no game-record scans.
+The pure member-path helper and package exports trigger browser journeys.
 
 The digest explicitly reads visible-only plain posts in its creation
 window, then applies its existing limits. Existing battle posts retain

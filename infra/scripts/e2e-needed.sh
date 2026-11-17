@@ -33,6 +33,7 @@ reaches_journeys() {
       -e '^apps/web/' \
       -e '^packages/(ui|client|design|clan-engine|contracts|record|mail|auth)/' \
       -e '^packages/stamps/src/catalog\.mjs$' \
+      -e '^packages/posts/(src/paths\.mjs|package\.json)$' \
       -e '^services/web-api/src/(app-pages|http|share-files)\.mjs$' \
       -e '^services/email-relay/src/templates\.mjs$' \
       -e '^infra/scripts/(build|build-site|serve-site|e2e-shard)\.mjs$' \
