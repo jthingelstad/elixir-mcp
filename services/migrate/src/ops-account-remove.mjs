@@ -211,7 +211,7 @@ async function removeAccount(db, { hash, accountId, dryRun }) {
       "timeline_feed_link",
       `timeline_feed_link where account_id = any($1::uuid[])`,
     ],
-    // Comments (0280): their reports, their comments and every comment
+    // Comments (0281): their reports, their comments and every comment
     // on their items (their reports go with the comments), their checks
     // and the words of their refused ones, their blocks either way and
     // their comment setting.
