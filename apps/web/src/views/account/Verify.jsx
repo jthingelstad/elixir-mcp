@@ -273,27 +273,34 @@ export function Verify({ refresh, navigate, tag = null }) {
               {/* Three steps a player reads at a glance on the phone the
                   game is on (2026-11-16): the same instruction as before. */}
               <ol className="verify__steps">
+                {/* Each step's words are one grid cell beside its number. */}
                 <li>
-                  {challenge.target_source === "most_played" ? (
-                    <>
-                      This is your own recent Trophy Road deck with{" "}
-                      <strong>two cards swapped</strong> (marked). Make those
-                      two changes in a deck slot in Clash Royale.
-                    </>
-                  ) : (
-                    <>
-                      Build <strong>these 8 cards</strong> in a deck slot in
-                      Clash Royale.
-                    </>
-                  )}
+                  <span>
+                    {challenge.target_source === "most_played" ? (
+                      <>
+                        This is your own recent Trophy Road deck with{" "}
+                        <strong>two cards swapped</strong> (marked). Make those
+                        two changes in a deck slot in Clash Royale.
+                      </>
+                    ) : (
+                      <>
+                        Build <strong>these 8 cards</strong> in a deck slot in
+                        Clash Royale.
+                      </>
+                    )}
+                  </span>
                 </li>
                 <li>
-                  <strong>Play one battle</strong> with it. Any mode counts, win
-                  or lose.
+                  <span>
+                    <strong>Play one battle</strong> with it. Any mode counts,
+                    win or lose.
+                  </span>
                 </li>
                 <li>
-                  Come back here. It turns green by itself, and then you can
-                  switch your deck back.
+                  <span>
+                    Come back here. It turns green by itself, and then you can
+                    switch your deck back.
+                  </span>
                 </li>
               </ol>
               <DeckGrid cards={challenge.target} label="The deck to play" />
