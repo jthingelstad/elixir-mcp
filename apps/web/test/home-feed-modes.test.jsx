@@ -176,6 +176,8 @@ test("a Show chip with nothing in the mode names both", async () => {
   expect((await screen.findAllByText(/Invented 3/)).length).toBeGreaterThan(0);
   fireEvent.click(screen.getByRole("button", { name: /Friends/ }));
   expect(
-    screen.getByText("Nothing from your friends in War in the last seven days."),
+    screen.getByText(
+      "Nothing from your friends in War in the last seven days.",
+    ),
   ).toBeTruthy();
 });

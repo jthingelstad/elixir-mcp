@@ -59,6 +59,7 @@ import { battleLinks } from "@elixir-mcp/record/battle-links";
 import { masteryCard } from "@elixir-mcp/record/badge-names";
 import { verifiedAvatars } from "./avatars.mjs";
 import { proofOf } from "@elixir-mcp/tools/activity/bell";
+import { PEOPLE_KIND_SCHEMAS } from "@elixir-mcp/tools/activity/schemas";
 import {
   badgeArtPath,
   modeGroupOf,
@@ -164,10 +165,12 @@ export const KIND_MODES = {
   member_away: NO_MODE,
   clan_message: NO_MODE,
   personal_record: NO_MODE,
-  // People items: an account's own news.
-  player_verified: NO_MODE,
-  stamp_earned: NO_MODE,
-  place_set: NO_MODE,
+  // People items, an account's own news, are about no mode. Named from
+  // their schemas so this file never names a Stamp (the stamps package's
+  // boundary test).
+  ...Object.fromEntries(
+    Object.keys(PEOPLE_KIND_SCHEMAS).map((kind) => [kind, NO_MODE]),
+  ),
 };
 
 /** The mode filters an item sits under; [] when it is about no mode or
