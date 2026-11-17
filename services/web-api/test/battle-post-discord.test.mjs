@@ -293,9 +293,9 @@ test("only the owner, only shared, only where the leaders turned it on, once", a
   const unshared = await ask();
   assert.equal(unshared.status, 409);
   assert.equal(unshared.body.error, "not_shared");
-  await call("POST", "/api/me/post-shares", {
+  await call("POST", "/api/me/item-shares", {
     who: "owner",
-    body: { id },
+    body: { source: "post", post_id: id, item_id: made.body.post.id },
   });
   // Shared, but the leaders have not turned shared battle posts on: off by
   // default, whatever the policy says.
@@ -337,7 +337,7 @@ test("only the owner, only shared, only where the leaders turned it on, once", a
   assert.match(p.content, /posted about a/);
   assert.match(
     p.content,
-    /\[Open in Elixir\]\(<https:\/\/.+\/h\/[a-z2-7]{15}>\)$/,
+    /\[Open in Elixir\]\(<https:\/\/.+\/share\/[a-z2-7]{24}>\)$/,
   );
   assert.equal(opts.once, true);
   const {
@@ -433,9 +433,9 @@ test("not your player any more, or not in a clan: refused", async () => {
     body: { battle: otherBattleId, text: "" },
   });
   const id = made.body.post.post.id;
-  await call("POST", "/api/me/post-shares", {
+  await call("POST", "/api/me/item-shares", {
     who: "owner",
-    body: { id },
+    body: { source: "post", post_id: id, item_id: made.body.post.id },
   });
   await db.query(
     `update clan_membership set left_observed_at = now() where player_tag = $1`,

@@ -2182,7 +2182,7 @@ export const OUTPUT_SCHEMAS = {
             url: {
               type: ["string", "null"],
               description:
-                "The battle's public page (9.18.0): both sides' decks and how it ended, readable without signing in. The link to hand a person for this battle; url + '.png' is its picture, 1200 by 630, to post with it (9.18.1).",
+                "The battle's member page: both sides' decks and how it ended, with sign-in required. url + '.png' is its authenticated 1200 by 630 picture. In the app, Share creates an opaque public link to one item.",
             },
             battle_time: ISO,
             battle_time_local: {

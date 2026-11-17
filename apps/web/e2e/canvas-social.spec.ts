@@ -272,11 +272,11 @@ for (const [label, width] of [
       const asked: string[] = [];
       const sent: unknown[] = [];
       let authed = true;
-      const route = `GET /api/public/battles/${BATTLE.battle.short_id}`;
+      const route = `GET /api/me/battles/${BATTLE.battle.short_id}`;
       await mockApi(page, {
         "GET /api/me": () => [200, authed ? ME : SIGNED_OUT],
         "GET /api/me/home/needs": [200, { needs: { ok: true, state: "none" } }],
-        [route]: [200, BATTLE],
+        [route]: () => (authed ? [200, BATTLE] : [404, { error: "not_found" }]),
         "GET /api/me/cheers": (r) => {
           asked.push(new URL(r.request().url()).search);
           return [
@@ -345,10 +345,10 @@ for (const [label, width] of [
       authed = false;
       asked.length = 0;
       await page.goto(`/battle/${BATTLE.battle.short_id}`);
-      await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
       await expect(
-        page.getByRole("link", { name: "Join Elixir" }),
+        page.getByRole("heading", { name: "Sign in first", exact: true }),
       ).toBeVisible();
+      await expect(page.locator(".battle")).toHaveCount(0);
       await expect(page.getByRole("region", { name: "Cheers" })).toHaveCount(0);
       await expect(
         page.getByRole("button", { name: /^Cheer(ed)?: / }),

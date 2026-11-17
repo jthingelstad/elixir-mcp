@@ -150,6 +150,11 @@
       "entry": ["test/**/*.test.mjs"],
       "project": ["src/**/*.mjs", "test/**/*.mjs"],
       "includeEntryExports": true
+    },
+    "packages/sharing": {
+      "entry": ["test/**/*.test.mjs"],
+      "project": ["src/**/*.mjs", "test/**/*.mjs"],
+      "includeEntryExports": true
     }
   }
 }

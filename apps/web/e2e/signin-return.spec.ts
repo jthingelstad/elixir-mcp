@@ -4,6 +4,7 @@ import { ME as CLAN_ME, signedIn as clanSignedIn } from "./clan/fixtures.ts";
 import { BATTLE } from "./battle-fixture.ts";
 
 const sendId = "5c1c5dbf-0000-4000-8000-000000000001";
+const shared = "/share/abcdefghijklmnopqrstuvwx";
 const email = `/settings/emails/${sendId}?report=1`;
 const paths = [
   {
@@ -27,6 +28,7 @@ const paths = [
     from: email,
     to: `/settings/feedback?send_id=${sendId}`,
   },
+  { name: "shared item", from: shared, to: shared },
 ];
 
 function answers(state: { authed: boolean; ready?: boolean }) {
@@ -42,10 +44,14 @@ function answers(state: { authed: boolean; ready?: boolean }) {
           ? { ...CLAN_ME, selected: CLAN_ME.clans[0] }
           : { error: "signed_out" },
       ] as [number, unknown],
-    [`GET /api/public/battles/${BATTLE.battle.short_id}`]: [200, BATTLE] as [
+    [`GET /api/me/battles/${BATTLE.battle.short_id}`]: [200, BATTLE] as [
       number,
       unknown,
     ],
+    "GET /api/public/shared-items/abcdefghijklmnopqrstuvwx": [
+      200,
+      { item: { ...BATTLE, kind: "battle" } },
+    ] as [number, unknown],
     "POST /api/auth": [200, { ok: true, poll_id: "p".repeat(40) }] as [
       number,
       unknown,
@@ -71,10 +77,16 @@ function answers(state: { authed: boolean; ready?: boolean }) {
 }
 
 async function enter(page: Page, path: (typeof paths)[number]) {
-  await page.goto(path.from);
-  if (path.name === "battle")
-    await page.getByRole("link", { name: "Join Elixir" }).click();
-  else {
+  // A bare battle is now a member destination; its anonymous document is
+  // deliberately unavailable. An explicit owned return still survives proof.
+  await page.goto(
+    path.name === "battle"
+      ? `/signin?return_to=${encodeURIComponent(path.to)}`
+      : path.from,
+  );
+  if (path.name === "shared item")
+    await page.getByRole("link", { name: "Create an account" }).click();
+  else if (path.name !== "battle") {
     // Every other page, Clan's included, is Elixir's sign-in page.
     await expect(
       page.getByRole("heading", { name: "Sign in first" }),
@@ -165,8 +177,8 @@ for (const width of [390, 1280]) {
           await page
             .getByLabel("Email", { exact: true })
             .fill("fixture@example.com");
-          // Join Elixir is the signup form: it asks the age question.
-          if (path.name === "battle")
+          // Create an account opens signup: it asks the age question.
+          if (path.name === "shared item")
             await page.getByRole("radio", { name: "Yes" }).check();
           await page
             .getByRole("button", { name: "Send sign-in email" })

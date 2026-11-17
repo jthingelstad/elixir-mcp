@@ -185,7 +185,7 @@ for (const gutter of [0, 15]) {
             ],
           },
         ],
-        [`GET /api/public/battles/${record.battle.short_id}`]: [200, record],
+        [`GET /api/me/battles/${record.battle.short_id}`]: [200, record],
       });
       const errors: string[] = [];
       page.on("pageerror", (error) => errors.push(error.message));

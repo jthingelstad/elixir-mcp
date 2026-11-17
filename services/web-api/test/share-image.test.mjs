@@ -7,7 +7,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
-import { drawBattle, makeShareImage } from "../src/share-image.mjs";
+import { drawBattle, drawItem, makeShareImage } from "../src/share-image.mjs";
 import { fontMetrics } from "../src/font-metrics.mjs";
 import { withFallenKing } from "../src/battle-page.mjs";
 import { SHARE_FILES, shareSources } from "../src/share-files.mjs";
@@ -394,4 +394,37 @@ test("a form the mirror lacks draws the base card's art, then nothing", async ()
   await art({ id: 26000042, form: "hero" });
   assert.deepEqual(keys, [], "a file read is kept");
   assert.ok(keys.every((k) => !/-\d+\.png$/.test(k)));
+});
+
+test("one shared battle post keeps both decks and the public author without card overlays", async () => {
+  const item = {
+    kind: "post",
+    text: "<b>One push</b>",
+    post: {
+      text: "<b>One push</b>",
+      author: { player_tag: "#0PGQ2UYL", name: "<img src=x>" },
+      battle: {
+        crowns: 3,
+        crowns_against: 1,
+        mode_group: "ladder",
+        opponents: [{ name: "Other player" }],
+      },
+      versus: { mine: DECK, theirs: DECK },
+    },
+  };
+  const art = new Map(DECK.cards.map((c) => [`${c.id}:${c.form}`, "AAAA"]));
+  const svg = drawItem(
+    {
+      item,
+      url: "https://elixir.poapkings.com/share/abcdefghijklmnopqrst2345",
+    },
+    { ...metrics, art },
+  );
+  assert.ok(svg.includes("&lt;b&gt;One push&lt;/b&gt;"));
+  assert.ok(svg.includes("&lt;img src=x&gt;"));
+  assert.ok(svg.includes("3–1"));
+  assert.equal(svg.match(/<image /g)?.length, 16);
+  for (const tag of svg.match(/<image [^>]*>/g))
+    assert.doesNotMatch(tag, /filter|mask|clip-path|opacity|transform/);
+  assert.doesNotMatch(svg, /<filter|<mask|<clipPath/);
 });

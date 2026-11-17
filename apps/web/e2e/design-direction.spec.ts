@@ -42,7 +42,7 @@ for (const width of [390, 1280]) {
               }
             : {}),
           "POST /api/me/tool": explore(),
-          [`GET /api/public/battles/${BATTLE.battle.short_id}`]: [200, BATTLE],
+          [`GET /api/me/battles/${BATTLE.battle.short_id}`]: [200, BATTLE],
         }),
       }),
     );

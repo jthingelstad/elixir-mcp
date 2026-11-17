@@ -81,7 +81,7 @@ async function readOwn(db, accountId, postId, lock = false) {
     rows: [h],
   } = await db.query(
     `select h.post_id::text as post_id, h.item_id, h.player_tag, h.battle_id,
-            h.body as words, h.share_id, h.created_at, h.updated_at,
+            h.body as words, ts.share_id, h.created_at, h.updated_at,
             h.clan_discord_at, h.clan_discord_clan,
             p.name,
             exists (select 1 from claim c
@@ -94,6 +94,8 @@ async function readOwn(db, accountId, postId, lock = false) {
               order by cm.joined_observed_at desc nulls last
               limit 1) as clan_tag
        from account_post h
+       left join timeline_share ts on ts.item_id = h.item_id
+         and ts.created_at >= now() - interval '1 year'
        left join player p on p.player_tag = h.player_tag
       where h.post_id = $1::bigint and h.account_id = $2
         and h.battle_id is not null and h.status = 'visible'

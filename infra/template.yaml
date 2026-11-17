@@ -2849,6 +2849,16 @@ Resources:
           # because these responses are identical for every caller -
           # the same property that makes them safe to cache is what
           # makes them public.
+          - PathPattern: /api/public/shared-items/*
+            TargetOriginId: api
+            ViewerProtocolPolicy: https-only
+            AllowedMethods: [GET, HEAD]
+            CachePolicyId: !Ref WebPrivateCachePolicy
+            ResponseHeadersPolicyId: !Ref SecurityHeadersPolicy
+            Compress: true
+            FunctionAssociations:
+              - EventType: viewer-request
+                FunctionARN: !GetAtt OauthQueryNormalizer.FunctionMetadata.FunctionARN
           - PathPattern: /api/public/*
             TargetOriginId: api
             ViewerProtocolPolicy: https-only
@@ -2861,46 +2871,25 @@ Resources:
             FunctionAssociations:
               - EventType: viewer-request
                 FunctionARN: !GetAtt OauthQueryNormalizer.FunctionMetadata.FunctionARN
-          # A battle's public page (Jamie, 2026-10-01: "Public yes."):
-          # the web-api serves the app shell with the battle's preview
-          # tags, so a pasted link unfurls as the battle. Cached like the
-          # public reads, for the same reason: nothing reaches the origin
-          # but the path, and every visitor gets the same page.
+          # Member battle pages require the same credentials as the app.
           - PathPattern: /battle/*
             TargetOriginId: api
             ViewerProtocolPolicy: redirect-to-https
             AllowedMethods: [GET, HEAD]
-            CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6
+            CachePolicyId: !Ref WebPrivateCachePolicy
+            OriginRequestPolicyId: !Ref SiteApiOriginRequestPolicy
             ResponseHeadersPolicyId: !Ref SecurityHeadersPolicy
             Compress: true
             FunctionAssociations:
               - EventType: viewer-request
                 FunctionARN: !GetAtt OauthQueryNormalizer.FunctionMetadata.FunctionARN
-          # A shared highlight's page, /h/<share id>, and its picture
-          # (social slice 4, #762): public like a battle's page, the same
-          # shell with the post's preview tags. The origin says max-age=60
-          # on every answer, so a deleted post stops opening within about
-          # a minute.
-          - PathPattern: /h/*
+          # Opaque one-item capabilities, with no cookies or cached bodies.
+          # Recheck current moderation and retained source on every read.
+          - PathPattern: /share/*
             TargetOriginId: api
             ViewerProtocolPolicy: redirect-to-https
             AllowedMethods: [GET, HEAD]
-            CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6
-            ResponseHeadersPolicyId: !Ref SecurityHeadersPolicy
-            Compress: true
-            FunctionAssociations:
-              - EventType: viewer-request
-                FunctionARN: !GetAtt OauthQueryNormalizer.FunctionMetadata.FunctionARN
-          # A session's public page, /session/<tag>/<id>/<start>, and its
-          # picture (.png on the same address), 2026-11-17: public like a
-          # battle's page, the same shell with the session's preview tags,
-          # cached by path alone. The origin says max-age=60 while the
-          # session is open, an hour (the picture a day) once it ended.
-          - PathPattern: /session/*
-            TargetOriginId: api
-            ViewerProtocolPolicy: redirect-to-https
-            AllowedMethods: [GET, HEAD]
-            CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6
+            CachePolicyId: !Ref WebPrivateCachePolicy
             ResponseHeadersPolicyId: !Ref SecurityHeadersPolicy
             Compress: true
             FunctionAssociations:

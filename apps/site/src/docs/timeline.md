@@ -199,31 +199,34 @@ Only battles Elixir recorded are on the page. When the update counted more
 than Elixir recorded, the page says how many are missing. A long session
 comes 25 battles at a time, and a session older than 30 days has no page.
 
+<a id="share-a-timeline-item"></a>
+
 ### Share a session
 
-A session's page has **Share this session** at its foot:
+**Share** on a Timeline item gets its link and opens your device's Share
+sheet, or copies the link. You can share a public-safe update or any post
+you can see, including someone else's question. A session's own page has
+**Share this session** too. You do not need to write a post first.
 
-- **Copy link** copies the session's own link. Anyone can open it, no
-  account needed.
-- **Share image** saves a picture of the session: its headline, figures and
-  bar chart, the deck played most with its cards, and the player's game
-  name.
-- **Copy for a post** copies one short line, like "King Thing: Won 8 of 12
-  on Trophy Road, 5 in a row", with the link under it.
+The link opens one item: its game names, words and facts, with its cards,
+deck or battle when it has them. It does not open a player's or clan's
+Timeline or history. **Create an account** and **Sign in** invite the reader
+into Elixir. Shared pages carry no comments, cheers, private nicknames,
+account notices or private Clan state. Player names are plain game names.
 
-Someone who opens the link without an account sees the session's
-headline, when it was played, its figures, bar chart and chips, its decks
-and every battle with who was on the other side and their deck. Each
-battle opens its own page. Players show by their game names only, never
-a nickname. Cheers, comments, a close friend's star and the Verified mark
-are only for members, and the names don't open player pages. **Join
-free**, **Join Elixir** and **Sign in** bring them back to this session,
-ready to follow the player.
+After the link is ready, **Share image** opens its picture and **Copy for a
+post** copies a linked picture. A clipboard or Share sheet interruption
+leaves the link available to select and copy.
 
-The link works for 30 days, like the session's page. A signed-out link to
-the member page (from your email, Discord, a notification or RSS) opens
-the shared page instead, and signed in the shared link opens the member
-page.
+Every share of the same item gets the same random link. It names no sender
+or opener. Elixir re-reads the current item when the link opens: edits show,
+and a removed or hidden post stops opening. The link lasts while its source
+can be read, up to a year. Session updates can be read for 30 days. Previous
+public battle, session and post links no longer open. A member link from
+mail, RSS or a notification asks you to sign in.
+
+Shared pages ask search engines not to index or follow them. That is not a
+privacy lock: anyone holding the link can open, copy or pass it along.
 
 Each mode is told the way the game tells it:
 
@@ -483,10 +486,12 @@ you, sees your posts. You don't see theirs.
 **Delete** takes your post away at once. **Report** hides someone else's
 post from you right away, and Elixir takes a look.
 
-Treat a post as public. Today it shows on the Timeline, in your clan's
-Feed, on your Profile and on your player's page. Elixir's emails,
-notifications, RSS feeds, Discord channels, agents and shared pages may
-carry posts later. A post about a battle already goes further (below).
+Treat a post as public. It shows on the Timeline, your clan's Timeline,
+your Profile and your player's page. New posts and questions can appear in
+the existing digest of people you follow. Anyone who can see a post can
+share a link to that one item, readable without an account. Plain posts do
+not go to RSS, Discord, push or agents. A post about a battle already goes
+further (below).
 
 ## Your RSS link
 
@@ -518,7 +523,7 @@ item about a single battle. One per player per battle. It shows the result,
 both decks with the score between them and a link to the battle.
 
 - **Who sees it:** the people who follow the player, on their Timeline,
-  and the player's clanmates, in the clan's Feed. Those readers can cheer
+  and the player's clanmates, in the clan's Timeline. Those readers can cheer
   and answer it. The player's page shows it to every signed-in member.
 - **Where else it goes:** your digest email, notifications, your RSS link,
   Timeline to Discord, a clan's Discord channel when its author shares it

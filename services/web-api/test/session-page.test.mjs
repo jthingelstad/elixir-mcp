@@ -12,17 +12,16 @@ import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { createSession } from "@elixir-mcp/auth";
-import { sessionPostText } from "@elixir-mcp/ui/session-story";
 import { scratchDb } from "../../../packages/ingest/test/helpers.mjs";
 import {
   seedDeck,
   seedPlayedDeck,
 } from "../../../packages/tools/test/deck-rows.mjs";
 import { makeHandler } from "../src/handler.mjs";
-import { drawSession, makeShareImage } from "../src/share-image.mjs";
+import { drawItem, makeShareImage } from "../src/share-image.mjs";
 import { fontMetrics } from "../src/font-metrics.mjs";
 import { shareSources } from "../src/share-files.mjs";
-import { parseSessionRef, sessionPreview } from "../src/session-page.mjs";
+import { createItemShare } from "../src/timeline-sharing.mjs";
 
 // Made-up tags: this repository is public.
 const A = "#0JQ8PL2V"; // the player whose session is shared
@@ -172,222 +171,189 @@ async function sitting(tag) {
   return { item, start, rest: `${tag.slice(1)}/${item.id}/${start}` };
 }
 
-test("the JSON: the sitting read as nobody, cached an hour once it ended", async () => {
-  const { item, rest } = await sitting(A);
-  const res = await get(`/api/public/sessions/${rest}`);
+async function share(item, accountId = X, input = {}) {
+  return createItemShare(scratch.db, accountId, {
+    item_id: item.id,
+    kind: item.kind,
+    source: "game",
+    subject: { kind: "player", tag: item.subject_tag },
+    at: item.facts.started_at,
+    ...input,
+  });
+}
+
+test("one opaque link opens the canonical update, no history, aliases or social fields", async () => {
+  const { item } = await sitting(A);
+  const shared = await share(item);
+  assert.match(
+    shared.url,
+    /^https:\/\/elixir.poapkings.com\/share\/[a-z2-7]{24}$/,
+  );
+  assert.deepEqual(
+    await share(item),
+    shared,
+    "sharing twice is one stable link",
+  );
+  const res = await get(`/api/public/shared-items/${shared.id}`);
   assert.equal(res.statusCode, 200, res.body);
-  assert.equal(res.headers["cache-control"], "public, max-age=3600");
+  assert.equal(res.headers["cache-control"], "no-store");
+  assert.match(res.headers["x-robots-tag"], /noindex, nofollow/);
   const body = data(res);
-  assert.deepEqual(Object.keys(body).sort(), [
-    "games",
-    "image",
-    "item",
-    "marks",
-    "open",
-    "player",
-    "url",
-  ]);
-  assert.deepEqual(body.player, { tag: A, name: HOSTILE });
   assert.equal(body.item.id, item.id);
-  assert.equal(body.open, false);
-  assert.equal(body.url, `https://elixir.poapkings.com/session/${rest}`);
-  assert.equal(body.image, `${body.url}.png`);
-  assert.deepEqual(
-    body.games.battles.map((b) => b.outcome),
-    ["win", "loss", "win"],
-  );
-  assert.deepEqual(
-    body.games.battles[0].opponents.map((o) => o.name),
-    [FOE],
-  );
-  // Each battle links its own public page.
-  assert.ok(
-    body.games.battles.every((b) => /\/battle\/[0-9a-f]{12}/.test(b.url)),
-  );
-  // The deck, its count across the whole sitting.
-  assert.equal(body.games.decks[0].battles, 3);
-  // Nothing of the reader, and nothing account-linked.
+  assert.equal(body.item.facts.battles, 3);
+  assert.equal(body.item.subjects.find((s) => s.tag === A).name, HOSTILE);
+  assert.ok(body.item.deck.cards.length);
   for (const absent of [
     NICK,
     FOE_NICK,
-    "cheer",
-    "comment",
-    "close",
-    "verified",
-    '"you"',
+    X,
+    "account_id",
+    "nickname",
+    "cheers",
+    "comments",
+    "my_cheer",
+    "offer_follow",
+    "games",
+    'url":"https://elixir.poapkings.com/battle',
   ])
     assert.ok(!res.body.includes(absent), absent);
 });
 
-test("an open session: a minute at the edge, page, JSON and picture", async () => {
-  const { rest } = await sitting(B);
-  const json = await get(`/api/public/sessions/${rest}`);
-  assert.equal(json.statusCode, 200, json.body);
-  assert.equal(data(json).open, true);
-  assert.equal(json.headers["cache-control"], "public, max-age=60");
-  const page = await get(`/session/${rest}`);
-  assert.equal(page.headers["cache-control"], "public, max-age=60");
-  const png = await get(`/session/${rest}.png`);
-  assert.equal(png.headers["cache-control"], "public, max-age=60");
-});
-
-test("a wrong start, id or tag is a 404, and so is any other shape", async () => {
-  const { item, start } = await sitting(A);
-  const tag = A.slice(1);
-  for (const rest of [
-    `${tag}/${item.id}/${start + 1}`,
-    `${tag}/${item.id}/${start - 1}`,
-    `${tag}/tl_${"0".repeat(20)}/${start}`,
-    `${B.slice(1)}/${item.id}/${start}`,
-    `0PYLQ2/${item.id}/${start}`,
-    // Older than the page's 30 days, and in the future.
-    `${tag}/${item.id}/${start - 40 * 86400}`,
-    `${tag}/${item.id}/${Math.floor(now / 1000) + 86400}`,
-    `${tag}/${item.id}`,
-    `${tag}/${item.id}/${start}/extra`,
-    `${tag}/${item.id}/not-a-time`,
-    `nope/${item.id}/${start}`,
-  ]) {
-    const json = await get(`/api/public/sessions/${rest}`);
-    assert.equal(json.statusCode, 404, rest);
-    assert.equal(json.headers["cache-control"], "public, max-age=60", rest);
-    const page = await get(`/session/${rest}`);
-    assert.equal(page.statusCode, 404, rest);
-    const png = await get(`/session/${rest}.png`);
-    assert.equal(png.statusCode, 404, rest);
-  }
-});
-
-test("an older page of battles names its version; a stale one is a 409", async () => {
-  const { rest, item } = await sitting(A);
-  const ok = await get(
-    `/api/public/sessions/${rest}/0/${item.evidence.version}`,
-  );
-  assert.equal(ok.statusCode, 200, ok.body);
-  const stale = await get(`/api/public/sessions/${rest}/1/ev_stale`);
-  assert.equal(stale.statusCode, 409);
+test("client kind/time/facts cannot turn another update or private Clan state into a share", async () => {
+  const { item } = await sitting(A);
   assert.equal(
-    parseSessionRef(`${rest}/1/bad version`, { paging: true }),
+    await share(item, X, { item_id: "tl_00000000000000000000" }),
     null,
   );
-  assert.equal(parseSessionRef(`${rest}/1/ev_x`), null, "paging is the JSON's");
+  assert.equal(
+    await share(item, X, { subject: { kind: "player", tag: O } }),
+    null,
+  );
+  assert.equal(await share(item, X, { at: "not-a-time" }), null);
+  assert.equal(await share(item, X, { source: "attested" }), null);
+  const canonical = await share(item, X, {
+    facts: { nickname: "private", text: "fake" },
+  });
+  assert.ok(canonical);
+  assert.ok(
+    !(await get(`/api/public/shared-items/${canonical.id}`)).body.includes(
+      "fake",
+    ),
+  );
 });
 
-test("the page: the shell named for the session, every name escaped", async () => {
-  const { rest } = await sitting(A);
-  const res = await get(`/session/${rest}`);
-  assert.equal(res.statusCode, 200);
-  assert.equal(res.headers["cache-control"], "public, max-age=3600");
-  assert.equal(res.body.match(/<title>/g).length, 1);
-  assert.equal(res.body.match(/property="og:title"/g).length, 1);
-  assert.ok(!res.body.includes("<b>"), "no raw markup from a name");
-  assert.ok(!res.body.includes('" onload="'), "no attribute breakout");
-  assert.ok(
-    res.body.includes(
-      `<meta property="og:title" content="&lt;b&gt;Al&amp;der&lt;/b&gt;&quot; onload=&quot;x: Won 2 of 3 on Trophy Road" />`,
-    ),
-    res.body,
-  );
-  assert.ok(
-    res.body.includes(
-      `<meta property="og:image" content="https://elixir.poapkings.com/session/${rest}.png" />`,
-    ),
-  );
-  assert.ok(
-    res.body.includes(
-      `<link rel="canonical" href="https://elixir.poapkings.com/session/${rest}" />`,
-    ),
-  );
-  assert.ok(res.body.includes('<meta name="robots" content="noindex" />'));
-  assert.ok(
-    res.body.includes(
-      '<meta name="twitter:card" content="summary_large_image" />',
-    ),
-  );
-  assert.match(
-    res.body,
-    /<meta property="og:description" content="3 battles: 2 won, 1 lost, \+30 trophies\. [^"]*UTC\." \/>/,
-  );
-  assert.ok(!res.body.includes(NICK));
-});
-
-test("the picture: a 1200 by 630 PNG, cached a day once ended", async () => {
-  const { rest } = await sitting(A);
-  const res = await get(`/session/${rest}.png`);
+test("the HTML preview escapes hostile names and is only this item", async () => {
+  const { item } = await sitting(A);
+  const { id, url } = await share(item);
+  const res = await get(`/share/${id}`);
   assert.equal(res.statusCode, 200, res.body);
-  assert.equal(res.headers["content-type"], "image/png");
-  assert.equal(res.headers["cache-control"], "public, max-age=86400");
-  const png = Buffer.from(res.body, "base64");
-  assert.equal(png.readUInt32BE(16), 1200);
-  assert.equal(png.readUInt32BE(20), 630);
+  assert.equal(res.headers["cache-control"], "no-store");
+  assert.ok(
+    res.body.includes("&lt;b&gt;Al&amp;der&lt;/b&gt;&quot; onload=&quot;x"),
+  );
+  assert.doesNotMatch(res.body, /<b>Al|<img src=x|Pet Name/);
+  assert.ok(res.body.includes(`content="${url}.png"`));
+  assert.ok(res.body.includes('content="noindex, nofollow, noarchive"'));
 });
 
-test("the picture's SVG: the name escaped, the art drawn with nothing over it", async () => {
-  const { rest } = await sitting(A);
-  const read = {
-    session: true,
-    ...data(await get(`/api/public/sessions/${rest}`)),
-  };
-  const f = shareSources();
-  const metrics = {
-    regular: fontMetrics(await readFile(f.interRegular)),
-    bold: fontMetrics(await readFile(f.interBold)),
-    clash: fontMetrics(await readFile(f.clash)),
-  };
-  const deck = read.item.deck ?? read.games.decks[0];
-  const art = new Map(
-    deck.cards.map((c) => [`${c.id}:${c.form ?? "base"}`, "AAAA"]),
+test("the picture is PNG and contains only unaltered card art", async () => {
+  const { item } = await sitting(A);
+  const shared = await share(item);
+  const body = data(await get(`/api/public/shared-items/${shared.id}`));
+  const png = await get(`/share/${shared.id}.png`);
+  assert.equal(png.statusCode, 200, png.body);
+  const bytes = Buffer.from(png.body, "base64");
+  assert.equal(bytes.readUInt32BE(16), 1200);
+  assert.equal(bytes.readUInt32BE(20), 630);
+  const files = shareSources();
+  const metrics = Object.fromEntries(
+    await Promise.all(
+      ["interRegular", "interBold", "clash"].map(async (k) => [
+        k,
+        fontMetrics(await readFile(files[k])),
+      ]),
+    ),
   );
-  const svg = drawSession(read, { ...metrics, art });
-  assert.ok(!svg.includes("<b>"));
-  assert.ok(svg.includes("&lt;b&gt;Al&amp;der&lt;/b&gt;&quot; onload=&quot;x"));
+  const art = new Map(
+    body.item.deck.cards.map((c) => [`${c.id}:${c.form ?? "base"}`, "AAAA"]),
+  );
+  const svg = drawItem(
+    { ...body, shared: true },
+    {
+      regular: metrics.interRegular,
+      bold: metrics.interBold,
+      clash: metrics.clash,
+      art,
+    },
+  );
   assert.ok(svg.includes("Won 2 of 3 on Trophy Road"));
-  assert.ok(svg.includes("supercell.com/fan-content-policy"));
-  assert.equal(svg.match(/<image /g).length, 8);
-  // Nothing drawn over a card: no form ribbon, no level pill, no filter,
-  // mask, clip or opacity on the art.
+  assert.equal(svg.match(/<image /g)?.length, 8);
   for (const tag of svg.match(/<image [^>]*>/g))
     assert.doesNotMatch(tag, /filter|mask|clip-path|opacity|transform/);
-  assert.doesNotMatch(svg, /<filter|<mask|<clipPath/);
-  const last = svg.lastIndexOf("<image ");
-  const after = svg.slice(last).split("\n").slice(1).join("\n");
-  assert.doesNotMatch(after, /Evo|Hero/);
+  assert.doesNotMatch(svg, /<filter|<mask|<clipPath|Pet Name/);
 });
 
-test("the post text and the preview: plain text, no line or markup a name could add", () => {
-  const f = {
-    battles: 12,
-    won: 8,
-    lost: 4,
-    by_mode: { ladder: 12 },
-    won_in_a_row: 5,
-  };
-  assert.equal(
-    sessionPostText("Ki\nng\u202eThing\u0007", f, "https://e.x/session/1"),
-    "Ki ng Thing: Won 8 of 12 on Trophy Road, 5 in a row\nhttps://e.x/session/1",
-  );
-  const preview = sessionPreview({
-    player: { tag: A, name: FOE },
-    item: {
-      facts: { ...f, trophy_net: -12, started_at: "2026-11-16T14:05:00Z" },
-    },
-  });
-  assert.equal(preview.title, `${FOE}: Won 8 of 12 on Trophy Road, 5 in a row`);
-  assert.equal(
-    preview.description,
-    "12 battles: 8 won, 4 lost, −12 trophies. Mon Nov 16 2026, 2:05 pm UTC.",
-  );
-});
-
-test("the signed-in session page names its public page and picture", async () => {
+test("bare public links and all their former data and paging doors return404", async () => {
   const { item, rest } = await sitting(A);
-  const res = await get(
-    `/api/player/session?${new URLSearchParams({ tag: A, id: item.id, at: item.facts.started_at })}`,
-    { signedIn: true },
-  );
+  for (const path of [
+    `/session/${rest}`,
+    `/session/${rest}.png`,
+    `/api/public/sessions/${rest}`,
+    `/api/public/sessions/${rest}/1/version`,
+    "/h/aaaaaaaaaaaaaaa",
+    "/api/public/posts/aaaaaaaaaaaaaaa",
+    `/api/public/shared-items/${item.id}`,
+    "/api/public/shared-items/",
+    "/share/aaaaaaaaaaaaaaaaaaaaaaaa/next",
+  ])
+    assert.equal((await get(path)).statusCode, 404, path);
+});
+
+test("capabilities do not open an anonymous source read or an arbitrary battle history", async () => {
+  const {
+    rows: [battle],
+  } = await scratch.db.query("select battle_id from battle limit 1");
+  const shared = await createItemShare(scratch.db, X, {
+    source: "battle",
+    battle_ref: battle.battle_id,
+  });
+  assert.ok(shared);
+  const res = await get(`/api/public/shared-items/${shared.id}`);
   assert.equal(res.statusCode, 200, res.body);
   const body = data(res);
-  assert.equal(body.url, `https://elixir.poapkings.com/session/${rest}`);
-  assert.equal(body.image, `${body.url}.png`);
-  assert.deepEqual(body.you, { own: true, can_post: true });
+  assert.equal(body.item.kind, "battle");
+  assert.equal(body.item.sides.length, 2);
+  for (const absent of [
+    "meetings",
+    "sitting",
+    "nickname",
+    "comments",
+    "url",
+    "image",
+  ])
+    assert.ok(!(absent in body.item.battle), absent);
+  for (const path of [
+    `/battle/${battle.battle_id}`,
+    `/battle/${battle.battle_id}.png`,
+    `/api/public/battles/${battle.battle_id}`,
+    `/api/me/battles/${battle.battle_id}`,
+  ])
+    assert.equal((await get(path)).statusCode, 404, path);
+  const inside = await get(`/api/me/battles/${battle.battle_id}`, {
+    signedIn: true,
+  });
+  assert.equal(inside.statusCode, 200, inside.body);
+  assert.equal(data(inside).battle.id, battle.battle_id);
+});
+
+test("the member session page remains signed in and no longer emits an anonymous path", async () => {
+  const { item } = await sitting(A);
+  const path = `/api/player/session?tag=${A.slice(1)}&id=${item.id}&at=${encodeURIComponent(item.facts.started_at)}`;
+  const denied = await get(path);
+  assert.equal(denied.statusCode, 401);
+  const inside = await get(path, { signedIn: true });
+  assert.equal(inside.statusCode, 200, inside.body);
+  assert.equal(data(inside).item.id, item.id);
+  assert.equal(data(inside).url, undefined);
+  assert.equal(data(inside).image, undefined);
 });

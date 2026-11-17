@@ -31,6 +31,10 @@ const home = (agent) =>
   agent ? `/api/agent/${encodeURIComponent(agent)}` : "/api/me";
 
 export const api = {
+  shareItem: (input) => request("POST", "/api/me/item-shares", input),
+  publicSharedItem: (id) =>
+    request("GET", `/api/public/shared-items/${encodeURIComponent(id)}`),
+  memberPost: (id) => request("GET", `/api/me/post/${encodeURIComponent(id)}`),
   me: (agent) => request("GET", home(agent)),
   // `timezone` is this browser's zone: a NEW account opens on it, an
   // existing one keeps its own (Jamie, 2026-10-08). Left out when the
@@ -355,20 +359,8 @@ export const api = {
     request("GET", `/api/me/verify/${encodeURIComponent(id)}`),
   publicStatus: () => request("GET", "/api/public/status"),
   publicCards: () => request("GET", "/api/public/cards"),
-  /** A session's public page (2026-11-17): its player's tag (no hash),
-   *  the item's id and its start in seconds; `offset` with the evidence
-   *  version for an older page of its games, as path segments (the edge
-   *  forwards no query string). */
-  publicSession: (tag, id, at, offset = 0, version = null) =>
-    request(
-      "GET",
-      `/api/public/sessions/${[tag, id, at, ...(offset && version ? [offset, version] : [])].map((x) => encodeURIComponent(String(x))).join("/")}`,
-    ),
-  publicBattle: (ref) =>
-    request("GET", `/api/public/battles/${encodeURIComponent(ref)}`),
-  // A shared post about a battle, as anyone with its link reads it.
-  publicPost: (id) =>
-    request("GET", `/api/public/posts/${encodeURIComponent(id)}`),
+  memberBattle: (ref) =>
+    request("GET", `/api/me/battles/${encodeURIComponent(ref)}`),
   myRequests: (agent) => request("GET", `${home(agent)}/requests`),
   callRecord: (request_id, agent) =>
     request(
@@ -440,7 +432,6 @@ export const api = {
   editPost: (id, text) =>
     request("PUT", `/api/me/posts/${encodeURIComponent(id)}`, { text }),
   // A post about a battle gets its public link, /h/<id>.
-  sharePost: (id) => request("POST", "/api/me/post-shares", { id }),
   // A shared post about a battle in its player's clan's Discord, once
   // (#767).
   postToClanDiscord: (id) => request("POST", "/api/me/post-discord", { id }),

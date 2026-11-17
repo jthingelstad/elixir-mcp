@@ -59,13 +59,11 @@ export function parseBattleRef(ref: string): string | null {
     : null;
 }
 
-/** A shared highlight's id (social slice 4, #762): 15 characters of
- *  base32, 75 random bits, minted when its owner shares the post. It
- *  names only the post: no sender, no opener, never sequential. */
-export const POST_ID_PATTERN = /^[a-z2-7]{15}$/;
+/** An individual Timeline item's opaque share capability: 120 random bits.
+ * Issued only by an authenticated member after a canonical source read. */
+export const POST_ID_PATTERN = /^[a-z2-7]{24}$/;
 
-/** The page for a shared highlight, by its share id; `.png` on the end
- *  is its picture. */
+/** The standalone item. The same capability with .png names its picture. */
 export function postUrl(shareId: string): string {
-  return `${ELIXIR_ORIGIN}/h/${shareId}`;
+  return `${ELIXIR_ORIGIN}/share/${shareId}`;
 }

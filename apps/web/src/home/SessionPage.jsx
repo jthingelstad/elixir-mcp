@@ -14,7 +14,7 @@ import {
   noun,
   useClock,
 } from "@elixir-mcp/ui";
-import { sessionPostText } from "@elixir-mcp/ui/session-story";
+import { ItemShare } from "./ItemShare.jsx";
 import { useMe } from "../App.jsx";
 import { playerHref } from "../lib/player.js";
 import { usePlayerSession } from "../lib/queries.js";
@@ -26,7 +26,7 @@ import { Game } from "./SessionGames.jsx";
 import { Sparkline } from "./Sparkline.jsx";
 import { gameMarks } from "./session-games.js";
 import { FollowFromHere } from "../views/FollowFromHere.jsx";
-import { CopyButton, Invite, JoinLine } from "../views/JoinElixir.jsx";
+import { Invite, JoinLine } from "../views/JoinElixir.jsx";
 
 /**
  * A session's own page (2026-11-16): what a run's page is on Strava. Its
@@ -414,39 +414,15 @@ function SessionCheers({ item, tag }) {
 /** Share this session (2026-11-17), as a battle's page shares: its public
  *  link, its picture, and a line for a post. Only for a sitting anyone
  *  with the link may read; the read leaves `url` empty otherwise. */
-function SessionShare({ data, name }) {
-  if (!data.url) return null;
-  const post = sessionPostText(
-    data.player?.name ?? name,
-    data.item?.facts,
-    data.url,
-  );
+function SessionShare({ data }) {
   return (
     <section className="panel" aria-label="Share this session">
       <div className="panel__head">Share this session</div>
       <div className="panel__body">
-        <div className="share-link">
-          <Icon name="link-2" size={15} />
-          <span className="share-link__url">{data.url}</span>
-          <CopyButton
-            text={data.url}
-            label="Copy link"
-            className="btn btn--sm btn--gold"
-          />
-        </div>
-        <div className="share-actions">
-          {data.image ? (
-            <a className="btn btn--sm" href={data.image} download>
-              <Icon name="layers" size={15} />
-              Share image
-            </a>
-          ) : null}
-          <CopyButton text={post} label="Copy for a post" />
-        </div>
+        <ItemShare it={data.item} />
         <p className="footnote">
-          Anyone with the link can open this page, no account needed: the
-          session’s battles, the decks, and the players’ game names. It stays up
-          for 30 days.
+          Anyone with the link can read this one Timeline update. Game names and
+          decks are included.
         </p>
       </div>
     </section>

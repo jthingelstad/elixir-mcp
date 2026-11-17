@@ -25,6 +25,7 @@ import { BattleCheers } from "./BattleCheers.jsx";
 import { BattlePosts } from "./BattlePosts.jsx";
 import { FollowFromHere } from "./FollowFromHere.jsx";
 import { PlayerBattleShare } from "./PlayerBattleShare.jsx";
+import { ItemShare } from "../home/ItemShare.jsx";
 import { CopyButton, Invite, JoinLine } from "./JoinElixir.jsx";
 
 /**
@@ -176,8 +177,8 @@ export function BattlePage() {
  *  that reads the real reader's own things is drawn. */
 export function Battle({ battleRef, me, standIn = false }) {
   const query = useQuery({
-    queryKey: ["public", "battle", battleRef],
-    queryFn: answered(() => api.publicBattle(battleRef)),
+    queryKey: ["me", "battle", battleRef],
+    queryFn: answered(() => api.memberBattle(battleRef)),
   });
   const env = query.data;
   // A 300 is an answer too: a hand-cut prefix two battles share.
@@ -245,6 +246,7 @@ export function BattleView({
   follow = true,
   invite = true,
   cheers = true,
+  sharing = true,
   standIn = false,
   heading = standIn ? "h3" : "h1",
 }) {
@@ -365,22 +367,24 @@ export function BattleView({
 
       {signedOut && invite && <Invite />}
 
-      <div className="battle__grid battle__grid--three">
-        <Meetings read={read} />
-        <Sitting read={read} />
-        <Share
-          battle={battle}
-          sides={sides}
-          own={
-            signedIn &&
-            statsPlayers(me?.claims).some((p) =>
-              sides.some((side) =>
-                side.players.some((x) => x.player_tag === p.player_tag),
-              ),
-            )
-          }
-        />
-      </div>
+      {sharing && (
+        <div className="battle__grid battle__grid--three">
+          <Meetings read={read} />
+          <Sitting read={read} />
+          <Share
+            battle={battle}
+            sides={sides}
+            own={
+              signedIn &&
+              statsPlayers(me?.claims).some((p) =>
+                sides.some((side) =>
+                  side.players.some((x) => x.player_tag === p.player_tag),
+                ),
+              )
+            }
+          />
+        </div>
+      )}
     </article>
   );
 }
@@ -438,9 +442,7 @@ function PlayerName({ p, signedIn }) {
     </Link>
   ) : (
     <span className="battle__name">
-      <IdentityName tag={p.player_tag}>
-        <TagText>{nameOf(p)}</TagText>
-      </IdentityName>
+      <TagText>{nameOf(p)}</TagText>
     </span>
   );
 }
@@ -972,50 +974,23 @@ function Sitting({ read }) {
   );
 }
 
-/** Text for an HTML attribute: a player names themselves, quotes and all. */
-const attr = (s) =>
-  String(s)
-    .replace(/&/g, "&amp;")
-    .replace(/"/g, "&quot;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
-
 function Share({ battle, sides, own }) {
-  if (!battle.url) return null;
-  // Just the picture and the link (Jamie: no embed for a blog).
-  const alt = `${namesOf(sides[0])} against ${namesOf(sides[1])}, a Clash Royale battle on Elixir`;
-  const post = battle.image
-    ? `<a href="${attr(battle.url)}"><img src="${attr(battle.image)}" alt="${attr(alt)}" width="1200" height="630"></a>`
-    : null;
+  const [url, setUrl] = useState(null);
   return (
     <section className="panel" aria-label="Share this battle">
       <div className="panel__head">Share this battle</div>
       <div className="panel__body">
-        <div className="share-link">
-          <Icon name="link-2" size={15} />
-          <span className="share-link__url">{battle.url}</span>
-          <CopyButton text={battle.url} className="btn btn--sm btn--gold" />
-        </div>
-        {battle.image && (
-          <div className="share-actions">
-            <a className="btn btn--sm" href={battle.image} download>
-              <Icon name="layers" size={15} />
-              Share image
-            </a>
-            <CopyButton text={post} label="Copy for a post" />
-          </div>
-        )}
-        <p className="footnote">
-          Anyone with the link can open this page, no account needed: both
-          decks, how it ended, and the players’ game names.
-        </p>
-        {own && (
+        <ItemShare battle={battle} onReady={setUrl} />
+        {own && url ? (
           <PlayerBattleShare
-            key={battle.id}
-            url={battle.url}
+            url={url}
             players={`${namesOf(sides[0])} against ${namesOf(sides[1])}`}
           />
-        )}
+        ) : null}
+        <p className="footnote">
+          Anyone with the link can read this one battle. Game names and decks
+          are included.
+        </p>
       </div>
     </section>
   );

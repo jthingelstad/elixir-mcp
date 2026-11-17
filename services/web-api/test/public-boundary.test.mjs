@@ -36,23 +36,9 @@ let db, handler;
  *  closed (CLASSES); "record" is the record itself and stays the
  *  shortest list of all. */
 const PUBLIC = {
-  // The record: a battle link someone sends. Its page, its JSON (the
-  // page reads it, so it opens with it) and its share picture
-  // (DECISIONS "A battle has its own page").
-  "GET /battle/*": "record",
-  "GET /api/public/battles/*": "record",
-  // The record: a post its owner shares, with its preview (slice 4,
-  // #762): its page (and picture, /h/<id>.png) and its JSON. The owner's
-  // game name, words and the battle; never an account, nickname or
-  // sender (battle-posts.test.mjs pins the shape).
-  "GET /h/*": "record",
-  "GET /api/public/posts/*": "record",
-  // The record: a session link someone sends (2026-11-17, DECISIONS "A
-  // session's public page"): its page (and picture, .png on the same
-  // address) and its JSON, read as nobody, only when the tag, the id and
-  // the start all name one sitting (session-page.test.mjs pins it).
-  "GET /session/**": "record",
-  "GET /api/public/sessions/**": "record",
+  // An issued, non-enumerable capability opens exactly one public-safe item.
+  "GET /share/*": "record",
+  "GET /api/public/shared-items/*": "record",
   // Status: counts of what the recorder holds, no subject named but
   // the operator credit on /api/public/status. /data and its live
   // figures read these; the site build bakes /api/public/stats.
@@ -100,14 +86,7 @@ const CLASSES = new Set([
 /** The record that opens with no account, exactly: a battle link, a
  *  shared post (slice 4, #762) and a session link (2026-11-17). Growing
  *  this is a product decision. */
-const RECORD = [
-  "GET /api/public/battles/*",
-  "GET /api/public/posts/*",
-  "GET /api/public/sessions/**",
-  "GET /battle/*",
-  "GET /h/*",
-  "GET /session/**",
-];
+const RECORD = ["GET /api/public/shared-items/*", "GET /share/*"];
 
 const PRIMARY = "#0RYQQRGY";
 const ALT = "#0LYL9009";
@@ -206,7 +185,13 @@ test("every other route refuses a request with no credential", async () => {
     const res = await call(method, p, {
       body: method === "GET" ? undefined : {},
     });
-    if (![401, 403].includes(res.statusCode))
+    if (
+      ![401, 403].includes(res.statusCode) &&
+      !(
+        res.statusCode === 404 &&
+        ["GET /battle/*", "GET /api/me/battles/*"].includes(key)
+      )
+    )
       opened.push(`${key} answered ${res.statusCode}`);
   }
   assert.deepEqual(opened, [], "routes answering with no sign-in");

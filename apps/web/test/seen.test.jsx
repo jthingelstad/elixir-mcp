@@ -166,7 +166,7 @@ beforeEach(() => {
       explored.push(body);
       return reply({ tool: body.tool, is_error: false, body: { battles } });
     }
-    if (p === `/api/public/battles/${SHORT}`) return reply(BATTLE);
+    if (p === `/api/me/battles/${SHORT}`) return reply(BATTLE);
     if (p === "/api/me/follow-slots") return reply(SLOTS);
     if (p === "/api/clan/me/place") return reply(place[1], place[0]);
     if (p === "/api/claims") {

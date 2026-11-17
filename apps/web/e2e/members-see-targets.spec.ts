@@ -67,7 +67,7 @@ test("What members see: every control is a 44 px target, and a slot's row opens 
         200,
         { body: { battles: [{ url: BATTLE.battle.url }] } },
       ],
-      [`GET /api/public/battles/${BATTLE.battle.short_id}`]: [200, BATTLE],
+      [`GET /api/me/battles/${BATTLE.battle.short_id}`]: [200, BATTLE],
     }),
   );
   await page.goto("/settings/what-members-see");
@@ -131,7 +131,7 @@ test("the battle page: a post's words lead, its buttons are ordinary, Delete is 
           ],
         },
       ],
-      [`GET /api/public/battles/${BATTLE.battle.short_id}`]: [200, BATTLE],
+      [`GET /api/me/battles/${BATTLE.battle.short_id}`]: [200, BATTLE],
       "GET /api/me/posts": [
         200,
         {

@@ -28,7 +28,8 @@
     "@elixir-mcp/http": "0.1.0",
     "@elixir-mcp/ui": "0.1.0",
     "@elixir-mcp/web": "0.1.0",
-    "@elixir-mcp/posts": "0.1.0"
+    "@elixir-mcp/posts": "0.1.0",
+    "@elixir-mcp/sharing": "0.1.0"
   },
   "devDependencies": {
     "pg": "^8.23.1"

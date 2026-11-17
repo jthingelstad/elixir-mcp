@@ -48,15 +48,15 @@ test("a battle ref is a bare id or a link", () => {
 test("a shared highlight's link names only the post (#762)", async () => {
   const { postUrl, POST_ID_PATTERN } = await import("../dist/index.js");
   assert.equal(
-    postUrl("abcdefghij23456"),
-    "https://elixir.poapkings.com/h/abcdefghij23456",
+    postUrl("abcdefghijklmnopqrst2345"),
+    "https://elixir.poapkings.com/share/abcdefghijklmnopqrst2345",
   );
-  assert.ok(POST_ID_PATTERN.test("abcdefghij23456"));
+  assert.ok(POST_ID_PATTERN.test("abcdefghijklmnopqrst2345"));
   for (const bad of [
     "abc",
     "ABCDEFGHIJ23456",
     "abcdefghij23451",
-    "abcdefghij234567",
+    "abcdefghijklmnopqrst23457",
   ])
     assert.ok(!POST_ID_PATTERN.test(bad), bad);
 });

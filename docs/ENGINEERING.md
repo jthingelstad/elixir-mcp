@@ -482,7 +482,7 @@ CloudFront signs origin requests to three IAM-protected Lambda Web Function
 endpoints with `always-amz-auth`. Private cache behaviors carry Authorization
 in the cache policy, forward their existing cookie/header allowlists, and use
 zero default/minimum TTL; every private response says `no-store`. Public
-reads (`/api/public/*`, `/battle/*` and the OAuth metadata at
+reads (`/api/public/*` except shared items, and the OAuth metadata at
 `/.well-known/*`) are cached by URL alone, with no origin request policy, so
 a response there must be the same for every caller. Every behavior
 compresses. API Gateway is absent. The collector has an origin of its own
@@ -560,7 +560,7 @@ imported by name.
 
 | Service (Lambda) | Serves |
 | --- | --- |
-| `web-api` | the site's API, `GET /api/v1/me`, `/api/clan`, the app's tool bridge (`/api/me/tool`), `/battle/*`, OAuth consent |
+| `web-api` | the site's API, `GET /api/v1/me`, `/api/clan`, the app's tool bridge (`/api/me/tool`), `/battle/*` (member), `/share/*` (opaque one-item capability), OAuth consent |
 | `mcp` | the MCP and OAuth doors |
 | `collector` | the collector door |
 | `scheduler` | the ledger tick |

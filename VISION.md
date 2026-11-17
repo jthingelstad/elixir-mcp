@@ -62,9 +62,13 @@ server gets a stream of events that link back to Elixir.
 
 The Clash Royale API is open, so nearly nothing in the game is private.
 Elixir is for its members: everyone signs in, to read as well as to
-follow, react, highlight and run a clan. A post its owner shares, or a battle
-link someone sends, opens without an account, with its link preview. (Changed 2026-11-11 from "anyone
-can read a player's timeline without signing in".)
+follow, react, post and run a clan. Any member may share a public-safe
+Timeline item they can see, including another person's post. Its opaque
+link opens that item alone, with a preview and a way to sign in or create
+an account. It opens no player or clan history. Comments, private
+nicknames, account notices and private Clan state stay inside Elixir.
+Bare battle and session links require membership. Previous public links
+may return 404. (Jamie, 2026-11-17.)
 
 | What | Who sees it |
 | --- | --- |

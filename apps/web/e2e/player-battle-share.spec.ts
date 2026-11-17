@@ -10,6 +10,8 @@ const own = {
   claims: [{ ...ME.claims[0], player_tag: tag, name: "PRIVATE nickname" }],
 };
 const path = `/battle/${BATTLE.battle.short_id}`;
+const SHARE_URL = "https://elixir.poapkings.com/share/abcdefghijklmnopqrstuvwx";
+const shareAnswer: [number, unknown] = [200, { url: SHARE_URL }];
 const words = "My first close win after returning. I held on at the end.";
 
 async function outbound(page: Page) {
@@ -46,7 +48,17 @@ async function outbound(page: Page) {
   });
 }
 
+async function mint(page: Page) {
+  const sharing = page.getByRole("region", { name: "Share this battle" });
+  await sharing.getByRole("button", { name: "Share", exact: true }).click();
+  await expect(
+    sharing.getByRole("link", { name: "Share image" }),
+  ).toHaveAttribute("href", SHARE_URL + ".png");
+}
+
 async function preview(page: Page) {
+  await expect(page.getByLabel(/Why did this battle matter/)).toHaveCount(0);
+  await mint(page);
   await page.getByRole("button", { name: "Share with your context" }).click();
   await page.getByLabel(/Why did this battle matter/).fill(words);
   await page.getByRole("button", { name: "Preview message" }).click();
@@ -64,11 +76,24 @@ test("choose a captured battle, inspect facts, preview and copy only deliberate 
     battle: { ...BATTLE.battle, battle_time: "2026-09-28T23:11:39.000Z" },
   };
   const source = explore();
+  const issued: unknown[] = [];
+  const posts: string[] = [];
+  page.on("request", (request) => {
+    if (
+      request.method() === "POST" &&
+      new URL(request.url()).pathname === "/api/me/posts"
+    )
+      posts.push(request.url());
+  });
   await mockApi(
     page,
     signedIn({
       "GET /api/me": [200, own],
-      [`GET /api/public/battles/${BATTLE.battle.short_id}`]: [200, captured],
+      "POST /api/me/item-shares": (route) => {
+        issued.push(route.request().postDataJSON());
+        return shareAnswer;
+      },
+      [`GET /api/me/battles/${BATTLE.battle.short_id}`]: [200, captured],
       "POST /api/me/tool": (route) => {
         const [status, payload] = source(route);
         const result = payload as {
@@ -111,9 +136,16 @@ test("choose a captured battle, inspect facts, preview and copy only deliberate 
     page.getByRole("region", { name: "How it ended" }),
   ).toBeVisible();
   await preview(page);
+  expect(issued).toEqual([
+    { source: "battle", battle_ref: captured.battle.id },
+  ]);
+  expect(posts).toEqual([]);
+  expect(
+    await page.evaluate(() => Reflect.get(window, "outbound").shares[0]),
+  ).toEqual({ url: SHARE_URL });
   const message = await page.getByLabel("Message preview").inputValue();
   expect(message).toContain(words);
-  expect(message.endsWith(BATTLE.battle.url)).toBe(true);
+  expect(message.endsWith(SHARE_URL)).toBe(true);
   expect(message).not.toContain("PRIVATE");
   expect(message).not.toContain(ME.email);
   await page.getByRole("button", { name: "Back to edit" }).click();
@@ -139,7 +171,8 @@ test("native cancellation, failed clipboard and pending repeated sharing preserv
     page,
     signedIn({
       "GET /api/me": [200, own],
-      [`GET /api/public/battles/${BATTLE.battle.short_id}`]: [200, BATTLE],
+      "POST /api/me/item-shares": shareAnswer,
+      [`GET /api/me/battles/${BATTLE.battle.short_id}`]: [200, BATTLE],
     }),
   );
   await page.goto(`${path}?token=PRIVATE#note=PRIVATE`);
@@ -174,19 +207,18 @@ test("native cancellation, failed clipboard and pending repeated sharing preserv
     .dispatchEvent("click");
   expect(
     await page.evaluate(() => Reflect.get(window, "outbound").shares.length),
-  ).toBe(2);
+  ).toBe(3);
   await page.evaluate(() => Reflect.get(window, "outbound").finish());
   await expect(page.getByRole("status")).toHaveText("Shared.");
   expect(
-    await page.evaluate(() => Reflect.get(window, "outbound").shares[1].url),
-  ).toBe(BATTLE.battle.url);
+    await page.evaluate(() => Reflect.get(window, "outbound").shares[2].url),
+  ).toBe(SHARE_URL);
 });
 
 test("only a primary or alt participant can compose; missing records do not invent a share", async ({
   page,
 }) => {
   for (const me of [
-    SIGNED_OUT,
     ME,
     {
       ...own,
@@ -195,18 +227,21 @@ test("only a primary or alt participant can compose; missing records do not inve
   ]) {
     await mockApi(page, {
       "GET /api/me": [200, me],
-      [`GET /api/public/battles/${BATTLE.battle.short_id}`]: [200, BATTLE],
+      "POST /api/me/item-shares": shareAnswer,
+      [`GET /api/me/battles/${BATTLE.battle.short_id}`]: [200, BATTLE],
     });
     await page.goto(path);
     await expect(page.getByRole("heading", { level: 1 })).toContainText(
       "2 to 1",
     );
+    await mint(page);
     await expect(
       page.getByRole("button", { name: "Share with your context" }),
     ).toHaveCount(0);
     await page.unroute("**/api/**");
   }
   await mockApi(page, {
+    "POST /api/me/item-shares": shareAnswer,
     "GET /api/me": [
       200,
       {
@@ -214,13 +249,10 @@ test("only a primary or alt participant can compose; missing records do not inve
         claims: [{ ...own.claims[0], is_primary: false, relationship: "alt" }],
       },
     ],
-    [`GET /api/public/battles/${BATTLE.battle.short_id}`]: [200, BATTLE],
-    "GET /api/public/battles/ffffffffffff": [404, { error: "not_found" }],
+    [`GET /api/me/battles/${BATTLE.battle.short_id}`]: [200, BATTLE],
+    "GET /api/me/battles/ffffffffffff": [404, { error: "not_found" }],
   });
   await page.goto(path);
-  await expect(
-    page.getByRole("button", { name: "Share with your context" }),
-  ).toBeVisible();
   await preview(page);
   await page.goto("/battle/ffffffffffff");
   await expect(page.getByText("No battle at this link")).toBeVisible();
@@ -228,6 +260,7 @@ test("only a primary or alt participant can compose; missing records do not inve
     page.getByRole("button", { name: "Share with your context" }),
   ).toHaveCount(0);
   await page.goto(path);
+  await mint(page);
   await page.getByRole("button", { name: "Share with your context" }).click();
   await expect(page.getByLabel(/Why did this battle matter/)).toHaveValue("");
 });
@@ -238,7 +271,8 @@ test("@narrow native-share preview fits small phones and desktop with accessible
   await outbound(page);
   await mockApi(page, {
     "GET /api/me": [200, own],
-    [`GET /api/public/battles/${BATTLE.battle.short_id}`]: [200, BATTLE],
+    "POST /api/me/item-shares": shareAnswer,
+    [`GET /api/me/battles/${BATTLE.battle.short_id}`]: [200, BATTLE],
   });
   await page.goto(path);
   await preview(page);
@@ -287,4 +321,27 @@ test("@narrow native-share preview fits small phones and desktop with accessible
       ["serious", "critical"].includes(v.impact ?? ""),
     ),
   ).toEqual([]);
+});
+
+test("a signed-out bare battle cannot mint a public link", async ({ page }) => {
+  const minted: unknown[] = [];
+  await mockApi(page, {
+    "GET /api/me": [200, SIGNED_OUT],
+    [`GET /api/me/battles/${BATTLE.battle.short_id}`]: [
+      404,
+      { error: "not_found" },
+    ],
+    "POST /api/me/item-shares": (route) => {
+      minted.push(route.request().postDataJSON());
+      return shareAnswer;
+    },
+  });
+  await page.goto(path);
+  await expect(
+    page.getByRole("heading", { name: "Sign in first", exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("region", { name: "Share this battle" }),
+  ).toHaveCount(0);
+  expect(minted).toEqual([]);
 });

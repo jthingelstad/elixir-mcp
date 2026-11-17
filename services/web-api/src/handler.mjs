@@ -52,8 +52,7 @@ import { resolveOwnedAgent } from "./agent-scope.mjs";
 import { deadlineMs } from "./deadline.mjs";
 import { principalsRoutes } from "./routes/principals.mjs";
 import { battleRoutes } from "./routes/battle.mjs";
-import { sessionRoutes } from "./routes/session.mjs";
-import { sharedPostRoutes } from "./routes/shared-post.mjs";
+import { itemSharingRoutes } from "./routes/item-sharing.mjs";
 import { cheersRoutes } from "./routes/cheers.mjs";
 import { commentsRoutes } from "./routes/comments.mjs";
 import { postsRoutes } from "./routes/posts.mjs";
@@ -500,9 +499,8 @@ export function makeHandler({
     }),
     ...principalsRoutes({ resolveAccount, logEvent }),
     ...verifyRoutes({ resolveAccount, logEvent }),
-    ...battleRoutes({ siteShell, shareImage }),
+    ...battleRoutes({ siteShell, shareImage, resolveAccount }),
     // A session's public page, picture and JSON (2026-11-17).
-    ...sessionRoutes({ siteShell, shareImage }),
     ...cheersRoutes({ resolveAccount, posts: postsOn }),
     // Comments, blocks and reports (2026-11-16), off unless the stack's
     // CommentsEnabled is true.
@@ -541,7 +539,13 @@ export function makeHandler({
         : null,
     }),
     // A shared post's public page, picture and JSON.
-    ...sharedPostRoutes({ siteShell, shareImage }),
+    ...itemSharingRoutes({
+      resolveAccount,
+      siteShell,
+      posts: postsOn,
+      comments: comments?.enabled === true,
+      shareImage,
+    }),
     ...pushRoutes({ resolveAccount, publicKey: vapidPublicKey }),
     // The bell's stored week rides the same wake (bell_week, 0247).
     ...bellRoutes({

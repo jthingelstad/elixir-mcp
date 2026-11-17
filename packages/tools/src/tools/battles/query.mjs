@@ -48,7 +48,7 @@ const boatRole = (r) =>
 
 export const battles_query = {
   description:
-    "The workhorse: recorded battles with filters and cursor pagination, both perspectives of every battle. Two addressing modes: player_tag (the usual sweep, defaults to the caller; deck_hash narrows it to one deck); battle_id alone (ONE battle, both sides). live: true asks for a battle-log poll no older than a minute (the 'what did they just play' path): served if in hand, otherwise queued while the record answers with live_status pending. Each battle's url is its public page.",
+    "The workhorse: recorded battles with filters and cursor pagination, both perspectives of every battle. Two addressing modes: player_tag (the usual sweep, defaults to the caller; deck_hash narrows it to one deck); battle_id alone (ONE battle, both sides). live: true asks for a battle-log poll no older than a minute (the 'what did they just play' path): served if in hand, otherwise queued while the record answers with live_status pending. Each battle's url is its member page (sign-in required).",
   inputSchema: {
     type: "object",
     properties: {

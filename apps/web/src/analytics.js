@@ -73,7 +73,12 @@ export function loadTinylytics() {
   const clanSearch =
     window.location.pathname.startsWith("/clan/") &&
     new URLSearchParams(window.location.search).has("find");
-  if (settingsRecord(window.location.pathname) || clanSearch) {
+  if (
+    settingsRecord(window.location.pathname) ||
+    clanSearch ||
+    window.location.pathname.startsWith("/share/") ||
+    window.location.pathname.startsWith("/home/post/")
+  ) {
     landing();
     return listenForEvents();
   }
@@ -207,13 +212,14 @@ export function analyticsLocation(
     url.searchParams.set("id", decodeURIComponent(segments[4]));
     return { path: "/home/session", url: url.toString() };
   }
-  // A session's public page (2026-11-17) is one page too, /session, its
-  // record the session's id; the player's tag and the start are left out.
-  if (segments[0] === "session" && segments[2]) {
-    const url = new URL("/session", origin);
-    url.searchParams.set("id", decodeURIComponent(segments[2]));
-    return { path: "/session", url: url.toString() };
-  }
+  // Capability tokens never enter measurement URLs or referrers.
+  if (segments[0] === "share")
+    return { path: "/share", url: new URL("/share", origin).toString() };
+  if (segments[0] === "home" && segments[1] === "post")
+    return {
+      path: "/home/post",
+      url: new URL("/home/post", origin).toString(),
+    };
   const page = segments.length ? `/${segments.slice(0, 2).join("/")}` : "/";
   const url = new URL(page, origin);
   const id = segments.slice(2).join("/");
