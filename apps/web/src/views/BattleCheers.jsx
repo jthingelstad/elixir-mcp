@@ -1,5 +1,6 @@
 import { TagText, useClock } from "@elixir-mcp/ui";
 import { Cheers, usePageCheered } from "../home/Cheers.jsx";
+import { Comments } from "../home/Comments.jsx";
 
 /**
  * Cheers on a battle's page (2026-11-12): the items in your own feed that
@@ -29,6 +30,7 @@ export function BattleCheers({ battle }) {
                 ) : null}
               </p>
               {it ? <Cheers it={it} where={cheered.where} /> : null}
+              {it ? <Comments it={it} /> : null}
             </article>
           );
         })}

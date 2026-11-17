@@ -16,6 +16,7 @@ import { playerHref } from "../lib/player.js";
 import { usePlayerSession } from "../lib/queries.js";
 import { tagFromPath } from "../lib/tag-url.js";
 import { sessionChips, sessionHeadline, trophyNet } from "./Session.jsx";
+import { Comments } from "./Comments.jsx";
 import { Game } from "./SessionGames.jsx";
 import { Sparkline } from "./Sparkline.jsx";
 import { gameMarks } from "./session-games.js";
@@ -238,6 +239,12 @@ function SessionView({ data, busy, onPage }) {
           </ul>
         ) : null}
       </section>
+
+      {item.id ? (
+        // Comments on the session's item (2026-11-16), read when opened:
+        // only while it is in your own feed, as on Home.
+        <Comments it={{ ...item, cheer_subjects: [player.tag] }} />
+      ) : null}
 
       {own.length ? (
         <section className="kit-session__decks" aria-labelledby="s-decks">

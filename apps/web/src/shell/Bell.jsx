@@ -391,6 +391,31 @@ export function BellSheet({ me, onClose, returnTo = null }) {
           />
         );
       }
+      case "comment":
+        return (
+          <Item
+            key={r.key}
+            icon={r.icon}
+            to={r.to}
+            onLeave={leave(r.key)}
+            isNew={on}
+            title={
+              <>
+                {r.tag ? (
+                  <PlayerName tag={r.tag}>
+                    <TagText>{r.who}</TagText>
+                  </PlayerName>
+                ) : (
+                  <TagText>{r.who}</TagText>
+                )}{" "}
+                commented
+              </>
+            }
+            detail={[`“${r.text}”`, r.at ? clock.when(r.at) : null]
+              .filter(Boolean)
+              .join(" · ")}
+          />
+        );
       case "answer":
         return (
           <Item

@@ -51,6 +51,7 @@ import {
 } from "./Session.jsx";
 import { SessionGames } from "./SessionGames.jsx";
 import { Cheers } from "./Cheers.jsx";
+import { Comments } from "./Comments.jsx";
 import { RacePlace } from "./RacePlace.jsx";
 import { PeopleToFollow } from "./People.jsx";
 
@@ -637,6 +638,7 @@ function FeedItem({ it, open, onToggle }) {
         {"cheers" in it ? <Cheers it={it} /> : null}
         <span className="share-actions kit-feed__links">{links}</span>
       </footer>
+      {"comments" in it ? <Comments it={it} /> : null}
     </article>
   );
 }

@@ -141,6 +141,7 @@ test("Settings' rail: eight places, Collectors for who runs one, Admin for staff
   expect(SETTINGS_RAIL.map((r) => r.label)).toEqual([
     "Profile",
     "What members see",
+    "Comments & blocks",
     "Players & following",
     "Emails",
     "Notifications",
@@ -158,6 +159,10 @@ test("Settings' rail: eight places, Collectors for who runs one, Admin for staff
   expect(SETTINGS_RAIL.filter((r) => r.adminOnly).map((r) => r.key)).toEqual([
     "admin",
   ]);
+  // Comments & blocks is drawn only while comments are on (2026-11-16).
+  expect(SETTINGS_RAIL.filter((r) => r.commentsOnly).map((r) => r.key)).toEqual(
+    ["comments"],
+  );
 });
 
 test("a page says which rail it wears", () => {

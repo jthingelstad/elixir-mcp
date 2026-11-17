@@ -16,6 +16,7 @@ import {
 } from "../views/account/Agents.jsx";
 import { AgentFollowing } from "../views/account/AgentFollowing.jsx";
 import { CallRecord } from "../views/account/CallRecord.jsx";
+import { CommentsSettings } from "../views/account/CommentsSettings.jsx";
 import { Connections } from "../views/account/Connections.jsx";
 import { EmailPage } from "../views/account/EmailPage.jsx";
 import { EmailRecord } from "../views/account/EmailRecord.jsx";
@@ -62,6 +63,8 @@ export function SettingsPage() {
       return <Profile me={me} refresh={refresh} hash={hash} />;
     case "seen":
       return <Seen me={me} />;
+    case "comments":
+      return <CommentsSettings me={me} />;
     case "sign-ins":
       return <SignIns />;
     case "players":

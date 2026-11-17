@@ -188,12 +188,16 @@ const DOC_TITLES = (() => {
 })();
 
 // Admin is staff's (adminOnly): offered to staff, as on Settings' rail.
-const SETTINGS_PAGES = SETTINGS_RAIL.map((r) => ({
-  t: r.label,
-  d: "Settings",
-  href: r.to,
-  adminOnly: r.adminOnly === true,
-}));
+// Comments & blocks draws only while comments are on, so search leaves it
+// to the rail.
+const SETTINGS_PAGES = SETTINGS_RAIL.filter((r) => !r.commentsOnly).map(
+  (r) => ({
+    t: r.label,
+    d: "Settings",
+    href: r.to,
+    adminOnly: r.adminOnly === true,
+  }),
+);
 
 const hits = (q) => (text) =>
   String(text ?? "")
