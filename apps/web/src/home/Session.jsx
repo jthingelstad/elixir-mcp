@@ -2,6 +2,7 @@ import { DeckRow, Icon, Link, TagText, noun } from "@elixir-mcp/ui";
 import { sessionHref } from "../lib/player.js";
 import { modeWord } from "./logic.js";
 import { Sparkline } from "./Sparkline.jsx";
+import { ModeLine } from "./ModeLine.jsx";
 
 /**
  * A sitting as every page draws it (slice 7, #765; G7, 2026-11-12: sessions
@@ -226,6 +227,7 @@ export function Sitting({ it, href = null, who = null }) {
           ))}
         </ul>
       ) : null}
+      <ModeLine facts={f} />
       {/* Its eight cards, as kept when Home's week was built (design
           canvas, 2026-11-13); a week stored before then has the label
           alone. */}
