@@ -242,7 +242,8 @@ export function mergeAccountLines(lines, stamps) {
  *  input, escaped wherever they are shown. */
 async function readComments(db, accountId, seen) {
   const { rows } = await db.query(
-    `select tc.comment_id::text as comment_id, tc.item_id, tc.body,
+    `select tc.comment_id::text as comment_id, tc.item_id, tc.subject_tag,
+            tc.body,
             tc.created_at, ap.passport_id as author_id,
             pc.player_tag as author_tag, pp.name as author_name,
             ($2::timestamptz is null or tc.created_at > $2) as fresh
@@ -263,6 +264,8 @@ async function readComments(db, accountId, seen) {
   const items = rows.slice(0, LIST_CAP).map((r) => ({
     comment_id: r.comment_id,
     item_id: r.item_id,
+    // Your player it is about: the bell's row opens that player's page.
+    subject_tag: r.subject_tag,
     at: r.created_at ? new Date(r.created_at).toISOString() : null,
     author: {
       account_id: r.author_id ?? null,

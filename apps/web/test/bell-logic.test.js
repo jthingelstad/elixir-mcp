@@ -10,6 +10,7 @@ import {
   bellGroups,
   bellLabel,
   bellSeenAt,
+  commentRows,
   followerRows,
   reactionRow,
 } from "../src/shell/bell-logic.js";
@@ -339,4 +340,48 @@ test("one inbox: New then Earlier, every kind keyed; what you left new stays new
   expect(back.fresh.map((r) => r.key)).toEqual(["tl_a", "answer-7"]);
   expect(bellGroups(seen).fresh.map((r) => r.key)).toEqual(["answer-7"]);
   expect(bellGroups(null)).toEqual({ fresh: [], earlier: [], counted: null });
+});
+
+test("a comment row names who said it, its words, and opens your player's page (2026-11-16)", () => {
+  const bell = {
+    seen_at: null,
+    new: 1,
+    reactions: { new: 0, items: [] },
+    followers: { new: 0, unnamed: 0, players: [] },
+    answers: { new: 0, items: [] },
+    comments: {
+      new: 1,
+      items: [
+        {
+          comment_id: "7",
+          item_id: "tl_0123456789abcdef0123",
+          subject_tag: "#0VJ2QV",
+          at: "2026-11-16T12:00:00.000Z",
+          author: { account_id: "p1", player_tag: "#0GVJ9V", name: "Ada" },
+          text: "gg",
+          new: true,
+        },
+      ],
+    },
+  };
+  const [row] = commentRows(bell.comments);
+  expect(row).toMatchObject({
+    key: "comment-7",
+    icon: "message-circle",
+    who: "Ada",
+    tag: "#0GVJ9V",
+    text: "gg",
+    new: true,
+  });
+  expect(row.to).toBe("/home/player/0VJ2QV");
+  const { fresh } = bellGroups(bell);
+  expect(fresh.map((r) => r.kind)).toEqual(["comment"]);
+  const after = bellSeenAt(bell, "2026-11-16T13:00:00.000Z");
+  expect(after.comments.items[0].new).toBe(false);
+  expect(after.comments.new).toBe(0);
+  // A read with comments off carries none, and opening it adds none.
+  expect(commentRows(undefined)).toEqual([]);
+  const off = { ...bell };
+  delete off.comments;
+  expect("comments" in bellSeenAt(off, null)).toBe(false);
 });

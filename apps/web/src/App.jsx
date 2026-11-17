@@ -138,6 +138,13 @@ export const ADMIN_RAIL = [
     icon: "megaphone",
     to: `${ADMIN}/discord`,
   },
+  // Reported comments, the check's refusals and its spend (2026-11-16).
+  {
+    key: "comments",
+    label: "Comments",
+    icon: "message-circle",
+    to: `${ADMIN}/comments`,
+  },
   {
     group: "Access",
     key: "connections",
@@ -409,7 +416,8 @@ function Rail({
     : SETTINGS_RAIL.filter(
         (r) =>
           (!r.runsOne || runsCollector) &&
-          (!r.adminOnly || me?.is_admin === true),
+          (!r.adminOnly || me?.is_admin === true) &&
+          (!r.commentsOnly || me?.features?.comments === true),
       );
   const items = rail.map((row) => ({
     key: row.key,

@@ -394,6 +394,41 @@ export const api = {
         ? `/api/me/cheers?player=${encodeURIComponent(player)}`
         : `/api/me/cheers?battle=${encodeURIComponent(battle)}`,
     ),
+  // Comments (2026-11-16): one item's, by its id and the subject tags the
+  // server rebuilds to find it in your feed; a post goes through the
+  // check first. Yours alone, never an agent's pages; every one answers
+  // 404 comments_off while comments are off.
+  comments: ({ item_id, subjects }) =>
+    request(
+      "GET",
+      `/api/me/comments?${new URLSearchParams({
+        item: item_id,
+        subjects: (subjects ?? []).join(","),
+      })}`,
+    ),
+  postComment: ({ item_id, subjects, text }) =>
+    request("POST", "/api/me/comments", { item_id, subjects, text }),
+  deleteComment: (id) =>
+    request("DELETE", `/api/me/comments/${encodeURIComponent(id)}`),
+  reportComment: (id, reason) =>
+    request("POST", "/api/me/comment-reports", { id, reason }),
+  commentSetting: () => request("GET", "/api/me/comment-setting"),
+  setCommentSetting: (who) =>
+    request("PUT", "/api/me/comment-setting", { who }),
+  // Blocks: by an account's page id, a player (its verified owner) or a
+  // comment (its author). Silent both ways.
+  blocks: () => request("GET", "/api/me/blocks"),
+  block: (target) => request("POST", "/api/me/blocks", target),
+  unblock: (accountId) =>
+    request("DELETE", `/api/me/blocks/${encodeURIComponent(accountId)}`),
+  // Admin's comment queue.
+  adminComments: () => request("GET", "/api/admin/comments"),
+  adminRemoveComment: (id) =>
+    request("POST", "/api/admin/comments/remove", { id }),
+  adminDismissComment: (id) =>
+    request("POST", "/api/admin/comments/dismiss", { id }),
+  adminSuspendCommenting: (account_id, days) =>
+    request("POST", "/api/admin/comment-suspensions", { account_id, days }),
   // People to follow ("suggested"), Find's From your battles ("battles")
   // and Your clan ("clan").
   people: (which) => request("GET", `/api/me/people/${which}`),

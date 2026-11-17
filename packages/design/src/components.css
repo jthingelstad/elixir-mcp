@@ -11854,3 +11854,91 @@ h1.kit-post__title {
 .kit-bell__push .btn {
   min-height: var(--hit);
 }
+
+/* Comments on a timeline item (2026-11-16): apps/web src/home/Comments.jsx.
+   The words are other people's, drawn as plain text that wraps. */
+.kit-comments {
+  display: grid;
+  gap: var(--s-2);
+  margin-top: var(--s-2);
+}
+.kit-comments__list {
+  display: grid;
+  gap: var(--s-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.kit-comments__item {
+  display: grid;
+  gap: 2px;
+  padding: var(--s-2) var(--s-3);
+  border-radius: var(--r-control);
+  background: var(--ground-sunken);
+}
+.kit-comments__head {
+  margin: 0;
+  font-size: var(--t-body-sm);
+}
+.kit-comments__who {
+  font-weight: 600;
+}
+.kit-comments__text {
+  margin: 0;
+  color: var(--ink-body);
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+.kit-comments__acts,
+.kit-comments__bar,
+.kit-comments__send {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-1) var(--s-2);
+}
+.kit-comments__send {
+  justify-content: space-between;
+}
+.kit-comments .kit-comments__more {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--hit);
+  padding: 0 10px;
+  border-radius: var(--r-pill);
+  font-size: var(--t-body-sm);
+}
+.kit-comments__thread {
+  display: grid;
+  gap: var(--s-2);
+}
+.kit-comments__form,
+.kit-comments__report {
+  display: grid;
+  gap: var(--s-2);
+}
+.kit-comments__field {
+  width: 100%;
+  min-height: 64px;
+  resize: vertical;
+}
+.kit-comments__report fieldset {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.kit-comments__reasons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-1) var(--s-3);
+}
+.kit-comments__reason {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-1);
+  min-height: var(--hit);
+  font-size: var(--t-body-sm);
+}
+.kit-comments__days {
+  width: 4.5em;
+}

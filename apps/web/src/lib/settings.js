@@ -16,6 +16,7 @@ export const ADMIN_PAGES = {
   feedback: "Feedback",
   emails: "Emails",
   discord: "Discord",
+  comments: "Comments",
   connections: "Connections",
   usage: "Usage",
   service: "Service",
@@ -54,6 +55,15 @@ export const SETTINGS_RAIL = [
     label: "What members see",
     icon: "eye",
     to: `${SETTINGS}/what-members-see`,
+  },
+  // Comments' setting and your blocks (2026-11-16): drawn only while
+  // comments are on (`/api/me` features.comments).
+  {
+    key: "comments",
+    label: "Comments & blocks",
+    icon: "message-circle",
+    to: `${SETTINGS}/comments`,
+    commentsOnly: true,
   },
   {
     key: "players",
@@ -129,6 +139,8 @@ export function settingsHere(path) {
       return second ? null : at(first, first);
     case "what-members-see":
       return second ? null : at("seen", "seen");
+    case "comments":
+      return second ? null : at("comments", "comments");
     case "players":
       if (!second) return at("players", "players");
       if (second === "verify") return third ? null : at("players", "verify");

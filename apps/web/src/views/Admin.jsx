@@ -40,6 +40,7 @@ import { ADMIN, SETTINGS } from "../lib/settings.js";
 import { Status } from "./Status.jsx";
 import { Fleet } from "./Collectors.jsx";
 import { Efficiency } from "./Efficiency.jsx";
+import { AdminComments } from "./AdminComments.jsx";
 
 /**
  * Admin, nine pages.
@@ -123,6 +124,7 @@ export function Admin({ me, page = "accounts", navigate, itemId }) {
   if (page === "discord")
     return itemId ? <AdminDiscordDetail id={itemId} /> : <AdminDiscord />;
   if (page === "cards") return <AdminCards />;
+  if (page === "comments") return <AdminComments />;
   // The service page, the fleet and Efficiency were every member's under
   // /data/service and /console/status until 2026-11-12; staff pages now.
   if (page === "service") return <Status />;

@@ -39,6 +39,8 @@ import {
 import { normTag, tagFromPath } from "../lib/tag-url.js";
 import { SessionGames } from "./SessionGames.jsx";
 import { Cheers, usePageCheered } from "./Cheers.jsx";
+import { BlockButton } from "./Block.jsx";
+import { Comments } from "./Comments.jsx";
 import {
   evidenceWord,
   Sitting,
@@ -206,7 +208,7 @@ export function PlayerView({ page, initialTab = "timeline" }) {
             <TagText>{sub}</TagText>
           </p>
           <Badges badges={page.badges} />
-          <Identity page={page} />
+          <Identity page={page} own={you.own === true} />
           {/* A verified player's passport (#1015): one row, under the
               name, so the play below stays in view. */}
           {page.passport ? (
@@ -314,7 +316,7 @@ function Badges({ badges }) {
  * what account is making the claim"). Imported: followed by someone, so
  * Elixir records it, and no account says it is theirs.
  */
-function Identity({ page }) {
+function Identity({ page, own = false }) {
   const claimants = page.claimants ?? [];
   const verified = claimants.find((c) => c.verified);
   if (verified)
@@ -330,6 +332,17 @@ function Identity({ page }) {
         </Link>
         {verified.relationship === "alt" ? ", as their alt" : null}. Nobody else
         can claim this player.
+        {/* Block their account (2026-11-16): here, with the account it
+            blocks, so the header keeps its two actions. */}
+        {own ? null : (
+          <>
+            {" "}
+            <BlockButton
+              playerTag={page.player?.tag}
+              name={verified.player?.name ?? verified.player?.tag}
+            />
+          </>
+        )}
       </p>
     );
   if (claimants.length)
@@ -531,6 +544,7 @@ export function ItemList({
                     </span>
                   </footer>
                 ) : null}
+                {withCheers ? <Comments it={withCheers} /> : null}
               </article>
             );
           })}
@@ -596,6 +610,7 @@ function Highlights({ items, cheered, own = false }) {
             </span>
           </footer>
         ) : null}
+        {withCheers ? <Comments it={withCheers} /> : null}
       </article>
     );
   });
@@ -630,6 +645,7 @@ function Moments({ items, empty, cheered }) {
               {withCheers ? (
                 <Cheers it={withCheers} where={cheered.where} />
               ) : null}
+              {withCheers ? <Comments it={withCheers} /> : null}
             </div>
           </li>
         );

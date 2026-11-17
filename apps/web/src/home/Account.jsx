@@ -18,6 +18,8 @@ import { trackEvent } from "../analytics.js";
 import { accountIdOf } from "../lib/account.js";
 import { playerHref } from "../lib/player.js";
 import { useAccountPage, useInvalidate } from "../lib/queries.js";
+import { BlockButton, UnblockButton } from "./Block.jsx";
+import { useCommentsOn } from "./Comments.jsx";
 import { ItemList } from "./Player.jsx";
 import { PassportRow } from "./PassportRow.jsx";
 import { followPlanLine } from "./follow.jsx";
@@ -88,6 +90,7 @@ export function AccountView({ page, actions = null, noPlayers = null }) {
   const playerName = primary?.name ?? primary?.tag ?? "An Elixir member";
   const title = a.handle ? `@${a.handle}` : playerName;
   const place = placeWords(a.place);
+  const blocksShown = useCommentsOn();
   const sub = [
     primary?.tag,
     place,
@@ -157,12 +160,19 @@ export function AccountView({ page, actions = null, noPlayers = null }) {
         <nav className="kit-phead__actions" aria-label="This account">
           {page.you.self ? (
             actions
+          ) : page.you.blocked && blocksShown ? (
+            // Your block of this account (2026-11-16): only you see it,
+            // and only Unblock is offered while it stands.
+            <UnblockButton account={a.id} name={title} />
           ) : (
-            <FollowAccount
-              id={a.id}
-              following={page.you.following}
-              plan={page.you.plan ?? null}
-            />
+            <>
+              <FollowAccount
+                id={a.id}
+                following={page.you.following}
+                plan={page.you.plan ?? null}
+              />
+              <BlockButton account={a.id} name={title} />
+            </>
           )}
         </nav>
       </header>

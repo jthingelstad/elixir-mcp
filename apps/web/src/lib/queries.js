@@ -564,6 +564,72 @@ export const usePageCheers = (ask, enabled = true) =>
     retry: false,
   });
 
+/** One item's comments (2026-11-16), read when its thread opens: the item's
+ *  id and the subject tags that find it in your feed. */
+export const commentsKey = (itemId) => ["me", "comments", "item", itemId];
+export const useItemComments = (it, enabled = true) =>
+  useQuery({
+    queryKey: commentsKey(it?.id ?? ""),
+    queryFn: payload(() =>
+      api.comments({ item_id: it.id, subjects: itemSubjects(it) }),
+    ),
+    enabled: enabled && Boolean(it?.id),
+    staleTime: 15_000,
+    retry: false,
+  });
+
+/** The tags that find an item in your feed: a page's item carries the
+ *  follows its cheers read came through, a feed item its own subjects. */
+export const itemSubjects = (it) =>
+  it?.cheer_subjects ?? [
+    ...new Set(
+      [it?.subject_tag, ...(it?.subjects ?? []).map((s) => s.tag)].filter(
+        Boolean,
+      ),
+    ),
+  ];
+
+/** After a comment write: the item's thread and Home's feed (its card's
+ *  count and latest) read again. A block also ends follows, so it
+ *  refreshes everything that is yours. */
+export function useCommentsChanged() {
+  const queryClient = useQueryClient();
+  return useCallback(
+    (itemId, { everything = false } = {}) => {
+      if (everything)
+        return queryClient.invalidateQueries({ queryKey: keys.me });
+      if (itemId)
+        queryClient.invalidateQueries({ queryKey: commentsKey(itemId) });
+      return queryClient.invalidateQueries({ queryKey: HOME_FEED_KEY });
+    },
+    [queryClient],
+  );
+}
+
+/** Who may comment on your play, and the people you block. */
+export const useCommentSetting = (enabled = true) =>
+  useQuery({
+    queryKey: ["me", "comment-setting"],
+    queryFn: payload(api.commentSetting),
+    enabled,
+    retry: false,
+  });
+export const useBlocks = (enabled = true) =>
+  useQuery({
+    queryKey: ["me", "blocks"],
+    queryFn: payload(api.blocks),
+    enabled,
+    retry: false,
+  });
+
+/** Admin's comment queue. */
+export const useAdminComments = () =>
+  useQuery({
+    queryKey: ["admin", "comments"],
+    queryFn: payload(api.adminComments),
+    retry: false,
+  });
+
 /** Home's People to follow, and Find's From your battles and Your clan
  *  (2026-11-12): each its own read. */
 export const usePeople = (which, enabled = true) =>

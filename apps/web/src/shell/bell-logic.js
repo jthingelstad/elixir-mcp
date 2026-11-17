@@ -46,6 +46,10 @@ export function bellSeenAt(bell, seenAt) {
     ...a,
     new: false,
   }));
+  const comments = (bell.comments?.items ?? []).map((c) => ({
+    ...c,
+    new: false,
+  }));
   return {
     ...bell,
     seen_at: seenAt ?? bell.seen_at ?? null,
@@ -54,6 +58,9 @@ export function bellSeenAt(bell, seenAt) {
     followers: { ...bell.followers, players: followers, new: 0 },
     answers,
     account: { ...bell.account, items: account, new: 0 },
+    ...(bell.comments
+      ? { comments: { ...bell.comments, items: comments, new: 0 } }
+      : {}),
   };
 }
 
@@ -226,6 +233,21 @@ export function followerRows(followers) {
   return { rows, counted };
 }
 
+/** Comments on your play (2026-11-16): who said it and the words, to the
+ *  page of your player it is about, where the item's thread opens. The
+ *  bell is the one place a comment reaches you. */
+export const commentRows = (comments) =>
+  (comments?.items ?? []).map((c) => ({
+    key: `comment-${c.comment_id}`,
+    icon: "message-circle",
+    who: c.author?.name ?? c.author?.player_tag ?? "A player",
+    tag: c.author?.player_tag ?? null,
+    text: c.text,
+    at: c.at ?? null,
+    to: c.subject_tag ? playerHref(c.subject_tag) : null,
+    new: c.new === true,
+  }));
+
 /** Answers to your feedback, each to its page in Settings. */
 export const answerRows = (answers) =>
   (answers?.items ?? []).map((a) => ({
@@ -244,8 +266,8 @@ export const answerRows = (answers) =>
  * the read says so or when `keep` holds its key (what was new when the
  * bell last showed it, kept while you visit a row and come back); `drop`
  * holds the keys you have opened since, which are no longer new. Within
- * each part the kinds keep the order cheers, followers, answers, your
- * account, each newest first as the read sends it.
+ * each part the kinds keep the order cheers, followers,
+ * comments, answers, your account, each newest first as the read sends it.
  */
 export function bellGroups(bell, { keep = null } = {}) {
   if (!bell) return { fresh: [], earlier: [], counted: null };
@@ -256,6 +278,7 @@ export function bellGroups(bell, { keep = null } = {}) {
       ...reactionRow(r),
     })),
     ...followers.map((f) => ({ kind: "follower", ...f })),
+    ...commentRows(bell.comments).map((c) => ({ kind: "comment", ...c })),
     ...answerRows(bell.answers).map((a) => ({ kind: "answer", ...a })),
     ...accountRows(bell.account).map((a) => ({ kind: "account", ...a })),
   ];
