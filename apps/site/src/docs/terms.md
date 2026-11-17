@@ -27,6 +27,14 @@ record has gaps, things break, and features change or go away.
 **Your agents.** What your agents and connected apps do with your
 access is yours to answer for, and it counts against your limits.
 
+**Comments.** Keep comments friendly and about the game: no bullying,
+hate, threats, sexual content, spam, links, or anyone's personal
+details, yours included. A check reads every comment before it posts
+and can say no. The owner of the player an item is about can remove
+comments on it, and an admin can remove any comment or stop an account
+from commenting. You can block anyone; a block works both ways and
+isn't announced.
+
 **One API budget.** The whole service shares one modest slice of the
 game's API. Please don't try to get around it.
 

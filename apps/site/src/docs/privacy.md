@@ -92,6 +92,17 @@ device in Settings › Notifications, or block notifications in your
 browser, and Elixir stops; a device your browser says is gone is
 removed. Deleting your account removes all of it.
 
+**Comments.** A comment you write is kept with your account and shown
+to the people who can see the item it's on, never to anyone in a block
+with you. Before it posts, its words and a line about the item go to
+Anthropic, whose Claude model checks them. They are used for that check
+and nothing else. Elixir keeps a record of each check for 35 days, with
+the words only when the check said no, so an admin can review it. A
+comment you delete goes at once. One the item's owner or an admin
+removes is kept 30 days for review, then deleted. Comments are deleted
+after a year, or with your account. The people you block are listed in
+your settings, and they are never told.
+
 **Sign-in check.** The sign-in forms, on this site and on the page an
 app sends you to when it connects to Elixir, use Cloudflare
 [Turnstile](https://www.cloudflare.com/application-services/products/turnstile/)
