@@ -41,5 +41,5 @@ Every response carries [an envelope](/docs/responses) with its computation time.
 Subject tools expose history and source freshness where applicable. Check
 `elixir_coverage` for measured reading intervals. Missing coverage is unknown,
 not evidence of completeness; no recorded battles is not proof of no play. How
-often a player is fetched, and why a sitting can still, rarely, roll past
+often a player is fetched, and why a session can still, rarely, roll past
 the ~30-entry battle log, is on [Recording and coverage](/docs/recording).

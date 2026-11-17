@@ -20,7 +20,7 @@ trophies or a rank.
 ## Find it
 
 - Tap your picture in the top bar, then **Passport**.
-- Or open **You** and tap **Your passport**.
+- Or open **Profile** and tap **Your passport**.
 - **Settings > Profile** shows a preview at the top.
 
 ## What a Stamp shows

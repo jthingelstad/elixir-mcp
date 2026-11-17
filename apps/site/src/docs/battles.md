@@ -142,7 +142,7 @@ Find asks.
 Signed in, a battle's page has **In your feed** when an item in your own
 feed is about this battle: a highlight of it, or a moment it proved, such
 as the win that reached a new league. Each takes your cheer and shows its
-counts as it does on Home ([Cheers](/docs/timeline#cheers)). A battle with
+counts as it does on your Timeline ([Cheers](/docs/timeline#cheers)). A battle with
 no such item for you shows no cheers at all, and signed out the page shows
 neither cheers nor how many there are. A shared highlight's page (`/h/<id>`)
 carries no cheers.

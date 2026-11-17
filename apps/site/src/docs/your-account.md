@@ -13,7 +13,7 @@ callout: ["Open it at Settings › Profile", "/settings/profile", "Open Profile"
 
 # Your account
 
-Everything in Elixir hangs off one account: Home, Stats, Elixir
+Everything in Elixir hangs off one account: your Timeline, Stats, Elixir
 Clan, the emails and the AI apps you connect all act as the same person. The
 account is an email address, the players you follow and a few settings.
 There is no password.
@@ -55,7 +55,7 @@ The signup form has an optional **Your player tag** field; plain sign-in
 does not. A malformed tag is refused on the form before any email is sent,
 and an empty field is fine. The tag is kept with the request and applied
 only after you verify, when a new account claims it as its primary player.
-A new account opens on [Home](/home), whose first steps start with adding
+A new account opens on [your Timeline](/timeline), whose first steps start with adding
 your player when it has none. A tag another account has
 [verified](/docs/verify#a-verified-player-is-yours-alone) is not added, and
 [Players & following](/settings/players) says why.
@@ -135,7 +135,7 @@ On the smallest screens, the top bar shows the Elixir logo as the home link
 so the product and account controls keep their room. Your full account name
 wraps inside its menu. The same controls remain available by keyboard.
 
-On Home, setup you have not finished opens the page as
+On your Timeline, setup you have not finished opens the page as
 [Your profile](/docs/timeline#your-profile) until it is done.
 Recording problems are under the bell, **Needs you**.
 
@@ -146,10 +146,11 @@ is the way in: sign in, or create an account.
 as they were, and **Play Drop** is in the footer too (and, signed in, in the
 account menu).
 
-## The bell
+## Notifications
 
-The bell, on the top bar (a tab on a phone), holds what is about you, not
-your friends. On a wide screen it opens as a small box under the bell; on a
+Notifications, the bell on the top bar (a tab on a phone), holds what is about
+you, not your friends. How you are told, on a phone or computer, is set in
+Settings › Notifications. On a wide screen it opens as a small box under the bell; on a
 phone it slides up from the foot. Every line is one tap: it opens where the
 line points. Escape, **Close** or a tap outside puts it away and returns you
 to the bell.
@@ -201,15 +202,15 @@ to verify one. Nothing in the bell is mailed or posted to Discord.
 ## Elixir on your phone
 
 Elixir installs on a phone's home screen and opens like an app: full
-screen, with its own icon, and **Home**, **Find**, **Clan**, **You** and
-the bell as tabs at the foot.
+screen, with its own icon, and **Timeline**, **Find**, **Clan**, **Profile**
+and the bell as tabs at the foot.
 
-- **iPhone or iPad:** open [elixir.poapkings.com](/home) in Safari, tap
+- **iPhone or iPad:** open [elixir.poapkings.com](/timeline) in Safari, tap
   **Share**, then **Add to Home Screen**.
 - **Android:** open it in Chrome, open the menu, then **Install app** (or
   **Add to Home screen**).
 
-The installed app opens on Home. It keeps a sign-in of its own, apart
+The installed app opens on your Timeline. It keeps a sign-in of its own, apart
 from the browser's, so sign in once inside it: type the code from the
 email, or open its link, and the app's sign-in page signs in too, as
 [above](#signing-in). On Android, a long press on the icon offers
@@ -271,8 +272,8 @@ stays in UTC; only the reading changes. A new account starts on the time
 zone of the browser that asked for its sign-up email, whichever device
 opens the link; if that browser gives none, or gives UTC, the account
 starts at UTC. Signing in never changes a zone you already have: only
-Profile does. An account with no zone reads in UTC, and Home and
-Stats say so and offer your browser's zone in one click. A battle's page
+Profile does. An account with no zone reads in UTC, and your Timeline
+and Stats say so and offer your browser's zone in one click. A battle's page
 reads on your account's clock when you are signed in, and on your
 browser's when you are not.
 
@@ -297,7 +298,7 @@ then tap **Save**. **Remove** puts your initials back.
 shows your place or **Not set**, with **Set**, **Change** and
 **Remove**. The account menu's **Settings** opens Profile, so it is one
 tap away. You can also set it from the last step of **Your profile** on
-Home, without leaving Home.
+your Timeline, without leaving it.
 
 A place is a country, its region and, if you like, a city, picked from
 lists. It is never an address and never your device's location. It is

@@ -1,4 +1,10 @@
-# Home
+# Timeline
+
+*2026-11-17: names changed, intent did not. Home is the Timeline, at
+`/timeline` (every `/home` address still works), You is Profile, and the
+bell's list is Notifications; a person never reads "sitting" (DECISIONS
+"Timeline, Profile and Notifications"; `docs/notes/2026-11-17-timeline-words.md`).
+The file keeps its name. Quoted rulings below keep their own words.*
 
 *Rewritten 2026-11-13 to the social layer, from the brief Jamie ratified
 on 2026-10-12, under [`VISION.md`](../../VISION.md) and the rulings in
@@ -20,7 +26,7 @@ you are away"; `docs/notes/2026-11-16-reach-you.md`,
 
 ## What it is for
 
-Home is where a person keeps up with the players they follow. It is a
+The Timeline is where a person keeps up with the players they follow. It is a
 timeline of their play, newest first, with the person's own play in it,
 told as gaming sessions and the moments around them, so you see that a
 friend played twelve battles and switched decks, and cheer it. Around the
@@ -28,25 +34,25 @@ feed sit your own week and your clan. "Elixir lets you connect with your
 friends and play together more in Clash Royale." [Jamie, 2026-11-11,
 `VISION.md`]
 
-Elixir is a recorder underneath, so Home says facts and leaves the
+Elixir is a recorder underneath, so the Timeline says facts and leaves the
 judging to the person.
 
 ## Who it serves
 
-The signed-in person. Signing in is where Home starts: every read of
+The signed-in person. Signing in is where the Timeline starts: every read of
 Elixir needs an account (DECISIONS "Everyone signs in; shared posts stay
-public"). An agent has no Home; it reads the same timeline over MCP.
+public"). An agent has no Timeline page; it reads the same timeline over MCP.
 
 ## What it holds
 
-The product tabs are Home, Find, Clan and You, with search, Help and the
-bell in the top bar; on a phone they are tabs at the foot, with the bell
+The product tabs are Timeline, Find, Clan and Profile, with search, Help
+and the bell (Notifications) in the top bar; on a phone they are tabs at the foot, with the bell
 beside them. The left rail is Settings' alone. [Jamie, 2026-11-12, "Home
 is one feed", "The left rail stays only in Settings"]
 
-- **Home** (`/home`): one feed of the last seven days, newest first, in
+- **Timeline** (`/timeline`; `/home` forwards): one feed of the last seven days, newest first, in
   days, with the chips Everyone, Friends, Clan and You, and All or New. A
-  sitting carries its sparkline. Your week, the clan panel with this
+  session carries its sparkline. Your week, the clan panel with this
   week's race, and People to follow sit beside the feed, below it on a
   phone. [Jamie, 2026-11-12, "Home is one feed"]
 - **Find** (`/home/find`): Your clan (with Follow my clan and Invite
@@ -56,12 +62,12 @@ is one feed", "The left rail stays only in Settings"]
   leave. [Jamie, 2026-11-12; Jamie, 2026-11-15, "a place is a place";
   DECISIONS "People to follow states why, and ranks nobody", "Invite
   clanmates is not on Home", "Location is opt-in and a city at most"]
-- **You** (`/home/you`): your primary player's page once it is verified,
+- **Profile** (`/home/you`): your primary player's page once it is verified,
   with a fifth tab, Stats; your other players listed to you alone; your
-  account and signing out. With no verified player, You says how to
+  account and signing out. With no verified player, Profile says how to
   verify one. [Jamie, 2026-11-12, "You is your own player page, with
   Stats"]
-- **The bell**, on every page: what is about you. Cheers on your items
+- **The bell**, Notifications, on every page: what is about you. Cheers on your items
   (counts, never who), new followers, the Clan Actions waiting for you,
   answers to your feedback and your account's own notices. [Jamie,
   2026-11-12, "The bell is what is about you"] Laid out as Needs you,
@@ -111,7 +117,7 @@ is one feed", "The left rail stays only in Settings"]
    2026-11-12; DECISIONS "A follow costs a slot only when Elixir records
    the player because of you", "Following from Find is a friend and never
    primary"]
-5. **Home reads; it never evaluates.** The Clan Actions in the bell are
+5. **The Timeline reads; it never evaluates.** The Clan Actions in the bell are
    Clan's list in Clan's order, read without raising or numbering
    anything, so they can lag Clan until its next run or visit.
    [engineering, 2026-11-05, "Home reads, it never evaluates"]
@@ -132,7 +138,7 @@ is one feed", "The left rail stays only in Settings"]
 8. **Modes are different games, and a gap is unknown.** Your week reads
    one mode at a time; "No battle recorded this week", never that
    someone did not play. [Jamie, 2026-11-05, Q6, A34; standing]
-9. **The feed's place is its own.** Opening Home clears New and changes
+9. **The feed's place is its own.** Opening the Timeline clears New and changes
    nothing an agent has read. [Jamie, 2026-10-20] Nothing moves under the
    reader: an open feed is read again only when they ask (tapping the
    freshness chip counts), and an "N new" pill says when items the feed
@@ -168,4 +174,4 @@ Action; carry a referral id in a Follow me link.
   order are right.
 - Whether the bell should name who cheered, say when someone followed, or
   mark answers read when it is opened.
-- Whether an alt should have a You page of its own; You is the primary.
+- Whether an alt should have a Profile page of its own; Profile is the primary.

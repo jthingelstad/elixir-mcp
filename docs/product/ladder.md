@@ -13,7 +13,7 @@ coach." It is Elixir's answer to "how am I doing?" without an agent, and
 to "how is my friend doing?" for a player you follow. [Jamie,
 2026-10-02, 2026-10-03, 2026-11-12]
 
-Stats is You's fifth tab (`/home/you/stats`), with a scope bar (Player,
+Stats is Profile's fifth tab (`/home/you/stats`), with a scope bar (Player,
 Season, mode, freshness) above four tabs: Season, Battles, Decks, Cards.
 [Jamie, 2026-11-12, "You is your own player page, with Stats";
 engineering, 2026-11-05]

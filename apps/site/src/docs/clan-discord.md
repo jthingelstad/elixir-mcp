@@ -41,35 +41,35 @@ in place keeps its link.
 - **What makes a story**: one member's one battle (the arena it moved
   them into, the new best it set, the league it promoted them to, all in
   one post); the same kind of milestone reached by several members at
-  once (up to five, one post naming each); a standout sitting, one post
+  once (up to five, one post naming each); a standout session, one post
   that grows; and anything else on its own. From the record Elixir adds
   what it knows: the deck the battle was won with and its record in that
   mode this season (ladder or Ranked), a second promotion in a day, the
   clanmates already in the arena a member reached (also when the roster
-  saw the move before its battle arrived), and for a sitting its modes,
+  saw the move before its battle arrived), and for a session its modes,
   its best win and its run.
-- **One sitting, one post a day**: a member's sitting (battles less
+- **One session, one post a day**: a member's session (battles less
   than half an hour apart) is told once a day. A new story from a battle
-  or a sitting the channel already posted about that member today, and
+  or a session the channel already posted about that member today, and
   from before that post went up, is part of it: the post is edited to
   tell it too when it is under two hours old and one of the channel's
   three newest, otherwise the story is skipped. A member's second
-  sitting in a day is skipped the same way, once anything from an
-  earlier sitting (a move, a best, a league or the sitting) was posted. A promotion or a new best
+  session in a day is skipped the same way, once anything from an
+  earlier session (a move, a best, a league or the session) was posted. A promotion or a new best
   from a later battle is still its own post.
 - **Skipped, with the reason**: a badge or mastery level-up below its
   top level (the top level and a new badge are told); a story already
-  posted that only grew (a sitting with more battles but the same best
+  posted that only grew (a session with more battles but the same best
   win and its run not five longer); and something already told (the same
   member's same battle, or the same arena, league, trophy rung or
   milestone reached again within a week); and what is already told
-  today (the same sitting as an earlier post about the member). Each
+  today (the same session as an earlier post about the member). Each
   skip is listed on the page with its reason.
 - **Held a few minutes**: a story is posted once nothing has been added
   to it for four minutes, or ten minutes after it began, so what one
   battle produced arrives as one post: usually about six minutes after
   the activity lands in Elixir, at most about a quarter of an hour. A
-  post is edited in place only when its story truly grows (a sitting's
+  post is edited in place only when its story truly grows (a session's
   new best win, its run five longer), never posted twice.
 
 - **What is posted**: four groups a leader switches. **Members**: who

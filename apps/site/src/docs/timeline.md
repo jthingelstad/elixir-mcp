@@ -7,7 +7,7 @@ order: 3
 navTitle: "The timeline"
 icon: bell
 lede: "What happened to the players and clans you follow, newest first, written so a person can read it and an agent can act on it."
-callout: ["Read it on Home", "/home", "Open Home"]
+callout: ["Read it on your Timeline", "/timeline", "Open your Timeline"]
 ---
 
 # The timeline
@@ -24,14 +24,14 @@ entries are on [The timeline tool](/docs/timeline-tool).
 It is **synthesized when you read it**, from the record and what Elixir
 keeps for each player and clan. Nothing is queued, fanned out or pruned. An
 agent that comes back after a month gets a month's timeline (capped at 30 days,
-and at the newest 150 items). Home's feed shows the last seven days, with
+and at the newest 150 items). Your Timeline shows the last seven days, with
 the same cap on items, thirty at a time, and reading it moves no pointer.
-Home's week is the one exception to reading on demand: it is built ahead and
-kept, so Home opens at once (below).
+Your Timeline's week is the one exception to reading on demand: it is built
+ahead and kept, so your Timeline opens at once (below).
 
-## Home's feed
+## Your Timeline
 
-Home is your timeline as one feed, newest first, in days. Chips choose
+Your Timeline is one feed, newest first, in days. Chips choose
 whose items it shows: **Everyone**, **Close friends** (once you have
 starred one, below), **Friends** (the players you follow as friends),
 **Clan** (the clans you follow), or **You** (your own players), each with
@@ -63,9 +63,9 @@ Settings › Players & following, or in your circle. Starring one Verified
 player of an account stars all of that account's Verified players you
 follow, because they are one follow.
 
-Elixir builds your week ahead and keeps it, so Home opens at once instead of
+Elixir builds your week ahead and keeps it, so your Timeline opens at once instead of
 reading seven days of everyone you follow while you wait. A kept week is
-rebuilt every quarter hour while you use Home, so the newest battles can take
+rebuilt every quarter hour while you use your Timeline, so the newest battles can take
 up to about twenty minutes to appear. A highlight, a cheer and your **New**
 marker are always read live, and following or unfollowing someone, changing a
 nickname or your time zone builds the week again on your next visit. While
@@ -78,7 +78,7 @@ week and the war line are rebuilt in the background at most fifteen minutes
 after you last saw them, so they can trail the record by up to about twenty
 minutes. Whether you may see the card, your role, and the Actions waiting for
 you are read live on every visit, and a role change, a policy change, a hold
-or leaving the clan builds the card again at once. Otherwise Home shows the
+or leaving the clan builds the card again at once. Otherwise your Timeline shows the
 kept card first and swaps in a fresh one when it is ready, so an older card
 (up to a week) can show for a moment after a long break.
 
@@ -89,7 +89,7 @@ loaded. If the feed doesn't load (the read took too long or the connection
 dropped), it says so and offers **Try again**. It never asks again on its own,
 and the panels beside it read on regardless.
 
-Nothing in the feed moves while you read it. While Home is open and on
+Nothing in the feed moves while you read it. While your Timeline is open and on
 screen, Elixir checks about once a minute (and when you come back to the
 tab) whether your kept week has anything your feed doesn't, including a
 battle recorded late that belongs further down.
@@ -99,7 +99,7 @@ jump back to the top. Nothing is checked while the tab is hidden. A new
 highlight isn't counted by the button; it shows the next time the feed is
 read.
 
-When your week has nothing in it, Home says why as far as Elixir knows:
+When your week has nothing in it, your Timeline says why as far as Elixir knows:
 the players you follow have been quiet (none of them played a battle in
 the last 7 days), Elixir is still catching up on some of them, or you
 don't follow anyone yet. **Find your people** opens
@@ -108,11 +108,11 @@ under that line, so a phone shows it before your week.
 
 Your account's own items (a player or clan added, recording started or
 stopped, a player no longer yours, an answer to your feedback) are not in
-Home's feed: they are about your account, not anyone's play, so [the
-bell](/docs/your-account#the-bell) tells them instead, a burst of them as
+your Timeline: they are about your account, not anyone's play, so [the
+bell](/docs/your-account#notifications) tells them instead, a burst of them as
 one line. Settings' Timeline page and `elixir_timeline` still carry them.
 
-A sitting of battles is a card. Its headline is what happened, like "Won 8
+A session of battles is a card. Its headline is what happened, like "Won 8
 of 12 on Trophy Road, 5 in a row" (an event by its own name). Under it are
 its figures: won, lost and, on Trophy Road, the trophies it moved. A small
 bar chart shows one bar per battle in the order played: up for a win and
@@ -120,7 +120,7 @@ down for a loss, as tall as the crown margin (one to three). A draw is a flat
 tick, and a battle whose crowns the record lacks is a short, faint bar. Chips
 say how many wins took three crowns and the widest win. The deck played most
 shows its eight cards, with how many battles it played, and the card names
-the other decks the sitting switched to. One or two battles make a smaller
+the other decks the session switched to. One or two battles make a smaller
 card: the result and its trophies on one line, and the deck.
 
 Tap the card to open the session's own page. Back brings you here. It shows:
@@ -137,7 +137,7 @@ Tap the card to open the session's own page. Back brings you here. It shows:
   player's, which opens the battle's page at its highlight.
 
 Only battles Elixir recorded are on the page. When the update counted more
-than Elixir recorded, the page says how many are missing. A long sitting
+than Elixir recorded, the page says how many are missing. A long session
 comes 25 battles at a time, and a session older than 30 days has no page.
 
 Each mode is told the way the game tells it:
@@ -161,7 +161,7 @@ clan's name above it. Every player's name opens their
 
 ### Your profile
 
-Until your profile is done, Home opens with it above the feed:
+Until your profile is done, your Timeline opens with it above the feed:
 **Your profile, 2 of 6 done**. It shows the one step to do next, with the
 Stamp it earns and a button to where you do it. Tap **See all steps** for
 all six:
@@ -176,7 +176,7 @@ all six:
 5. **Choose your email**: Weekly, Daily or Off for your
    [digest](/docs/email). Off counts too.
 6. **Your place on the clan map**: tap **Set a place** and pick your
-   country, region or city right there on Home, or tap **Not now**. The
+   country, region or city right there on your Timeline, or tap **Not now**. The
    picker says who sees it: your clan's verified members on the clan map,
    and anyone signed in to Elixir on the player map and in Near you. Both
    finish the step; only a place earns **On the Map**. You need no clan,
@@ -193,9 +193,9 @@ so. If Elixir is still catching up on their battles, it says that instead,
 and the step finishes once it sees a battle from the last 7 days.
 
 Each step stays done once it's done, and the list goes for good once all
-six are. Opening Home also catches your Stamps up in the background, so
+six are. Opening your Timeline also catches your Stamps up in the background, so
 something you did elsewhere shows up without a reload. A new Stamp is one
-line in the bell.
+line under Notifications.
 
 Finished the older four-step welcome? You see only the steps that are
 left, and **Hide** puts the list away on every device.
@@ -203,7 +203,7 @@ left, and **Hide** puts the list away on every device.
 ### People you know
 
 While fewer than five of the players you follow played a battle in the
-last 7 days, Home opens with **People you know** at the top, every time
+last 7 days, your Timeline opens with **People you know** at the top, every time
 you visit, not only the first. Following players who've gone quiet
 doesn't put it away. It lists
 players you already know in the game, each with why, and **Free** on
@@ -250,7 +250,7 @@ it. Each reads on its own, so the feed never waits for them.
   clan"). Players you already follow, watch or own are never suggested.
   Nobody is ranked by trophies, wins or any rating, and names are game
   names, never a nickname. While **People you know** is at the top of
-  Home, this panel steps aside. **Find more people** opens [Find](/docs/follow-a-friend#find).
+  your Timeline, this panel steps aside. **Find more people** opens [Find](/docs/follow-a-friend#find).
 
 ## Cheers
 
@@ -279,7 +279,7 @@ tool `elixir_cheers`, reading as you: for each
 cheered item in the window its id, kind, time, sentence and counts by
 kind, never who, and never your own cheer. The bell
 counts the cheers on items about your own verified players, never naming
-who ([the bell](/docs/your-account#the-bell)). You can give
+who ([the bell](/docs/your-account#notifications)). You can give
 up to 120 cheers an hour.
 
 ## Your RSS link
@@ -372,11 +372,11 @@ page. Connections and agent pages show whether sharing is on.
   then links back to Elixir (the battle, a session's own page, the race
   week, the member, the subject), never previewed. Discord's post time says when; only an item
   over three hours old (a late proof, a quiet rung) adds how long ago
-  (`<t:{at_unix}:R>`, from a sitting's last battle). Nothing pings
+  (`<t:{at_unix}:R>`, from a session's last battle). Nothing pings
   anyone.
-- **Edited, never repeated.** When an item grows (a sitting adds
+- **Edited, never repeated.** When an item grows (a session adds
   battles, or closes, or a highlight's words change), its message is
-  edited in place; a sitting posted while going is edited to its final
+  edited in place; a session posted while going is edited to its final
   count within about 45 minutes of its last battle. A message deleted
   in the channel stays deleted, and a line already posted stays when
   its item leaves the timeline (a highlight deleted on Elixir). A

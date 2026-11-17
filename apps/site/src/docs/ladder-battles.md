@@ -42,13 +42,13 @@ is a list of the days, newest first.
 
 **Battles**, at `/home/you/stats/battles`, lists the season's battles in the chosen
 mode, newest first: a panel for each day, headed by its count and record, and
-under it each sitting, a run of battles with no gap longer than 30 minutes. A
-sitting that crosses midnight splits, so a day's panel matches its day on the
-calendar. A sitting shows its times, its record and, on Trophy Road, the
+under it each session, a run of battles with no gap longer than 30 minutes. A
+session that crosses midnight splits, so a day's panel matches its day on the
+calendar. A session shows its times, its record and, on Trophy Road, the
 trophies you started and ended on. Open it for its battles; a battle opens on its
 own page when the record has one. The page reads this mode's battles only, and
 shows seven days until you ask for older ones. On **Other**, Challenge and
-Tournament each have their own days and sittings, so no count or record crosses
+Tournament each have their own days and sessions, so no count or record crosses
 the two.
 
 War battles are listed like any other, each on the day you played it: Stats

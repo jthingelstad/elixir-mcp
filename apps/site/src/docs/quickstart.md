@@ -7,7 +7,7 @@ order: 2
 navTitle: "Quickstart"
 icon: rocket
 lede: "Sign in, add your player tag, follow a few people and choose your digest. That's it."
-reviewed: "2026-11-14 against Home's profile list and People you know"
+reviewed: "2026-11-17 against the Timeline's profile list and People you know"
 ---
 
 # Get started with Elixir
@@ -15,7 +15,7 @@ reviewed: "2026-11-14 against Home's profile list and People you know"
 Elixir is the missing social layer of Clash Royale: follow your friends and
 your clan, see how they play, and cheer them on.
 
-Getting set up takes four steps. **Home** keeps them, and two more (your
+Getting set up takes four steps. **Your Timeline** keeps them, and two more (your
 picture and your place on the clan map), in one list, **Your profile**,
 until you've done them all ([Your profile](/docs/timeline#your-profile)).
 
@@ -36,7 +36,7 @@ is ignored and your players stay as they are.
 
 ## 2. Add your player
 
-Gave your tag at signup? This step is done. If not, **Home** asks for it, or
+Gave your tag at signup? This step is done. If not, **your Timeline** asks for it, or
 use [Settings › Players & following](/settings/players).
 
 To find your tag, open your profile in Clash Royale. It's the code starting
@@ -50,7 +50,7 @@ and you fix it right there.
 Once your profile shows your clan, Elixir follows that clan for you
 ([Your player's clan](/docs/recording#your-players-clan)).
 
-Next, Home asks you to **verify it's you**: play one battle with a deck Elixir
+Next, your Timeline asks you to **verify it's you**: play one battle with a deck Elixir
 names. Win or lose, it counts ([Verify](/docs/verify)). A verified player can
 [highlight a battle](/docs/battles#highlight-a-battle) and act in Clan with
 their in-game role.
@@ -65,14 +65,14 @@ there:
 - **From your battles**: players you met in your own battles.
 - **The clan directory**: every clan on Elixir.
 
-Until you follow five, Home opens with **People you know**: your
+Until you follow five, your Timeline opens with **People you know**: your
 clanmates, the players you played a friendly battle with and your 2v2
 teammates, all ticked. Untick anyone you'd rather not follow and tap
 **Follow these** ([People you know](/docs/timeline#people-you-know)).
-After that, Home's **People to follow** suggests a few more, and says why
+After that, your Timeline's **People to follow** suggests a few more, and says why
 each one is there ([Find](/docs/follow-a-friend#find)).
 
-Everyone you follow fills **Home's feed**: their sessions, their firsts and
+Everyone you follow fills **your Timeline**: their sessions, their firsts and
 their best battles, newest first ([The timeline](/docs/timeline)). Tap
 **Cheer** on anything to [cheer them on](/docs/timeline#cheers). Tap a name
 to open that player's page.
@@ -97,7 +97,7 @@ has the details.
 
 ## See how you play
 
-**You** is your own account page. Its **Your stats** opens [Stats](/home/you/stats), your
+**Profile** is your own account page. Its **Your stats** opens [Stats](/home/you/stats), your
 season, one game mode at a time ([how to read it](/docs/ladder)). Every
 player page also has a **Record** tab: the saved profile and the last 30 days.
 

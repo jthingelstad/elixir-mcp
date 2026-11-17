@@ -1,8 +1,8 @@
 # Passports and Stamps
 
-*2026-11-15: another member's passport moved to `/home/account/<id>/passport`, under their account page; following an account shows its Stamps on Home (`docs/notes/2026-11-15-account-pages.md`).*
+*2026-11-15: another member's passport moved to `/home/account/<id>/passport`, under their account page; following an account shows its Stamps on the Timeline (`docs/notes/2026-11-15-account-pages.md`).*
 
-Design direction, 2026-11-14. **Launched 2026-11-14** (build f6e5cb51a): earning, the pages and Home's profile list are live, and the launch backfill ran on 2026-11-14 (47 accounts read, 30 granted).
+Design direction, 2026-11-14. **Launched 2026-11-14** (build f6e5cb51a): earning, the pages and the Timeline's profile list are live, and the launch backfill ran on 2026-11-14 (47 accounts read, 30 granted).
 The catalog, eligibility, storage and two signed-in passport reads exist
 (`packages/stamps`, migrations 0269 and 0270). Real writes grant Stamps
 through hooks, the owner's reconciliation repairs and grants the rest,
@@ -13,7 +13,7 @@ an account made before launch gets one "Your passport is ready" line
 (its ladder Stamps wait until the backfill has read its history, 0273),
 and the operator's `{passport_backfill}` adds the history no live path
 reads (docs/OPERATIONS.md, Passport launch backfill). The passport
-pages show it, and Home shows the profile list
+pages show it, and the Timeline shows the profile list
 (`apps/web/src/home/ProfileList.jsx`, 0274 for its dismissal). The clickable sample is in
 [the passport design](../design/passport/README.md); the build plan is
 [the build handoff](../plans/stamps-build.md).
@@ -112,7 +112,7 @@ The public Stamp never includes the city or its location data.
 
 ## One profile list
 
-Home offers one compact next step, not six full tasks before the feed.
+The Timeline offers one compact next step, not six full tasks before the feed.
 The full list can expand. Completed users get the feed immediately.
 
 1. Add your player.
@@ -221,16 +221,16 @@ Built in the pages slice (#1015,
 Built in the profile list slice (#1015,
 [note](../notes/2026-11-14-passport-profile-list.md)):
 
-- Home's profile list: the six steps of `owner.profile`, each naming its
+- The Timeline's profile list: the six steps of `owner.profile`, each naming its
   Stamp and linking to where it is done, with a link to your passport.
-  Opening Home runs the same reconciliation as the passport page, after
+  Opening the Timeline runs the same reconciliation as the passport page, after
   first paint; `POST /api/me/passport/dismiss` puts the list away for an account that
   finished the older welcome.
 
 Built in the place slice (2026-11-14,
 [note](../notes/2026-11-14-place-in-setup.md)):
 
-- The map step sets the place on Home: **Set a place** opens the picker
+- The map step sets the place on the Timeline: **Set a place** opens the picker
   under the step, a save latches the step and earns On the Map through
   the existing hook, and Not now stays. No clan page is needed: the
   place is the person's, so no clan or a map turned off is fine. Before
