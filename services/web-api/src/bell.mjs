@@ -278,6 +278,56 @@ async function readComments(db, accountId, seen) {
   return { items, new: items.filter((i) => i.new).length };
 }
 
+/** Cheers on your own posts of the last seven days (2026-11-17), as the
+ *  reactions' rows: counts per cheer, never who, nobody's in a block with
+ *  you. Read here, by the posts themselves, and only while posts are on:
+ *  a post's cheer stamps no players (cheers.mjs setCheer), so the activity
+ *  mail and push, which find their accounts by those, never carry one. */
+async function readPostCheers(db, accountId, seen) {
+  const { rows } = await db.query(
+    `select p.item_id, p.player_tag, p.body, p.question, tc.cheer,
+            count(*)::int as n,
+            count(*) filter (where $2::timestamptz is null
+                               or tc.updated_at > $2)::int as fresh,
+            max(tc.updated_at) as last_at
+       from account_post p
+       join timeline_cheer tc on tc.item_id = p.item_id
+      where p.account_id = $1 and p.status <> 'removed'
+        and p.created_at > now() - make_interval(days => $3)
+        and tc.account_id <> $1
+        and not ${blockedSql("tc.account_id", "$1::uuid")}
+      group by p.item_id, p.player_tag, p.body, p.question, tc.cheer`,
+    [accountId, seen, ACCOUNT_DAYS],
+  );
+  const grouped = new Map();
+  for (const r of rows) {
+    const g = grouped.get(r.item_id) ?? {
+      item_id: r.item_id,
+      text: `${r.question ? "Your question" : "Your post"}: ${clip(String(r.body ?? ""), 80)}`,
+      at: null,
+      battle_url: null,
+      subject_tag: r.player_tag,
+      session_path: null,
+      post: true,
+      cheers: {},
+      total: 0,
+      fresh: 0,
+      last_at: r.last_at,
+    };
+    g.cheers[r.cheer] = r.n;
+    g.total += r.n;
+    g.fresh += r.fresh;
+    if (r.last_at > g.last_at) g.last_at = r.last_at;
+    grouped.set(r.item_id, g);
+  }
+  return [...grouped.values()].map(({ fresh, last_at, ...g }) => ({
+    ...g,
+    at: new Date(last_at).toISOString(),
+    new: fresh > 0,
+    last_ms: new Date(last_at).getTime(),
+  }));
+}
+
 function clip(text, max) {
   const one = text.replace(/\s+/g, " ").trim();
   return one.length > max ? `${one.slice(0, max - 1).trimEnd()}…` : one;
@@ -287,16 +337,38 @@ function clip(text, max) {
 export async function readBell(
   db,
   accountId,
-  { wake = null, perf = null, comments: commentsOn = false } = {},
+  {
+    wake = null,
+    perf = null,
+    comments: commentsOn = false,
+    posts: postsOn = false,
+  } = {},
 ) {
   const seen = await seenAt(db, accountId);
   const own = await ownVerifiedPlayers(db, accountId);
   // The bell's own shape: the channels' extra counts stay out of it.
   const read = await readReactions(db, accountId, own, seen, { wake, perf });
-  const reactions = {
+  let reactions = {
     items: read.items.map(({ fresh: _f, subject_tag: _s, ...it }) => it),
     new: read.new,
   };
+  // Cheers on your posts (2026-11-17) join the same list, newest first.
+  if (postsOn) {
+    const posts = await readPostCheers(db, accountId, seen);
+    if (posts.length) {
+      const items = [
+        ...reactions.items.map((it) => ({
+          ...it,
+          last_ms: Date.parse(it.at ?? "") || 0,
+        })),
+        ...posts,
+      ]
+        .sort((a, b) => b.last_ms - a.last_ms)
+        .slice(0, LIST_CAP)
+        .map(({ last_ms: _l, ...it }) => it);
+      reactions = { items, new: items.filter((i) => i.new).length };
+    }
+  }
   const followers = await readFollowers(db, accountId, own, seen);
   const comments = commentsOn
     ? await readComments(db, accountId, seen)

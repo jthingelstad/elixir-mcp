@@ -222,6 +222,13 @@ export async function sweepOperational(databaseUrl) {
           where status = 'removed' and removed_at < now() - interval '30 days'`,
       )
     ).rowCount;
+    // Posts (0285): one an admin removed stays 30 days, as a comment.
+    out.post_removed = (
+      await db.query(
+        `delete from account_post
+          where status = 'removed' and removed_at < now() - interval '30 days'`,
+      )
+    ).rowCount;
     out.comment_check = (
       await db.query(
         `delete from comment_check where created_at < now() - interval '35 days'`,

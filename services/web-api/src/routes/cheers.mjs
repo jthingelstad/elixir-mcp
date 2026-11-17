@@ -88,7 +88,7 @@ async function cheerFact(db, accountId, item) {
   });
 }
 
-export function cheersRoutes({ resolveAccount }) {
+export function cheersRoutes({ resolveAccount, posts = false }) {
   const person = async (db, event, write) => {
     const account = await resolveAccount(db, event, {
       requireContractHeader: write,
@@ -120,6 +120,7 @@ export function cheersRoutes({ resolveAccount }) {
           itemId: asked.itemId,
           tags: asked.tags,
           subjects: await subjectsFor(db, account.accountId),
+          posts,
         });
         // Nobody in a block with the player's owner, either way, cheers
         // their items (2026-11-16); said as not in the feed.

@@ -56,6 +56,7 @@ import { sessionRoutes } from "./routes/session.mjs";
 import { highlightRoutes } from "./routes/highlight.mjs";
 import { cheersRoutes } from "./routes/cheers.mjs";
 import { commentsRoutes } from "./routes/comments.mjs";
+import { postsRoutes } from "./routes/posts.mjs";
 import { pushRoutes } from "./routes/push.mjs";
 import { bellRoutes } from "./routes/bell.mjs";
 import { peopleRoutes } from "./routes/people.mjs";
@@ -255,6 +256,9 @@ export function makeHandler({
    *  the model bridge's check (comment-check.mjs); null = comments off
    *  everywhere. */
   comments = null,
+  /** Posts (2026-11-17): true turns them on, and only while `comments`
+   *  is on (they share its check, cap and log). */
+  posts = false,
   /** Web push's VAPID public key (routes/push.mjs, 2026-11-16); null =
    *  notifications are not offered. Public: every browser is handed it. */
   vapidPublicKey = null,
@@ -446,6 +450,8 @@ export function makeHandler({
     );
   }
 
+  // Posts ride comments' check, cap and log: on only while both are.
+  const postsOn = comments?.enabled === true && posts === true;
   const routes = {
     ...authRoutes({
       resolveAccount,
@@ -459,6 +465,7 @@ export function makeHandler({
       capture,
       discordLogin: Boolean(discordLogin),
       comments: comments?.enabled === true,
+      posts: postsOn,
     }),
     ...discordRoutes({
       resolveAccount,
@@ -478,6 +485,7 @@ export function makeHandler({
       // A stored week past fresh asks the timeline-sync lane for a new one.
       wake: homeWake,
       comments: comments?.enabled === true,
+      posts: postsOn,
     }),
     ...playerRoutes({ resolveAccount, live: liveRead }),
     // Your own battles read now (2026-11-14): the same live lane, and the
@@ -494,16 +502,22 @@ export function makeHandler({
     ...battleRoutes({ siteShell, shareImage }),
     // A session's public page, picture and JSON (2026-11-17).
     ...sessionRoutes({ siteShell, shareImage }),
-    ...cheersRoutes({ resolveAccount }),
+    ...cheersRoutes({ resolveAccount, posts: postsOn }),
     // Comments, blocks and reports (2026-11-16), off unless the stack's
     // CommentsEnabled is true.
-    ...commentsRoutes({ resolveAccount, comments }),
+    ...commentsRoutes({ resolveAccount, comments, posts: postsOn }),
+    // Posts (2026-11-17), off unless PostsEnabled and CommentsEnabled.
+    ...postsRoutes({
+      resolveAccount,
+      posts: postsOn ? comments : null,
+    }),
     ...pushRoutes({ resolveAccount, publicKey: vapidPublicKey }),
     // The bell's stored week rides the same wake (bell_week, 0247).
     ...bellRoutes({
       resolveAccount,
       wake: homeWake,
       comments: comments?.enabled === true,
+      posts: postsOn,
     }),
     ...peopleRoutes({ resolveAccount, blocks: comments?.enabled === true }),
     ...passportRoutes({ resolveAccount }),

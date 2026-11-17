@@ -43,6 +43,7 @@ import {
   setCommentSetting,
   suspendCommenting,
 } from "../comments.mjs";
+import { postQueue } from "../posts.mjs";
 import { json } from "../http.mjs";
 
 /** Item reads one person may make in an hour: each rebuilds a slice of
@@ -82,7 +83,11 @@ function tagsOf(raw) {
   return tags;
 }
 
-export function commentsRoutes({ resolveAccount, comments = null }) {
+export function commentsRoutes({
+  resolveAccount,
+  comments = null,
+  posts = false,
+}) {
   const enabled = comments?.enabled === true;
   const person = async (db, event, write) => {
     const account = await resolveAccount(db, event, {
@@ -108,6 +113,7 @@ export function commentsRoutes({ resolveAccount, comments = null }) {
           itemId,
           tags,
           subjects: await subjectsFor(db, account.accountId),
+          posts,
         })
       : null;
 
@@ -249,6 +255,16 @@ export function commentsRoutes({ resolveAccount, comments = null }) {
         } catch {
           target = null;
         }
+      } else if (body?.post_id != null && posts) {
+        // A post's author (2026-11-17), as a comment's.
+        const id = String(body.post_id);
+        if (/^[1-9][0-9]{0,18}$/.test(id)) {
+          const { rows } = await db.query(
+            `select account_id from account_post where post_id = $1::bigint`,
+            [id],
+          );
+          target = rows[0]?.account_id ?? null;
+        }
       } else if (body?.comment_id != null) {
         const id = String(body.comment_id);
         if (/^[1-9][0-9]{0,18}$/.test(id)) {
@@ -298,8 +314,12 @@ export function commentsRoutes({ resolveAccount, comments = null }) {
       const paused = !(cap > 0) || Number(queue.month.usd) >= cap;
       return json(200, {
         enabled,
+        posts_enabled: posts === true,
         cap_usd: comments?.capUsd ?? null,
         ...queue,
+        // Posts reported or hidden for review (2026-11-17); their
+        // refusals are among `refused`, `kind: "post"`.
+        posts: await postQueue(db),
         month: {
           ...queue.month,
           paused,

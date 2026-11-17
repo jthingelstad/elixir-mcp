@@ -14,7 +14,12 @@ const notEntitled = () =>
     message: "The bell is a person's own; an agent has none.",
   });
 
-export function bellRoutes({ resolveAccount, wake = null, comments = false }) {
+export function bellRoutes({
+  resolveAccount,
+  wake = null,
+  comments = false,
+  posts = false,
+}) {
   const person = async (db, event, write) => {
     const account = await resolveAccount(db, event, {
       requireContractHeader: write,
@@ -41,6 +46,7 @@ export function bellRoutes({ resolveAccount, wake = null, comments = false }) {
         wake,
         perf,
         comments,
+        posts,
       });
       // Like Home's panels: how long, and whether the week was stored.
       console.info(

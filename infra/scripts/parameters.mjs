@@ -98,6 +98,9 @@ export const PRESERVED_PARAMETERS = [
   // month's spend cap for their check. A deploy never resets either.
   "CommentsEnabled",
   "CommentsMonthlyCapUsd",
+  // Posts (2026-11-17): off by default, effective only with comments on;
+  // turned on by hand, never reset by a deploy.
+  "PostsEnabled",
   // Web push (2026-11-16): on by default, switched off only by hand.
   "WebPush",
 ];

@@ -28,6 +28,7 @@ import { toolDeadlineMs } from "../deadline.mjs";
 import { annotateFeed, closeTags, groupsOf } from "../feed.mjs";
 import { cheersReceived, withCheers } from "../cheers.mjs";
 import { withComments } from "../comments.mjs";
+import { homePosts } from "../posts.mjs";
 import { firstAnswer } from "../first-answer.mjs";
 import { readCircle } from "../circle.mjs";
 import { homeClan, myClans } from "./clans.mjs";
@@ -683,7 +684,14 @@ function readCursor(raw) {
  *  none to serve; `cursor` reads on in the same week. Each page carries its
  *  own items' chips, sparklines, battle links and cheers, and the first says
  *  how many items each chip holds across the whole week. */
-async function readFeed(db, account, cursor, wake, comments = false) {
+async function readFeed(
+  db,
+  account,
+  cursor,
+  wake,
+  comments = false,
+  posts = false,
+) {
   const started = Date.now();
   const { timezone, seenTo: seen_to } = await homeAccount(
     db,
@@ -696,7 +704,19 @@ async function readFeed(db, account, cursor, wake, comments = false) {
     wake,
     perf,
   });
-  const all = [...week.items].sort(feedOrder);
+  // Posts (2026-11-17): read live over the week, as highlights are, by
+  // their own audience (posts.mjs); a person's feed only. Never stored in
+  // the week, so nothing built from it (digest, mail, push, RSS, MCP)
+  // ever holds one.
+  const own =
+    posts && account.kind === "person"
+      ? await homePosts(db, account.accountId, {
+          subjects: week.subjects,
+          fromMs: week.fromMs,
+          toMs: Math.max(Date.now(), week.toMs),
+        })
+      : [];
+  const all = [...week.items, ...own].sort(feedOrder);
   // Close friends (0281): read apart from the stored week, so marking one
   // never changes the week's subjects or makes it rebuild.
   const close = await closeTags(db, account.accountId);
@@ -754,7 +774,9 @@ async function readFeed(db, account, cursor, wake, comments = false) {
     // Where the "N new" pill counts from: the newest change among the
     // stored items this read holds. With none stored, every stored item
     // that arrives is one the reader lacks, so count from the week's start.
-    out.watermark = feedWatermark(all) ?? out.window.from;
+    out.watermark =
+      feedWatermark(all.filter((it) => it.kind !== "post")) ??
+      out.window.from;
   }
   console.info(
     JSON.stringify({
@@ -893,6 +915,8 @@ export function homeRoutes({
   wake = null,
   /** Comments are on (2026-11-16): the feed's items carry them. */
   comments = false,
+  /** Posts are on (2026-11-17): the feed holds them. */
+  posts = false,
 }) {
   return {
     // What the first paint needs, and all it waits for.
@@ -1003,7 +1027,10 @@ export function homeRoutes({
       if (q.evidence_item_id) return readFeedEvidence(db, account, q);
       const cursor = q.cursor ? readCursor(q.cursor) : null;
       if (q.cursor && !cursor) return json(400, { error: "invalid_cursor" });
-      return json(200, await readFeed(db, account, cursor, wake, comments));
+      return json(
+        200,
+        await readFeed(db, account, cursor, wake, comments, posts),
+      );
     },
 
     // Your circle this week (2026-11-16): the close friends the reader

@@ -159,6 +159,15 @@ Parameters:
     Description: >-
       The most comment checks may spend in a calendar month, in US
       dollars. At the cap comments pause; they never post unchecked.
+  PostsEnabled:
+    Type: String
+    Default: "false"
+    AllowedValues: ["true", "false"]
+    Description: >-
+      Posts a person writes on the Timeline (2026-11-17). Effective only
+      while CommentsEnabled is true: posts pass the same check, under the
+      same monthly cap. False, there is no composer and the API refuses a
+      post.
   TurnstileMode:
     Type: String
     Default: observe
@@ -186,6 +195,9 @@ Conditions:
   HasTurnstileKey: !Equals [!Ref TurnstileKeyInSecret, "true"]
   ActivityMailOn: !Equals [!Ref ActivityMail, "on"]
   HasComments: !Equals [!Ref CommentsEnabled, "true"]
+  HasPosts: !And
+    - !Condition HasComments
+    - !Equals [!Ref PostsEnabled, "true"]
   WebPushOn: !Equals [!Ref WebPush, "on"]
   HasDiscordLogin: !And
     - !Equals [!Ref DiscordSecretInSecret, "true"]
@@ -1503,6 +1515,8 @@ Resources:
           # runs through the relay, which alone holds the moderation key.
           COMMENTS_ENABLED: !If [HasComments, "true", !Ref AWS::NoValue]
           COMMENTS_CAP_USD: !Ref CommentsMonthlyCapUsd
+          # Posts (2026-11-17): on only with PostsEnabled and comments on.
+          POSTS_ENABLED: !If [HasPosts, "true", !Ref AWS::NoValue]
           # Web push (2026-11-16): the VAPID PUBLIC key only, which every
           # browser is handed to subscribe; not a secret. The private key
           # stays in the secret and is read by the relay at runtime.

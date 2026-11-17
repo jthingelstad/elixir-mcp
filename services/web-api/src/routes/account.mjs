@@ -73,6 +73,8 @@ export function accountRoutes({
   discordLogin = false,
   /** Comments are on (2026-11-16; the stack's CommentsEnabled). */
   comments = false,
+  /** Posts (2026-11-17): on only while comments are. */
+  posts = false,
   live = null,
 }) {
   // The first read of an added tag (live.mjs requestFirstRead), its
@@ -296,7 +298,7 @@ export function accountRoutes({
       if (!account)
         return json(200, {
           authenticated: false,
-          features: { discord_login: discordLogin, comments },
+          features: { discord_login: discordLogin, comments, posts },
         });
       // One client is one connection: pg queues concurrent queries on it
       // anyway, so Promise.all bought no parallelism and only tripped the
@@ -469,7 +471,7 @@ export function accountRoutes({
         );
         return json(200, {
           authenticated: true,
-          features: { discord_login: discordLogin, comments },
+          features: { discord_login: discordLogin, comments, posts },
           kind: "agent",
           public_id: account.publicId,
           name: account.name,
@@ -529,7 +531,7 @@ export function accountRoutes({
         : { rows: [] };
       return json(200, {
         authenticated: true,
-        features: { discord_login: discordLogin, comments },
+        features: { discord_login: discordLogin, comments, posts },
         kind: "person",
         claim_notice: notice[0]
           ? {

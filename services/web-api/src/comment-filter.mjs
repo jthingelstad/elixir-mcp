@@ -14,6 +14,10 @@
 /** The most a comment may say, in characters (code points). */
 export const COMMENT_MAX = 280;
 
+/** The most a post may say (2026-11-17): a question needs more room
+ *  than a reply. */
+export const POST_MAX = 500;
+
 /** Invisible and direction-changing characters: dropped, so a link or a
  *  number cannot hide between them and nobody's comment can flip the text
  *  around it. */
@@ -100,13 +104,13 @@ const MOVE_ASKS = [
 const HANDLE = /(?:^|[\s(])@[a-z0-9_.]{3,}/i;
 
 /**
- * The cheap verdict on a tidied comment: `{ ok: true }` or
- * `{ ok: false, category }` with category one of empty, too_long, link,
- * personal_info.
+ * The cheap verdict on a tidied comment, or a post with `max` POST_MAX:
+ * `{ ok: true }` or `{ ok: false, category }` with category one of empty,
+ * too_long, link, personal_info.
  */
-export function filterComment(text) {
+export function filterComment(text, { max = COMMENT_MAX } = {}) {
   if (!text) return { ok: false, category: "empty" };
-  if ([...text].length > COMMENT_MAX)
+  if ([...text].length > max)
     return { ok: false, category: "too_long" };
   const folded = foldForMatch(text);
   // An email address reads as a domain too; it is personal first.
