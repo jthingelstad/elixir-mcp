@@ -11552,7 +11552,6 @@ a.kit-bell__hit:focus-visible::after {
   .btn--follow,
   .btn.btn--follow,
   .kit-chip,
-  .kit-cheers .kit-chip,
   .btn--text,
   .kit-fresh > summary,
   .clan-field__check,
@@ -11849,27 +11848,6 @@ html[data-session-player="verified"] .chrome__avatar--hint {
 .kit-you-stats > .kit-tabs {
   margin-bottom: 0;
 }
-.kit-cheers__picker .kit-chip {
-  flex: 1 1 100px;
-  justify-content: center;
-}
-.kit-cheers__picker {
-  animation: kit-reveal 160ms ease-out;
-}
-@keyframes kit-reveal {
-  from {
-    transform: translateY(4px);
-  }
-  to {
-    transform: translateY(0);
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  .kit-cheers__picker {
-    animation: none;
-  }
-}
-
 /* Shared phone controls: readable fields and one 44px control rhythm. */
 .docs-task__links a {
   display: inline-flex;
