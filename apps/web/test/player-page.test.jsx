@@ -682,11 +682,18 @@ test(
     window.history.pushState({}, "", "/home/player/0VJ2QV");
     render(<App />);
     await screen.findByText("Copper Fern reached Path of Legends");
-    const cheer = await screen.findByRole("button", { name: "Cheer" });
+    const cheer = await screen.findByRole("button", { name: /^Cheer(ed)?: / });
     // One item in your feed, one Cheer: the older item has none, and no
     // counts.
-    expect(screen.getAllByRole("button", { name: "Cheer" })).toHaveLength(1);
-    expect(screen.getByText("1 person")).toBeTruthy();
+    expect(
+      screen.getAllByRole("button", { name: /^Cheer(ed)?: / }),
+    ).toHaveLength(1);
+    // Counts only, in the button's description (never who, and no words
+    // beside the glyph).
+    expect(
+      document.getElementById(cheer.getAttribute("aria-describedby"))
+        .textContent,
+    ).toMatch(/\b1 person\./);
     expect(cheer.getAttribute("aria-pressed")).toBe("false");
     fireEvent.click(screen.getByRole("button", { name: "Choose a cheer" }));
     fireEvent.click(
@@ -712,7 +719,7 @@ test(
     window.history.pushState({}, "", "/home/player/0VJ2QV");
     render(<App />);
     await screen.findByText("Copper Fern won five in a row");
-    expect(screen.queryByRole("button", { name: "Cheer" })).toBeNull();
+    expect(screen.queryByRole("button", { name: /^Cheer(ed)?: / })).toBeNull();
   },
 );
 

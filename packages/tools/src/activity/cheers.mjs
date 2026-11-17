@@ -1,7 +1,7 @@
 /**
  * Cheers' counts (social slice 7, #765): the reads every door shares. A cheer
- * is a signed-in person's one reaction to a timeline item, from six that all
- * celebrate (DECISIONS "Reactions, not comments"). Every reader of an item
+ * is a signed-in person's one reaction to a timeline item, from twenty that
+ * all celebrate (DECISIONS "Reactions, not comments"). Every reader of an item
  * sees how many of each cheer it has, and their own; nobody sees who cheered.
  *
  * Writing a cheer is the web's alone (services/web-api/src/cheers.mjs). Agents
@@ -11,9 +11,13 @@
  * agent's own cheer, since an agent has none.
  */
 
-/** The six, in the order the picker shows them. The web app names them
- *  (apps/web/src/home/cheer-set.js); this list is what the database allows
- *  (0243), and a test pins the two together. */
+/** The cheers, in the order the picker shows them: the six of 2026-11-12
+ *  first, with their ids unchanged, then the fourteen added 2026-11-17
+ *  ("Reactions are glyphs alone; a larger set"). The web app names and
+ *  draws them (apps/web/src/home/cheer-set.js); this list is what the
+ *  database allows (0243, widened by 0286), and a test pins the lists
+ *  together. A kind is a word only to the app: mail, push, RSS and
+ *  Discord never name one, and MCP serves the ids as counts. */
 export const CHEER_KEYS = [
   "well_played",
   "on_fire",
@@ -21,6 +25,20 @@ export const CHEER_KEYS = [
   "wow",
   "ha",
   "grind",
+  "love_it",
+  "good_game",
+  "congrats",
+  "clutch",
+  "high_five",
+  "champion",
+  "nailed_it",
+  "climbing",
+  "big_brain",
+  "ice_cold",
+  "close_one",
+  "lucky",
+  "fun_to_watch",
+  "getting_better",
 ];
 
 /** A timeline item's id, as a cheer names it. */

@@ -7857,7 +7857,6 @@ a.kit-mbattle:hover {
   flex-wrap: nowrap;
   gap: 0;
 }
-.kit-feed__item--line .kit-cheers__kinds,
 .kit-feed__item--line .kit-cheers__error,
 .kit-feed__item--line > .kit-cheers ~ * {
   grid-column: 1 / -1;
@@ -8186,15 +8185,18 @@ a.kit-scard:focus-visible {
   gap: 2px;
 }
 
-/* Cheers (one tap since 2026-11-17, "A cheer is one tap"): Cheer gives
-   the default at once and takes yours back; the smile beside it opens the
-   six inline. Neither moves when counts change: Cheer holds the width of
-   its longer word, and the counts sit after the smile. */
+/* Cheers (one tap since 2026-11-17, "A cheer is one tap"; glyphs alone
+   since 2026-11-17, "Reactions are glyphs alone; a larger set"): the cheer
+   button is a glyph and its count, the smile beside it opens a popover
+   anchored to the row (the six, the recent slot and More; More grows it to
+   all twenty as a grid). The popover sits over the content, so nothing
+   below moves, and the button keeps its width as its count changes. */
 .kit-cheers {
   display: grid;
   gap: 6px;
 }
 .kit-cheers__row {
+  position: relative;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -8206,7 +8208,7 @@ a.kit-scard:focus-visible {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: 5px;
   min-width: var(--hit);
   min-height: var(--hit);
   padding: 0 12px;
@@ -8222,6 +8224,9 @@ a.kit-scard:focus-visible {
   -webkit-tap-highlight-color: transparent;
   -webkit-touch-callout: none;
   user-select: none;
+}
+.kit-cheer {
+  padding: 0 10px 0 12px;
 }
 .kit-cheer__more {
   padding: 0;
@@ -8253,15 +8258,8 @@ a.kit-scard:focus-visible {
   fill: currentColor;
   fill-opacity: 0.22;
 }
-.kit-cheer__word {
-  display: inline-grid;
-}
-.kit-cheer__word > span {
-  grid-area: 1 / 1;
-}
-.kit-cheer__off {
-  visibility: hidden;
-}
+/* The count keeps two digits' room, so the button never changes width
+   between none, one and twelve. */
 .kit-cheer__n {
   min-width: 2ch;
   font-variant-numeric: tabular-nums;
@@ -8274,6 +8272,9 @@ a.kit-scard:focus-visible {
   .kit-cheer__glyph--pop {
     animation: kit-cheer-pop 260ms cubic-bezier(0.3, 1.6, 0.5, 1);
   }
+  .kit-cheers__pop {
+    animation: kit-cheers-pop 140ms ease-out;
+  }
 }
 @keyframes kit-cheer-pop {
   0% {
@@ -8284,6 +8285,16 @@ a.kit-scard:focus-visible {
   }
   100% {
     transform: scale(1);
+  }
+}
+@keyframes kit-cheers-pop {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: none;
   }
 }
 .kit-cheers__counts {
@@ -8308,32 +8319,65 @@ a.kit-scard:focus-visible {
   fill: currentColor;
   fill-opacity: 0.3;
 }
-.kit-cheers__who {
+.kit-cheers__rest {
   color: var(--ink-faint);
-  font-size: var(--t-caption);
+  font-size: var(--t-body-sm);
+  font-variant-numeric: tabular-nums;
 }
-/* The six, inline under the row: no sheet, no dialog. */
-.kit-cheers__kinds {
+/* The popover: under the row (above it when the screen has no room),
+   inside the viewport sideways (Cheers.jsx sets --x). */
+.kit-cheers__pop {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: var(--x, 0);
+  z-index: 30;
   display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
+  flex-wrap: nowrap;
+  gap: 0;
+  max-width: calc(100vw - 8px);
+  padding: 2px;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--panel);
+  box-shadow: 0 6px 24px rgb(0 0 0 / 0.35);
+}
+.kit-cheers__pop--up {
+  top: auto;
+  bottom: calc(100% + 4px);
+}
+.kit-cheers__pop--all {
+  display: grid;
+  grid-template-columns: repeat(5, var(--hit));
+  overflow: visible;
+}
+/* A recent cheer from past the six takes the slot before More only
+   where all eight fit on one line. */
+@media (max-width: 379px) {
+  .kit-cheers__kind--recent[aria-pressed="false"] {
+    display: none;
+  }
 }
 .kit-cheers__kind {
   display: inline-flex;
+  flex: none;
   align-items: center;
-  gap: 6px;
-  min-height: var(--hit);
-  padding: 0 12px;
+  justify-content: center;
+  width: var(--hit);
+  height: var(--hit);
+  padding: 0;
   border: 1px solid transparent;
-  border-radius: var(--r-control);
-  white-space: nowrap;
-  background: var(--panel);
+  border-radius: 12px;
+  background: transparent;
   color: var(--ink-body);
   font: inherit;
-  font-size: var(--t-body-sm);
-  font-weight: 600;
   cursor: pointer;
   touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  user-select: none;
 }
 .kit-cheers__kind:hover {
   background: var(--control-hover);
@@ -8341,11 +8385,35 @@ a.kit-scard:focus-visible {
 }
 .kit-cheers__kind[aria-pressed="true"] {
   border-color: var(--accent-bright);
+  background: color-mix(in srgb, var(--accent-bright) 16%, transparent);
   color: var(--accent-bright);
 }
 .kit-cheers__kind[aria-pressed="true"] .kit-cheerglyph {
   fill: currentColor;
   fill-opacity: 0.3;
+}
+.kit-cheers__kind--recent {
+  margin-left: 2px;
+  box-shadow: inset 1px 0 0 var(--line);
+}
+.kit-cheers__kind--more {
+  color: var(--ink-dim);
+}
+/* A glyph's name, over it, on hover, keyboard focus and a long press. */
+.kit-cheers__tip {
+  position: absolute;
+  top: var(--y, 0);
+  left: var(--x, 0);
+  z-index: 31;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: var(--ink);
+  color: var(--ground);
+  font-size: var(--t-caption);
+  font-weight: 600;
+  white-space: nowrap;
+  pointer-events: none;
+  transform: translate(-50%, calc(-100% - 6px));
 }
 .kit-cheers__error {
   margin: 0;

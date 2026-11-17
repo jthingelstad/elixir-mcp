@@ -1,7 +1,8 @@
 /**
  * Cheers (social slice 7, #765): a signed-in person's one reaction to a
- * timeline item, from six that all celebrate (Jamie, 2026-11-12: "Yes, six
- * cheers (Recommended)"; DECISIONS "Reactions, not comments"). One per
+ * timeline item, from a fixed set that all celebrate (Jamie, 2026-11-12: "Yes, six
+ * cheers (Recommended)", grown to twenty on 2026-11-17, "Reactions are
+ * glyphs alone; a larger set"; DECISIONS "Reactions, not comments"). One per
  * person per item: cheering again with another changes it, with the same
  * one or none takes it back.
  *

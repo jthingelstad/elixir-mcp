@@ -124,8 +124,9 @@ the other decks the session switched to.
 
 Short sessions step back so the big ones stand out. A session of one or
 two battles is one line: who, when, the result and its
-trophies, and on the right its **Cheer**, with how many cheered it, and the
-smile that opens the six. Tap the line to open the
+trophies, and on the right its cheer button with how many gave that
+cheer, a "+" count of every other cheer, and the smile that opens the
+rest. Tap the line to open the
 session's page. Two or more short sessions in a row, whoever played them,
 fold into one row, such as "4 short sessions from Pip, Ash and 2 others",
 with their battles, wins and losses, when, and how many cheers they have
@@ -162,7 +163,7 @@ Tap the card to open the session's own page. Back brings you here. It shows:
   or a new best in trophies;
 - **Highlight** on each battle when the session is your own verified
   player's, which opens the battle's page at its highlight.
-- **Cheer**, under the figures and chips, while the session is in your own feed
+- **Cheers**, under the figures and chips, while the session is in your own feed
   ([Cheers](#cheers)), with the same counts as on your Timeline.
 
 Only battles Elixir recorded are on the page. When the update counted more
@@ -309,29 +310,62 @@ it. Each reads on its own, so the feed never waits for them.
 
 ## Cheers
 
-Any item about a player or clan you follow can take a cheer from you, one
-of six that celebrate: **Well played** (a thumbs up), **On fire** (a
-flame), **Royal** (a crown), **Wow** (sparkles), **Ha** (a laughing face)
-and **Grind** (a flexed arm). There is nothing to boo with. You give one
-cheer per item.
+Any item about a player or clan you follow can take a cheer from you. A
+cheer is a glyph, with no words beside it, and there are twenty, all of
+them happy ones. There is nothing to boo with. You give one cheer per item.
 
-- **Tap Cheer** under the item and it is cheered at once with **Well
-  played**. Tap it again to take your cheer back, whichever one it is.
-- **The smile beside Cheer** opens the six in a row under the item. Tap
-  one to cheer with it, or to change yours; tap yours there to take it
-  back. On a phone you can also hold your finger on **Cheer** to open
-  them. With a keyboard, the arrow keys move along the six, Enter chooses
-  and Escape closes them.
+- **Tap the thumbs up** under the item and it is cheered at once with
+  Well played. Tap it again to take your cheer back, whichever one it is.
+- **The smile beside it** opens six cheers in a row over the item, with
+  **More** at the end. Tap one to cheer with it or change yours, or tap
+  yours to take it back. On a phone you can also hold your finger on the
+  thumbs up to open them.
+- **More** shows all twenty in a grid. The last cheer you picked from past
+  the six waits just before More next time, when there's room on the
+  screen.
+- **Not sure what a glyph means?** Hover over it, reach it with the
+  keyboard, or hold your finger on it, and its name shows.
+- **With a keyboard,** the arrow keys move around the cheers (up and down
+  too, in the grid), Home and End jump to the ends, Enter chooses, and
+  Escape steps back from the grid to the six, then closes.
 
-Once you have cheered, **Cheer** turns violet, shows your cheer's glyph and
-says **Cheered**. If a cheer could not be saved, it goes back to how it was
-and the item says so.
+Once you have cheered, the button turns violet and shows your cheer's
+glyph. If a cheer could not be saved, it goes back to how it was and the
+item says so.
 
-An item shows its cheers as counts beside **Cheer**, each kind's glyph with
-its number (yours in violet), and says how many cheered in words ("You and
-2 others", "3 people"): never who. Every member
-whose feed shows the item sees the same counts. Your account's own items
-(a sign-in, a feedback answer) take no cheers.
+An item shows its cheers as glyphs with their numbers: your cheer (or the
+thumbs up) on the button with its count, then the next most given kinds
+beside it, up to three, with anything more added up as one number, such as
+**+4**. Never who. Every member whose feed shows the item sees the same
+counts. Your account's own items (a sign-in, a feedback answer) take no
+cheers.
+
+The six that open first, then the rest in the order More shows them:
+
+| Cheer | Glyph | Id |
+| --- | --- | --- |
+| Well played (one tap) | thumbs up | `well_played` |
+| On fire | flame | `on_fire` |
+| Royal | gem | `royal` |
+| Wow | sparkles | `wow` |
+| Ha | laughing face | `ha` |
+| Grind | flexed arm | `grind` |
+| Love it | heart | `love_it` |
+| Good game | handshake | `good_game` |
+| Congrats | party popper | `congrats` |
+| Clutch | lightning bolt | `clutch` |
+| High five | open hand | `high_five` |
+| Champion | medal | `champion` |
+| Nailed it | target | `nailed_it` |
+| Climbing | rocket | `climbing` |
+| Big brain | brain | `big_brain` |
+| Ice cold | snowflake | `ice_cold` |
+| Close one | hourglass | `close_one` |
+| Lucky | clover | `lucky` |
+| Fun to watch | popcorn | `fun_to_watch` |
+| Getting better | sprout | `getting_better` |
+
+The id is how an agent reads a kind (`elixir_cheers` counts by id).
 
 The same item takes cheers on a [player's page](/docs/player-page) and on
 its battle's page ([Battles](/docs/battles#cheers)), with the same counts,

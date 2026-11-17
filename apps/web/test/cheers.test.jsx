@@ -1,9 +1,11 @@
 /**
- * Cheers on a feed item and the RSS link panel (#765). The six cheers are
- * the ruling's set (Jamie, 2026-11-12: "Yes, six cheers (Recommended)"),
- * pinned here to the database's own list; one per person per item, the
- * same one again takes it back, and the item shows counts, never who.
- * Invented players only.
+ * Cheers on a feed item and the RSS link panel (#765). The cheers are the
+ * ruling's six (Jamie, 2026-11-12: "Yes, six cheers (Recommended)") and,
+ * since 2026-11-17, fourteen more ("Reactions are glyphs alone; a larger
+ * set"), pinned here to the database's own list; one per person per item,
+ * the same one again takes it back, and the item shows counts, never who.
+ * The control shows glyphs alone: every one has its name. Invented players
+ * only.
  */
 import { readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
@@ -19,13 +21,23 @@ import {
 import { renderWithProviders } from "./helpers.jsx";
 import {
   CHEERS,
+  LEAD,
   cheerCounts,
+  cheerOf,
   cheeredBy,
+  foldCounts,
   nextCheer,
   withMyCheer,
 } from "../src/home/cheer-set.js";
+import { reactionRow } from "../src/shell/bell-logic.js";
 import { useQuery } from "@tanstack/react-query";
-import { Cheers, LONG_PRESS_MS, cheerWords } from "../src/home/Cheers.jsx";
+import {
+  Cheers,
+  GRID_COLUMNS,
+  LONG_PRESS_MS,
+  cheerButtonName,
+  cheerWords,
+} from "../src/home/Cheers.jsx";
 import { CheerGlyph } from "../src/home/CheerGlyph.jsx";
 import { RssLinkPanel } from "../src/views/account/RssLink.jsx";
 import { ScopeProvider } from "../src/lib/scope.js";
@@ -54,25 +66,32 @@ const ITEM = {
   my_cheer: "on_fire",
 };
 
-test("the six cheers are the database's six, in the canvas's order", () => {
+test("the cheers are the database's twenty, the first six as they always were", () => {
   const sql = readFileSync(
     path.resolve(
       path.dirname(fileURLToPath(import.meta.url)),
-      "../../../db/migrations/0243_cheers_and_feed_link.sql",
+      "../../../db/migrations/0286_cheer_kinds_twenty.sql",
     ),
     "utf8",
   );
   const listed = /cheer in \(([^)]*)\)/.exec(sql)[1];
   const keys = [...listed.matchAll(/'([a-z_]+)'/g)].map((m) => m[1]);
   expect(CHEERS.map((c) => c.key)).toEqual(keys);
-  expect(CHEERS.map((c) => c.label)).toEqual([
-    "Well played",
-    "On fire",
-    "Royal",
-    "Wow",
-    "Ha",
-    "Grind",
+  expect(CHEERS).toHaveLength(20);
+  expect(LEAD).toBe(6);
+  // The six of 0243, unchanged: ids, names and order.
+  expect(CHEERS.slice(0, 6).map((c) => [c.key, c.label])).toEqual([
+    ["well_played", "Well played"],
+    ["on_fire", "On fire"],
+    ["royal", "Royal"],
+    ["wow", "Wow"],
+    ["ha", "Ha"],
+    ["grind", "Grind"],
   ]);
+  // Every kind has a short name, and no two share a name or a glyph.
+  for (const c of CHEERS) expect(c.label).toMatch(/^[A-Z][a-z]+( [a-z]+)*$/);
+  expect(new Set(CHEERS.map((c) => c.label)).size).toBe(CHEERS.length);
+  expect(new Set(CHEERS.map((c) => c.icon)).size).toBe(CHEERS.length);
 });
 
 test("counts in words never say who", () => {
@@ -177,6 +196,7 @@ function FeedHarness() {
   const it = data?.pages?.[0]?.timeline?.[0];
   return it ? <Cheers it={it} /> : null;
 }
+const CHEER_NAME = /^Cheer(ed)?: /;
 async function feedWith(item) {
   const r = renderWithProviders(<FeedHarness />);
   act(() =>
@@ -185,11 +205,15 @@ async function feedWith(item) {
       pageParams: [null],
     }),
   );
-  await screen.findByRole("button", { name: "Cheer" });
+  await screen.findByRole("button", { name: CHEER_NAME });
   return r;
 }
 const FRESH = { ...ITEM, cheers: { royal: 1 }, my_cheer: null };
-const cheerButton = () => screen.getByRole("button", { name: "Cheer" });
+const cheerButton = () => screen.getByRole("button", { name: CHEER_NAME });
+const toggle = () => screen.getByRole("button", { name: "Choose a cheer" });
+const lead = () => screen.queryByRole("group", { name: "Cheer with" });
+const grid = () => screen.queryByRole("group", { name: "All cheers" });
+const focused = () => document.activeElement.getAttribute("aria-label");
 /** A server that answers each write with the counts it would hold. */
 function answering() {
   global.fetch = vi.fn(async (path, init = {}) => {
@@ -207,13 +231,15 @@ function answering() {
 test("one tap cheers at once with the default, and a second tap takes it back", async () => {
   answering();
   await feedWith(FRESH);
-  const button = await screen.findByRole("button", { name: "Cheer" });
+  const button = cheerButton();
+  expect(button.getAttribute("aria-label")).toBe("Cheer: Well played");
   expect(button.getAttribute("aria-pressed")).toBe("false");
   fireEvent.click(button);
   // Shown before the server answers.
   await waitFor(() =>
     expect(cheerButton().getAttribute("aria-pressed")).toBe("true"),
   );
+  expect(cheerButton().getAttribute("aria-label")).toBe("Cheered: Well played");
   await waitFor(() => expect(calls).toHaveLength(1));
   expect(calls[0].path).toBe("/api/me/cheers");
   expect(calls[0].method).toBe("PUT");
@@ -222,7 +248,8 @@ test("one tap cheers at once with the default, and a second tap takes it back", 
     cheer: "well_played",
     subjects: ["#0GVJ9V", "#0VJ2QV"],
   });
-  await waitFor(() => expect(screen.getByText("You and 1 other")).toBeTruthy());
+  // The button carries its kind's count; the description says the rest.
+  await waitFor(() => expect(cheerButton().textContent).toBe("1"));
   expect(
     document.getElementById(cheerButton().getAttribute("aria-describedby"))
       .textContent,
@@ -235,80 +262,156 @@ test("one tap cheers at once with the default, and a second tap takes it back", 
   expect(calls[1].body.cheer).toBeNull();
 });
 
-test("a cheer of another kind is one tap on Cheer away from being taken back", async () => {
+test("a cheer of another kind is one tap on the button away from being taken back", async () => {
   answering();
   await feedWith({ ...ITEM });
-  // Yours is On fire: Cheer is pressed and wears its glyph.
+  // Yours is On fire: the button is pressed and wears its glyph and count.
   expect(cheerButton().getAttribute("aria-pressed")).toBe("true");
+  expect(cheerButton().getAttribute("aria-label")).toBe("Cheered: On fire");
   expect(cheerButton().querySelector("svg.lucide-flame")).toBeTruthy();
+  expect(cheerButton().textContent).toBe("2");
   fireEvent.click(cheerButton());
   await waitFor(() => expect(calls).toHaveLength(1));
   expect(calls[0].body.cheer).toBeNull();
 });
 
-test("choosing another kind: the six open inline and one tap switches", async () => {
+test("six reactions first, More grows the popover to all twenty, one tap switches", async () => {
   answering();
   await feedWith(FRESH);
-  const more = screen.getByRole("button", { name: "Choose a cheer" });
-  expect(more.getAttribute("aria-expanded")).toBe("false");
-  fireEvent.click(more);
-  expect(more.getAttribute("aria-expanded")).toBe("true");
-  const group = screen.getByRole("group", { name: "Cheer with" });
-  expect(more.getAttribute("aria-controls")).toBe(group.id);
-  expect(group.querySelectorAll("button")).toHaveLength(6);
-  fireEvent.click(screen.getByRole("button", { name: "Grind" }));
-  expect(screen.queryByRole("group", { name: "Cheer with" })).toBeNull();
+  expect(toggle().getAttribute("aria-expanded")).toBe("false");
+  fireEvent.click(toggle());
+  expect(toggle().getAttribute("aria-expanded")).toBe("true");
+  const group = lead();
+  expect(toggle().getAttribute("aria-controls")).toBe(group.id);
+  const names = [...group.querySelectorAll("button")].map((b) =>
+    b.getAttribute("aria-label"),
+  );
+  expect(names).toEqual([
+    ...CHEERS.slice(0, 6).map((c) => c.label),
+    "More reactions",
+  ]);
+  fireEvent.click(screen.getByRole("button", { name: "More reactions" }));
+  expect(lead()).toBeNull();
+  const all = grid();
+  expect(
+    [...all.querySelectorAll("button")].map((b) =>
+      b.getAttribute("aria-label"),
+    ),
+  ).toEqual(CHEERS.map((c) => c.label));
+  // The first one the six did not show takes focus.
+  await waitFor(() => expect(focused()).toBe(CHEERS[LEAD].label));
+  fireEvent.click(screen.getByRole("button", { name: "High five" }));
+  expect(grid()).toBeNull();
   await waitFor(() =>
-    expect(
-      cheerButton().querySelector("svg.lucide-biceps-flexed"),
-    ).toBeTruthy(),
+    expect(cheerButton().querySelector("svg.lucide-hand")).toBeTruthy(),
   );
   await waitFor(() => expect(calls).toHaveLength(1));
-  expect(calls[0].body.cheer).toBe("grind");
+  expect(calls[0].body.cheer).toBe("high_five");
 });
 
-test("the keyboard reaches the kinds: arrows move, Enter chooses, Escape closes", async () => {
+test("yours, or your last from past the six, waits just before More", async () => {
+  answering();
+  localStorage.removeItem("elixir.cheer.recent");
+  const r = await feedWith({
+    ...FRESH,
+    my_cheer: "lucky",
+    cheers: { lucky: 1 },
+  });
+  fireEvent.click(toggle());
+  let names = [...lead().querySelectorAll("button")].map((b) =>
+    b.getAttribute("aria-label"),
+  );
+  expect(names.slice(6)).toEqual(["Lucky", "More reactions"]);
+  expect(
+    screen.getByRole("button", { name: "Lucky" }).getAttribute("aria-pressed"),
+  ).toBe("true");
+  fireEvent.click(toggle());
+  r.unmount();
+  // Choosing one from the grid remembers it for this device.
+  await feedWith(FRESH);
+  fireEvent.click(toggle());
+  expect(lead().querySelectorAll("button")).toHaveLength(7);
+  fireEvent.click(screen.getByRole("button", { name: "More reactions" }));
+  fireEvent.click(screen.getByRole("button", { name: "Ice cold" }));
+  expect(localStorage.getItem("elixir.cheer.recent")).toBe("ice_cold");
+  await waitFor(() => expect(calls).toHaveLength(1));
+  fireEvent.click(toggle());
+  names = [...lead().querySelectorAll("button")].map((b) =>
+    b.getAttribute("aria-label"),
+  );
+  expect(names.slice(6)).toEqual(["Ice cold", "More reactions"]);
+  localStorage.removeItem("elixir.cheer.recent");
+});
+
+test("the keyboard: arrows move, Enter chooses, Escape steps back then closes", async () => {
   answering();
   await feedWith({ ...ITEM });
-  const more = screen.getByRole("button", { name: "Choose a cheer" });
+  const more = toggle();
   more.focus();
   // A keyboard press on a button is a click with no pointer detail.
   fireEvent.click(more, { detail: 0 });
   // Focus lands on yours (On fire).
-  await waitFor(() =>
-    expect(document.activeElement.textContent).toBe("On fire"),
-  );
-  expect(screen.getByRole("group", { name: "Cheer with" })).toBeTruthy();
+  await waitFor(() => expect(focused()).toBe("On fire"));
   fireEvent.keyDown(document.activeElement, { key: "ArrowRight" });
-  expect(document.activeElement.textContent).toBe("Royal");
+  expect(focused()).toBe("Royal");
   fireEvent.keyDown(document.activeElement, { key: "ArrowLeft" });
   fireEvent.keyDown(document.activeElement, { key: "ArrowLeft" });
-  expect(document.activeElement.textContent).toBe("Well played");
+  expect(focused()).toBe("Well played");
   fireEvent.keyDown(document.activeElement, { key: "End" });
-  expect(document.activeElement.textContent).toBe("Grind");
+  expect(focused()).toBe("More reactions");
+  fireEvent.keyDown(document.activeElement, { key: "Home" });
+  expect(focused()).toBe("Well played");
   fireEvent.keyDown(document.activeElement, { key: "Escape" });
-  expect(screen.queryByRole("group", { name: "Cheer with" })).toBeNull();
-  expect(document.activeElement).toBe(more);
+  expect(lead()).toBeNull();
+  await waitFor(() => expect(document.activeElement).toBe(toggle()));
   expect(calls).toHaveLength(0);
-  fireEvent.click(more, { detail: 0 });
-  await waitFor(() =>
-    expect(document.activeElement.textContent).toBe("On fire"),
-  );
-  fireEvent.keyDown(document.activeElement, {
-    key: "ArrowRight",
-  });
+
+  // More from the keyboard, then the grid in two dimensions.
+  fireEvent.click(toggle(), { detail: 0 });
+  await waitFor(() => expect(focused()).toBe("On fire"));
+  fireEvent.keyDown(document.activeElement, { key: "End" });
+  fireEvent.click(document.activeElement, { detail: 0 });
+  await waitFor(() => expect(focused()).toBe(CHEERS[LEAD].label));
+  const at = (i) => CHEERS[i].label;
+  // Index 6 is row 2, column 2 of five.
+  fireEvent.keyDown(document.activeElement, { key: "ArrowDown" });
+  expect(focused()).toBe(at(LEAD + GRID_COLUMNS));
+  fireEvent.keyDown(document.activeElement, { key: "ArrowUp" });
+  fireEvent.keyDown(document.activeElement, { key: "ArrowUp" });
+  expect(focused()).toBe(at(1));
+  // Up from the top row wraps to the bottom of the column.
+  fireEvent.keyDown(document.activeElement, { key: "ArrowUp" });
+  expect(focused()).toBe(at(16));
+  fireEvent.keyDown(document.activeElement, { key: "ArrowDown" });
+  expect(focused()).toBe(at(1));
+  fireEvent.keyDown(document.activeElement, { key: "ArrowRight" });
+  expect(focused()).toBe(at(2));
+  fireEvent.keyDown(document.activeElement, { key: "End" });
+  expect(focused()).toBe(at(19));
+  // Escape steps back to the six, on More; again closes, on the smile.
+  fireEvent.keyDown(document.activeElement, { key: "Escape" });
+  expect(grid()).toBeNull();
+  expect(lead()).toBeTruthy();
+  await waitFor(() => expect(focused()).toBe("More reactions"));
+  fireEvent.keyDown(document.activeElement, { key: "Escape" });
+  expect(lead()).toBeNull();
+  await waitFor(() => expect(document.activeElement).toBe(toggle()));
+
+  fireEvent.click(toggle(), { detail: 0 });
+  await waitFor(() => expect(focused()).toBe("On fire"));
+  fireEvent.keyDown(document.activeElement, { key: "ArrowRight" });
   fireEvent.click(document.activeElement, { detail: 0 });
   await waitFor(() => expect(calls).toHaveLength(1));
   expect(calls[0].body.cheer).toBe("royal");
   await waitFor(() => expect(document.activeElement).toBe(cheerButton()));
 });
 
-test("a scroll that starts on Cheer never cheers, and a long press opens the kinds", async () => {
+test("a scroll that starts on the button never cheers, and a long press opens the kinds", async () => {
   answering();
   await feedWith(FRESH);
   const button = cheerButton();
-  // A finger lands on Cheer and the page scrolls: the browser cancels the
-  // pointer and sends no click.
+  // A finger lands on the button and the page scrolls: the browser
+  // cancels the pointer and sends no click.
   fireEvent.pointerDown(button, {
     pointerType: "touch",
     clientX: 10,
@@ -321,7 +424,7 @@ test("a scroll that starts on Cheer never cheers, and a long press opens the kin
   });
   fireEvent.pointerCancel(button, { pointerType: "touch" });
   await new Promise((r) => setTimeout(r, LONG_PRESS_MS + 50));
-  expect(screen.queryByRole("group", { name: "Cheer with" })).toBeNull();
+  expect(lead()).toBeNull();
   expect(calls).toHaveLength(0);
   expect(button.getAttribute("aria-pressed")).toBe("false");
 
@@ -337,6 +440,132 @@ test("a scroll that starts on Cheer never cheers, and a long press opens the kin
   fireEvent.click(button);
   expect(calls).toHaveLength(0);
   expect(button.getAttribute("aria-pressed")).toBe("false");
+
+  // Resting on a kind shows its name, and lifting the finger is no cheer.
+  const wow = screen.getByRole("button", { name: "Wow" });
+  fireEvent.pointerDown(wow, { pointerType: "touch", clientX: 5, clientY: 5 });
+  await waitFor(
+    () =>
+      expect(document.querySelector(".kit-cheers__tip")?.textContent).toBe(
+        "Wow",
+      ),
+    { timeout: 2000 },
+  );
+  fireEvent.pointerUp(wow, { pointerType: "touch" });
+  fireEvent.click(wow);
+  expect(calls).toHaveLength(0);
+  // A plain tap on it then cheers.
+  fireEvent.click(wow);
+  await waitFor(() => expect(calls).toHaveLength(1));
+  expect(calls[0].body.cheer).toBe("wow");
+});
+
+test("a glyph's name shows on hover and keyboard focus, and the popover closes on a tap away", async () => {
+  answering();
+  await feedWith(FRESH);
+  const tip = () => document.querySelector(".kit-cheers__tip");
+  fireEvent.mouseEnter(cheerButton());
+  expect(tip().textContent).toBe("Cheer: Well played");
+  expect(tip().getAttribute("aria-hidden")).toBe("true");
+  fireEvent.mouseLeave(cheerButton());
+  expect(tip()).toBeNull();
+  fireEvent.click(toggle());
+  const flame = screen.getByRole("button", { name: "On fire" });
+  // Keyboard focus (focus-visible) shows the name; jsdom matches it on focus.
+  act(() => flame.focus());
+  expect(tip().textContent).toBe("On fire");
+  act(() => flame.blur());
+  expect(tip()).toBeNull();
+  fireEvent.pointerDown(document.body);
+  expect(lead()).toBeNull();
+});
+
+test("no word beside a reaction: the control's visible text is numbers alone", async () => {
+  answering();
+  const busy = {
+    ...ITEM,
+    cheers: { on_fire: 4, royal: 3, wow: 2, ha: 2, grind: 1, lucky: 1 },
+    my_cheer: "grind",
+  };
+  await feedWith(busy);
+  const visible = () => {
+    const root = document.querySelector(".kit-cheers").cloneNode(true);
+    // Words for screen readers, and the tooltip a focused glyph shows, are
+    // not words beside a reaction.
+    root
+      .querySelectorAll(".sr-only, .kit-cheers__tip")
+      .forEach((n) => n.remove());
+    return root.textContent;
+  };
+  expect(visible()).toMatch(/^[\d+\s]*$/);
+  fireEvent.click(toggle());
+  expect(visible()).toMatch(/^[\d+\s]*$/);
+  fireEvent.click(screen.getByRole("button", { name: "More reactions" }));
+  expect(visible()).toMatch(/^[\d+\s]*$/);
+  // Every control in it is named, glyph-only as it is.
+  for (const b of document.querySelectorAll(".kit-cheers button"))
+    expect(b.getAttribute("aria-label")).toMatch(/\S/);
+  expect(
+    document.querySelectorAll(".kit-cheers button[aria-label]").length,
+  ).toBe(22);
+});
+
+test("a busy item folds its counts: the top three, yours, then +N", async () => {
+  // Folding, in the set's order on ties, yours always kept.
+  const cheers = { on_fire: 4, royal: 3, wow: 2, ha: 2, grind: 1, lucky: 1 };
+  const plain = foldCounts(cheers);
+  expect(plain.shown.map((c) => [c.key, c.count])).toEqual([
+    ["on_fire", 4],
+    ["royal", 3],
+    ["wow", 2],
+  ]);
+  expect(plain.rest).toBe(4);
+  const withMine = foldCounts(cheers, { mine: "lucky" });
+  expect(withMine.shown.map((c) => c.key)).toEqual([
+    "on_fire",
+    "royal",
+    "wow",
+    "lucky",
+  ]);
+  expect(withMine.rest).toBe(3);
+  // The button's own kind is left out of the fold.
+  const button = foldCounts(cheers, { mine: "grind", except: "grind" });
+  expect(button.shown.map((c) => c.key)).toEqual(["on_fire", "royal", "wow"]);
+  expect(button.rest).toBe(3);
+  // Drawn: the button is Grind 1, then three kinds and +3.
+  global.fetch = vi.fn(async () => reply({}));
+  renderWithProviders(<Cheers it={{ ...ITEM, cheers, my_cheer: "grind" }} />);
+  expect(cheerButton().textContent).toBe("1");
+  const counts = [...document.querySelectorAll(".kit-cheers__count")];
+  expect(counts.map((c) => c.textContent)).toEqual(["4", "3", "2"]);
+  expect(
+    counts.map((c) => c.querySelector("svg").getAttribute("class")),
+  ).toEqual([
+    expect.stringContaining("lucide-flame"),
+    expect.stringContaining("lucide-gem"),
+    expect.stringContaining("lucide-sparkles"),
+  ]);
+  expect(document.querySelector(".kit-cheers__rest").textContent).toBe("+3");
+});
+
+test("a stored kind this page does not know is drawn safely and counted", async () => {
+  answering();
+  const odd = {
+    ...ITEM,
+    cheers: { mystery_kind: 3, wow: 1 },
+    my_cheer: "mystery_kind",
+  };
+  await feedWith(odd);
+  // The button shows the default glyph, pressed, and a tap takes it back.
+  expect(cheerButton().getAttribute("aria-pressed")).toBe("true");
+  expect(cheerButton().querySelector("svg.lucide-thumbs-up")).toBeTruthy();
+  expect(cheerOf("mystery_kind").key).toBe("well_played");
+  // Counted in the fold, never drawn with a wrong glyph.
+  expect(foldCounts(odd.cheers).rest).toBe(3);
+  expect(cheeredBy(odd.cheers, odd.my_cheer)).toBe("You and 3 others");
+  fireEvent.click(cheerButton());
+  await waitFor(() => expect(calls).toHaveLength(1));
+  expect(calls[0].body.cheer).toBeNull();
 });
 
 test("a write that fails rolls back and says so quietly", async () => {
@@ -349,7 +578,7 @@ test("a write that fails rolls back and says so quietly", async () => {
     "Your cheer was not saved. Try again.",
   );
   expect(cheerButton().getAttribute("aria-pressed")).toBe("false");
-  expect(screen.queryByText("You")).toBeNull();
+  expect(cheerButton().textContent).toBe("");
 });
 
 test("taps during a write show at once and are sent in order after it", async () => {
@@ -486,14 +715,17 @@ test("on an agent's pages the counts show and nothing can be pressed", () => {
   ).toBeTruthy();
 });
 
-test("a line's compact Cheer carries the total, and no counts by kind", () => {
+test("a line's compact Cheer carries its kind's count and folds the rest into +N", () => {
   global.fetch = vi.fn(async () => reply({}));
   renderWithProviders(<Cheers it={ITEM} compact />);
-  expect(cheerButton().textContent).toBe("3");
+  expect(cheerButton().textContent).toBe("2");
   expect(document.querySelector(".kit-cheers__counts")).toBeNull();
+  expect(document.querySelector(".kit-cheers__rest").textContent).toBe("+1");
   expect(cheerWords(ITEM.cheers, ITEM.my_cheer)).toBe(
     "On fire 2, Royal 1. You and 2 others. Yours: On fire",
   );
+  expect(cheerButtonName("royal")).toBe("Cheered: Royal");
+  expect(cheerButtonName(null)).toBe("Cheer: Well played");
 });
 
 test("each kind has one glyph, a Lucide one, drawn the same wherever it shows", () => {
@@ -502,11 +734,38 @@ test("each kind has one glyph, a Lucide one, drawn the same wherever it shows", 
   expect(Object.fromEntries(CHEERS.map((c) => [c.key, c.icon]))).toEqual({
     well_played: "thumbs-up",
     on_fire: "flame",
-    royal: "crown",
+    royal: "gem",
     wow: "sparkles",
     ha: "laugh",
     grind: "biceps-flexed",
+    love_it: "heart",
+    good_game: "handshake",
+    congrats: "party-popper",
+    clutch: "zap",
+    high_five: "hand",
+    champion: "medal",
+    nailed_it: "target",
+    climbing: "rocket",
+    big_brain: "brain",
+    ice_cold: "snowflake",
+    close_one: "hourglass",
+    lucky: "clover",
+    fun_to_watch: "popcorn",
+    getting_better: "sprout",
   });
+  // None is a glyph that already means something else (glyphs.md).
+  for (const taken of [
+    "star",
+    "bell",
+    "crown",
+    "trophy",
+    "swords",
+    "shield",
+    "castle",
+    "eye",
+    "award",
+  ])
+    expect(glyphs).not.toContain(taken);
   for (const c of CHEERS) {
     cleanup();
     renderWithProviders(<CheerGlyph kind={c.key} />);
@@ -514,17 +773,33 @@ test("each kind has one glyph, a Lucide one, drawn the same wherever it shows", 
     expect(svg.getAttribute("class")).toContain(`lucide-${c.icon}`);
     expect(svg.getAttribute("aria-hidden")).toBe("true");
   }
-  // The feed's counts and the kinds row draw a kind with the same glyph.
+  // Every kind renders in the counts, in the grid and in the bell's words.
+  for (const c of CHEERS) {
+    cleanup();
+    global.fetch = vi.fn(async () => reply({}));
+    renderWithProviders(
+      <Cheers
+        it={{
+          ...ITEM,
+          cheers: { [c.key]: 2, wow: c.key === "wow" ? 2 : 1 },
+          my_cheer: null,
+        }}
+      />,
+    );
+    const drawn = [
+      cheerButton(),
+      ...document.querySelectorAll(".kit-cheers__count"),
+    ].map((n) => n.querySelector("svg").getAttribute("class"));
+    expect(drawn.some((k) => k.includes(`lucide-${c.icon}`))).toBe(true);
+    const row = reactionRow({ item_id: ITEM.id, cheers: { [c.key]: 2 } });
+    expect(row.words).toBe(`${c.label} 2`);
+  }
   cleanup();
   global.fetch = vi.fn(async () => reply({}));
   renderWithProviders(<Cheers it={ITEM} />);
   fireEvent.click(screen.getByRole("button", { name: "Choose a cheer" }));
-  const count = document.querySelectorAll(".kit-cheers__count svg");
-  expect([...count].map((s) => s.getAttribute("class"))).toEqual([
-    expect.stringContaining("lucide-flame"),
-    expect.stringContaining("lucide-crown"),
-  ]);
-  const kinds = screen.getByRole("group", { name: "Cheer with" });
+  fireEvent.click(screen.getByRole("button", { name: "More reactions" }));
+  const kinds = screen.getByRole("group", { name: "All cheers" });
   const drawnKinds = [...kinds.querySelectorAll("svg")];
   expect(drawnKinds).toHaveLength(glyphs.length);
   drawnKinds.forEach((s, i) =>

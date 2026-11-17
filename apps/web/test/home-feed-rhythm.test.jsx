@@ -106,13 +106,13 @@ test("a group opens in place, and each session in it keeps its own cheer", () =>
   const toggle = screen.getByRole("button", { name: /2 short sessions/ });
   expect(toggle.getAttribute("aria-expanded")).toBe("false");
   expect(toggle.textContent).toMatch(/2 cheers/);
-  expect(screen.queryByRole("button", { name: "Cheer" })).toBeNull();
+  expect(screen.queryByRole("button", { name: /^Cheer(ed)?: / })).toBeNull();
   fireEvent.click(toggle);
   expect(toggle.getAttribute("aria-expanded")).toBe("true");
   const body = document.getElementById(toggle.getAttribute("aria-controls"));
-  expect(within(body).getAllByRole("button", { name: "Cheer" })).toHaveLength(
-    2,
-  );
+  expect(
+    within(body).getAllByRole("button", { name: /^Cheer(ed)?: / }),
+  ).toHaveLength(2);
   expect(within(body).getAllByRole("article")).toHaveLength(2);
 });
 

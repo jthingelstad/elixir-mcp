@@ -186,8 +186,10 @@ export function reactionRow(r) {
   const battle = String(r.battle_url ?? "").replace(/^https?:\/\/[^/]+/, "");
   return {
     key: r.item_id,
-    icon: "heart",
+    // Not the heart: that is Love it, one of the cheers (2026-11-17).
+    icon: "smile",
     text: r.text,
+    cheers: r.cheers ?? {},
     counts,
     words: counts.map((c) => `${c.label} ${c.count}`).join(", "),
     total: r.total,
