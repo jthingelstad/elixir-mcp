@@ -78,9 +78,10 @@ const cardFormLabel = (card) =>
  *  yet (resolveCardArt). `w` is the display width: the file is the
  *  original, and width and height scale it. Its alt
  *  is the card's name with its form: what the text part prints and what
- *  a client with images off shows. On one line: the text part breaks a
+ *  a client with images off shows. With a visible card-name caption,
+ *  `decorative` avoids reading the name twice. On one line: the text part breaks a
  *  line on every newline in the source. */
-export function cardImg(card, w, { radius = 6 } = {}) {
+export function cardImg(card, w, { radius = 6, decorative = false } = {}) {
   const src = card.icon ?? card.art_src ?? cardAsset(card.id, card.form);
-  return `<img src="${src}" alt="${esc(cardFormLabel(card))}" width="${w}" height="${cardHeight(w)}" style="display:block;width:100%;max-width:${w}px;height:auto;border:0;outline:none;text-decoration:none;border-radius:${radius}px;" />`;
+  return `<img src="${src}" alt="${decorative ? "" : esc(cardFormLabel(card))}" width="${w}" height="${cardHeight(w)}" style="display:block;width:100%;max-width:${w}px;height:auto;border:0;outline:none;text-decoration:none;border-radius:${radius}px;" />`;
 }

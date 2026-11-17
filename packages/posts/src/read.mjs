@@ -78,8 +78,8 @@ async function readRows(
 /** A Home reader's audience condition: the post's player is one the
  *  reader follows now (the feed's own player subjects), its author an
  *  account they follow, or the post is their own. `$2` the player tags. */
-const AUDIENCE = `(p.account_id = $1::uuid
-          or p.player_tag = any($2::text[])
+const audience = (players = "$2::text[]") => `(p.account_id = $1::uuid
+          or p.player_tag = any(${players})
           or exists (select 1 from account_follow f
                       where f.account_id = $1::uuid
                         and f.followed_account_id = p.account_id))`;
@@ -108,12 +108,44 @@ export async function readVisiblePosts(
   const tags = subjects.filter((s) => s.kind === "player").map((s) => s.tag);
   const rows = await readRows(
     db,
-    `${AUDIENCE} and ${createdOnly ? "p.created_at" : "coalesce(p.updated_at, p.created_at)"} >= $3
+    `${audience()} and ${createdOnly ? "p.created_at" : "coalesce(p.updated_at, p.created_at)"} >= $3
         and p.created_at ${createdOnly ? "<" : "<="} $4${plainOnly ? " and p.battle_id is null" : ""}`,
     [readerId, tags, new Date(fromMs), new Date(toMs)],
     { plain, visibleOnly, limit },
   );
   return postItems(db, rows, readerId);
+}
+
+/** The live posts the Home read could show that were CREATED after its
+ * watermark. Same audience/status predicate, without attachment/game reads.
+ * Current notify-enabled claims are read in the same statement; account-only
+ * follows and own posts do not require a cached game week. Edits never count.
+ */
+export async function countNewPosts(
+  db,
+  readerId,
+  sinceMs,
+  { plain = false, nowMs = Date.now() } = {},
+) {
+  const players = `array(select c.player_tag from claim c
+                         where c.account_id = $1::uuid and c.notify)`;
+  const { rows } = await db.query(
+    `select count(*)::int as fresh from (
+       select p.created_at from account_post p
+       ${POST_JOIN}
+       where ${seen(plain)} and ${audience(players)}
+         and coalesce(p.updated_at, p.created_at) >= $3
+         and p.created_at <= $4
+       order by p.created_at desc, p.post_id desc limit 200
+     ) visible where created_at > $2`,
+    [
+      readerId,
+      new Date(sinceMs),
+      new Date(nowMs - 7 * 86400_000),
+      new Date(nowMs),
+    ],
+  );
+  return rows[0]?.fresh ?? 0;
 }
 
 /** Whether a post (its row) is one the reader may see now: the same
@@ -131,7 +163,7 @@ async function postForReader(
   const cast = column === "post_id" ? "::bigint" : "";
   const home = await readRows(
     db,
-    `${open ? `(${AUDIENCE} or p.battle_id is not null)` : AUDIENCE} and ${key} = $3${cast}`,
+    `${open ? `(${audience()} or p.battle_id is not null)` : audience()} and ${key} = $3${cast}`,
     [readerId, tags, ref],
     { plain, visibleOnly, limit: 1 },
   );
@@ -205,13 +237,13 @@ export async function postsBy(
   const rows = playerTag
     ? await readRows(
         db,
-        `(${AUDIENCE} or p.battle_id is not null) and p.player_tag = $3`,
+        `(${audience()} or p.battle_id is not null) and p.player_tag = $3`,
         [readerId, tags, playerTag],
         { plain },
       )
     : await readRows(
         db,
-        `(${AUDIENCE} or p.battle_id is not null) and p.account_id = $3::uuid`,
+        `(${audience()} or p.battle_id is not null) and p.account_id = $3::uuid`,
         [readerId, tags, accountId],
         { plain },
       );

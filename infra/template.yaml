@@ -2010,6 +2010,8 @@ Resources:
           NODE_EXTRA_CA_CERTS: /var/task/certificates/rds.pem
           SECRET_EPOCH: !Ref SecretEpoch
           PGAPPNAME: elixir-mcp-jobs
+          # Plain posts enter only the existing digest, under the app's gate.
+          POSTS_ENABLED: !If [HasPosts, "true", !Ref AWS::NoValue]
           # statement_timeout: a per-statement bound, not the 900 s run.
           # The longest statement the jobs log shows over 29 days is the
           # nightly rollup's cards aggregate, 108 s on 2026-09-22 (the

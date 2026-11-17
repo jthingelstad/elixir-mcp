@@ -19,7 +19,7 @@ you: a clan action that is yours to do, cheers and new followers you
 have not seen yet, your collector's week if you run one, and an answer to
 feedback you filed.
 
-The digest gives each friend room: their posts about battles and their words come before
+The digest gives each friend room: their posts, questions and words come before
 their battle record. A gold check beside a linked player name marks a
 player verified in Elixir, even if they have not chosen an image.
 
@@ -66,8 +66,11 @@ chooses what to say, and the timeline keeps everything.
   or posted, friends first, up to twelve with the rest counted. Each has
   their sessions, then their battles and record, their trophies, and up to
   three things:
-  their [posts about battles](/docs/timeline#posts-about-battles) first, with their own
-  words, then the big [firsts](/docs/milestones) (a new arena, league,
+  their [posts and questions](/docs/timeline#posts), including
+  [posts about battles](/docs/timeline#posts-about-battles), first, with their own
+  words and attached deck or cards. **Read and reply** opens a question
+  in Elixir after sign-in. Following an account includes its new posts
+  even when you do not follow its player separately. Then the big [firsts](/docs/milestones) (a new arena, league,
   best band, form, legendary badge or career step), a move between clans
   or a return, each with a link to the battle that did it when the record
   knows it. Cards unlocked and badge levels are a count. A clanmate you
@@ -93,7 +96,7 @@ chooses what to say, and the timeline keeps everything.
   [Emails](/settings/emails). Off, the digest has no clan part, and a
   clanmate you follow who joined, left or changed role is told under
   them instead.
-- **You:** your own week, your firsts, your cards and badges counted, and
+- **You:** your own week, posts, firsts, your cards and badges counted, and
   each alt that played, with its firsts.
 - **Never an empty week:** when no one you follow played or posted,
   neither did you, and no clan you follow has news, no digest comes.
@@ -109,6 +112,12 @@ What is attested (Clan's departures, roles, awards and messages,
 Drop's personal records) stays out of the digest; the timeline still
 carries them to their readers. Anything a person typed, a name, a
 nickname or a post's words, is shown as text.
+
+A post appears once, in the digest covering when it was created. Editing
+it does not send it again. Deleted or hidden posts, posts you reported,
+and posts from someone blocked in either direction are left out when the
+digest is built. A copy already prepared or delivered by email cannot be
+taken back; its link checks who can see the post now.
 
 ## Collector upgrade notices
 

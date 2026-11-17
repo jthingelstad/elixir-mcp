@@ -45,6 +45,7 @@ export async function runEmail({
   // (path) => whether the card-art mirror holds that file (deliver's
   // cardArt); null draws every card in its own form.
   cardArt = null,
+  posts = process.env.POSTS_ENABLED === "true",
   // () => ms left before this run's deadline (db.mjs runRemainingMs);
   // null runs to the end.
   remainingMs = null,
@@ -88,6 +89,7 @@ export async function runEmail({
       now,
       force,
       scheduled: !force && !accountId,
+      posts,
       enqueue,
       result,
       manual: force ? `~m${now.getTime()}` : "",
@@ -262,6 +264,7 @@ async function runDigest(run, recipients) {
         cadence,
         window: digestWindow(now, cadence, lastSent.get(account.accountId)),
         fold: foldFor(account.accountId),
+        posts: run.posts,
       });
       if (!facts) {
         result.skipped += 1;

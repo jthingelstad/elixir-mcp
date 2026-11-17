@@ -30,6 +30,7 @@ import { annotateFeed, closeTags, groupsOf, inMode } from "../feed.mjs";
 import { cheersReceived, withCheers } from "../cheers.mjs";
 import { withComments } from "../comments.mjs";
 import { homePosts } from "../posts.mjs";
+import { countNewPosts } from "@elixir-mcp/posts";
 import { firstAnswer } from "../first-answer.mjs";
 import { readCircle } from "../circle.mjs";
 import { homeClan, myClans } from "./clans.mjs";
@@ -711,8 +712,8 @@ async function readFeed(
   });
   // Posts (2026-11-17): read live over the week by their own audience
   // (posts.mjs); a person's feed only. A post about nothing in the record
-  // only while posts are on, and never stored in the week, so nothing
-  // built from it (digest, mail, push, RSS, MCP) ever holds one. A post
+  // only while posts are on, and never stored in the game-record week.
+  // The existing digest reads them separately through the same audience. A post
   // about a battle always (0292): the week holds the record's own line
   // for it (kind battle_highlight, which the digest, mail, push, RSS and
   // MCP read), and a person's Home draws the post itself instead, so the
@@ -797,11 +798,9 @@ async function readFeed(
     }
     out.counts = { ...counts, new: fresh, new_since: seen_to };
     // Where the "N new" pill counts from: the newest change among the
-    // stored items this read holds. With none stored, every stored item
+    // stored items and live posts this read holds. With neither, each item
     // that arrives is one the reader lacks, so count from the week's start.
-    out.watermark =
-      feedWatermark(whole.filter((it) => it.kind !== "post")) ??
-      out.window.from;
+    out.watermark = feedWatermark(whole) ?? out.window.from;
   }
   console.info(
     JSON.stringify({
@@ -1089,7 +1088,7 @@ export function homeRoutes({
     // items changed (sort later, or were learned later) after `since`, the
     // first page's `watermark`. One statement on the account's row after
     // the session's own, polled by an open Home while its tab is visible;
-    // never a build, never the record.
+    // plus the same live-post audience count, never a build or game-record read.
     "GET /api/me/home/feed/new": async (db, event) => {
       const account = await resolveAccount(db, event);
       if (!account) return json(401, { error: "unauthenticated" });
@@ -1102,8 +1101,15 @@ export function homeRoutes({
       )
         return json(400, { error: "invalid_since" });
       const row = await countHomeNew(db, account.accountId, since);
+      const live =
+        account.kind === "person"
+          ? await countNewPosts(db, account.accountId, since, {
+              plain: posts,
+              nowMs: now,
+            })
+          : 0;
       return json(200, {
-        new: row?.fresh ?? 0,
+        new: (row?.fresh ?? 0) + live,
         built_at: row ? row.builtAt.toISOString() : null,
       });
     },

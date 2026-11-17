@@ -279,11 +279,33 @@ never pushes a highlight out of the read. Card unlocks and badges stay a count (
 friends mail counted them. Attested facts never enter
 (`services/jobs/test/digest-mail.test.mjs`).
 
+**Plain posts and questions (2026-11-17).** When the existing combined
+PostsEnabled/CommentsEnabled gate is on, Jobs reads `@elixir-mcp/posts`
+with `visibleOnly`, `plainOnly` and `createdOnly`, then merges those items
+with the recorded timeline before the existing per-person/people/byte
+caps. This is the same canonical audience, two-way blocks, open reports
+and attachment normalization as the app. Only posts created in `[from,to)`
+enter; an older post edited in that window is not sent again. Battle posts
+remain on the existing `battle_highlight` path and are not duplicated.
+An account-only follow can contribute a bare post author without adding
+that player to the game-record subjects. The digest does not infer Clan
+membership as a new mail audience.
+
+Stored post facts contain id, words, question and canonical cards/deck,
+never comments, permissions or public-share tokens. The renderer links
+`memberPostUrl(id)`, `/home/post/<id>`, an authenticated destination whose
+read rechecks the current audience. No public capability is created.
+Deleted/hidden/reported/blocked posts are omitted at composition time.
+As for existing mail, rendering, archive and outbox persist a snapshot;
+queued or delivered HTML cannot be retracted by later moderation or
+changes. Cadence, switches, ledger, no-empty rule and relay are unchanged.
+Regression: `services/jobs/test/digest-posts.test.mjs`.
+
 **What it says.**
 - **From people you follow:** friends first, then whoever has the most
   to tell, then the busiest, at most twelve (`PEOPLE_CAP`), the rest
   counted. Each has their sittings, battles and record, their trophies,
-  and up to three items (`ITEMS_PER_PERSON`), highlights first: a
+  and up to three items (`ITEMS_PER_PERSON`), plain/battle posts first: a
   highlight is the timeline's sentence with the words carried apart and
   drawn as a quote; each item links the battle's public page when the
   record knows the battle. A highlight's share link is never carried.

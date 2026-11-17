@@ -23,6 +23,7 @@ import {
 } from "./shell.mjs";
 import { monthDayAt, whenAt } from "@elixir-mcp/ui/time";
 import { cardImg } from "./cards.mjs";
+import { memberPostUrl } from "@elixir-mcp/posts/paths";
 import {
   compactSitting,
   deckCaption,
@@ -271,15 +272,20 @@ function clanBlock(k, c) {
   return `<div>${esc(sentence(capFirst(k.headline)))}</div>${k.bullets?.length ? c.list(k.bullets.map((b) => esc(capFirst(clause(b))))) : ""}${more}`;
 }
 
-/** A battle post's words as the player wrote them, in a quiet quote. */
+/** A post's words as the player wrote them, in a quiet quote. */
 const quote = (words) =>
   `<div style="margin:6px 0 0;padding:2px 0 2px 10px;border-left:2px solid ${M.gold};font-family:${FONT};font-size:14px;line-height:1.5;color:${M.ink};">“${esc(words)}”</div>`;
 
-/** One item of the digest: the timeline's sentence, a battle post's words
- *  under it, and the battle's page when the record knows it. Every
+/** One item of the digest: a post's words and attachments or the timeline's
+ *  sentence, and the member post or battle destination. Every
  *  string is escaped here, at its output (DECISIONS "A name is escaped
  *  at its output"). */
 function digestItem(it, c) {
+  if (it.kind === "post") {
+    const url = memberPostUrl(it.post?.id);
+    const cards = it.post?.deck?.cards ?? it.post?.cards ?? [];
+    return `<div style="font-family:${FONT};font-size:14px;line-height:1.5;color:${M.muted};margin-top:12px;">${esc(it.post?.question ? "Question" : "Post")}</div>${it.words ? quote(it.words) : ""}${cards.length ? deckRow(cards, { names: true }) : ""}${it.post?.deck?.label ? c.small(esc(it.post.deck.label)) : ""}${url ? `<div style="margin-top:8px;">${c.link(url, it.post?.question ? "Read and reply" : "Open post", `display:inline-block;min-height:44px;line-height:44px;font-family:${FONT};font-size:14px;font-weight:600;`)}</div>` : ""}`;
+  }
   const battle = it.battle_url
     ? ` ${c.link(it.battle_url, "See the battle", "font-weight:600;")}`
     : "";
@@ -294,17 +300,23 @@ const sittingUrl = (path) =>
     ? `${SITE}${path}`
     : null;
 
-/** A sitting's eight cards in a row, the art as mirrored (never altered;
- *  width and height scale it), each cell an eighth of the row so it fits a
- *  phone. Alt text names each card, which is what the text part prints. */
-const deckRow = (cards) =>
-  `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:8px;max-width:360px;"><tr>${cards
-    .slice(0, 8)
+/** Up to eight cards in a row, the art as mirrored (never altered;
+ *  width and height scale it), equal cells so the row fits a phone.
+ *  Posts add a visible name caption for clients with images blocked;
+ *  sittings keep the existing named-image alternative. */
+const deckRow = (cards, { names = false } = {}) => {
+  const shown = cards.slice(0, 8);
+  if (!shown.length) return "";
+  const width = 100 / shown.length;
+  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:8px;max-width:${Math.min(360, shown.length * 45)}px;"><tr>${shown
     .map(
       (card) =>
-        `<td width="12.5%" valign="top" style="width:12.5%;padding:0 2px;">${cardImg(card, 42, { radius: 4 })}</td>`,
+        `<td width="${width}%" valign="top" style="width:${width}%;padding:0 2px;font-family:${FONT};font-size:11px;line-height:1.3;color:${M.muted};">${cardImg(card, 42, { radius: 4, decorative: names })}</td>`,
     )
-    .join("")}</tr></table>`;
+    .join(
+      "",
+    )}</tr></table>${names ? `<div style="margin-top:4px;font-family:${FONT};font-size:12px;line-height:1.5;color:${M.faint};">${shown.map((card) => esc(card.name ?? String(card.id))).join(" · ")}</div>` : ""}`;
+};
 
 /** A sitting in the digest, as the web's session card tells it
  *  (2026-11-16, @elixir-mcp/ui/session-story): the headline from its
@@ -496,10 +508,12 @@ function digest(f, c) {
   const people = f.people ?? [];
   const total = people.reduce((s, x) => s + (x.battles ?? 0), 0);
   const posted = people.filter((x) =>
-    (x.items ?? []).some((it) => it.kind === "battle_highlight"),
+    (x.items ?? []).some((it) =>
+      ["battle_highlight", "post"].includes(it.kind),
+    ),
   );
   const from = people.length
-    ? `${c.h2("From people you follow", `${n(people.length + (f.more_people ?? 0))} of ${n(f.following ?? 0)} had something this ${span}`)}${digestPeople(people, c)}${
+    ? `${c.h2("From people you follow", `${n(people.length + (f.more_people ?? 0))}${f.account_posts ? "" : ` of ${n(f.following ?? 0)}`} had something this ${span}`)}${digestPeople(people, c)}${
         f.more_people
           ? c.small(
               `${n(f.more_people)} more ${f.more_people === 1 ? "person" : "people"} you follow had something; ${c.link(`${SITE}/timeline`, "your Timeline")} has them all.`,
@@ -534,9 +548,9 @@ function digest(f, c) {
     ${c.button("Open your Timeline", `${SITE}/timeline`)}
     ${c.small(`Anyone with a player tag can be followed: ${c.link(`${SITE}/home/find`, "follow a friend")}. Everyone you follow: <a href="${c.T(MAIL_PATHS.players)}" style="color:${M.link};">Settings › Players</a>.`)}
     ${c.cov(esc(f.coverage ?? ""))}`;
-  // The inbox preview: a battle post's words first, else who played.
+  // The inbox preview: a post's words first, else who played.
   const lead = posted[0]
-    ? `${posted[0].name}: “${posted[0].items.find((it) => it.kind === "battle_highlight")?.words ?? ""}”`
+    ? `${posted[0].name}: “${posted[0].items.find((it) => ["battle_highlight", "post"].includes(it.kind))?.words ?? ""}”`
     : people
         .slice(0, 4)
         .map(
@@ -551,18 +565,34 @@ function digest(f, c) {
       : said
     : `Your ${span} in Elixir.`;
   const title = daily ? "Your day in Elixir" : "Your week in Elixir";
+  const plainPosts = people.reduce(
+    (sum, x) => sum + (x.items ?? []).filter((it) => it.kind === "post").length,
+    0,
+  );
+  const postCount = people.reduce(
+    (sum, x) =>
+      sum +
+      (x.items ?? []).filter((it) =>
+        ["post", "battle_highlight"].includes(it.kind),
+      ).length,
+    0,
+  );
+  const activity =
+    total || !plainPosts
+      ? `${n(total)} battle${total === 1 ? "" : "s"}`
+      : `${n(plainPosts)} post${plainPosts === 1 ? "" : "s"}`;
   const since = c.date(f.window?.from);
   // With no one you follow in it, a clan's news names the clan (its
   // name is the clan's, never a person's); otherwise "your week".
   const clansOnly = !people.length && !you && (f.clans ?? []).length;
   return {
-    subject: `${title}: ${people.length ? `${n(people.length)} ${people.length === 1 ? "person" : "people"} you follow, ${n(total)} battle${total === 1 ? "" : "s"}` : clansOnly ? `${f.clans[0].name}${f.clans.length > 1 ? ` and ${n(f.clans.length - 1)} more` : ""}` : `your ${span}`}`,
+    subject: `${title}: ${people.length ? `${n(people.length)} ${people.length === 1 ? "person" : "people"} you follow, ${activity}` : clansOnly ? `${f.clans[0].name}${f.clans.length > 1 ? ` and ${n(f.clans.length - 1)} more` : ""}` : `your ${span}`}`,
     preheader,
     html: (links) =>
       c.shell({
         kind: "tracking_report",
         title,
-        subtitle: `${since ? `Since ${esc(since)} · ` : ""}${posted.length ? `${n(posted.length)} battle post${posted.length === 1 ? "" : "s"} · ` : ""}${people.length ? `${n(people.length)} ${people.length === 1 ? "person" : "people"} you follow played ${n(total)} battle${total === 1 ? "" : "s"}` : `your ${span}`}`,
+        subtitle: `${since ? `Since ${esc(since)} · ` : ""}${postCount ? `${n(postCount)} ${plainPosts ? "post" : "battle post"}${postCount === 1 ? "" : "s"} · ` : ""}${people.length ? `${n(people.length)} ${people.length === 1 ? "person" : "people"} you follow${total || !plainPosts ? " played" : " shared"} ${activity}` : `your ${span}`}`,
         preheader,
         body,
         why: digestWhyLine(daily ? "daily" : "weekly", c.timezone),

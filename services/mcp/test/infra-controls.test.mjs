@@ -1550,14 +1550,18 @@ test("posts (2026-11-17): off by default, effective only with comments on, prese
     template,
     /HasPosts: !And\n\s+- !Condition HasComments\n\s+- !Equals \[!Ref PostsEnabled, "true"\]/,
   );
-  // Only the web API reads the switch.
+  // The web API and digest share the same combined switch.
   const env = [
     ...template.matchAll(
       /POSTS_ENABLED: !If \[HasPosts, "true", !Ref AWS::NoValue\]/g,
     ),
   ];
-  assert.equal(env.length, 1);
-  assert.equal([...template.matchAll(/POSTS_ENABLED/g)].length, 1);
+  assert.equal(env.length, 2);
+  assert.equal([...template.matchAll(/POSTS_ENABLED/g)].length, 2);
+  assert.match(
+    resource(template, "JobsFunction", "JobsInvokeConfig"),
+    /POSTS_ENABLED: !If \[HasPosts, "true", !Ref AWS::NoValue\]/,
+  );
   const { PRESERVED_PARAMETERS } =
     await import("../../../infra/scripts/parameters.mjs");
   assert.ok(PRESERVED_PARAMETERS.includes("PostsEnabled"));
