@@ -265,7 +265,9 @@ test("small moments fold into one row that opens to a line each (2026-11-17)", a
   await expect(lines).toHaveCount(4);
   // Each line says its moment without repeating the name the row shows.
   await expect(lines.nth(1)).toContainText("Maxed Hog Rider.");
-  await expect(lines.nth(2)).toContainText("Has played Clash Royale for 5 years.");
+  await expect(lines.nth(2)).toContainText(
+    "Has played Clash Royale for 5 years.",
+  );
   // The card a moment names keeps its own art, drawn whole.
   await expect(lines.nth(1).locator(".kit-line__art img")).toHaveAttribute(
     "src",
