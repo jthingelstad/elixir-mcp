@@ -64,7 +64,13 @@ function deckQuery(link: string): string | null {
   if (app) {
     // The app form alone, or wrapped by the web form's `/<lang>/?`.
     const head = raw.slice(0, app.index);
-    if (head && !new RegExp(`^https?://${HOST.replace(/\./g, "\\.")}/(?:${LANG}/?)?\\?$`, "i").test(head))
+    if (
+      head &&
+      !new RegExp(
+        `^https?://${HOST.replace(/\./g, "\\.")}/(?:${LANG}/?)?\\?$`,
+        "i",
+      ).test(head)
+    )
       return null;
     return app[1] ?? "";
   }

@@ -775,8 +775,7 @@ async function readFeed(
     // stored items this read holds. With none stored, every stored item
     // that arrives is one the reader lacks, so count from the week's start.
     out.watermark =
-      feedWatermark(all.filter((it) => it.kind !== "post")) ??
-      out.window.from;
+      feedWatermark(all.filter((it) => it.kind !== "post")) ?? out.window.from;
   }
   console.info(
     JSON.stringify({

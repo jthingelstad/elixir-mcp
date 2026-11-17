@@ -38,7 +38,7 @@ import {
   withCheers,
 } from "@elixir-mcp/tools/activity/cheers";
 import { proofOf } from "./feed.mjs";
-import { canSeePost } from "./posts.mjs";
+import { visiblePost } from "./posts.mjs";
 
 export { CHEER_KEYS, withCheers };
 const KEYS = new Set(CHEER_KEYS);
@@ -84,7 +84,7 @@ export async function ownFeedItem(
   { accountId, itemId, tags, subjects, posts = false },
 ) {
   if (posts) {
-    const post = await canSeePost(db, accountId, itemId, subjects);
+    const post = await visiblePost(db, accountId, itemId, subjects);
     if (post) return post;
   }
   const { items } = await feedItemsFor(db, { accountId, tags, subjects });
