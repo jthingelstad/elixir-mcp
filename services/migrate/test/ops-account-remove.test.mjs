@@ -205,6 +205,34 @@ before(async () => {
      values ($1, repeat('a', 64))`,
     [ids.person],
   );
+  // Comments (0280): one they wrote on the other person's item, one the
+  // other person wrote on theirs and reported, a check, a block each way
+  // and their setting.
+  await db.query(
+    `insert into timeline_comment (item_id, account_id, subject_tag, owner_account_id, body)
+     values ('tl_0123456789abcdef0123', $1, '#0RY8UJUL', $2, 'gg'),
+            ('tl_0123456789abcdef0124', $2, '#0VQRR8U0', $1, 'nice')`,
+    [ids.person, ids.other],
+  );
+  await db.query(
+    `insert into comment_report (comment_id, account_id, reason)
+     select comment_id, $1, 'spam' from timeline_comment where account_id = $2`,
+    [ids.person, ids.other],
+  );
+  await db.query(
+    `insert into comment_check (account_id, item_id, verdict, stage)
+     values ($1, 'tl_0123456789abcdef0123', 'allow', 'model')`,
+    [ids.person],
+  );
+  await db.query(
+    `insert into account_block (account_id, blocked_account_id)
+     values ($1, $2), ($2, $1)`,
+    [ids.person, ids.other],
+  );
+  await db.query(
+    `insert into comment_setting (account_id, who) values ($1, 'nobody')`,
+    [ids.person],
+  );
   // When they last opened the bell (0244).
   await db.query(`insert into bell_seen (account_id) values ($1)`, [
     ids.person,
@@ -365,6 +393,11 @@ test("a dry run is the default: it reports what would go and writes nothing", as
     battle_highlight: 1,
     timeline_cheer: 1,
     timeline_feed_link: 1,
+    comment_report: 1,
+    timeline_comment: 2,
+    comment_check: 1,
+    account_block: 2,
+    comment_setting: 1,
     bell_seen: 1,
     home_feed: 1,
     bell_week: 1,
@@ -520,6 +553,11 @@ test("the run removes the person and their agent, keeps the game record, and lea
     "battle_highlight",
     "timeline_cheer",
     "timeline_feed_link",
+    "timeline_comment",
+    "comment_report",
+    "comment_check",
+    "account_block",
+    "comment_setting",
     "bell_seen",
     "home_feed",
     "bell_week",

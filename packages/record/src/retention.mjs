@@ -134,6 +134,9 @@ export const TRIMMED = Object.freeze([
   },
   plain("feedback", "created_at", YEAR, "status in ('done', 'declined')"),
   plain("timeline_cheer", "created_at", YEAR),
+  // Comments (0280) go at a year like cheers; one an owner or an admin
+  // removed goes 30 days after its removal (sweepOperational).
+  plain("timeline_comment", "created_at", YEAR),
   plain("claim_challenge", "created_at", YEAR, "outcome <> 'open'"),
   plain(
     "collector_version_event",
@@ -166,6 +169,7 @@ export const OWN_TRIMS = Object.freeze({
   live_fetch_result: "1 hour, the ingest pipeline",
   timeline_discord_told: "31 days, the timeline sync (packages/syndication)",
   clan_activity_discord_told: "31 days, the clan activity sync",
+  comment_check: "35 days, sweepOperational",
 });
 
 /** Rows that go with a trimmed parent, never by their own age. */
@@ -179,6 +183,7 @@ export const CHILDREN = Object.freeze({
   war_participation: "goes with its war week",
   war_period_log: "goes with its war week",
   war_week_clan: "goes with its war week",
+  comment_report: "goes with its comment (on delete cascade)",
 });
 
 /** Not history over time, so not trimmed by age. */
@@ -202,6 +207,8 @@ export const KEPT = Object.freeze({
   clan_activity_discord: "a current channel setting",
   timeline_reader: "a reader's cursor",
   bell_seen: "a reader's cursor",
+  account_block: "a standing block",
+  comment_setting: "a current comment setting and any suspension",
   bell_week: "one cached week per account, rebuilt in place",
   home_feed: "one cached feed per account, rebuilt in place",
   home_clan_card: "one cached card per account, rebuilt in place",

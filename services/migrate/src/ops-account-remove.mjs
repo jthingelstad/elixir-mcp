@@ -211,6 +211,23 @@ async function removeAccount(db, { hash, accountId, dryRun }) {
       "timeline_feed_link",
       `timeline_feed_link where account_id = any($1::uuid[])`,
     ],
+    // Comments (0280): their reports, their comments and every comment
+    // on their items (their reports go with the comments), their checks
+    // and the words of their refused ones, their blocks either way and
+    // their comment setting.
+    ["comment_report", `comment_report where account_id = any($1::uuid[])`],
+    [
+      "timeline_comment",
+      `timeline_comment where account_id = any($1::uuid[])
+          or owner_account_id = any($1::uuid[])`,
+    ],
+    ["comment_check", `comment_check where account_id = any($1::uuid[])`],
+    [
+      "account_block",
+      `account_block where account_id = any($1::uuid[])
+          or blocked_account_id = any($1::uuid[])`,
+    ],
+    ["comment_setting", `comment_setting where account_id = any($1::uuid[])`],
     // When they last opened the bell (0244).
     ["bell_seen", `bell_seen where account_id = any($1::uuid[])`],
     // Their stored Home week (0245, #649).
