@@ -51,6 +51,24 @@ for (const viewport of [
           `${name}: primary action remains easy to tap`,
         ).toBeGreaterThanOrEqual(44);
       }
+      if (name === "tracking_report-posts") {
+        const memberActions = page.getByRole("link", {
+          name: /^(Read and reply|Open post)$/,
+        });
+        await expect(memberActions).toHaveCount(2);
+        for (const action of await memberActions.all()) {
+          await expect(action).toHaveAttribute(
+            "href",
+            /\/home\/post\/[0-9]+\?/,
+          );
+          expect((await action.boundingBox())?.height).toBeGreaterThanOrEqual(
+            44,
+          );
+        }
+        await expect(
+          page.getByText("Hog Rider · Musketeer", { exact: true }),
+        ).toBeVisible();
+      }
       if (name === "tracking_report") {
         await expect(
           page.getByRole("img", { name: "Verified player", exact: true }),
