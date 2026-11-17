@@ -68,3 +68,8 @@ is in `closeTags(db, accountId)` (`services/web-api/src/feed.mjs`).
 
 MCP 13.4.0 and JSON API 5.1.0, unchanged. Migration 0281 (`claim.close`,
 a constant default: no rewrite).
+
+Follow-up (Codex on #1079): the circle read kept only the first 60 marks
+by tag, on the belief that the player slots bound them. They do not (a
+player already recorded, staff), so the read now returns every marked
+friend.
