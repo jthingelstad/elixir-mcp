@@ -304,7 +304,9 @@ friends mail counted them. Attested facts never enter
   `DIGEST_BUDGET`, Codex on #1084) keeps a twelve-person digest under
   Gmail's ~102 KB clip: people are drawn in order, their sittings full
   (art for the first three) while the people drawn stay under 40 KB, one
-  line each under 60 KB, then a count linking their page.
+  line each under 60 KB, then a count linking their page; past 75 KB a
+  person's items are counted on the timeline too. Sizes are UTF-8 bytes,
+  as Gmail counts them (Codex on #1085).
 - **Each player once (2026-11-12).** Following a whole clan is common,
   so people are told only under themselves: a followed clanmate carries
   `clanmate: {tag, name}` ("In <clan>"), and a `clan_joined`/`clan_left`

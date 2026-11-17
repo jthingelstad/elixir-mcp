@@ -81,7 +81,9 @@ chooses what to say, and the timeline keeps everything.
   the deck's eight cards on one session a friend. A session of one or two
   battles is one line. Each session's result opens its own page. In a
   busy digest, later friends' sessions get shorter, then become a link to
-  their page, so your email is never cut off. Your own
+  their page, and in a very busy one the last friends' highlights and
+  firsts are counted with a link to your timeline, so your email is never
+  cut off. Your own
   sessions stay on your feed; under You, the digest keeps your week's
   count and your firsts.
 - **Your clan:** each clan you follow with news of its own: a river race

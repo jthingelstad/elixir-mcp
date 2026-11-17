@@ -124,7 +124,8 @@ test("a full digest stays under Gmail's clip: twelve people, three big sittings 
     more_sittings: 5,
   }));
   const { html } = renderMail("tracking_report", facts, links);
-  assert.ok(html.length < 100_000, `${html.length} bytes`);
+  const size = Buffer.byteLength(html, "utf8");
+  assert.ok(size < 100_000, `${size} bytes`);
   // The footer, and its turn-off link, are inside the mail.
   assert.ok(html.includes("api/email/unsubscribe?t=x"));
   // The first people are told in full, the art on at most three; the
@@ -132,4 +133,28 @@ test("a full digest stays under Gmail's clip: twelve people, three big sittings 
   assert.ok(words(html).includes("3 three-crown wins"));
   assert.ok((html.match(/alt="Hog Rider"/g) ?? []).length <= 3);
   assert.ok(words(html).includes("8 sittings on their page."));
+});
+
+test("the budget counts UTF-8 bytes: long CJK highlights still leave the footer in (Codex on #1085)", () => {
+  const facts = read("tracking_report");
+  const rapid = facts.people.find((p) => p.name === "Rapid Clear");
+  const big = rapid.sittings.find((s) => (s.facts.battles ?? 0) > 2);
+  const highlight = rapid.items.find((it) => it.kind === "battle_highlight");
+  const words500 = "皇家巨人推進".repeat(84).slice(0, 500);
+  facts.people = Array.from({ length: 12 }, (_, i) => ({
+    ...rapid,
+    name: `Rapid Clear ${i}`,
+    items: [0, 1, 2].map(() => ({ ...highlight, words: words500 })),
+    sittings: [big, big, big],
+    more_sittings: 0,
+  }));
+  const { html } = renderMail("tracking_report", facts, links);
+  // The sittings gave way first, then the later people's words: counted
+  // on the timeline. The footer and its turn-off link are inside the clip.
+  const size = Buffer.byteLength(html, "utf8");
+  assert.ok(size < 100_000, `${size} bytes`);
+  assert.ok(html.includes("api/email/unsubscribe?t=x"));
+  assert.ok(words(html).includes("3 sittings on their page."));
+  assert.ok(words(html).includes("3 more on your timeline."));
+  assert.ok(html.includes(words500));
 });

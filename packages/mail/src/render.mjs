@@ -431,12 +431,19 @@ function digestPerson(x, c, sittings = {}) {
  *  footer's turn-off link. People are drawn in order; each one's sittings
  *  are full while the people drawn so far stay under FULL_BYTES (the deck's
  *  art for the first ART_PEOPLE), one line each under BRIEF_BYTES, and a
- *  count with a link to their page past that. */
+ *  count with a link to their page past that. Past ITEMS_BYTES, a person's
+ *  items are counted too, "N more on your timeline", as the mail already
+ *  counts what it leaves out: long highlights alone could pass the clip. */
 const DIGEST_BUDGET = {
   FULL_BYTES: 40_000,
   BRIEF_BYTES: 60_000,
+  ITEMS_BYTES: 75_000,
   ART_PEOPLE: 3,
 };
+
+/** HTML as Gmail counts it: UTF-8 bytes, not string length (a CJK
+ *  highlight is three bytes a character; Codex on #1085). */
+const bytes = (html) => Buffer.byteLength(html, "utf8");
 
 function digestPeople(people, c) {
   let used = 0;
@@ -455,14 +462,24 @@ function digestPeople(people, c) {
       let html = null;
       for (const t of has ? tries : []) {
         const out = digestPerson(x, c, t);
-        if (used + out.length <= t.under) {
+        if (used + bytes(out) <= t.under) {
           html = out;
           if (t.mode === "full" && t.art && out.includes("<img")) art += 1;
           break;
         }
       }
       html ??= digestPerson(x, c, { mode: has ? "count" : "full" });
-      used += html.length;
+      if (used + bytes(html) > DIGEST_BUDGET.ITEMS_BYTES && x.items?.length)
+        html = digestPerson(
+          {
+            ...x,
+            items: [],
+            more_items: x.items.length + (x.more_items ?? 0),
+          },
+          c,
+          { mode: has ? "count" : "full" },
+        );
+      used += bytes(html);
       return html;
     })
     .join("");
