@@ -1,13 +1,13 @@
 ---
 slug: email
 title: "Email"
-description: "Elixir's email: one digest of the people you follow and your clan's week, weekly or daily, with each player told once; Clan's note when an action is yours to do; your collector's week if you run one; and the answer to feedback you filed. Every one is a switch in Settings; every issue carries a turn-off link; opens and clicks are counted per issue, never per reader."
+description: "Elixir's email: one digest of the people you follow and your clan's week, weekly or daily, with each player told once; Clan's note when an action is yours to do; cheers and new followers you have not seen, at most once a day; your collector's week if you run one; and the answer to feedback you filed. Every one is a switch in Settings; every issue carries a turn-off link; opens and clicks are counted per issue, never per reader."
 section: friends
 order: 4
 navTitle: "Email"
 icon: mail
-lede: "One digest of the people you follow and your clan, weekly or daily. Besides it, only mail with something for you to do or read: clan actions waiting, your collector's week, and answers to your feedback."
-reviewed: "2026-11-13 the digest's clan news is its own switch; 2026-11-13 the digest is Weekly, Daily or Off; 2026-11-12 one digest: the clan report, Arena week and milestone mails folded into it; 2026-11-12 your digest, weekly or daily by your choice; 2026-10-12 the collector week is Saturday to Saturday; 2026-10-12 no email is composed by a model"
+lede: "One digest of the people you follow and your clan, weekly or daily. Besides it, only mail with something for you to do or read: clan actions waiting, cheers on your play, your collector's week, and answers to your feedback."
+reviewed: "2026-11-16 Cheers on your play, at most once a day; 2026-11-13 the digest's clan news is its own switch; 2026-11-13 the digest is Weekly, Daily or Off; 2026-11-12 one digest: the clan report, Arena week and milestone mails folded into it; 2026-11-12 your digest, weekly or daily by your choice; 2026-10-12 the collector week is Saturday to Saturday; 2026-10-12 no email is composed by a model"
 ---
 
 # Email
@@ -15,8 +15,9 @@ reviewed: "2026-11-13 the digest's clan news is its own switch; 2026-11-13 the d
 Elixir sends **one digest**: the people you follow and your clan's week,
 in one email, weekly by default. It is the only scheduled email most
 people get. Besides it, Elixir mails you only when there is something for
-you: a clan action that is yours to do, your collector's week if you run
-one, and an answer to feedback you filed.
+you: a clan action that is yours to do, cheers and new followers you
+have not seen yet, your collector's week if you run one, and an answer to
+feedback you filed.
 
 The digest gives each friend room: their highlights and words come before
 their battle record. A gold check beside a linked player name marks a
@@ -30,6 +31,7 @@ The text and links still work with custom fonts or images blocked.
 | **Your digest** | Mondays at 11:00 UTC, right after the weekly reset, or daily, or off: your choice | The people you follow and your clan's week in one story, each player once: [below](#your-digest). Skipped when nothing happened. |
 | **Clan actions waiting** | When an action becomes yours | From [Clan](/clan), when something new in your clan is yours to do (promote, welcome, answer a departure, say whether you are away), with everything waiting for you and a link to act. Clan checks each morning, after its daily read, and mails only when something new is yours since your last one: nothing waiting, nothing sent, and at most one a day per clan. Only if you can act on it, only to the account that verified the player. Clan writes the words and Elixir sends them, so the app needs no address to mail you. |
 | **Collector activity** | Sundays at 14:00 UTC | Only if you run an [Elixir Collector](/docs/operators): each collector by its card, its full reported version and the collector page's security status (signed, dev build, unverified or mismatch), whether it is checking in, silent or stopped, its fetches this week and how many of them added new facts to the record; how much was blocked as already recorded, and your limits: an active collector raises them to [Family](/docs/roles#upgrades). One mail per account, every collector you run pooled. Covers Saturday 00:00 UTC to the next Saturday 00:00 UTC, the week that closed the night before. |
+| **Cheers on your play** | At most once a day, around 6 pm in your account's time zone | When people cheered your players' battles and posts, or started following your players, and you have not seen it in Elixir yet: how many cheers on each item and how many new followers, never who. Each line opens the battle or the player. Nothing new, nothing sent. What you already saw in the bell, or in your last one of these, is not told again. Only about the players you verified. |
 | **Answers to your feedback** | When answered | When Elixir's maintainer answers [feedback](/docs/your-account#feedback) you filed and you have not read the answer yet: what you wrote, the answer, its status and the version it shipped in, with a link to the item. One mail per answer, sent after ten quiet minutes, so a correction made straight away is one mail. Getting the email does not count as reading the answer: opening the item does. An agent's feedback is answered to the agent, never mailed. |
 
 All of them start **on** for an active person account, and each is **a

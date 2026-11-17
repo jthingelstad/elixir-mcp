@@ -67,7 +67,9 @@ When a sign-in or signup enrolls you in product news, Elixir sends
 Buttondown your email address and your browser's IP address for spam checks.
 Sign-in and welcome mail are service mail, independent of this checkbox.
 Elixir also sends reports and notes about your own play, each
-with its own off switch. Every mail has a way to stop it, and a stop is
+with its own off switch. One of them, **Cheers on your play**, comes at
+most once a day when people cheered your play or followed you and you
+have not seen it in Elixir yet: it says how many, never who. Every mail has a way to stop it, and a stop is
 never undone by the service. Mail is counted by issue (how many were
 opened, which links were clicked), never by who opened it.
 

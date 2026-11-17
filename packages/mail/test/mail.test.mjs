@@ -761,6 +761,57 @@ test("feedback answer: their words clipped and escaped, the answer whole, status
   assert.match(shippedQuestion.html, /Shipped in <span[^>]*>11\.13\.0</);
 });
 
+test("activity mail: counts never who, names escaped, links to the item or the player", () => {
+  const facts = {
+    cheers: [
+      {
+        item_id: "tl_0123456789abcdef0123",
+        text: "<img src=x onerror=alert(1)> won 5 in a row",
+        battle_url: "/battle/abc123",
+        subject_tag: "#0QQG0JVQQ",
+        fresh: 3,
+        total: 5,
+      },
+      {
+        item_id: "tl_aaaaaaaaaaaaaaaaaaaa",
+        text: "Reached a new Arena",
+        battle_url: "https://evil.example/battle/x",
+        subject_tag: "#0QQG0JVQQ",
+        fresh: 1,
+        total: 1,
+      },
+    ],
+    followers: [{ tag: "#20JJJ2CCRU", name: "King <b>Thing</b>", count: 2 }],
+    more_cheers: 4,
+  };
+  const { subject, html, preheader } = renderMail("activity_today", facts, {
+    ...links,
+    period: "2026-11-16",
+  });
+  assert.equal(subject, "8 cheers and 2 new followers on your play");
+  assert.equal(preheader, "8 cheers and 2 new followers");
+  assert.match(html, /Cheers on your play/);
+  assert.doesNotMatch(html, /<img src=x|<b>Thing<\/b>/);
+  assert.match(html, /King &lt;b&gt;Thing&lt;\/b&gt;/);
+  // A battle on Elixir's own origin; anything else opens the player.
+  assert.match(
+    html,
+    /href="https:\/\/elixir\.poapkings\.com\/battle\/abc123\?utm_source=email/,
+  );
+  assert.doesNotMatch(html, /evil\.example/);
+  assert.match(html, /\/home\/player\/0QQG0JVQQ\?utm_source=email/);
+  assert.match(html, /5 cheers in all/);
+  assert.match(html, /never tells anyone who cheered/);
+  // Followers only: no cheers section, a singular count.
+  const one = renderMail(
+    "activity_today",
+    { cheers: [], followers: [{ tag: "#0QQG0JVQQ", name: "A", count: 1 }] },
+    links,
+  );
+  assert.equal(one.subject, "1 new follower on your play");
+  assert.doesNotMatch(one.html, />Cheers</);
+});
+
 test("the actions mail says Clan, not Elixir Clan", () => {
   const actions = renderMail(
     "clan_actions_waiting",

@@ -31,6 +31,10 @@ const ABOUT = {
   feedback_answer: {
     what: "An unread answer to feedback you filed.",
   },
+  activity_today: {
+    what: "Cheers on your play and new followers you have not seen yet. Counts only, never who.",
+    note: "at most once a day, in your evening",
+  },
 };
 
 const SOURCE_ICON = {
@@ -155,6 +159,7 @@ export function EmailPage() {
       return `${k.sends.weekday}s, ${k.sends.time} ${k.sends.zone}${note ? ` · ${note}` : ""}`;
     if (k.kind === "clan_actions_waiting")
       return `When an action becomes yours · ${note}`;
+    if (k.kind === "activity_today") return `When people cheer you · ${note}`;
     return "When answered";
   };
   const row = (k) => (

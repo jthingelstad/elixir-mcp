@@ -13,6 +13,20 @@ scheduled mail; leaders' Actions mail stays apart": "that email should
 move to Monday", Jamie, 2026-11-13). The table's "Weekly on Wednesday"
 no longer holds.*
 
+*2026-11-16: intent changed. The bell's news now reaches you when you are
+away. Jamie, 2026-11-16: "overall the app doesn't have enough to bring
+people back", and "we need a way to let members know about activity on
+their games without them logging in… if the email they get normally is
+weekly, would we send something operational about engagement on their
+posts today." So **Cheers on your play** (`activity_today`) joins the
+mail set: cheers and new followers you have not seen in Elixir, counted,
+never who, at most one a day, event mail beside the Actions mail and apart
+from the digest. The line below that mail never carries "a cheer, a
+follower or anything else the bell tells" ("nothing new goes to mail or
+Discord", 2026-11-12) no longer holds for these two; Discord still gets
+none of it. Web push carries the same items (DECISIONS "The bell reaches
+you when you are away"; `docs/notes/2026-11-16-reach-you.md`).*
+
 ## What it is for
 
 "Keeping you up to date is part of the service, even when you do not
@@ -33,6 +47,7 @@ something for that role to do.
 | **Collector activity**, with its upgrade notices | The people running a collector | Sunday, covering Saturday to Saturday UTC; an upgrade notice when an installed release moves up |
 | **Actions waiting** (`clan_actions_waiting`) | A clan's verified leaders with an Action that became theirs | When an Action waits, at most once a day per clan |
 | **An answer to your feedback** | The person who filed it | When it is answered, one mail per answer |
+| **Cheers on your play** (`activity_today`, 2026-11-16) | A person whose verified players had cheers or new followers they have not seen; on by default | At most once a day, in their evening; never an empty one |
 
 - **The digest is the one scheduled mail.** "One digest email and
   merging clan and those you follow is really needed since it will be

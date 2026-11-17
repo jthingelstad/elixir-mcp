@@ -1,6 +1,7 @@
 /** Product email routes (docs/EMAIL.md).
  *
- *  GET  /api/me/email          every switch (absent row = on), with
+ *  GET  /api/me/email          every switch (absent row = the kind's
+ *       default, on for every kind today), with
  *       each kind's product, its send time in the account's zone and
  *       the last one sent to this account
  *  PUT  /api/me/email          {kind, enabled}; kind "all" is the
@@ -24,6 +25,7 @@
 import {
   DISCLAIMER,
   ACTIVE_PRODUCT_EMAIL_KINDS,
+  emailKindDefault,
   isProductEmailKind,
   isRetiredEmailKind,
 } from "@elixir-mcp/contracts";
@@ -283,7 +285,10 @@ export function emailRoutes({
         `select exists (select 1 from gateway where owner_account_id = $1 and status <> 'revoked') as operator,
                 exists (select 1 from claim c join clan_membership m
                           on m.player_tag = c.player_tag and m.left_observed_at is null
-                         where c.account_id = $1 and c.status = 'verified') as in_clan`,
+                         where c.account_id = $1 and c.status = 'verified') as in_clan,
+                exists (select 1 from claim c
+                         where c.account_id = $1 and c.status = 'verified'
+                           and (c.is_primary or c.relationship in ('primary', 'alt'))) as own_verified`,
         [account.accountId],
       );
       const { rows: recent } = await db.query(
@@ -310,7 +315,9 @@ export function emailRoutes({
           // kinds that come when something happens.
           sends: mailSendTime(kind, account.timezone ?? "UTC"),
           last_send_id: last.get(kind) ?? null,
-          enabled: by.get(kind)?.enabled ?? true,
+          // An absent row is the kind's default (contracts
+          // emailKindDefault: the activity mail's is one constant).
+          enabled: by.get(kind)?.enabled ?? emailKindDefault(kind),
           changed_at: by.get(kind)?.changed_at ?? null,
           // The digest's how-often; null for every other kind.
           cadence:
@@ -329,7 +336,9 @@ export function emailRoutes({
               ? Boolean(ops[0]?.operator)
               : kind === "clan_actions_waiting"
                 ? Boolean(ops[0]?.in_clan)
-                : true,
+                : kind === "activity_today"
+                  ? Boolean(ops[0]?.own_verified)
+                  : true,
         })),
         recent: recent.map(sendRow),
       });

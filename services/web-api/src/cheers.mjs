@@ -84,10 +84,7 @@ export async function ownFeedItem(db, { accountId, itemId, tags, subjects }) {
  *  is one of the account's own (its primary or an alt, any status).
  *  Cheerleader counts cheers on other people's items only (#1015). */
 export async function aboutSomeoneElse(db, accountId, item) {
-  const tags = [
-    item?.subject_tag,
-    ...(item?.subjects ?? []).map((s) => s?.tag),
-  ].filter((t) => typeof t === "string" && t);
+  const tags = itemSubjectTags(item);
   if (tags.length === 0) return true;
   const { rows } = await db.query(
     `select 1 from claim
@@ -109,9 +106,21 @@ export async function cheeredAt(db, accountId, itemId) {
   return rows[0]?.created_at ?? null;
 }
 
+/** The player tags an item is about: its subject and the players it
+ *  names, at most eight. */
+export function itemSubjectTags(item) {
+  const tags = [
+    item?.subject_tag,
+    ...(item?.subjects ?? []).map((s) => s?.tag),
+  ].filter((t) => typeof t === "string" && t);
+  return [...new Set(tags)].slice(0, 8);
+}
+
 /** Set, change or take back the person's cheer on an item; `cheer` null
- *  takes it back. Answers the item's counts after the write. */
-export async function setCheer(db, accountId, itemId, cheer) {
+ *  takes it back. `item` (the item as the person's feed holds it) stamps
+ *  whose item it is (0280), so the activity mail can find the accounts
+ *  whose items had cheers. Answers the item's counts after the write. */
+export async function setCheer(db, accountId, itemId, cheer, item = null) {
   if (cheer === null)
     await db.query(
       `delete from timeline_cheer where account_id = $1 and item_id = $2`,
@@ -119,11 +128,13 @@ export async function setCheer(db, accountId, itemId, cheer) {
     );
   else
     await db.query(
-      `insert into timeline_cheer (account_id, item_id, cheer)
-       values ($1, $2, $3)
+      `insert into timeline_cheer (account_id, item_id, cheer, subject_tags)
+       values ($1, $2, $3, $4::text[])
        on conflict (account_id, item_id)
-       do update set cheer = excluded.cheer, updated_at = now()`,
-      [accountId, itemId, cheer],
+       do update set cheer = excluded.cheer, updated_at = now(),
+                     subject_tags = coalesce(excluded.subject_tags,
+                                             timeline_cheer.subject_tags)`,
+      [accountId, itemId, cheer, item ? itemSubjectTags(item) : null],
     );
   const found = (await cheersFor(db, [itemId], accountId)).get(itemId);
   return {

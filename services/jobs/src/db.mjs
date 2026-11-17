@@ -69,6 +69,9 @@ export const JOB_LIMITS = Object.freeze({
   // A mail run is many short statements; it stops taking recipients
   // 90 s before its deadline and the async retry carries on.
   email: MAIL,
+  // The activity mail builds each due person's bell week (a few each
+  // hour), so it takes a mail run's budget.
+  activity_mail: MAIL,
   // Whole-table analytics and the payload sweep's anti-join: unchanged
   // from the function's 300 s ceiling until the jobs log shows them
   // shorter.

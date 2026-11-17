@@ -27,6 +27,7 @@ import {
   homeWeekWake,
 } from "@elixir-mcp/tools/activity/home-feed";
 import { runFeedbackAnswers } from "./email/feedback-answers.mjs";
+import { runActivityMail } from "./email/activity-today.mjs";
 import { runCollectorUpgrades } from "./email/collector-upgrades.mjs";
 import { runEmail } from "./email/index.mjs";
 import { captureEfficiency } from "./efficiency.mjs";
@@ -349,6 +350,7 @@ export function eventOps(event) {
   if (event?.home_feeds) ops.push("home_feeds");
   if (event?.collector_upgrades) ops.push("collector_upgrades");
   if (event?.feedback_answers) ops.push("feedback_answers");
+  if (event?.activity_mail) ops.push("activity_mail");
   if (typeof event?.email === "string") ops.push("email");
   if (event?.retention_trim) ops.push("retention_trim");
   if (event?.shape_census) ops.push("shape_census");
@@ -430,6 +432,25 @@ async function dispatch(event) {
       remainingMs: runRemainingMs,
     });
     console.log(JSON.stringify({ feedback_answers: result }));
+    return result;
+  }
+  // The activity mail (2026-11-16): its own hourly rule; each run mails
+  // the people whose evening hour it is.
+  if (event?.activity_mail) {
+    const result = await runActivityMail({
+      databaseUrl: process.env.DATABASE_URL,
+      enqueue: enqueueEmail,
+      secret: unsubscribeKeys(),
+      archive: await mailArchiveStore(),
+      remainingMs: runRemainingMs,
+    });
+    console.log(JSON.stringify({ activity_mail: result }));
+    // Stopped short of this hour's people: the async retry carries on,
+    // as a scheduled mail run's does.
+    if (result.incomplete)
+      throw new Error(
+        `activity_mail_incomplete: sent ${result.sent}, ${result.remaining} remaining`,
+      );
     return result;
   }
   if (typeof event?.email === "string") {

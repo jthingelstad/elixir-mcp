@@ -545,12 +545,13 @@ async function storedBellWeek(db, accountId) {
  * own players and is no older than SERVE (past FRESH it also wakes the
  * background build), else built now and stored. Highlights and attested
  * facts are read live over it, as Home reads them. Returns cheerable
- * items, newest first.
+ * items, newest first. `maxAgeMs` narrows SERVE for a read that must see
+ * items made since (the activity mail and push, 2026-11-16).
  */
 export async function readBellWeek(
   db,
   accountId,
-  { own, now = Date.now(), wake = null },
+  { own, now = Date.now(), wake = null, maxAgeMs = null },
 ) {
   if (own.length === 0) return { items: [], stored: false, ageMs: 0 };
   const subjects = ownSubjects(own);
@@ -559,7 +560,7 @@ export async function readBellWeek(
   const serves = (r) =>
     r &&
     r.own_key === subjectsKey(subjects) &&
-    now - r.built_at.getTime() <= HOME_SERVE_MS;
+    now - r.built_at.getTime() <= (maxAgeMs ?? HOME_SERVE_MS);
   let week;
   if (serves(row)) {
     week = { ...fromRow(row), more: 0 };

@@ -5,6 +5,18 @@ on 2026-10-12, under [`VISION.md`](../../VISION.md) and the rulings in
 [DECISIONS](../DECISIONS.md) of 2026-11-11 and 2026-11-12. Ratified by Jamie, 2026-11-13
 ("I think the rest is good to go").*
 
+*2026-11-16: intent changed. The bell no longer waits for you to open
+Elixir. Jamie, 2026-11-16: "overall the app doesn't have enough to bring
+people back", "should we be sending push notifications via the web?" and
+"we need a way to let members know about activity on their games without
+them logging in". The bell's items now reach a person who is away, by one
+pipeline with two channels: web push (a cheer on your item, coalesced; a
+new follower; a Clan Action that became yours; an answer to your
+feedback), and "Cheers on your play", at most one email a day of the
+cheers and new followers you have not seen. Both are counts, never who,
+and both read the bell's own items (DECISIONS "The bell reaches you when
+you are away"; `docs/notes/2026-11-16-reach-you.md`).*
+
 ## What it is for
 
 Home is where a person keeps up with the players they follow. It is a
@@ -57,6 +69,10 @@ is one feed", "The left rail stays only in Settings"]
   Follow back. Its number counts what needs you plus what is new on both
   the bar and the phone tab. Back from a line, it opens where you left
   it. [engineering, 2026-11-14, #1009, "The bell is a compact inbox"]
+- **Away from Elixir**, the bell's news still reaches you: a push on a
+  device where you turned notifications on, and Cheers on your play in
+  your inbox for what no push or look at the bell already told. Counts,
+  never who. [Jamie, 2026-11-16, "The bell reaches you when you are away"]
 - **The player page** (`/home/player/<tag>`): every player name anywhere
   opens it. Its tabs are Timeline, Highlights, Moments, Follows and
   Record (the player's recorded profile and last thirty days), and Clan

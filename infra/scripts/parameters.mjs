@@ -90,6 +90,9 @@ export const PRESERVED_PARAMETERS = [
   // for its secret in the app secret; set once, never reset by a deploy.
   "DiscordClientId",
   "DiscordSecretInSecret",
+  // The activity mail's rule (2026-11-16): on by default, switched off
+  // only by hand; a deploy never resets it.
+  "ActivityMail",
 ];
 
 /**

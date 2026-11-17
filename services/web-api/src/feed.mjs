@@ -34,6 +34,7 @@
  */
 import { battleLinks } from "@elixir-mcp/record/battle-links";
 import { verifiedAvatars } from "./avatars.mjs";
+import { proofOf } from "@elixir-mcp/tools/activity/bell";
 import { modeGroupOf } from "@elixir-mcp/contracts";
 import {
   highlightVersus,
@@ -43,14 +44,9 @@ import {
 
 /** The facts a moment names its proving battle under (follow.mjs). */
 const PROOFS = ["promoted_by", "crossed_by", "best_win"];
-/** The battle that proved a moment, or null (the bell reads it too). */
-export const proofOf = (it) => {
-  for (const k of PROOFS) {
-    const id = it.facts?.[k]?.battle_id;
-    if (id) return String(id);
-  }
-  return null;
-};
+/** The battle that proved a moment, or null: one function, shared with
+ *  the bell, its mail and its push (packages/tools activity/bell). */
+export { proofOf };
 
 /** The mode group of the battle that proved a moment, or null. */
 export const proofModeOf = (it) => {
