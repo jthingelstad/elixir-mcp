@@ -30,6 +30,7 @@
  * run between them, never inside one.
  */
 import { addPlayer, removePlayer } from "./index.mjs";
+import { settleCloseLink } from "./close.mjs";
 
 /** Accounts one person may follow: generous, and said when reached. */
 export const ACCOUNT_FOLLOW_MAX = 500;
@@ -197,6 +198,8 @@ export async function followAccountLinked(
     if (r.ok) followed.push(tag);
     else skipped.push({ tag, reason: r.reason });
   }
+  // A close friend's link keeps one mark (close.mjs).
+  if (followed.length || first) await settleCloseLink(db, readerId, ownerId);
   return { ok: true, account_added: wrote.added, followed, skipped };
 }
 
@@ -306,8 +309,10 @@ export async function linkNewVerified(
     if (!(await linkedTagsToFollow(db, readerId, ownerId)).includes(tag))
       continue;
     const r = await followThrough(db, readerId, ownerId, tag, via);
-    if (r.ok) followed += 1;
-    else skipped += 1;
+    if (r.ok) {
+      followed += 1;
+      await settleCloseLink(db, readerId, ownerId);
+    } else skipped += 1;
   }
   const { rows } = await db.query(
     `select c.account_id from claim c
