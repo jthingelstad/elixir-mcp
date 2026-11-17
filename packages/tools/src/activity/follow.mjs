@@ -125,6 +125,14 @@ export function followFor(it, window) {
       return tag
         ? [{ tool: "players_collection", args: { player_tag: tag } }]
         : [];
+    // The winning battle by its id (0289), then the collection.
+    case "card_first_win":
+      return [
+        ...battle(tag, f),
+        ...(tag
+          ? [{ tool: "players_collection", args: { player_tag: tag } }]
+          : []),
+      ];
     case "card_unlocked":
     case "card_form_unlocked":
     case "card_maxed":

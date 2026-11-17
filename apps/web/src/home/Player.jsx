@@ -424,7 +424,11 @@ const CLAN_KINDS = new Set([
   "member_role_changed",
 ]);
 /** A card's first is a violet medal, as on Home. */
-const VIOLET = new Set(["card_unlocked", "card_form_unlocked"]);
+const VIOLET = new Set([
+  "card_unlocked",
+  "card_form_unlocked",
+  "card_first_win",
+]);
 
 /** The medal tile beside an item (canvas Player .item): a sitting's bars, a
  *  highlight's bookmark, a clan's shield, a moment's star. */

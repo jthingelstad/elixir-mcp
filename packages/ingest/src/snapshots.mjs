@@ -745,6 +745,14 @@ async function rankedSeasonFinished(
   );
   if (!seen.watched) return;
   if (league <= 1 && !seen.played) return;
+  // Once per season: the battle log's retry below may reach here too.
+  const { rows: said } = await db.query(
+    `select 1 from player_event
+      where player_tag = $1 and event_type = 'ranked_season_finished'
+        and season_month = $2 limit 1`,
+    [playerTag, season.season_month],
+  );
+  if (said.length) return;
   const endsAt = season.ends_at.toISOString();
   await emitEvent(db, "ranked_season_finished", {
     tag: playerTag,
@@ -759,6 +767,48 @@ async function rankedSeasonFinished(
     occurredAt: endsAt,
     receiptId,
   });
+}
+
+/**
+ * A Master I finish whose Ranked battle the battle log delivered only
+ * after the rolled profile filed the season (Codex on #1111): the profile
+ * read found no battle and stayed silent, so a live battle-log read that
+ * brings one retries the finish. Only a season filed as Master I, a
+ * Ranked battle inside it that reached the record after the filing and
+ * within 7 days of the season's end (so a deploy over seasons already
+ * filed stays silent), and never twice (rankedSeasonFinished checks).
+ */
+const LATE_RANKED_DAYS = 7;
+export async function rankedFinishAfterBattles(
+  db,
+  { playerTag, observedAt, receiptId = null },
+) {
+  const { rows } = await db.query(
+    `select ps.season_month, ps.league, ps.trophies, s.starts_at, s.ends_at
+       from player_pol_season ps
+       join season s on s.season_month = ps.season_month
+      where ps.player_tag = $1
+        and ps.league <= 1
+        and s.ends_at > $2::timestamptz - make_interval(days => $3)
+        and exists (
+          select 1 from battle_participant bp
+            join battle b on b.battle_id = bp.battle_id
+           where bp.player_tag = ps.player_tag and bp.type = 'pathOfLegend'
+             and bp.battle_time >= s.starts_at and bp.battle_time < s.ends_at
+             and b.created_at > ps.observed_at
+             and b.created_at < s.ends_at + make_interval(days => $3))`,
+    [playerTag, observedAt, LATE_RANKED_DAYS],
+  );
+  for (const r of rows)
+    await rankedSeasonFinished(db, {
+      playerTag,
+      season: r,
+      league: r.league,
+      trophies: r.trophies,
+      fetchedAt: observedAt,
+      receiptId,
+    });
+  return rows.length;
 }
 
 /**

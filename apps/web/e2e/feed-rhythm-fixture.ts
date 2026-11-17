@@ -278,6 +278,21 @@ const ITEMS = [
     { deck: { label: "Hog Rider cycle", cards: DECKS["Hog Rider cycle"] } },
   ),
   session(FERN, 44, { results: "l", deck: "Hog Rider cycle" }),
+  // The first win with a new form (0289): a full moment with its card.
+  moment(
+    WREN,
+    46,
+    "card_first_win",
+    "Wren won with Evo Musketeer for the first time.",
+    {
+      card: "Musketeer",
+      card_id: 26000014,
+      rarity: "common",
+      form: "evolution",
+      tower_troop: false,
+      battle_id: "fw-rhythm-1",
+    },
+  ),
   session(JUNIPER, 50, {
     results: "wwlw",
     mode: "event",

@@ -1202,6 +1202,57 @@ test("13.8.0: a Ranked season's finish is a player's item at the season's end; n
   );
 });
 
+test("13.9.0: a first win with a new Evo is the member's item at the winning battle, named as its deck slot", async () => {
+  const {
+    rows: [won],
+  } = await ctx.db.query(
+    `select bp.battle_id, bp.battle_time from battle_participant bp
+      where bp.player_tag = $1 and bp.outcome = 'win'
+      order by bp.battle_time desc limit 1`,
+    [OBSERVER],
+  );
+  const {
+    rows: [card],
+  } = await ctx.db.query(
+    `select card_id, name from card where kind = 'card' and name is not null
+      order by card_id limit 1`,
+  );
+  const at = won.battle_time.toISOString();
+  await emitEvent(ctx.db, "card_first_win", {
+    tag: OBSERVER,
+    windowStart: new Date(won.battle_time.getTime() - 86_400_000).toISOString(),
+    windowEnd: at,
+    occurredAt: at,
+    payload: {
+      card_id: card.card_id,
+      form: "evolution",
+      battle_id: won.battle_id,
+    },
+  });
+  const { body, isError } = await call("elixir_timeline", {
+    from: new Date(won.battle_time.getTime() - 60_000).toISOString(),
+    to: new Date(won.battle_time.getTime() + 60_000).toISOString(),
+    mark_read: false,
+    kinds: ["card_first_win"],
+  });
+  assert.equal(isError, false, JSON.stringify(body));
+  const [it] = body.timeline.filter((x) => x.kind === "card_first_win");
+  assert.ok(it, JSON.stringify(body.timeline.map((x) => x.kind)));
+  assert.equal(it.schema, "card_first_win/1");
+  assert.equal(it.at, at);
+  assert.equal(it.section, "battles");
+  assert.equal(it.facts.card, card.name);
+  assert.equal(it.facts.card_id, card.card_id);
+  assert.equal(it.facts.form, "evolution");
+  assert.equal(it.facts.tower_troop, false);
+  assert.equal(it.facts.battle_id, won.battle_id);
+  assert.equal(
+    it.text.endsWith(`won with Evo ${card.name} for the first time.`),
+    true,
+    it.text,
+  );
+});
+
 test("player_tag keeps one member's items, before the cap; a bad tag is refused (7.1.5, Gym #253)", async () => {
   // A closed window: an open one is capped at 30 days before now, which
   // passed the fixture's September on 2026-10-24.

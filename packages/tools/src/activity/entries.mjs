@@ -129,6 +129,8 @@ const PLAYER_MOMENT_KINDS = [
   // The battle moments (0289, the owner 2026-11-17): a deck taken up in
   // one mode (ingest/deck-switch.mjs).
   "deck_switched",
+  // The first win with a new card, form or tower troop (0289).
+  "card_first_win",
 ];
 const CLAN_LEDGER_KINDS = [
   "member_joined",
@@ -2218,6 +2220,7 @@ function sectionOfKind(kind) {
     case "challenge_best_run":
     case "twelve_win_run":
     case "deck_switched":
+    case "card_first_win":
       return "battles";
     default:
       return "notables";
@@ -2246,7 +2249,8 @@ function decorate(kind, payload, arenaNames) {
   if (
     kind === "card_unlocked" ||
     kind === "card_form_unlocked" ||
-    kind === "card_maxed"
+    kind === "card_maxed" ||
+    kind === "card_first_win"
   ) {
     const { name, ...rest } = payload;
     return { card: name, ...rest };

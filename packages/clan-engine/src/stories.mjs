@@ -525,6 +525,10 @@ function clause(it) {
     }
     case "card_maxed":
       return `maxed ${f.card ?? "a card"}`;
+    case "card_first_win": {
+      const form = { evolution: "Evo", hero: "Hero" }[f.form];
+      return `won with ${form ? `${form} ${f.card ?? "a card"}` : (f.card ?? "a new card")} for the first time`;
+    }
     case "king_tower_leveled":
       return `reached King Tower level ${num(f.level)}`;
     case "deck_switched":

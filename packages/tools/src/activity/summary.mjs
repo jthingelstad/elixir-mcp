@@ -478,6 +478,14 @@ const via = (f) => (f.attested_by?.app ? ` (via ${f.attested_by.app})` : "");
 /** A card's form as a player says it (#110): "Evolution Valkyrie",
  *  "Hero Knight". Reads a ledger payload (`name`) or an item's facts
  *  (`card`). */
+/** The card a first win names: "Evo Musketeer", "Hero Knight", the card
+ *  alone, as the game shows a deck slot. */
+export function firstWinCard(f) {
+  const card = f.card ?? f.name ?? `card ${f.card_id}`;
+  const form = { evolution: "Evo", hero: "Hero" }[f.form];
+  return form ? `${form} ${card}` : card;
+}
+
 export function formLabel(f) {
   const card = f.card ?? f.name ?? `card ${f.card_id}`;
   const form = { evolution: "Evolution", hero: "Hero" }[f.form];
@@ -619,6 +627,8 @@ export function itemText(it, timeZone = "UTC") {
       return `${member || subj} maxed ${f.card ?? f.name ?? `card ${f.card_id}`}.`;
     case "king_tower_leveled":
       return `${member || subj} reached King Tower level ${f.level}.`;
+    case "card_first_win":
+      return `${member || subj} won with ${firstWinCard(f)} for the first time.`;
     case "challenge_best_run":
       return `${member || subj}'s best challenge run is now ${plural(f.best, "win")}.`;
     case "twelve_win_run": {

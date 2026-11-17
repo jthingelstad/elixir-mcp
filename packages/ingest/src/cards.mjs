@@ -18,6 +18,7 @@
  */
 
 import { emitEvent } from "./events.mjs";
+import { firstWinsForUnlocks } from "./card-first-win.mjs";
 import { ensureCards } from "./deck-cards.mjs";
 import { CARD_FORM_BITS, displayLevel } from "@elixir-mcp/contracts";
 
@@ -256,6 +257,15 @@ export async function projectPlayerCards(
             payload: { ...named, form },
           });
       }
+      // A win the battle log delivered before this read showed the card
+      // (card-first-win.mjs): the first with it, now that it is new.
+      await firstWinsForUnlocks(db, {
+        playerTag,
+        cardIds: moved
+          .filter((row) => row.is_new || newForms(row).length > 0)
+          .map((row) => row.card_id),
+        fetchedAt,
+      });
     }
   }
   return { changed: changed.length };

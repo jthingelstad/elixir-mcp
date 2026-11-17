@@ -40,6 +40,7 @@ about a player, a member's moment on a clan's timeline included, carries
 | `twelve_win_run` | 1 | the profile read that saw the run counted | `player_tag`, `name`, `badge`, `badge_label`, `challenge`, `runs`, `runs_before`, [`level`, `prior_level`] |
 | `deck_switched` | 1 | the run's third battle, when the switch became real | `player_tag`, `name`, `mode`, `deck`, `prior_deck`, `battles`, `wins` |
 | `ranked_season_finished` | 1 | the season's end; `observed_at` is the read that saw the profile roll, hours or days later | `player_tag`, `name`, `season`, `league`, `league_name`, `rating` (`null` below Ultimate Champion) |
+| `card_first_win` | 1 | the winning battle; `observed_at` is the read that completed it (the battle log, or the profile that showed the card after the log delivered the win) | `player_tag`, `name`, `card`, `card_id`, `rarity`, `form` (`evolution`, `hero`, or `null` for the card itself), `tower_troop`, `battle_id` |
 | `card_form_unlocked` | 2 | the profile read that saw the form (it happened no later) | `player_tag`, `name`, `card`, `card_id`, `rarity`, `form` (`evolution` or `hero`) |
 | `clan_joined` | 2 | the roster read that saw the join | `player_tag`, `name`, `kind`, `clan_tag`, `clan_name`, `at` |
 | `clan_left` | 2 | the roster read that saw the departure | `player_tag`, `name`, `kind`, `clan_tag`, `clan_name`, `role`, `at` |
