@@ -530,6 +530,48 @@ test("a scroll that starts on the button never cheers, and a long press opens th
   expect(calls[0].body.cheer).toBe("wow");
 });
 
+test("a long-pressed kind keeps its name for 1.2 seconds and clears the hide timer on unmount", () => {
+  vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+  global.fetch = vi.fn(async () => reply({}));
+  const r = renderWithProviders(<Cheers it={FRESH} />);
+  try {
+    fireEvent.click(toggle(), { detail: 1 });
+    const wow = screen.getByRole("button", { name: "Wow" });
+    const tip = () => document.querySelector(".kit-cheers__tip");
+    const longPress = () => {
+      fireEvent.pointerDown(wow, {
+        pointerType: "touch",
+        clientX: 5,
+        clientY: 5,
+      });
+      act(() => vi.advanceTimersByTime(LONG_PRESS_MS));
+      expect(tip()?.textContent).toBe("Wow");
+      fireEvent.pointerUp(wow, { pointerType: "touch" });
+      // The browser's synthetic click consumes the press without cheering.
+      fireEvent.click(wow, { detail: 1 });
+      expect(global.fetch).not.toHaveBeenCalled();
+    };
+
+    longPress();
+    act(() => vi.advanceTimersByTime(1199));
+    expect(tip()?.textContent).toBe("Wow");
+    act(() => vi.advanceTimersByTime(1));
+    expect(tip()).toBeNull();
+
+    longPress();
+    expect(vi.getTimerCount()).toBe(1);
+    r.unmount();
+    r.queryClient.clear();
+    expect(vi.getTimerCount()).toBe(0);
+    act(() => vi.advanceTimersByTime(1200));
+  } finally {
+    r.unmount();
+    r.queryClient.clear();
+    vi.clearAllTimers();
+    vi.useRealTimers();
+  }
+});
+
 test("a glyph's name shows on hover and keyboard focus, and the popover closes on a tap away", async () => {
   answering();
   await feedWith(FRESH);

@@ -130,6 +130,7 @@ export function Cheers({ it, where, compact = false }) {
   const [pop, setPop] = useState(0);
   const press = useRef(null);
   const kindPress = useRef(null);
+  const kindHide = useRef(null);
   const rowRef = useRef(null);
   const mainRef = useRef(null);
   const toggleRef = useRef(null);
@@ -157,6 +158,7 @@ export function Cheers({ it, where, compact = false }) {
     () => () => {
       clearTimeout(press.current?.timer);
       clearTimeout(kindPress.current?.timer);
+      clearTimeout(kindHide.current);
     },
     [],
   );
@@ -314,6 +316,7 @@ export function Cheers({ it, where, compact = false }) {
     if (e.pointerType !== "touch") return;
     const target = e.currentTarget;
     clearTimeout(kindPress.current?.timer);
+    clearTimeout(kindHide.current);
     const p = { x: e.clientX, y: e.clientY, fired: false };
     p.timer = setTimeout(() => {
       p.fired = true;
@@ -336,9 +339,14 @@ export function Cheers({ it, where, compact = false }) {
     const p = kindPress.current;
     if (!p) return;
     clearTimeout(p.timer);
-    // The name stays a moment after the finger lifts. The timer is kept
-    // on the press, which unmounting clears, so it never outlives the view.
-    if (p.fired) p.timer = setTimeout(hideTip, 1200);
+    // The name stays a moment after the finger lifts. Its timer belongs
+    // to the view, since the synthetic click consumes the press itself.
+    clearTimeout(kindHide.current);
+    if (p.fired)
+      kindHide.current = setTimeout(() => {
+        kindHide.current = null;
+        hideTip();
+      }, 1200);
     else kindPress.current = null;
   };
 
