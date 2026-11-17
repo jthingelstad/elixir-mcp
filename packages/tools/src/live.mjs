@@ -218,9 +218,9 @@ class FirstReadsSpent extends Error {}
  * `battles: true` (2026-11-09, Jamie: "adding new players battles right
  * away makes a ton of sense and makes first user experience way better")
  * also asks for the battle log on the live lane, after the profile and
- * only when the profile's read is on its way (minted or joined), so the
- * last 30 battles land with the profile instead of at the scheduler's
- * next tick. It has the same guards on its own endpoint (a battle log
+ * when the profile's read is on its way (minted or joined) or its profile
+ * was admitted in the last day, so the last 30 battles need not wait for the
+ * scheduler's next tick. It has the same guards on its own endpoint (a battle log
  * read or failed in the last day, one open job per subject) and its own
  * per-pool allowance, FIRST_BATTLES, of the same size: a second live
  * token per new player, and nothing else. A refusal or failure never
@@ -246,18 +246,17 @@ export async function requestFirstRead(
   // landing). No tag, account or email in the line.
   console.info({ event: "first_read_requested", endpoint: "player", outcome });
   if (!battles) return result;
-  // The profile first; the battle log only behind a profile read that is
-  // on its way, so a tag the game does not have costs one token, not two.
-  const second =
-    outcome === "minted" || outcome === "joined"
-      ? await firstReadOutcome(db, live, tag, accountId, {
-          endpoint: "player_battlelog",
-          pool: FIRST_BATTLES,
-        })
-      : {
-          result: { requested: false, reason: "profile_not_requested" },
-          outcome: "profile_not_requested",
-        };
+  // The profile first; a profile already admitted is just as sufficient as
+  // one on its way. An unseen or refused profile still costs only one token.
+  const second = ["minted", "joined", "fresh", "read_today"].includes(outcome)
+    ? await firstReadOutcome(db, live, tag, accountId, {
+        endpoint: "player_battlelog",
+        pool: FIRST_BATTLES,
+      })
+    : {
+        result: { requested: false, reason: "profile_not_requested" },
+        outcome: "profile_not_requested",
+      };
   console.info({
     event: "first_read_requested",
     endpoint: "player_battlelog",
@@ -291,7 +290,8 @@ async function firstReadOutcome(db, live, tag, accountId, { endpoint, pool }) {
     } = await db.query(
       `select exists (select 1 from api_receipt
                        where endpoint = $2 and entity_key = $1
-                         and fetched_at > now() - interval '1 day') as read,
+                         and fetched_at > now() - interval '1 day'
+                         and admission = 'admitted' and replay_retired_at is null) as read,
               (select http_status from collector_fetch_error
                 where endpoint = $2 and entity_key = $1
                   and fetched_at > now() - interval '1 day'

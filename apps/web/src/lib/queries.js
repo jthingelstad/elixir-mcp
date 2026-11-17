@@ -751,6 +751,22 @@ export const usePeople = (which, enabled = true) =>
     staleTime: 60_000,
   });
 
+/** A first-day primary's collector progress. The server decides both the
+ * opportunity and polling cadence from its source timestamps. This hook
+ * stays on the page when the welcome view becomes the Timeline.
+ */
+export const onboardingPeopleKey = ["me", "onboarding-people"];
+export const useOnboardingPeopleRead = (enabled) =>
+  useQuery({
+    queryKey: onboardingPeopleKey,
+    queryFn: payload(api.onboardingPeople),
+    enabled,
+    retry: false,
+    staleTime: 5000,
+    refetchInterval: (query) => query.state.data?.poll_ms ?? false,
+    refetchIntervalInBackground: false,
+  });
+
 /** The player map (#768): everyone who has set a place, for a signed-in
  *  person. */
 export const usePlayerMap = (enabled = true) =>

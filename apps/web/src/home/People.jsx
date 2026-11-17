@@ -1,5 +1,5 @@
 import { PlayerName } from "@elixir-mcp/ui";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Avatar,
   Empty,
@@ -16,7 +16,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useWrite } from "../client/index.ts";
 import { api } from "../api.js";
 import { playerHref } from "../lib/player.js";
-import { usePeople } from "../lib/queries.js";
+import { useFollowPlan, usePeople } from "../lib/queries.js";
 import { PLACE_HREF } from "../lib/passport.js";
 import { FollowAll, FollowButton, followPlanLine } from "./follow.jsx";
 import {
@@ -497,11 +497,17 @@ const STARTER_SHOWN = 5;
  * usePeople("starter"), read apart from the feed; the panel draws nothing
  * while it reads, on a failure or when the server offers none.
  */
-export function StarterSet({ query }) {
+export function StarterSet({ query, onOpenTimeline, onFollowed }) {
   const { feedDayHeading } = useClock();
   const [off, setOff] = useState(() => new Set());
   const [all, setAll] = useState(false);
   const [hidden, setHidden] = useState(false);
+  const [followed, setFollowed] = useState(() => new Set());
+  const [remaining, setRemaining] = useState(null);
+  const finish = useRef(null);
+  useEffect(() => {
+    if (followed.size) finish.current?.focus();
+  }, [followed]);
   const queryClient = useQueryClient();
   const hide = useWrite(api.hideStarter, {
     invalidate: async () => {
@@ -512,8 +518,39 @@ export function StarterSet({ query }) {
     },
   });
   const data = query.data;
-  if (hidden || !data?.ok || !data.offer) return null;
-  const people = data.people ?? [];
+  const people = (data?.offer ? (data.people ?? []) : (remaining ?? [])).filter(
+    (p) => !followed.has(p.tag),
+  );
+  const chosen = people.filter((p) => !off.has(p.tag));
+  // The normal offer can end after these follows. Retain the unticked
+  // names, but price any later choice through the canonical plan reader.
+  const retainedPlan = useFollowPlan(
+    { player_tags: chosen.map((p) => p.tag) },
+    !data?.offer && followed.size > 0,
+  );
+  const plan = data?.offer
+    ? starterPlan(chosen, data.used, data.limit)
+    : (retainedPlan.data ?? null);
+  if (hidden || !data?.ok || (!data.offer && followed.size === 0)) return null;
+  const confirmation = followed.size ? (
+    <p role="status" className="kit-tiny kit-starter__lead">
+      Your follows are ready.{" "}
+      {onOpenTimeline ? (
+        <button
+          ref={finish}
+          type="button"
+          className="btn btn--sm"
+          onClick={onOpenTimeline}
+        >
+          Open Timeline
+        </button>
+      ) : (
+        <Link ref={finish} to="/timeline" className="btn btn--sm">
+          Open Timeline
+        </Link>
+      )}
+    </p>
+  ) : null;
   const notNow = (
     <button
       type="button"
@@ -538,19 +575,19 @@ export function StarterSet({ query }) {
           People you know
         </h2>
         <p className="kit-starter__lead">
-          Nobody to suggest yet: friendly battles, 2v2 teammates and your clan
-          show up here.{" "}
+          {followed.size
+            ? "Find more people in Find. "
+            : "Nobody to suggest yet: friendly battles, 2v2 teammates and your clan show up here. "}
           <Link to="/home/find">
             Search by name or tag, or send your Follow me link
           </Link>
           .
         </p>
+        {confirmation}
         {notNow}
         <WriteError error={hide.error} className="field-error" />
       </section>
     );
-  const chosen = people.filter((p) => !off.has(p.tag));
-  const plan = starterPlan(chosen, data.used, data.limit);
   const shown = all ? people : people.slice(0, STARTER_SHOWN);
   const toggle = (tag) =>
     setOff((was) => {
@@ -568,15 +605,31 @@ export function StarterSet({ query }) {
         <FollowAll
           ask={{ player_tags: chosen.map((p) => p.tag) }}
           plan={plan}
-          label={`Follow these (${plan.to_follow})`}
-          title={`Follow ${plan.to_follow} ${plan.to_follow === 1 ? "player" : "players"}?`}
+          label={`Follow these (${chosen.length})`}
+          title={`Follow ${chosen.length} ${chosen.length === 1 ? "player" : "players"}?`}
           confirm="Follow these"
           className="btn btn--follow"
+          onDone={(result) => {
+            if (result?.followed?.length) {
+              setRemaining(
+                people.filter((p) => !result.followed.includes(p.tag)),
+              );
+              setFollowed((was) => new Set([...was, ...result.followed]));
+              onFollowed?.();
+            }
+          }}
         />
         <p className="kit-tiny kit-starter__sum" role="status">
-          {followPlanLine(plan)}
+          {chosen.length === 0
+            ? "Tick someone to follow them."
+            : plan
+              ? followPlanLine(plan)
+              : retainedPlan.isError
+                ? "What this costs could not be read just now."
+                : "Checking what this costs…"}
         </p>
       </div>
+      {confirmation}
       <Rows>
         {shown.map((p) => {
           const id = `starter-${p.tag.slice(1)}`;

@@ -566,7 +566,7 @@ test("a new account gets the steps, not the feed, and reads no panel", async ({
   expect(panels).toEqual([]);
 });
 
-test("adding your player from Stats' or Clan's link stays on Home's steps", async ({
+test("adding your player from Stats' or Clan's link keeps people and setup in reach", async ({
   page,
 }) => {
   let added = false;
@@ -593,6 +593,15 @@ test("adding your player from Stats' or Clan's link stays on Home's steps", asyn
   await page.goto("/home#add-player");
   await page.getByLabel("Your player tag").fill("#0PJCLJYP");
   await page.getByRole("button", { name: "Add", exact: true }).click();
+  await expect(
+    page.getByRole("heading", { level: 1, name: "Your people" }),
+  ).toBeVisible();
+  await expect(
+    page.getByText("Added New Player.", { exact: true }),
+  ).toBeVisible();
+  const setup = page.locator(".kit-onboarding__setup > summary");
+  await setup.focus();
+  await page.keyboard.press("Enter");
   await expect(page.getByText("your main player.")).toBeVisible();
   await expect(page).toHaveURL(/\/timeline$/);
 });
@@ -642,12 +651,10 @@ test("a player known as an opponent waits for their own battle log, then Home dr
   );
   await page.goto("/home");
   await expect(
-    page.getByRole("heading", { name: "Welcome to Elixir" }),
+    page.getByRole("heading", { level: 1, name: "Your people" }),
   ).toBeVisible();
   await expect(
-    page
-      .getByText(/usually show up within a minute \(a few at busy times\)/)
-      .first(),
+    page.getByText("Your battles are on their way.", { exact: false }),
   ).toBeVisible();
   await expect(page.getByText("Battle log read: never")).toHaveCount(0);
   await expect.poll(() => checks).toBeGreaterThan(0);

@@ -252,6 +252,18 @@ their clan:
 
 ### Getting set up
 
+When you first add your player, **Your people** shows friends and
+clanmates you can follow while your battles arrive. Elixir asks its
+collectors for your missing first battle log even if your profile is
+already on record. If it has just learned your clan and already follows
+that clan for you, it can ask for the clan's missing roster too. These
+reads share the recorder's rate budget, so a busy collector can take
+longer. No one is followed until you choose and confirm.
+
+**Finish your setup** keeps the other welcome steps available. After
+following, your unticked choices stay in place and **Open Timeline** lets
+you start reading without waiting for your own battles.
+
 Until you're set up, your Timeline opens with the list above the feed:
 **Getting set up, 2 of 6 done**. It shows the one step to do next, with the
 Stamp it earns and a button to where you do it. Tap **See all steps** for
@@ -319,6 +331,9 @@ back. When there is nobody to suggest, it is one line pointing to
 [Find](/docs/follow-a-friend#find), where you can search or send your
 Follow me link. Nobody is ranked, and names are game names, never a
 nickname.
+
+After you confirm, **Your follows are ready** stays beside any remaining
+choices. **Open Timeline** starts reading; it follows nobody else.
 
 ### Beside the feed
 

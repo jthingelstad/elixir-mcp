@@ -142,6 +142,10 @@ export function signedIn(
   const routes: Record<string, Answer> = {
     "GET /api/me": [200, ME],
     "GET /api/me/first-answer": [200, {}],
+    "GET /api/me/people/onboarding": [
+      200,
+      { state: "finished", may_request: false, poll_ms: null },
+    ],
     // Home's head, as a new account answers it; home-fixture.ts has a full one.
     "GET /api/me/home": [
       200,
