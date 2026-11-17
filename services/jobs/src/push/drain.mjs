@@ -212,6 +212,27 @@ async function deliver(db, outbox, noticeId) {
     [noticeId],
   );
   if (!n) return true;
+  // A kind switched off since stops what it still owed (Codex on #1077):
+  // nothing more is written. Some devices told: it stays a sent notice;
+  // none: dropped, so it never counts toward the caps.
+  const {
+    rows: [pref],
+  } = await db.query(
+    `select enabled from account_push_pref
+      where account_id = $1 and kind = $2`,
+    [n.account_id, n.kind],
+  );
+  if (pref && pref.enabled === false) {
+    await db.query(
+      `update push_notice
+          set status = case when cardinality(pending) < devices
+                            then 'sent' else 'dropped' end,
+              pending = '{}'
+        where notice_id = $1 and status = 'sending'`,
+      [n.notice_id],
+    );
+    return true;
+  }
   const { rows: subs } = await db.query(
     `select subscription_id, endpoint, p256dh, auth from push_subscription
       where account_id = $1 and subscription_id = any($2::bigint[])
