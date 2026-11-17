@@ -35,7 +35,7 @@ test("the headline says the sitting from its facts", () => {
   ).toBe("Won 8 of 12 on Trophy Road, 5 in a row");
   expect(
     sessionHeadline({ battles: 5, won: 2, by_mode: { ladder: 3, ranked: 2 } }),
-  ).toBe("Won 2 of 5 across Trophy Road and Path of Legends");
+  ).toBe("Won 2 of 5 across Trophy Road and Ranked");
   expect(
     sessionHeadline({
       battles: 6,
@@ -49,7 +49,7 @@ test("the headline says the sitting from its facts", () => {
     "Lost a Trophy Road battle",
   );
   expect(sessionHeadline({ battles: 1, won: 1, by_mode: { ranked: 1 } })).toBe(
-    "Won a Path of Legends battle",
+    "Won a Ranked battle",
   );
   expect(sessionHeadline({ battles: 3, won: 0 })).toBe("3 battles");
   expect(
