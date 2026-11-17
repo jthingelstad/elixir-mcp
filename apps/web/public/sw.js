@@ -31,7 +31,7 @@ const clean = (value, max) =>
 const samePath = (url) =>
   typeof url === "string" && /^\/(?!\/)/.test(url) && !url.includes("\\")
     ? url
-    : "/home";
+    : "/timeline";
 
 self.addEventListener("install", () => self.skipWaiting());
 self.addEventListener("activate", (event) =>
@@ -65,7 +65,8 @@ self.addEventListener("push", (event) => {
 
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
-  const { url = "/home", notice_id: id = null } = event.notification.data ?? {};
+  const { url = "/timeline", notice_id: id = null } =
+    event.notification.data ?? {};
   const target = new URL(samePath(url), self.location.origin).href;
   event.waitUntil(
     (async () => {

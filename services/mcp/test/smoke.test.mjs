@@ -67,7 +67,13 @@ function healthy() {
       text("<form>", { "content-security-policy": CONSENT_CSP }),
     "/api/public/status": cached(),
     "/api/public/cards": cached(),
-    "/home": () => text(APP, { "content-security-policy": APP_CSP }),
+    "/timeline": () => text(APP, { "content-security-policy": APP_CSP }),
+    "/home": () =>
+      text(
+        "",
+        { location: "/timeline?bell", "cache-control": "no-store" },
+        301,
+      ),
     "/docs/tools": () =>
       text(
         "<title>Tools - Elixir</title><main>players_profile live_fetch</main>",
@@ -221,7 +227,7 @@ test("smoke: each regression fails the check written for it", async () => {
     [
       "a third-party script on the app shell",
       {
-        "/home": () => ({
+        "/timeline": () => ({
           status: 200,
           body: APP,
           headers: {
@@ -250,6 +256,11 @@ test("smoke: each regression fails the check written for it", async () => {
         }),
       },
       ["CSP forbids inline script"],
+    ],
+    [
+      "the old feed address no longer forwarding (2026-11-17)",
+      { "/home": () => ({ status: 200, body: APP, headers: {} }) },
+      ["the old feed address forwards to the Timeline, query kept"],
     ],
     [
       "a missing asset answered with HTML",

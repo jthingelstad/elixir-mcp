@@ -131,7 +131,7 @@ test("@narrow native production HTML hydrates with session, clock and browser pr
   });
   for (const route of [
     "/home/you/stats",
-    "/home",
+    "/timeline",
     "/settings/admin/accounts",
     "/signin?signup",
     "/settings/players",
@@ -163,4 +163,54 @@ test("@narrow native production HTML hydrates with session, clock and browser pr
     expect(errors, route).toEqual([]);
   }
   expect(meRequests).toEqual([]);
+});
+
+test("the web API forwards the old feed address for good, signed in or out, query and fragment kept", async ({
+  page,
+  request,
+}) => {
+  // The feed moved to /timeline (2026-11-17); mail, Discord posts, push
+  // notices and bookmarks still name /home. The server answers before the
+  // app renders, uncached, so a rollback is never stuck behind a 301.
+  for (const [from, to] of [
+    ["/home", "/timeline"],
+    ["/home/", "/timeline"],
+    ["/home?bell", "/timeline?bell"],
+    ["/home?search", "/timeline?search"],
+    ["/home?utm_source=email&ref=1", "/timeline?utm_source=email&ref=1"],
+  ] as const) {
+    const moved = await request.get(origin + from, { maxRedirects: 0 });
+    expect(moved.status(), from).toBe(301);
+    expect(moved.headers()["location"], from).toBe(to);
+    expect(moved.headers()["cache-control"], from).toBe("no-store");
+  }
+  // Every page under /home/ keeps its address; the server renders it.
+  for (const path of ["/home/find", "/home/you/stats"]) {
+    const stays = await request.get(origin + path, { maxRedirects: 0 });
+    expect(stays.status(), path).toBe(200);
+  }
+  // A browser keeps the fragment across the 301, signed in and then with
+  // the session gone (the 301 is sent before any session is read).
+  await page.route("https://tinylytics.app/**", (route) =>
+    route.fulfill({ body: "" }),
+  );
+  await mockApi(
+    page,
+    signedIn({ "GET /api/me": [200, { ...ME, timezone: null }] }),
+  );
+  await page.goto(origin + "/home?ref=2#latest");
+  await expect
+    .poll(() => {
+      const url = new URL(page.url());
+      return url.pathname + url.search + url.hash;
+    })
+    .toBe("/timeline?ref=2#latest");
+  await mockApi(page, { "GET /api/me": [200, SIGNED_OUT] });
+  await page.goto(origin + "/home/?ref=3#top");
+  await expect
+    .poll(() => {
+      const url = new URL(page.url());
+      return url.pathname + url.search + url.hash;
+    })
+    .toBe("/timeline?ref=3#top");
 });

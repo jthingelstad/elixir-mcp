@@ -224,7 +224,7 @@ export async function runSmoke({
 
   // The app shell is the privileged surface: it must carry the headers
   // too, and load no third-party script.
-  const appShell = await fetch(`${mcpBase}/home`);
+  const appShell = await fetch(`${mcpBase}/timeline`);
   check(
     "app shell carries CSP",
     (appShell.headers.get("content-security-policy") ?? "").includes(
@@ -262,7 +262,7 @@ export async function runSmoke({
     /<title>Tools - Elixir<\/title>/.test(docsHtml),
   );
 
-  const appRoute = await fetch(`${mcpBase}/home`);
+  const appRoute = await fetch(`${mcpBase}/timeline`);
   const appHtml = appRoute.ok ? await appRoute.text() : "";
   check(
     "an app route gets rendered HTML and a session bootstrap",
@@ -316,7 +316,7 @@ export async function runSmoke({
 
   // App deep links reach native rendering, which replaces the removed
   // error mapping was actually there for.
-  const deep = await fetch(`${mcpBase}/home`);
+  const deep = await fetch(`${mcpBase}/timeline`);
   const deepHtml = deep.ok ? await deep.text() : "";
   check(
     "app deep link renders the signed-out page",
@@ -324,6 +324,17 @@ export async function runSmoke({
       deepHtml.includes('id="elixir-bootstrap"') &&
       deepHtml.includes("Sign in first"),
     String(deep.status),
+  );
+  // The feed moved to /timeline (2026-11-17); every link to /home sent
+  // before then must keep landing there, with its query.
+  const moved = await fetch(`${mcpBase}/home?bell`, { redirect: "manual" });
+  check(
+    "the old feed address forwards to the Timeline, query kept",
+    moved.status === 301 &&
+      new URL(moved.headers.get("location") ?? "", mcpBase).pathname +
+        new URL(moved.headers.get("location") ?? "", mcpBase).search ===
+        "/timeline?bell",
+    `${moved.status} ${moved.headers.get("location")}`,
   );
   // A missing static asset is honestly missing, not a 200 of HTML.
   const asset = await fetch(`${mcpBase}/assets/not-a-real-file.js`);

@@ -3004,6 +3004,31 @@ Resources:
             FunctionAssociations:
               - EventType: viewer-request
                 FunctionARN: !GetAtt OauthQueryNormalizer.FunctionMetadata.FunctionARN
+          # The Timeline, the feed, since 2026-11-17 (/home forwards here,
+          # services/web-api app-pages.mjs). Only the feed moved: every page
+          # under /home keeps its address and the two behaviours above.
+          - PathPattern: /timeline
+            TargetOriginId: api
+            ViewerProtocolPolicy: redirect-to-https
+            AllowedMethods: [GET, HEAD]
+            CachePolicyId: !Ref WebPrivateCachePolicy
+            ResponseHeadersPolicyId: !Ref SecurityHeadersPolicy
+            OriginRequestPolicyId: !Ref SiteApiOriginRequestPolicy
+            Compress: true
+            FunctionAssociations:
+              - EventType: viewer-request
+                FunctionARN: !GetAtt OauthQueryNormalizer.FunctionMetadata.FunctionARN
+          - PathPattern: /timeline/*
+            TargetOriginId: api
+            ViewerProtocolPolicy: redirect-to-https
+            AllowedMethods: [GET, HEAD]
+            CachePolicyId: !Ref WebPrivateCachePolicy
+            ResponseHeadersPolicyId: !Ref SecurityHeadersPolicy
+            OriginRequestPolicyId: !Ref SiteApiOriginRequestPolicy
+            Compress: true
+            FunctionAssociations:
+              - EventType: viewer-request
+                FunctionARN: !GetAtt OauthQueryNormalizer.FunctionMetadata.FunctionARN
           - PathPattern: /settings
             TargetOriginId: api
             ViewerProtocolPolicy: redirect-to-https
