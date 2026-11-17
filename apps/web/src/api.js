@@ -219,13 +219,15 @@ export const api = {
     ),
   // Home's feed: the timeline without your account's own lines (the bell's).
   // Thirty items a page; `cursor` reads on in the same week (G1).
-  homeFeed: (cursor) =>
-    request(
-      "GET",
-      cursor
-        ? `/api/me/home/feed?${new URLSearchParams({ cursor })}`
-        : "/api/me/home/feed",
-    ),
+  // `mode` (2026-11-17) is the mode filter, one of the four, or none for
+  // All modes; a next page names the mode its cursor was cut in.
+  homeFeed: (cursor, mode = null) => {
+    const q = new URLSearchParams({
+      ...(mode ? { mode } : {}),
+      ...(cursor ? { cursor } : {}),
+    }).toString();
+    return request("GET", q ? `/api/me/home/feed?${q}` : "/api/me/home/feed");
+  },
   // Home's "N new" pill: how many items the stored week holds newer than
   // `since`, the newest the feed shows. One cheap statement (2026-11-14).
   homeFeedNew: (since) =>

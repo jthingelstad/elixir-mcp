@@ -5,7 +5,8 @@ import { useMe } from "../App.jsx";
 import { useHome, useReconcilePassport } from "../lib/queries.js";
 import { NewAccount } from "../home/NewAccount.jsx";
 import { useFirstRead } from "../home/first-read.js";
-import { HomeFeed } from "../home/Feed.jsx";
+import { HomeFeed, useTimelineMode } from "../home/Feed.jsx";
+import { keptFor } from "../home/logic.js";
 import { useMayPost } from "../home/Post.jsx";
 import { HomePanels, TodayError, TodayFresh } from "../home/Today.jsx";
 
@@ -36,6 +37,9 @@ export function HomePage() {
   // phone, from Post in the head.
   const [writing, setWriting] = useState(false);
   const mayPost = useMayPost();
+  // The feed's mode (2026-11-17), in the address; the panels' quiet-week
+  // check reads the same mode's feed, so it is one read.
+  const [mode, setMode] = useTimelineMode(keptFor(me));
   // The passport's catch-up (#1015): once Home draws its feed (the profile
   // list's place), after first paint, never waited on. A new account's
   // first steps write nothing until the person acts.
@@ -75,7 +79,7 @@ export function HomePage() {
             here already, as the Timeline tab was [engineering, 2026-11-12]. */}
         {followsSomeone(me) ? (
           <section className="kit-home__main" aria-label="Your feed">
-            <HomeFeed />
+            <HomeFeed mode={mode} setMode={setMode} />
           </section>
         ) : null}
       </>
@@ -113,11 +117,14 @@ export function HomePage() {
       <HomePanels
         first={live}
         player={player}
+        mode={mode}
         feed={({ suggest }) => (
           <HomeFeed
             chipsAt={chipsAt}
             suggest={suggest}
             compose={{ open: writing, setOpen: setWriting }}
+            mode={mode}
+            setMode={setMode}
           />
         )}
       />

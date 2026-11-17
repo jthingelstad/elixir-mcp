@@ -6860,6 +6860,19 @@ button.kit-row {
 .kit-home__chips:empty {
   display: none;
 }
+/* The mode filter (2026-11-17): one list after the chips, set apart from
+   them so it reads as a second choice; never full width, even where the
+   kit's lists are on a phone. */
+.kit-home__mode {
+  display: inline-flex;
+  flex: none;
+  margin-left: var(--s-3);
+}
+.kit-home__mode .scope-select {
+  width: auto;
+  min-height: var(--hit);
+  font-weight: 500;
+}
 .kit-head--home .kit-head__side {
   justify-content: flex-end;
 }
@@ -6919,6 +6932,12 @@ button.kit-row {
   }
   .kit-home__filters .kit-chip {
     padding-inline: 6px;
+  }
+  /* On a phone the mode list takes its own line under the chips, so it
+     never reads as one more chip. */
+  .kit-home__mode {
+    flex-basis: 100%;
+    margin-left: 0;
   }
 }
 

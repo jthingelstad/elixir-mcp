@@ -1157,6 +1157,119 @@ test("Home's feed comes thirty a page: More reads on in the same week, the first
   }
 });
 
+test("Home's feed by mode: the week is filtered before the pages are cut, and More stays in its mode (2026-11-17)", async () => {
+  const id = await person("home-feed-modes");
+  const { db } = scratch;
+  const now = Date.now();
+  const iso = (ms) => new Date(ms).toISOString();
+  // Thirty-three invented friends who played a Trophy Road battle, and
+  // thirty-five whose only item is a personal record (about no mode),
+  // interleaved in time so a mode's items are spread across the week's
+  // pages.
+  const tag = (i) =>
+    `#9${"0289PYLQGRJCUV"[i % 14]}${"PYLQGRJ"[Math.floor(i / 14)]}2Y2`;
+  const arena = Array.from({ length: 33 }, (_, i) => tag(i));
+  const records = Array.from({ length: 35 }, (_, i) => tag(i + 33));
+  assert.equal(new Set([...arena, ...records]).size, 68);
+  for (const [i, t] of [...arena, ...records].entries()) {
+    await db.query(
+      `insert into player(player_tag,name) values ($1,$2) on conflict do nothing`,
+      [t, `Moded ${i}`],
+    );
+    await db.query(
+      `insert into claim(account_id,player_tag,relationship,is_primary)
+       values ($1,$2,'friend',false)`,
+      [id, t],
+    );
+  }
+  // One Trophy Road battle each: a sitting.
+  for (const [i, t] of arena.entries()) {
+    const battleId = `home-feed-modes-${i}`;
+    const at = iso(now - (2 * i + 5) * 60_000);
+    await db.query(
+      `insert into battle(battle_id,battle_time,type,type_class,created_at)
+       values ($1,$2,'PvP','pvp',$2)`,
+      [battleId, at],
+    );
+    await db.query(
+      `insert into battle_participant(battle_id,player_tag,battle_time,side,type,type_class,crowns,trophy_change,outcome)
+       values ($1,$2,$3,0,'PvP','pvp',3,30,'win')`,
+      [battleId, t, at],
+    );
+  }
+  for (const [i, t] of records.entries())
+    await db.query(
+      `insert into attested_fact
+         (subject_kind,player_tag,fact_type,detail,visibility,source,source_ref,occurred_at,recorded_at)
+       values ('player',$1,'personal_record','{"game":"drop","score":10}','player',
+               'drop.poapkings.com',$2,$3,$3)`,
+      [t, `home-feed-modes-${i}`, iso(now - (2 * i + 6) * 60_000)],
+    );
+  const feed = (query) =>
+    handler({
+      path: "/api/me/home/feed",
+      method: "GET",
+      headers: {
+        cookie: `__Host-elixir_session=${sessions.get(id)}`,
+        "x-elixir-client": "web",
+        "cloudfront-viewer-address": "8.8.4.4:443",
+      },
+      queryStringParameters: query,
+    });
+
+  const all = data(await feed({}));
+  assert.equal(all.total, 68);
+  assert.equal(all.mode, null);
+
+  const first = await feed({ mode: "ladder" });
+  assert.equal(first.statusCode, 200, first.body);
+  const one = data(first);
+  assert.equal(one.mode, "ladder");
+  assert.equal(one.total, 33);
+  assert.equal(one.timeline.length, 30, "a full page of the mode's items");
+  assert.ok(one.timeline.every((it) => it.kind === "battle_session"));
+  // The chips count the mode's week.
+  assert.equal(one.counts.everyone, 33);
+  assert.equal(one.counts.friends, 33);
+  assert.equal(one.timeline_more, 0);
+
+  const more = await feed({ mode: "ladder", cursor: one.next });
+  assert.equal(more.statusCode, 200, more.body);
+  const two = data(more);
+  assert.equal(two.timeline.length, 3);
+  assert.equal(two.next, null);
+  const ids = [...one.timeline, ...two.timeline].map((it) => it.id);
+  assert.equal(new Set(ids).size, 33, "no item twice, none lost");
+
+  // A mode with nothing in it is an empty week, not an error.
+  const ranked = data(await feed({ mode: "ranked" }));
+  assert.equal(ranked.total, 0);
+  assert.equal(ranked.week_total, 68, "the week is not quiet, the mode is");
+  assert.equal(all.week_total, undefined);
+  assert.deepEqual(ranked.timeline, []);
+  assert.equal(ranked.next, null);
+
+  // A page asked in another mode than its cursor was cut in is refused,
+  // and so is a mode that is not one of the four.
+  for (const query of [
+    { cursor: one.next },
+    { mode: "war", cursor: one.next },
+    { mode: "event" },
+    { mode: "everyone" },
+  ]) {
+    const bad = await feed(query);
+    assert.equal(bad.statusCode, 400, JSON.stringify(query));
+  }
+  assert.equal(data(await feed({ cursor: one.next })).error, "invalid_cursor");
+  assert.equal(data(await feed({ mode: "event" })).error, "invalid_mode");
+  // A cursor cut in All modes is refused under a mode.
+  const allNext = all.next;
+  assert.equal(
+    data(await feed({ mode: "ladder", cursor: allNext })).error,
+    "invalid_cursor",
+  );
+});
+
 test("Home's feed serves its stored week until it is past serving, then builds it again (#649)", async () => {
   const id = await person("home-feed-stored");
   const { db } = scratch;

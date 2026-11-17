@@ -408,10 +408,15 @@ export const useMyTimeline = (enabled = true) => {
  *  agent's. A read that timed out is not asked again on its own: the feed
  *  says so and offers Try again, rather than a blank box for 40 s. */
 export const HOME_FEED_KEY = ["me", "home", "feed"];
-export const useHomeFeed = () =>
+/** One mode's feed (2026-11-17) is its own read under the feed's key, so
+ *  its pages are cut in that mode; All modes is the key itself. Every
+ *  write that patches the feed patches each mode's copy (setQueriesData). */
+export const homeFeedKey = (mode = null) =>
+  mode ? [...HOME_FEED_KEY, mode] : HOME_FEED_KEY;
+export const useHomeFeed = (mode = null) =>
   useInfiniteQuery({
-    queryKey: HOME_FEED_KEY,
-    queryFn: ({ pageParam }) => api.homeFeed(pageParam).then(unwrap),
+    queryKey: homeFeedKey(mode),
+    queryFn: ({ pageParam }) => api.homeFeed(pageParam, mode).then(unwrap),
     initialPageParam: null,
     getNextPageParam: (last) => last?.next ?? undefined,
     retry: false,
@@ -447,13 +452,14 @@ export const useHomeFeedNew = (since) =>
 
 /** Read Home's feed again from its first page, as the pill's tap asks:
  *  the pages past the first are let go, so the read is one page. */
-export async function reloadHomeFeed(queryClient) {
-  queryClient.setQueryData(HOME_FEED_KEY, (old) =>
+export async function reloadHomeFeed(queryClient, mode = null) {
+  const queryKey = homeFeedKey(mode);
+  queryClient.setQueryData(queryKey, (old) =>
     old?.pages?.length > 1
       ? { pages: old.pages.slice(0, 1), pageParams: old.pageParams.slice(0, 1) }
       : old,
   );
-  await queryClient.refetchQueries({ queryKey: HOME_FEED_KEY, exact: true });
+  await queryClient.refetchQueries({ queryKey, exact: true });
 }
 
 /** One of Home's items' evidence (View games, View crossing). */
@@ -511,9 +517,11 @@ let cheerTaps = 0;
 
 export function useCheer({ key = CHEER_FEED_KEY, list = "timeline" } = {}) {
   const queryClient = useQueryClient();
+  // Home's feed is one copy per mode (homeFeedKey): each takes the change.
   const put = (item) =>
-    queryClient.setQueryData(key, (old) =>
-      mapItems(old, list, (it) => (it.id === item.id ? item : it)),
+    queryClient.setQueriesData(
+      { queryKey: key, exact: key !== CHEER_FEED_KEY },
+      (old) => mapItems(old, list, (it) => (it.id === item.id ? item : it)),
     );
   // Every other copy of the item (Home's feed, a player page's or a battle
   // page's cheers read) takes what the server confirmed too, so a stale
@@ -523,7 +531,7 @@ export function useCheer({ key = CHEER_FEED_KEY, list = "timeline" } = {}) {
       it.id === id
         ? { ...it, cheers: data.cheers, my_cheer: data.my_cheer }
         : it;
-    queryClient.setQueryData(CHEER_FEED_KEY, (old) =>
+    queryClient.setQueriesData({ queryKey: CHEER_FEED_KEY }, (old) =>
       mapItems(old, "timeline", patch),
     );
     queryClient.setQueriesData({ queryKey: ["me", "cheers"] }, (old) =>
@@ -583,7 +591,10 @@ export function useCheer({ key = CHEER_FEED_KEY, list = "timeline" } = {}) {
       w.out += 1;
       w.newest = tap;
       cheerWrites.set(item.id, w);
-      void queryClient.cancelQueries({ queryKey: key, exact: true });
+      void queryClient.cancelQueries({
+        queryKey: key,
+        exact: key !== CHEER_FEED_KEY,
+      });
       put(shown);
       return { tap };
     },
@@ -777,7 +788,7 @@ export function useMarkTimelineSeen() {
       // Home's feed shares your place (never an agent's); its first page
       // carries it.
       if (!agent)
-        queryClient.setQueryData(HOME_FEED_KEY, (old) =>
+        queryClient.setQueriesData({ queryKey: HOME_FEED_KEY }, (old) =>
           old?.pages?.length
             ? { ...old, pages: [place(old.pages[0]), ...old.pages.slice(1)] }
             : old,

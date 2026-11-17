@@ -57,7 +57,7 @@ const DASH = "–";
  *  Each side panel reads for itself and draws its own loading state; a panel that
  *  failed says so, the rest render. Needs you moved to the bell, which every
  *  page wears (shell/Bell.jsx); the unlock notice stays here, at the top. */
-export function HomePanels({ first, player, feed }) {
+export function HomePanels({ first, player, feed, mode = null }) {
   const clan = panelOf(useHomeClan(), "clan");
   const needs = panelOf(useHomeNeeds(), "needs");
   const actions = actionsFrom({ clan, needs });
@@ -76,10 +76,15 @@ export function HomePanels({ first, player, feed }) {
   // A quiet week (#1016): People to follow moves under the feed's quiet
   // line, in the main column, so a phone reaches it first. The feed's own
   // read, shared, never a second request.
-  const feedRead = useHomeFeed();
+  // In a mode (2026-11-17) the week is quiet only when the whole week is:
+  // the first page says how many items it holds across every mode.
+  const feedRead = useHomeFeed(mode);
+  const firstPage = feedRead.data?.pages?.[0];
   const quiet =
     feedRead.isSuccess &&
-    (feedRead.data?.pages ?? []).every((p) => !(p?.timeline?.length > 0));
+    (typeof firstPage?.week_total === "number"
+      ? firstPage.week_total === 0
+      : (feedRead.data?.pages ?? []).every((p) => !(p?.timeline?.length > 0)));
   const suggestHere = typeof feed === "function" && quiet && !starterListed;
   return (
     <div className="kit-home">

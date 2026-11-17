@@ -25,7 +25,8 @@ import { lastGameWeek } from "@elixir-mcp/record/game-week";
 
 import { json } from "../http.mjs";
 import { toolDeadlineMs } from "../deadline.mjs";
-import { annotateFeed, closeTags, groupsOf } from "../feed.mjs";
+import { TIMELINE_MODES } from "@elixir-mcp/contracts";
+import { annotateFeed, closeTags, groupsOf, inMode } from "../feed.mjs";
 import { cheersReceived, withCheers } from "../cheers.mjs";
 import { withComments } from "../comments.mjs";
 import { homePosts } from "../posts.mjs";
@@ -637,7 +638,7 @@ async function buildFeed(db, account, { fromMs, toMs }) {
  *  a highlight or fact posted or removed between pages, which the read
  *  serves live, never repeats or skips one (Codex on #818). A cursor from
  *  before carries no item and reads by offset. Opaque to the page. */
-const feedCursor = (fromMs, toMs, offset, last) =>
+const feedCursor = (fromMs, toMs, offset, last, mode = null) =>
   Buffer.from(
     JSON.stringify({
       f: fromMs,
@@ -645,6 +646,7 @@ const feedCursor = (fromMs, toMs, offset, last) =>
       o: offset,
       a: Date.parse(shownAt(last)),
       i: last.id,
+      ...(mode ? { m: mode } : {}),
     }),
   ).toString("base64url");
 function readCursor(raw) {
@@ -664,13 +666,15 @@ function readCursor(raw) {
         (Number.isSafeInteger(c.a) &&
           typeof c.i === "string" &&
           c.i.length > 0 &&
-          c.i.length <= 128));
+          c.i.length <= 128)) &&
+      (c.m === undefined || TIMELINE_MODES.includes(c.m));
     return ok
       ? {
           fromMs: c.f,
           toMs: c.t,
           offset: c.o,
           last: keyed ? { at: c.a, id: c.i } : null,
+          mode: c.m ?? null,
         }
       : null;
   } catch {
@@ -691,6 +695,7 @@ async function readFeed(
   wake,
   comments = false,
   posts = false,
+  mode = null,
 ) {
   const started = Date.now();
   const { timezone, seenTo: seen_to } = await homeAccount(
@@ -716,7 +721,11 @@ async function readFeed(
           toMs: Math.max(Date.now(), week.toMs),
         })
       : [];
-  const all = [...week.items, ...own].sort(feedOrder);
+  const whole = [...week.items, ...own].sort(feedOrder);
+  // A mode filter (2026-11-17) chooses the week's items before the pages
+  // are cut, so every page is thirty of that mode's items and More reads
+  // on in the same mode; the chips' counts are that mode's too.
+  const all = mode ? whole.filter((it) => inMode(it, mode)) : whole;
   // Close friends (0281): read apart from the stored week, so marking one
   // never changes the week's subjects or makes it rebuild.
   const close = await closeTags(db, account.accountId);
@@ -752,8 +761,14 @@ async function readFeed(
     next:
       next === null
         ? null
-        : feedCursor(week.fromMs, week.toMs, next, page[page.length - 1]),
-    timeline_more: week.more,
+        : feedCursor(week.fromMs, week.toMs, next, page[page.length - 1], mode),
+    // The items a busy week left out are of every mode; a mode's page
+    // cannot say how many were its own, so it says none.
+    timeline_more: mode ? 0 : week.more,
+    mode,
+    // Under a mode, how many items the whole week holds, so the page can
+    // tell an empty mode from a quiet week.
+    ...(mode ? { week_total: whole.length } : {}),
   };
   if (!cursor) {
     const counts = {
@@ -775,7 +790,8 @@ async function readFeed(
     // stored items this read holds. With none stored, every stored item
     // that arrives is one the reader lacks, so count from the week's start.
     out.watermark =
-      feedWatermark(all.filter((it) => it.kind !== "post")) ?? out.window.from;
+      feedWatermark(whole.filter((it) => it.kind !== "post")) ??
+      out.window.from;
   }
   console.info(
     JSON.stringify({
@@ -1026,9 +1042,18 @@ export function homeRoutes({
       if (q.evidence_item_id) return readFeedEvidence(db, account, q);
       const cursor = q.cursor ? readCursor(q.cursor) : null;
       if (q.cursor && !cursor) return json(400, { error: "invalid_cursor" });
+      // The mode filter (2026-11-17): one of the four, or none for All
+      // modes. A next page's cursor names the mode it was cut in, and a
+      // page asked in another mode is refused rather than read out of
+      // place.
+      const mode = q.mode ?? null;
+      if (mode !== null && !TIMELINE_MODES.includes(mode))
+        return json(400, { error: "invalid_mode" });
+      if (cursor && cursor.mode !== mode)
+        return json(400, { error: "invalid_cursor" });
       return json(
         200,
-        await readFeed(db, account, cursor, wake, comments, posts),
+        await readFeed(db, account, cursor, wake, comments, posts, mode),
       );
     },
 
