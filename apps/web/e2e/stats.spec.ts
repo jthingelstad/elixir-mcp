@@ -178,8 +178,11 @@ test.describe("Stats signed in", () => {
     await expect(tiles.nth(2)).toContainText("34%");
     await expect(tiles.nth(3)).toContainText("Trophy range");
     await expect(tiles.nth(3)).toContainText("12,500–12,562");
-    await expect(page.getByText("You stood on the 12,500 floor")).toContainText(
-      "(Ultimate Clash Pit) this season. Six losses there cost nothing",
+    // The panel's one line shows; the rest opens under its opener.
+    const floorNote = page.getByText("You stood on the 12,500 floor");
+    await expect(floorNote).toContainText("(Ultimate Clash Pit) this season.");
+    await expect(floorNote.locator("details.stats-more")).toContainText(
+      "Six losses there cost nothing",
     );
 
     // Week by week, newest first, the clipped weeks marked.
@@ -939,7 +942,13 @@ test.describe("Stats days and battles", () => {
     await mockApi(page, signedIn({ "POST /api/me/tool": explore() }));
     await page.goto("/home/you/stats");
     // Today leads: the days to come are one line under the played ones.
+    // A phone lists the newest week first and opens the rest on a tap.
+    await expect(page.locator(".stats-day:visible")).toHaveCount(7);
+    await page.getByRole("button", { name: "Show all 23 days" }).click();
     await expect(page.locator(".stats-day:visible")).toHaveCount(23);
+    await expect(
+      page.getByRole("button", { name: "Show the last 7 days" }),
+    ).toHaveAttribute("aria-expanded", "true");
     await expect(page.locator(".stats-day:visible").first()).toBeVisible();
     await expect(page.locator(".stats-cal__ahead")).toContainText(
       "5 days to come. The season ends",

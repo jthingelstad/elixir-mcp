@@ -70,7 +70,12 @@ test("signed out: both decks, the score, how it ended, and the way in", async ({
     "href",
     `/signin?signup&return_to=${encodeURIComponent(`/battle/${BATTLE.battle.short_id}`)}`,
   );
-  await expect(page.getByText(BATTLE.battle.id)).toBeVisible();
+  // No raw battle hash at the foot; the way in is also up top.
+  await expect(page.getByText(BATTLE.battle.id)).toHaveCount(0);
+  await expect(page.getByRole("link", { name: "Join free" })).toHaveAttribute(
+    "href",
+    `/signin?signup&return_to=${encodeURIComponent(`/battle/${BATTLE.battle.short_id}`)}`,
+  );
   await expect(page.locator(".rail")).toHaveCount(0);
   // The picture and the link, never an embed.
   const share = page.getByRole("region", { name: "Share this battle" });
