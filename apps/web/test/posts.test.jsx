@@ -9,8 +9,17 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { test, expect, vi, beforeEach, afterEach } from "vitest";
-import { screen, fireEvent, waitFor, cleanup } from "@testing-library/react";
+import {
+  screen,
+  fireEvent,
+  waitFor,
+  cleanup,
+  renderHook,
+} from "@testing-library/react";
+import { QueryClientProvider } from "@tanstack/react-query";
 import { renderWithProviders } from "./helpers.jsx";
+import { createQueryClient } from "../src/client/index.ts";
+import { useCommentsChanged } from "../src/lib/queries.js";
 import { PostComposer } from "../src/home/Post.jsx";
 import { FeedItem } from "../src/home/FeedItem.jsx";
 import { PostList } from "../src/home/PostList.jsx";
@@ -267,4 +276,22 @@ test("a cheer on a page's post list shows at once, and a second tap takes it bac
     expect(cheer().getAttribute("aria-pressed")).toBe("false"),
   );
   await waitFor(() => expect(sent).toEqual(["well_played", null]));
+});
+
+test("a comment write reads a post list and Clan's Feed again, not only Home", async () => {
+  serve(ME());
+  const queryClient = createQueryClient();
+  const { result } = renderHook(() => useCommentsChanged(), {
+    wrapper: ({ children }) => (
+      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    ),
+  });
+  const list = ["me", "posts", "player", "#0PGQ2UYL"];
+  const feed = ["me", "clan", "record", "#0RJ29CVY", "feed"];
+  const race = ["me", "clan", "record", "#0RJ29CVY", "race"];
+  for (const key of [list, feed, race]) queryClient.setQueryData(key, {});
+  await result.current("tl_0123456789abcdef0abc");
+  expect(queryClient.getQueryState(list).isInvalidated).toBe(true);
+  expect(queryClient.getQueryState(feed).isInvalidated).toBe(true);
+  expect(queryClient.getQueryState(race).isInvalidated).toBe(false);
 });
