@@ -8,6 +8,7 @@ import {
   Link,
   PageHead,
   PlayerName,
+  Skeleton,
   TagText,
   noun,
   useClock,
@@ -65,7 +66,7 @@ export function SessionPage() {
       : null,
   );
   if (!tag || !id) return <Empty title="That is not a session’s address" />;
-  if (query.isPending) return <div className="kit-skeleton" aria-busy="true" />;
+  if (query.isPending) return <Skeleton rows={4} label="Reading the session" />;
   if (query.isError || (query.data && query.data.status >= 500))
     return (
       <ErrorState

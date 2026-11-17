@@ -52,7 +52,11 @@ is one feed", "The left rail stays only in Settings"]
 
 - **Timeline** (`/timeline`; `/home` forwards): one feed of the last seven days, newest first, in
   days, with the chips Everyone, Friends, Clan and You, and All or New. A
-  session carries its sparkline. Your week, the clan panel with this
+  session carries its sparkline. A short session is one line and short
+  sessions in a row fold into one row that opens in place; a close
+  friend's never fold; moments carry their card's art, and a new best,
+  league or Arena is the day's headline. Nothing is reordered.
+  [engineering, 2026-11-17, `docs/notes/2026-11-17-feed-rhythm.md`] Your week, the clan panel with this
   week's race, and People to follow sit beside the feed, below it on a
   phone. [Jamie, 2026-11-12, "Home is one feed"]
 - **Find** (`/home/find`): Your clan (with Follow my clan and Invite

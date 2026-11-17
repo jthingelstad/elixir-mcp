@@ -2,8 +2,8 @@
  * Clan's Feed (slice 8, #766) over a scratch database (golden rule 9): the
  * clan's timeline for one member, newest first, carrying the highlights of
  * the clan's current members (a member who has left is not in it), each
- * item only its sentence, kind, time and, for a highlight, its words and
- * battle; none of the reader's own account items. Synthetic tags only.
+ * item as the Timeline draws it (2026-11-17) without Home's own fields;
+ * none of the reader's own account items. Synthetic tags only.
  */
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
@@ -97,7 +97,7 @@ after(async () => {
   await ctx?.drop();
 });
 
-test("feed: current members' highlights, shaped to the sentence, never a member who has left", async () => {
+test("feed: current members' highlights, drawn as the Timeline draws them, never a member who has left", async () => {
   const feed = await readClanFeed(
     db,
     { accountId: reader, timezone: "UTC" },
@@ -109,22 +109,18 @@ test("feed: current members' highlights, shaped to the sentence, never a member 
   assert.equal(typeof feed.more, "number");
   const highlights = feed.items.filter((it) => it.kind === "battle_highlight");
   assert.deepEqual(
-    highlights.map((it) => it.words),
+    highlights.map((it) => it.facts?.words),
     ["Three crowns"],
   );
   const [h] = highlights;
-  assert.deepEqual(Object.keys(h).sort(), [
-    "at",
-    "battle_url",
-    "id",
-    "kind",
-    "text",
-    "words",
-  ]);
   assert.match(h.text, /Stays/);
+  assert.ok(h.id);
+  assert.ok(Date.parse(h.at));
   for (const it of feed.items) {
-    assert.ok(!("facts" in it), "never an item's facts whole");
-    assert.ok(!("section" in it));
+    // Home's own fields stay Home's: the reader's groups, the Follow
+    // offer, cheers and comments; and the timeline's section.
+    for (const k of ["groups", "offer_follow", "cheers", "comments", "section"])
+      assert.ok(!(k in it), `no ${k} on Clan's Feed`);
   }
   // Newest first.
   const times = feed.items.map((it) => Date.parse(it.at)).filter(Boolean);

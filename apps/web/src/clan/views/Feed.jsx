@@ -1,46 +1,36 @@
 import { useState } from "react";
-import {
-  Empty,
-  Link,
-  Skeleton,
-  TagText,
-  useClock,
-  ErrorState,
-} from "@elixir-mcp/ui";
+import { Empty, Skeleton, useClock, ErrorState } from "@elixir-mcp/ui";
+import { FeedRows } from "../../home/FeedItem.jsx";
 import { CLAN, clanPath } from "../lib/base.js";
 import { useFeed, useRace } from "../lib/queries.js";
 import { n, ordinal } from "../lib/words.js";
 import { ActionsNow, WeekCard, YouCard } from "./Waiting.jsx";
-
-/** A battle's own page on this origin, or null: the record serves the
- *  absolute address, and the Feed links it in place. */
-const battlePath = (url) => {
-  const path = String(url ?? "").replace(/^https?:\/\/[^/]+/, "");
-  return path.startsWith("/battle/") ? path : null;
-};
 
 /** How many of the feed's lines show at first, and how many more each More
  *  shows: a busy week was 150 lines, 8,600 px of page (G3). */
 const FEED_PAGE = 30;
 
 /** The items grouped by the reader's day, newest first, as Home draws its
- *  timeline. */
+ *  timeline: each day's rows in the Timeline's own shape (FeedRows). */
 function byDay(items, dayHeading) {
   const days = [];
   for (const it of items) {
     const head = it.at ? dayHeading(it.at) : "";
     const last = days.at(-1);
-    if (last && last.head === head) last.items.push(it);
-    else days.push({ head, items: [it] });
+    const row = { it, isNew: false, newLine: false };
+    if (last && last.head === head) last.rows.push(row);
+    else days.push({ head, rows: [row] });
   }
   return days;
 }
 
 /** The clan's timeline: its items, its members' moments and highlights,
- *  newest first, as this reader reads them (`GET .../feed`), thirty lines
- *  at a time. */
+ *  newest first, as this reader reads them (`GET .../feed`), thirty items
+ *  at a time, drawn by the Timeline's own components (2026-11-17) so the
+ *  two cannot drift. Nothing opens in place here, and no item takes a
+ *  cheer: cheers live on the reader's own Timeline. */
 function ClanTimeline({ clan }) {
-  const { dayHeading, clock } = useClock();
+  const { dayHeading } = useClock();
   const { state, load } = useFeed(clan.clan_tag);
   const [shown, setShown] = useState(FEED_PAGE);
   if (state.signedOut) {
@@ -93,36 +83,7 @@ function ClanTimeline({ clan }) {
               aria-label={day.head || undefined}
             >
               {day.head ? <h4 className="kit-day__head">{day.head}</h4> : null}
-              {day.items.map((it, i) => {
-                const battle = battlePath(it.battle_url);
-                return (
-                  <article
-                    key={it.id ?? `${day.head}-${i}`}
-                    className="kit-feed__item"
-                  >
-                    <span className="kit-feed__time">
-                      {it.at ? clock(it.at) : ""}
-                    </span>
-                    <p className="kit-feed__text">
-                      <TagText>{it.text}</TagText>
-                    </p>
-                    {it.kind === "battle_highlight" && it.words ? (
-                      <blockquote className="kit-feed__words">
-                        &ldquo;{it.words}&rdquo;
-                      </blockquote>
-                    ) : null}
-                    {battle ? (
-                      <footer className="kit-feed__foot">
-                        <span className="kit-feed__links">
-                          <Link to={battle} className="link hit">
-                            Open the battle
-                          </Link>
-                        </span>
-                      </footer>
-                    ) : null}
-                  </article>
-                );
-              })}
+              <FeedRows rows={day.rows} />
             </section>
           ))}
         </div>

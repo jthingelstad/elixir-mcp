@@ -123,6 +123,54 @@ test("annotateFeed adds the chips, the battle's page, and keeps the rest", async
   );
 });
 
+test("a Mastery badge names its card, from one catalog read for the page", async () => {
+  const reads = [];
+  const db = {
+    async query(sql, [names]) {
+      reads.push(sql);
+      if (/from card/.test(sql)) {
+        // Guards is the badge's codename SkeletonWarriors, by shown name.
+        assert.deepEqual(names, ["Guards", "Knight"]);
+        return {
+          rows: [
+            { card_id: 26000025, name: "Guards" },
+            { card_id: 26000000, name: "Knight" },
+          ],
+        };
+      }
+      return { rows: [] };
+    },
+  };
+  const badge = (badge, kind = "badge_earned") => ({
+    kind,
+    subjects: [{ tag: FRIEND, kind: "player" }],
+    text: "A badge.",
+    facts: { player_tag: FRIEND, badge },
+  });
+  const out = await annotateFeed(
+    db,
+    [
+      badge("MasterySkeletonWarriors"),
+      badge("MasteryKnight"),
+      badge("MasteryKnight"),
+      badge("Classic12Wins"),
+      { ...badge("MasteryKnight"), kind: "card_unlocked" },
+    ],
+    SUBJECTS,
+  );
+  assert.deepEqual(
+    out.map((it) => it.moment_card ?? null),
+    [
+      { id: 26000025, name: "Guards" },
+      { id: 26000000, name: "Knight" },
+      { id: 26000000, name: "Knight" },
+      null,
+      null,
+    ],
+  );
+  assert.equal(reads.filter((s) => /from card/.test(s)).length, 1);
+});
+
 test("foldAccountLines: one line per kind and burst, however the kinds interleave", async () => {
   const { foldAccountLines } = await import("../src/bell.mjs");
   const at = (min) => new Date(Date.UTC(2026, 10, 12, 17, min)).toISOString();
