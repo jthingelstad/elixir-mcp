@@ -39,8 +39,8 @@ import {
 import { normTag, tagFromPath } from "../lib/tag-url.js";
 import { SessionGames } from "./SessionGames.jsx";
 import { Cheers, usePageCheered } from "./Cheers.jsx";
-import { BlockButton } from "./Block.jsx";
-import { Comments } from "./Comments.jsx";
+import { BlockButton, UnblockButton } from "./Block.jsx";
+import { Comments, useCommentsOn } from "./Comments.jsx";
 import {
   evidenceWord,
   Sitting,
@@ -153,6 +153,9 @@ export function PlayerView({ page, initialTab = "timeline" }) {
   // your clan's member, in the last week.
   const cheered = usePageCheered({ player: p.tag });
   const you = page.you;
+  const commentsOn = useCommentsOn();
+  // The account that verified this player: the one a block reaches.
+  const owner = (page.claimants ?? []).find((c) => c.verified) ?? null;
   // Your own player page asks for your battles now (lib/own-refresh.js).
   useAskOnOpen(you.own === true);
   // Your own player draws it when it is not the one you act as in that
@@ -208,7 +211,11 @@ export function PlayerView({ page, initialTab = "timeline" }) {
             <TagText>{sub}</TagText>
           </p>
           <Badges badges={page.badges} />
-          <Identity page={page} own={you.own === true} />
+          <Identity
+            page={page}
+            own={you.own === true}
+            blocked={you.blocked === true && commentsOn}
+          />
           {/* A verified player's passport (#1015): one row, under the
               name, so the play below stays in view. */}
           {page.passport ? (
@@ -222,7 +229,15 @@ export function PlayerView({ page, initialTab = "timeline" }) {
             Copy Follow me link say it. Follow everyone in their clan is on
             the Follows tab. */}
         <nav className="kit-phead__actions" aria-label="More about this player">
-          {you.own ? null : you.following ? (
+          {you.own ? null : you.blocked === true && commentsOn && owner ? (
+            // Your block of their owner (2026-11-16): only you see it, and
+            // only Unblock is offered while it stands, as on the account
+            // page (Codex on #1081).
+            <UnblockButton
+              account={owner.id}
+              name={owner.player?.name ?? p.name}
+            />
+          ) : you.following ? (
             <Unfollow
               tag={p.tag}
               name={p.name}
@@ -316,7 +331,7 @@ function Badges({ badges }) {
  * what account is making the claim"). Imported: followed by someone, so
  * Elixir records it, and no account says it is theirs.
  */
-function Identity({ page, own = false }) {
+function Identity({ page, own = false, blocked = false }) {
   const claimants = page.claimants ?? [];
   const verified = claimants.find((c) => c.verified);
   if (verified)
@@ -334,7 +349,7 @@ function Identity({ page, own = false }) {
         can claim this player.
         {/* Block their account (2026-11-16): here, with the account it
             blocks, so the header keeps its two actions. */}
-        {own ? null : (
+        {own || blocked ? null : (
           <>
             {" "}
             <BlockButton

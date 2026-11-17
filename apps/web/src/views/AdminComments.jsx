@@ -76,8 +76,8 @@ function Spend({ month, cap }) {
         <Row
           title="Spend"
           detail={
-            m.paused
-              ? "Paused: the cap is reached, so new comments wait until next month."
+            m.paused === true
+              ? "Paused: the cap is reached, so new comments wait until next month or a higher cap."
               : `Cap $${Number(cap ?? 0).toFixed(2)} a month`
           }
           right={`$${usd.toFixed(4)}`}

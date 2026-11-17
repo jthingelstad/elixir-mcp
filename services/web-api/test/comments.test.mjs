@@ -410,6 +410,18 @@ test("reports: two hide a comment, the reporter stops seeing it at once, the aut
   // whatever id they guess (Codex on #1078).
   const outsider = await person("cm-outsider");
   assert.equal((await report(outsider)).statusCode, 404);
+  // The subjects a report names only narrow: they never open an item the
+  // reader's own follows do not (Codex on #1082).
+  assert.equal(
+    (
+      await call(outsider, "POST", "/api/me/comment-reports", {
+        id: mine.id,
+        reason: "bullying",
+        subjects: [V, "#0GVJ9V"],
+      })
+    ).statusCode,
+    404,
+  );
   assert.equal((await report(READER)).statusCode, 404, "never your own");
   assert.equal((await report(FAN)).statusCode, 200);
   assert.ok(
@@ -644,4 +656,48 @@ test("an agent never reaches the comment routes", async () => {
     body: JSON.stringify({ item_id: ITEM, text: "hi" }),
   });
   assert.ok([401, 403].includes(r.statusCode), r.body);
+});
+
+test("a pause that has ended reads as none (Codex on #1081)", async () => {
+  await scratch.db.query(
+    `insert into comment_setting (account_id, suspended_until)
+     values ($1, now() - interval '1 day')
+     on conflict (account_id) do update
+       set suspended_until = excluded.suspended_until`,
+    [SPAMMER],
+  );
+  const r = await call(SPAMMER, "GET", "/api/me/comment-setting");
+  assert.equal(r.statusCode, 200, r.body);
+  assert.equal(data(r).suspended_until, null);
+});
+
+test("Admin's pause is the cap's state now, beside the checks it turned away (Codex on #1081)", async () => {
+  const on = data(await call(ADMIN, "GET", "/api/admin/comments"));
+  assert.equal(on.month.paused, false);
+  assert.equal(typeof on.month.paused_checks, "number");
+  const noCap = makeHandler({
+    databaseUrl: scratch.url,
+    secret: "test",
+    comments: { enabled: true, capUsd: 0, moderate },
+  });
+  const off = data(await callWith(noCap)(ADMIN, "GET", "/api/admin/comments"));
+  assert.equal(off.month.paused, true);
+});
+
+test("a player page says whether you blocked its verified owner (Codex on #1081)", async () => {
+  const page = async (who) =>
+    data(await call(who, "GET", "/api/player", null, { tag: V }));
+  const before = await page(UNVERIFIED);
+  assert.equal(before.you.blocked, false);
+  await scratch.db.query(
+    `insert into account_block (account_id, blocked_account_id) values ($1, $2)`,
+    [UNVERIFIED, OWNER],
+  );
+  assert.equal((await page(UNVERIFIED)).you.blocked, true);
+  // Never the other way: the owner is not told.
+  assert.equal((await page(OWNER)).you.blocked, false);
+  await scratch.db.query(
+    `delete from account_block where account_id = $1 and blocked_account_id = $2`,
+    [UNVERIFIED, OWNER],
+  );
 });

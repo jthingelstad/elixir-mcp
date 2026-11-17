@@ -191,9 +191,15 @@ export function commentsRoutes({ resolveAccount, comments = null }) {
         account,
         body?.id,
         String(body?.reason ?? ""),
+        // The item's subjects as the reader's card names them (a clan as
+        // well as its member), as the list and the post take them; a
+        // comment stores its player alone (Codex on #1082). They only
+        // narrow: the item is rebuilt from the reader's own follows.
         async (row) =>
-          (await feedItem(db, account, row.item_id, [row.subject_tag])) !==
-          null,
+          (await feedItem(db, account, row.item_id, [
+            row.subject_tag,
+            ...tagsOf(body?.subjects),
+          ])) !== null,
       );
       if (out.error === "invalid_reason")
         return json(400, { error: "invalid_reason" });
@@ -284,10 +290,21 @@ export function commentsRoutes({ resolveAccount, comments = null }) {
     "GET /api/admin/comments": async (db, event) => {
       const { refused } = await admin(db, event, false);
       if (refused) return refused;
+      const queue = await commentQueue(db);
+      const cap = Number(comments?.capUsd ?? 0);
+      // Paused now, by the check's own condition (comment-check.mjs): no
+      // cap, or this month's spend at it. `paused_checks` counts the
+      // checks the cap turned away (Codex on #1081).
+      const paused = !(cap > 0) || Number(queue.month.usd) >= cap;
       return json(200, {
         enabled,
         cap_usd: comments?.capUsd ?? null,
-        ...(await commentQueue(db)),
+        ...queue,
+        month: {
+          ...queue.month,
+          paused,
+          paused_checks: queue.month.paused,
+        },
       });
     },
 

@@ -101,11 +101,21 @@ async function latestTrophies(db, tag) {
  *  home clan (which door Stats and Clan are on the page). */
 async function readerSide(db, accountId, tag, clanTag) {
   const { rows } = await db.query(
-    `select is_primary, relationship, close from claim
-      where account_id = $1 and player_tag = $2`,
+    // One statement: the reader's claim on the tag, if any, and whether
+    // the reader blocked the account that verified it (Codex on #1081).
+    `select c.is_primary, c.relationship, c.close,
+            exists (
+              select 1 from account_block b
+                join claim v on v.account_id = b.blocked_account_id
+               where b.account_id = $1 and v.player_tag = $2
+                 and v.status = 'verified'
+                 and (v.is_primary or v.relationship in ('primary', 'alt'))
+            ) as blocked
+       from (select 1) one
+       left join claim c on c.account_id = $1 and c.player_tag = $2`,
     [accountId, tag],
   );
-  const claim = rows[0] ?? null;
+  const claim = rows[0]?.is_primary == null ? null : rows[0];
   const own = Boolean(
     claim &&
     (claim.is_primary || ["primary", "alt"].includes(claim.relationship)),
@@ -120,6 +130,10 @@ async function readerSide(db, accountId, tag, clanTag) {
     // own block, never anywhere another member reads.
     close: !own && claim?.relationship === "friend" && claim?.close === true,
     relationship: own ? "own" : (claim?.relationship ?? null),
+    // Whether the reader blocked this player's verified owner
+    // (2026-11-16): their own block only, for Unblock in place of Follow
+    // and Block. A block the other way is never said.
+    blocked: !own && rows[0]?.blocked === true,
     clanmate:
       !own && home && clanTag && home.clan_tag === clanTag
         ? home.clan_tag
