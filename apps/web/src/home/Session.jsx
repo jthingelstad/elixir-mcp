@@ -37,7 +37,7 @@ export function modesSaid(f = {}) {
 }
 
 /** Where a sitting was played, as a phrase after its result: "on Trophy
- *  Road", "in Path of Legends", "in Classic 1v1" (an event by its own
+ *  Road", "in Ranked", "in Classic 1v1" (an event by its own
  *  name), "across Trophy Road and Casual". */
 export function wherePlayed(f = {}) {
   const modes = Object.keys(f.by_mode ?? {});
@@ -50,8 +50,8 @@ export function wherePlayed(f = {}) {
 /** A sitting's headline, from its facts alone (2026-11-16): its result and
  *  what stood out, never the timeline's sentence, which repeats the name
  *  and every number the card shows (that sentence stays for MCP, RSS and
- *  Discord). "Won 8 of 12 on Trophy Road, 5 in a row"; "Lost a Path of
- *  Legends battle". */
+ *  Discord). "Won 8 of 12 on Trophy Road, 5 in a row"; "Lost a Ranked
+ *  battle". */
 export function sessionHeadline(f = {}) {
   const n = f.battles ?? 0;
   const where = wherePlayed(f);
