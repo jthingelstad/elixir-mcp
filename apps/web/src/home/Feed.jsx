@@ -188,15 +188,18 @@ export function HomeFeed({
   const modePick = setMode ? (
     <ModePick value={mode} onChange={setMode} />
   ) : null;
+  // With nothing to draw, the list alone stays, so a mode restored from an
+  // address or this browser can still be changed (Codex on #1113).
+  const modeOnly = !modePick ? null : chipsAt ? (
+    createPortal(<FeedFilters>{modePick}</FeedFilters>, chipsAt)
+  ) : (
+    <FeedFilters>{modePick}</FeedFilters>
+  );
   if (items.length === 0 && mode && weekTotal > 0)
     return (
       <div ref={top} tabIndex={-1} className="kit-feed kit-feed__top">
         {pill}
-        {chipsAt ? (
-          createPortal(<FeedFilters>{modePick}</FeedFilters>, chipsAt)
-        ) : (
-          <FeedFilters>{modePick}</FeedFilters>
-        )}
+        {modeOnly}
         {composer}
         <Empty
           title={modeQuiet(mode, null)}
@@ -220,6 +223,7 @@ export function HomeFeed({
     return (
       <div ref={top} tabIndex={-1} className="kit-feed__top">
         {pill}
+        {mode ? modeOnly : null}
         {composer}
         <Quiet
           follows={
