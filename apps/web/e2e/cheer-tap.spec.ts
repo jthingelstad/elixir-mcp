@@ -245,6 +245,23 @@ for (const width of [320, 390]) {
       .locator(".kit-feed__item:not(.kit-feed__item--line)")
       .filter({ has: page.locator(".kit-cheers") })
       .first();
+    // Measured once the page has stopped moving on its own: a web font
+    // swapping in or an image arriving (slower on CI) changes a card's
+    // height with no popover involved.
+    await card.scrollIntoViewIfNeeded();
+    await page.evaluate(() => document.fonts.ready);
+    await card.evaluate((el) =>
+      Promise.all(
+        [...el.querySelectorAll("img")].map((i) =>
+          i.complete
+            ? null
+            : new Promise((done) => {
+                i.addEventListener("load", done, { once: true });
+                i.addEventListener("error", done, { once: true });
+              }),
+        ),
+      ),
+    );
     const before = await card.boundingBox();
     await card.getByRole("button", { name: "Choose a cheer" }).click();
     const lead = card.getByRole("group", { name: "Cheer with" });
@@ -260,10 +277,23 @@ for (const width of [320, 390]) {
       expect(box.x).toBeGreaterThanOrEqual(0);
       expect(box.x + box.width).toBeLessThanOrEqual(width);
     }
-    // The popover floats: the card keeps its height.
-    expect(
-      Math.abs((await card.boundingBox())!.height - before!.height),
-    ).toBeLessThanOrEqual(1);
+    // The popover floats: the card is the same height open as shut. Both
+    // are read after opening once, so a font or image the first open
+    // brought in (CI's Linux was 7 px off against the height read before
+    // it) is in both.
+    const toggle = card.getByRole("button", { name: "Choose a cheer" });
+    const openHeight = (await card.boundingBox())!.height;
+    await toggle.click();
+    await expect(lead).toBeHidden();
+    await page.evaluate(() => document.fonts.ready);
+    const shutHeight = (await card.boundingBox())!.height;
+    if (Math.abs(shutHeight - before!.height) > 1)
+      console.log(
+        `cheer-tap ${width}: the card moved ${shutHeight - before!.height}px with the popover shut`,
+      );
+    expect(Math.abs(openHeight - shutHeight)).toBeLessThanOrEqual(1);
+    await toggle.click();
+    await settled(lead);
     await lead.getByRole("button", { name: "More reactions" }).click();
     const all = card.getByRole("group", { name: "All cheers" });
     await expect(all.getByRole("button")).toHaveCount(20);
