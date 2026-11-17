@@ -16,6 +16,7 @@ import {
   scratchDb,
   fixture,
   trackClans,
+  vacuumWhole,
 } from "../../../packages/ingest/test/helpers.mjs";
 import { processResult } from "../../../packages/ingest/src/pipeline.mjs";
 import { ensureSeasonsAround } from "@elixir-mcp/record/season";
@@ -249,7 +250,8 @@ export async function seedClanLanding(
     accountId: p.account_id,
     emailHash: "landing-leader",
   });
-  await db.query("vacuum analyze");
+  // The budget tests measure plans and buffers: the map must be whole.
+  await vacuumWhole(db);
   step("done");
   return {
     scratch,

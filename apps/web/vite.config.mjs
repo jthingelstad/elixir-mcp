@@ -19,6 +19,8 @@ export default defineConfig({
       "test/setup-turnstile.js",
       "test/setup-slow-runner.js",
       "test/setup-passport-gate.js",
+      // Every test ends unmounted, with React's scheduler drained.
+      "test/setup-react-settle.js",
     ],
     // The run's scratch-database slot, waited for outside any hook.
     globalSetup: ["test/global-setup.mjs"],

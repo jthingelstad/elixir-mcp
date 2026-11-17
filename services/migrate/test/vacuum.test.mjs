@@ -9,6 +9,20 @@
  *
  * The probe tables turn autovacuum off, so the local server's own
  * autovacuum cannot mark their maps between two reads.
+ *
+ * VACUUM marks a page all-visible only when its rows are older than
+ * every snapshot another backend in the database holds, and on a shared
+ * local server such a snapshot comes and goes as it likes (the server's
+ * autovacuum analyzing the freshly cloned scratch database, its xmin
+ * held old by other runs' transactions). Waiting for a quiet moment
+ * (#979, and a 15 s wait on 2026-11-14) still raced it. So the probe's
+ * rows are written frozen (COPY ... FREEZE into the table made in the
+ * same transaction), which VACUUM FULL keeps: they are visible to every
+ * snapshot, the map {vacuum} sets does not depend on who else is
+ * connected, and the test holds an old snapshot open through the op to
+ * prove it (2026-11-17). The ladder's own test asserts what the ladder
+ * does (it ran VACUUM (ANALYZE) on the declared table after the commit),
+ * and leaves the map to this one.
  */
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
@@ -63,25 +77,22 @@ function wholeEnough(after, what) {
   );
 }
 
-/** Wait (at most 15 s) until no other backend in the scratch database
- *  holds a snapshot. A plain VACUUM marks a page all-visible only when
- *  its rows are older than every snapshot in the database, so a
- *  concurrent one (the server's autovacuum analyzing a freshly cloned
- *  scratch database while other runs load the server) left all 885 pages
- *  unmarked once (2026-11-14). Returns who still holds one, for the
- *  failure message. */
-async function quietHorizon() {
-  let holders = [];
-  for (let i = 0; i < 60; i++) {
-    ({ rows: holders } = await db.query(
-      `select backend_type, state from pg_stat_activity
-        where datname = current_database() and pid <> pg_backend_pid()
-          and (backend_xmin is not null or backend_xid is not null)`,
-    ));
-    if (holders.length === 0) return [];
-    await new Promise((r) => setTimeout(r, 250));
+/** Write PROBE_ROWS frozen rows into a new probe table, in one
+ *  transaction: COPY FREEZE needs the table made in it. */
+async function frozenProbe(table) {
+  await db.query("begin");
+  try {
+    await db.query(
+      `create table ${table} (id int primary key, v int) with (autovacuum_enabled = false)`,
+    );
+    await db.query(
+      `copy ${table} from program 'awk ''BEGIN { for (i = 1; i <= ${PROBE_ROWS}; i++) print i "," i }''' with (format csv, freeze)`,
+    );
+    await db.query("commit");
+  } catch (error) {
+    await db.query("rollback");
+    throw error;
   }
-  return holders;
 }
 
 const flagged = async (table) =>
@@ -92,13 +103,15 @@ test("the thresholds are the documented ones", () => {
   assert.equal(VISIBILITY_MIN_SHARE, 0.5);
 });
 
-test("the check names a table never analyzed, then one VACUUM FULL emptied, and neither after {vacuum}", async () => {
-  await db.query(
-    `create table vm_probe (id int primary key, v int) with (autovacuum_enabled = false)`,
-  );
-  await db.query(
-    `insert into vm_probe select g, g from generate_series(1, ${PROBE_ROWS}) g`,
-  );
+test("the check names a table never analyzed, then one VACUUM FULL emptied, and neither after {vacuum}", async (t) => {
+  // An old snapshot, held from before the rows to after {vacuum}: what
+  // a busy server's other backends do. Frozen rows are visible to it.
+  const holder = new pg.Client({ connectionString: SCRATCH_URL });
+  await holder.connect();
+  t.after(() => holder.end());
+  await holder.query("begin isolation level repeatable read");
+  await holder.query("select 1");
+  await frozenProbe("vm_probe");
 
   const fresh = await flagged("vm_probe");
   assert.equal(fresh?.reason, "never_analyzed");
@@ -116,16 +129,13 @@ test("the check names a table never analyzed, then one VACUUM FULL emptied, and 
   assert.equal(rewritten.all_visible_pages, 0);
   assert.equal(rewritten.all_visible_pct, 0);
 
-  const holders = await quietHorizon();
   const out = await vacuum(SCRATCH_URL, { table: "vm_probe" });
   assert.equal(out.error, undefined, out.message);
   assert.equal(out.before.relallvisible, 0);
-  wholeEnough(
-    out.after,
-    `vm_probe (snapshots held: ${JSON.stringify(holders)})`,
-  );
+  wholeEnough(out.after, "vm_probe");
   assert.ok(out.after.relallvisible > 0);
   assert.equal(await flagged("vm_probe"), undefined);
+  await holder.query("commit");
 });
 
 test("the check is read-only and leaves small tables out", async () => {
@@ -220,8 +230,11 @@ test("the ladder vacuums what a migration declares, after the commit, and never 
   const [v] = first.result.vacuumed;
   assert.equal(v.table, "probe");
   assert.equal(v.error, undefined, v.message);
+  // Its VACUUM (ANALYZE) ran, after the commit: the table had no
+  // statistics before it and has its pages and rows after. Whether the
+  // map is whole is the server's horizon, which the {vacuum} test pins.
+  assert.equal(Number(v.before.reltuples), -1);
   assert.ok(v.after.relpages >= VISIBILITY_FLOOR_PAGES);
-  wholeEnough(v.after, "probe");
   assert.ok(v.after.reltuples > 0);
   assert.ok(first.logs.some((l) => l.startsWith("vacuum after: ")));
 
