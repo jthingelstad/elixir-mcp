@@ -133,9 +133,12 @@ async function recipientOf(db, playerTag, clanTag, kind) {
   const r = rows[0];
   if (!r) return { status: "no_account" };
   if (!r.in_clan) return { status: "not_in_clan" };
-  if (!r.email) return { status: "no_address" };
-  if (!r.enabled) return { status: "switched_off" };
-  return { account: { accountId: r.account_id, email: r.email } };
+  // In the clan and verified: theirs to be told by push whatever their
+  // mail switch says (web push, 2026-11-16).
+  const accountId = r.account_id;
+  if (!r.email) return { status: "no_address", accountId };
+  if (!r.enabled) return { status: "switched_off", accountId };
+  return { account: { accountId: r.account_id, email: r.email }, accountId };
 }
 
 /** The source and label Clan's own mail is recorded under. The source
@@ -157,7 +160,16 @@ async function sendMail(
   sender,
   clanInput,
   body,
-  { enqueue, secret, archive = null, now = () => new Date() } = {},
+  {
+    enqueue,
+    secret,
+    archive = null,
+    now = () => new Date(),
+    // `({accountId, clanTag, clanName, count, link, day})`: a message with
+    // new Actions, for web push (2026-11-16); called for every verified
+    // member it names, mail switch on or off. Best-effort.
+    notify = null,
+  } = {},
 ) {
   const clanTag = tagOf(clanInput, "clan_tag");
   const kind = String(body.kind ?? "");
@@ -216,6 +228,28 @@ async function sendMail(
     const results = [];
     for (const m of messages) {
       const who = await recipientOf(db, m.player_tag, clanTag, kind);
+      const fresh = m.lines.filter((l) => l && l.new === true).length;
+      if (notify && who.accountId && fresh > 0) {
+        try {
+          await notify({
+            accountId: who.accountId,
+            clanTag,
+            clanName: clanRows[0].name ?? null,
+            count: fresh,
+            link: m.link,
+            day,
+          });
+        } catch (err) {
+          console.error(
+            JSON.stringify({
+              level: "error",
+              clan_push_failed: kind,
+              clan_tag: clanTag,
+              error: err?.message ?? String(err),
+            }),
+          );
+        }
+      }
       if (!who.account) {
         results.push({ player_tag: m.player_tag, status: who.status });
         continue;

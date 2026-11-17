@@ -118,6 +118,15 @@ Parameters:
       The activity mail's hourly rule (activity_today, 2026-11-16 - cheers
       and new followers a person has not seen, at most one a day). off
       disables the rule without a code change; a deploy never resets it.
+  WebPush:
+    Type: String
+    Default: "on"
+    AllowedValues: ["on", "off"]
+    Description: >-
+      Web push notifications (2026-11-16). on - the web API offers them,
+      the jobs drain writes notices and the relay sends them with the VAPID
+      pair in the elixir-mcp/web-push secret, read at runtime. off - no
+      offer, no drain, nothing sent; a deploy never resets it.
   DiscordClientId:
     Type: String
     Default: ""
@@ -177,6 +186,7 @@ Conditions:
   HasTurnstileKey: !Equals [!Ref TurnstileKeyInSecret, "true"]
   ActivityMailOn: !Equals [!Ref ActivityMail, "on"]
   HasComments: !Equals [!Ref CommentsEnabled, "true"]
+  WebPushOn: !Equals [!Ref WebPush, "on"]
   HasDiscordLogin: !And
     - !Equals [!Ref DiscordSecretInSecret, "true"]
     - !Not [!Equals [!Ref DiscordClientId, ""]]
@@ -837,6 +847,8 @@ Resources:
                 Action: s3:PutObject
                 Resource:
                   - !Sub arn:aws:s3:::elixir-mcp-outbox-${AWS::AccountId}/email/*
+                  # Web push's notices for the relay (2026-11-16).
+                  - !Sub arn:aws:s3:::elixir-mcp-outbox-${AWS::AccountId}/web-push/*
               # Wakes for the timeline sync: a Clan hand-off's, a minute on,
               # to collect its answers (2026-10-11), and a cross-posted
               # sitting's closing edit once it goes quiet (#454).
@@ -922,6 +934,11 @@ Resources:
               - Effect: Allow
                 Action: [s3:GetObject, s3:DeleteObject]
                 Resource: !Sub arn:aws:s3:::elixir-mcp-outbox-${AWS::AccountId}/discord-receipt/*
+              # The relay's web push receipts (2026-11-16): a device's last
+              # success, or its deletion when its push service says gone.
+              - Effect: Allow
+                Action: [s3:GetObject, s3:DeleteObject]
+                Resource: !Sub arn:aws:s3:::elixir-mcp-outbox-${AWS::AccountId}/push-receipt/*
               # A clan model's run, raw, for the quality ledger: written
               # once, kept 30 days by the archive's lifecycle.
               - Effect: Allow
@@ -1038,6 +1055,16 @@ Resources:
             Queue: !GetAtt TimelineSyncQueue.Arn
             Filter:
               S3Key: { Rules: [{ Name: prefix, Value: discord-receipt/ }] }
+          # Web push (2026-11-16): a notice for a device, for the relay;
+          # the relay's receipt, for the sync.
+          - Event: s3:ObjectCreated:*
+            Queue: !GetAtt EmailQueue.Arn
+            Filter:
+              S3Key: { Rules: [{ Name: prefix, Value: web-push/ }] }
+          - Event: s3:ObjectCreated:*
+            Queue: !GetAtt TimelineSyncQueue.Arn
+            Filter:
+              S3Key: { Rules: [{ Name: prefix, Value: push-receipt/ }] }
           - Event: s3:ObjectCreated:*
             Queue: !GetAtt TimelineDiscordQueue.Arn
             Filter:
@@ -1135,6 +1162,18 @@ Resources:
                       - timeline-discord-state/*
                   NumericLessThanEquals:
                     s3:max-keys: "1"
+              # Web push (2026-11-16): its lane of the outbox (read, then
+              # deleted once sent), its receipts for the timeline sync, and
+              # the VAPID pair's one secret, read at runtime.
+              - Effect: Allow
+                Action: [s3:GetObject, s3:DeleteObject]
+                Resource: !Sub arn:aws:s3:::elixir-mcp-outbox-${AWS::AccountId}/web-push/*
+              - Effect: Allow
+                Action: s3:PutObject
+                Resource: !Sub arn:aws:s3:::elixir-mcp-outbox-${AWS::AccountId}/push-receipt/*
+              - Effect: Allow
+                Action: secretsmanager:GetSecretValue
+                Resource: !Sub arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:elixir-mcp/web-push-??????
               # Durable transport receipts for one notice per upgrade.
               - Effect: Allow
                 Action: [s3:GetObject, s3:PutObject, s3:DeleteObject]
@@ -1456,6 +1495,13 @@ Resources:
           # runs through the relay, which alone holds the moderation key.
           COMMENTS_ENABLED: !If [HasComments, "true", !Ref AWS::NoValue]
           COMMENTS_CAP_USD: !Ref CommentsMonthlyCapUsd
+          # Web push (2026-11-16): the VAPID PUBLIC key only, which every
+          # browser is handed to subscribe; not a secret. The private key
+          # stays in the secret and is read by the relay at runtime.
+          VAPID_PUBLIC_KEY: !If
+            - WebPushOn
+            - "{{resolve:secretsmanager:elixir-mcp/web-push:SecretString:vapid_public_key}}"
+            - !Ref AWS::NoValue
 
           AWS_LAMBDA_NODEJS_ENTRYPOINT: index.mjs
           DB_POOL_MAX: "4"
@@ -1759,6 +1805,11 @@ Resources:
             - HasComments
             - !Sub "{{resolve:secretsmanager:${AppSecretName}:SecretString:moderation_api_key}}"
             - !Ref AWS::NoValue
+          # Web push (2026-11-16): the secret's NAME, never its value. The
+          # relay reads the VAPID pair at runtime and keeps it in memory
+          # (Jamie: the private key is never an environment variable).
+          WEB_PUSH: !Ref WebPush
+          WEB_PUSH_SECRET_ID: elixir-mcp/web-push
 
   EmailEventSource:
     Type: AWS::Lambda::EventSourceMapping
@@ -2053,7 +2104,9 @@ Resources:
       SourceArn: !GetAtt ActivityMailRule.Arn
   # The minute's mail drains: collector upgrades, and (0204) an answer to
   # a person's feedback, once it has settled ten minutes unread. One event
-  # runs both, collector upgrades first.
+  # runs both, collector upgrades first. With WebPush on, the same event
+  # drains web push last (2026-11-16): the jobs function runs one at a
+  # time, so a second minutely rule would only queue behind this one.
   CollectorUpgradeRule:
     Type: AWS::Events::Rule
     Properties:
@@ -2062,7 +2115,10 @@ Resources:
       Targets:
         - Arn: !GetAtt JobsFunction.Arn
           Id: collector-upgrade-mail
-          Input: '{"collector_upgrades": true, "feedback_answers": true}'
+          Input: !If
+            - WebPushOn
+            - '{"collector_upgrades": true, "feedback_answers": true, "web_push": true}'
+            - '{"collector_upgrades": true, "feedback_answers": true}'
   CollectorUpgradePermission:
     Type: AWS::Lambda::Permission
     Properties:

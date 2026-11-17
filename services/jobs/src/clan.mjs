@@ -25,6 +25,7 @@ import {
   removeClanFactBySystem,
 } from "@elixir-mcp/record/attested-facts";
 import { sendActionsMail } from "@elixir-mcp/mail/clan-mail";
+import { oweClanActionsPush } from "./push/clan-actions.mjs";
 import { makeRegistry } from "@elixir-mcp/tools";
 import { makeRecordReader } from "@elixir-mcp/tools/invoker";
 import { normalizeTag } from "@elixir-mcp/contracts";
@@ -193,7 +194,12 @@ export async function runClanEvaluation({
         answer(() => removeClanFactBySystem(db, attester, tag, ref)),
       sendMail: (tag, body) =>
         answer(() =>
-          sendActionsMail(db, tag, body, { enqueue, secret, archive }),
+          sendActionsMail(db, tag, body, {
+            enqueue,
+            secret,
+            archive,
+            notify: (n) => oweClanActionsPush(db, n),
+          }),
         ),
     });
     await expireModelUses(db);

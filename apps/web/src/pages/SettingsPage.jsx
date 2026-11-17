@@ -19,6 +19,7 @@ import { CallRecord } from "../views/account/CallRecord.jsx";
 import { Connections } from "../views/account/Connections.jsx";
 import { EmailPage } from "../views/account/EmailPage.jsx";
 import { EmailRecord } from "../views/account/EmailRecord.jsx";
+import { NotificationsPage } from "../views/account/NotificationsPage.jsx";
 import { Feedback, FeedbackItem } from "../views/account/Feedback.jsx";
 import { AgentEvents, Requests, Sent } from "../views/account/Logs.jsx";
 import { Crumb } from "../views/account/parts.jsx";
@@ -86,6 +87,8 @@ export function SettingsPage() {
       );
     case "emails":
       return <EmailPage />;
+    case "notifications":
+      return <NotificationsPage />;
     case "sent":
       return <Sent />;
     case "email":

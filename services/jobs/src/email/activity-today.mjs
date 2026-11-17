@@ -24,6 +24,7 @@ import { upsertIssue } from "@elixir-mcp/mail/ledger";
 import { deliver } from "@elixir-mcp/mail/deliver";
 import { readAwayActivity } from "@elixir-mcp/tools/activity/bell";
 import { emailKindDefault } from "@elixir-mcp/contracts";
+import { pushToldAt as readPushToldAt } from "@elixir-mcp/tools/activity/push";
 
 export const ACTIVITY_KIND = "activity_today";
 /** The local hour the mail goes in: the evening, after a day's play. */
@@ -134,8 +135,9 @@ export async function runActivityMail({
   now = new Date(),
   hour = ACTIVITY_HOUR,
   accountId = null,
-  // (accountId) => {cheers, followers}: through when a push the person
-  // opened told each, or null (web push, 2026-11-16). Null reads none.
+  // Whether a push the person opened moves each section's start (web
+  // push, 2026-11-16): true reads push_notice; a function
+  // (accountId) => {cheers, followers} stands in for it; null reads none.
   pushToldAt = null,
   remainingMs = null,
 }) {
@@ -159,7 +161,12 @@ export async function runActivityMail({
         result.remaining = (result.remaining ?? 0) + 1;
         continue;
       }
-      const pushed = pushToldAt ? await pushToldAt(r.account_id) : null;
+      const pushed =
+        pushToldAt === true
+          ? await readPushToldAt(db, r.account_id)
+          : pushToldAt
+            ? await pushToldAt(r.account_id)
+            : null;
       const after = (extra) =>
         new Date(
           Math.max(

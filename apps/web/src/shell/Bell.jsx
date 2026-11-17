@@ -18,6 +18,7 @@ import {
   useHomeClan,
 } from "../lib/queries.js";
 import { SETTINGS } from "../lib/settings.js";
+import { PushPrompt } from "./PushPrompt.jsx";
 import { bellCount, bellGroups, bellLabel } from "./bell-logic.js";
 
 /**
@@ -468,6 +469,7 @@ export function BellSheet({ me, onClose, returnTo = null }) {
               </button>
             </div>
           ) : null}
+          <PushPrompt onLeave={leave(null)} />
           {needShown ? (
             <Group id="bell-needs" title="Needs you" tone="needs">
               {needRows.map((r) => (

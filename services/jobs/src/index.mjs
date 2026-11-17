@@ -21,6 +21,7 @@ import { sweepSilentCollectors } from "./fleet.mjs";
 import { newsletterSync } from "./newsletter-sync.mjs";
 import { loadVocabulary, stampDecks } from "@elixir-mcp/ingest/card-roles";
 import { makeOutbox } from "@elixir-mcp/outbox";
+import { runWebPush } from "./push/drain.mjs";
 import { wakeClosingSittings } from "@elixir-mcp/syndication";
 import {
   homeWeeksToWake,
@@ -365,6 +366,7 @@ export function eventOps(event) {
   if (event?.collector_upgrades) ops.push("collector_upgrades");
   if (event?.feedback_answers) ops.push("feedback_answers");
   if (event?.activity_mail) ops.push("activity_mail");
+  if (event?.web_push) ops.push("web_push");
   if (typeof event?.email === "string") ops.push("email");
   if (event?.retention_trim) ops.push("retention_trim");
   if (event?.shape_census) ops.push("shape_census");
@@ -446,6 +448,17 @@ async function dispatch(event) {
       remainingMs: runRemainingMs,
     });
     console.log(JSON.stringify({ feedback_answers: result }));
+    if (!event.web_push) return result;
+  }
+  // Web push (2026-11-16) rides the same one-minute rule last, when the
+  // stack's WebPush is on: a failure here never holds a mail.
+  if (event?.web_push) {
+    const result = await runWebPush({
+      databaseUrl: process.env.DATABASE_URL,
+      outbox: outbox ? (lane, msg) => outbox(lane, msg) : null,
+      remainingMs: runRemainingMs,
+    });
+    console.log(JSON.stringify({ web_push: result }));
     return result;
   }
   // The activity mail (2026-11-16): its own hourly rule; each run mails
@@ -457,6 +470,8 @@ async function dispatch(event) {
       secret: unsubscribeKeys(),
       archive: await mailArchiveStore(),
       remainingMs: runRemainingMs,
+      // A push the person opened told its part already (web push).
+      pushToldAt: true,
     });
     console.log(JSON.stringify({ activity_mail: result }));
     // Stopped short of this hour's people: the async retry carries on,

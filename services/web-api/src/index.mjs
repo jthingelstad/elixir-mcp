@@ -77,6 +77,8 @@ const handler = makeHandler({
   // Unsubscribe links' own key, once the app secret carries it; until
   // then they are signed with the session secret (packages/mail).
   unsubscribeSecret: process.env.UNSUBSCRIBE_SECRET || null,
+  // Web push (2026-11-16): the public key alone; set only when WebPush is on.
+  vapidPublicKey: process.env.VAPID_PUBLIC_KEY || null,
   sendLoginEmail: ({ email, code, token, newsletter, ipAddress, turnstile }) =>
     enqueueEmail({
       v: 1,

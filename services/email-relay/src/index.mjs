@@ -28,12 +28,18 @@ import {
   S3Client,
   GetObjectCommand,
   DeleteObjectCommand,
+  PutObjectCommand,
 } from "@aws-sdk/client-s3";
 import { SQSClient, ChangeMessageVisibilityCommand } from "@aws-sdk/client-sqs";
 import { upgradeDeliveryStore } from "./upgrade-delivery.mjs";
 import { makeSesSender, makeSuppressionCheck } from "./ses.mjs";
 import { makeHandler, queueUrlOf } from "./handler.mjs";
 import { makeTurnstileCheck, turnstileVerdictStore } from "./turnstile.mjs";
+import {
+  createWebPushWorker,
+  pushReceiptKey,
+  vapidFromSecret,
+} from "./web-push.mjs";
 
 /** Buttondown answers 400 for both "you already have this address" and
  *  "this request is wrong". Treating the whole status as success (as we
@@ -169,7 +175,54 @@ const discordLoginWorker =
       })
     : null;
 
+// Web push (2026-11-16): the VAPID pair is read from its own secret at
+// runtime and kept in memory (never an environment variable). WEB_PUSH
+// off, or no secret named, drops every notice unsent.
+const webPushWorker = process.env.OUTBOX_BUCKET
+  ? createWebPushWorker({
+      enabled:
+        process.env.WEB_PUSH === "on" &&
+        Boolean(process.env.WEB_PUSH_SECRET_ID),
+      signer: vapidFromSecret(async () => {
+        const { SecretsManagerClient, GetSecretValueCommand } =
+          await import("@aws-sdk/client-secrets-manager");
+        const out = await new SecretsManagerClient({}).send(
+          new GetSecretValueCommand({
+            SecretId: process.env.WEB_PUSH_SECRET_ID,
+          }),
+        );
+        return out.SecretString;
+      }),
+      subject: "https://elixir.poapkings.com",
+      readObject: async ({ bucket, key }) => {
+        if (bucket !== process.env.OUTBOX_BUCKET)
+          throw new Error("unsupported push bucket");
+        try {
+          const out = await s3.send(
+            new GetObjectCommand({ Bucket: bucket, Key: key }),
+          );
+          return await out.Body.transformToString();
+        } catch (err) {
+          if (err?.name === "NoSuchKey") return null;
+          throw err;
+        }
+      },
+      deleteObject: ({ bucket, key }) =>
+        s3.send(new DeleteObjectCommand({ Bucket: bucket, Key: key })),
+      receipt: (body) =>
+        s3.send(
+          new PutObjectCommand({
+            Bucket: process.env.OUTBOX_BUCKET,
+            Key: pushReceiptKey(),
+            ContentType: "application/json",
+            Body: JSON.stringify(body),
+          }),
+        ),
+    })
+  : null;
+
 export const handler = makeHandler({
+  webPushObject: webPushWorker,
   timelineDiscordObject: timelineDiscordWorker,
   discordLoginObject: discordLoginWorker
     ? async ({ bucket, key }) => {
