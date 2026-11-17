@@ -26,11 +26,13 @@ const page = (items) => ({
   next: null,
   timeline_more: 0,
 });
-const item = (n, min, extra = {}) => ({
+// One clock read per item: `at` and `observed_at` are the same instant,
+// or a millisecond between two reads makes the pill count from the later.
+const item = (n, min, extra = {}, when = AGO(min)) => ({
   id: `tl_${String(n).padStart(20, "0")}`,
   kind: "pol_league",
-  at: AGO(min),
-  observed_at: AGO(min),
+  at: when,
+  observed_at: when,
   subject_tag: "#00JQ20",
   subject_name: `Invented ${n}`,
   subjects: [{ tag: "#00JQ20", kind: "player", name: `Invented ${n}` }],
