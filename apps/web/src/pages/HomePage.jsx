@@ -93,28 +93,30 @@ export function HomePage() {
         className="kit-head--home"
         aside={
           <>
-            <div ref={setChipsAt} className="kit-home__chips" />
-            <div className="kit-home__tools">
-              <ModePick value={mode} onChange={setMode} />
-              {mayPost ? (
-                <button
-                  type="button"
-                  className="btn btn--sm btn--primary kit-home__post"
-                  aria-expanded={writing}
-                  onClick={(event) => {
-                    // Some touch browsers do not focus a tapped button.
-                    // Name this opener before the writing field takes focus.
-                    event.currentTarget.focus();
-                    setWriting(true);
-                    document
-                      .querySelector(".kit-post-compose")
-                      ?.scrollIntoView?.({ block: "nearest" });
-                  }}
-                >
-                  <Icon name="plus" size={16} />
-                  Post
-                </button>
-              ) : null}
+            <div className="kit-home__controls">
+              <div ref={setChipsAt} className="kit-home__chips" />
+              <div className="kit-home__tools">
+                <ModePick value={mode} onChange={setMode} />
+                {mayPost ? (
+                  <button
+                    type="button"
+                    className="btn btn--sm btn--primary kit-home__post"
+                    aria-expanded={writing}
+                    onClick={(event) => {
+                      // Some touch browsers do not focus a tapped button.
+                      // Name this opener before the writing field takes focus.
+                      event.currentTarget.focus();
+                      setWriting(true);
+                      document
+                        .querySelector(".kit-post-compose")
+                        ?.scrollIntoView?.({ block: "nearest" });
+                    }}
+                  >
+                    <Icon name="plus" size={16} />
+                    Post
+                  </button>
+                ) : null}
+              </div>
             </div>
             <TodayFresh player={player} />
           </>

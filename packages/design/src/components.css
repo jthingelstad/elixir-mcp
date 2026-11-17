@@ -6881,6 +6881,13 @@ button.kit-row {
   gap: var(--s-2);
   min-width: 0;
 }
+.kit-home__controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-3);
+  min-width: 0;
+}
 .kit-home__tools .kit-home__mode {
   margin-left: 0;
 }
@@ -6966,6 +6973,10 @@ button.kit-row {
   .kit-home__tools {
     flex-basis: 100%;
     justify-content: space-between;
+  }
+  .kit-home__controls {
+    flex-basis: 100%;
+    gap: var(--s-1);
   }
   .kit-home__tools .kit-home__mode {
     flex-basis: auto;
