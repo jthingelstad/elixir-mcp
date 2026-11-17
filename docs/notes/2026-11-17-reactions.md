@@ -61,10 +61,10 @@ fold the same way. Never who.
 
 ## What else names a kind
 
-- **Database:** 0286 replaces `timeline_cheer_cheer_check` with the twenty
+- **Database:** 0291 replaces `timeline_cheer_cheer_check` with the twenty
   (drop and add `NOT VALID` in one file, as 0284 did; every stored value
   is one of the six, so nothing can fail it). A later file may validate it.
-- **MCP 13.5.0** (a minor): `elixir_cheers` may count the fourteen new
+- **MCP 13.7.0** (a minor): `elixir_cheers` may count the fourteen new
   keys; its description and output schema name them. Acceptance's
   docs-provenance check sees the ids in timeline#cheers, so each is allowed
   in `acceptance/catalogue-allow.json` until an account has one.

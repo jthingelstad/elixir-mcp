@@ -1,4 +1,4 @@
--- 0286: the cheers grow from six to twenty.
+-- 0291: the cheers grow from six to twenty.
 --
 -- Jamie, 2026-11-17, after seeing the one-tap control: "Reactions should
 -- not need words next to them. And give more options." and "Give 6
@@ -26,4 +26,4 @@ alter table timeline_cheer
                      'fun_to_watch', 'getting_better')) not valid;
 
 comment on column timeline_cheer.cheer is
-  '0243, widened by 0286: one of the twenty cheers: well_played, on_fire, royal, wow, ha, grind (the six of 0243), love_it, good_game, congrats, clutch, high_five, champion, nailed_it, climbing, big_brain, ice_cold, close_one, lucky, fun_to_watch, getting_better.';
+  '0243, widened by 0291: one of the twenty cheers: well_played, on_fire, royal, wow, ha, grind (the six of 0243), love_it, good_game, congrats, clutch, high_five, champion, nailed_it, climbing, big_brain, ice_cold, close_one, lucky, fun_to_watch, getting_better.';
