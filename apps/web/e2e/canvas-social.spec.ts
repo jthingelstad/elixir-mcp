@@ -234,19 +234,26 @@ for (const [label, width] of [
       const badge = page
         .locator(".kit-pitem")
         .filter({ hasText: "Earned a badge." });
-      await expect(legends.getByText("1 person")).toBeVisible();
+      await expect(
+        legends.getByText("1 person", { exact: true }),
+      ).toBeVisible();
       // An item older than your feed's week takes no cheers and shows none.
       await expect(badge).toBeVisible();
-      await expect(badge.getByRole("button", { name: "Cheer" })).toHaveCount(0);
-      await legends.getByRole("button", { name: "Cheer" }).click();
-      await accessible(page, "player page, cheer picker");
+      await expect(
+        badge.getByRole("button", { name: "Cheer", exact: true }),
+      ).toHaveCount(0);
+      await legends.getByRole("button", { name: "Choose a cheer" }).click();
+      await accessible(page, "player page, cheer kinds");
       await legends
-        .getByRole("group", { name: "Choose a cheer" })
-        .getByRole("button", { name: /On fire/ })
+        .getByRole("group", { name: "Cheer with" })
+        .getByRole("button", { name: "On fire" })
         .click();
       await expect(
-        legends.getByRole("button", { name: "On fire, 2, yours" }),
+        legends.getByRole("button", { name: "Cheer", exact: true }),
       ).toHaveAttribute("aria-pressed", "true");
+      await expect(
+        legends.getByText("You and 1 other", { exact: true }),
+      ).toBeVisible();
       expect(sent).toEqual([
         {
           item_id: "tl_00000000000000000001",
@@ -306,16 +313,21 @@ for (const [label, width] of [
       await expect(
         cheers.getByText("Posted a highlight: a three-crown win."),
       ).toBeVisible();
-      await expect(cheers.getByText("2 people")).toBeVisible();
+      await expect(cheers.getByText("2 people", { exact: true })).toBeVisible();
       expect(asked).toEqual([`?battle=${BATTLE.battle.id}`]);
-      await cheers.getByRole("button", { name: "Cheer" }).click();
+      await cheers.getByRole("button", { name: "Choose a cheer" }).click();
       await cheers
-        .getByRole("group", { name: "Choose a cheer" })
-        .getByRole("button", { name: /Wow/ })
+        .getByRole("group", { name: "Cheer with" })
+        .getByRole("button", { name: "Wow" })
         .click();
       await expect(
-        cheers.getByRole("button", { name: "Wow, 1, yours" }),
+        cheers.getByRole("button", { name: "Cheer", exact: true }),
       ).toHaveAttribute("aria-pressed", "true");
+      await expect(
+        cheers
+          .getByRole("button", { name: "Cheer", exact: true })
+          .locator("svg.lucide-sparkles"),
+      ).toHaveCount(1);
       expect(sent).toEqual([
         {
           item_id: "tl_00000000000000000003",
@@ -335,7 +347,9 @@ for (const [label, width] of [
         page.getByRole("link", { name: "Join Elixir" }),
       ).toBeVisible();
       await expect(page.getByRole("region", { name: "Cheers" })).toHaveCount(0);
-      await expect(page.getByRole("button", { name: "Cheer" })).toHaveCount(0);
+      await expect(
+        page.getByRole("button", { name: "Cheer", exact: true }),
+      ).toHaveCount(0);
       expect(asked).toEqual([]);
       await accessible(page, "battle page, signed out");
     });

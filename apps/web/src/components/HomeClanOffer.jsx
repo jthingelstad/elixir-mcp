@@ -34,7 +34,7 @@ export function HomeClanOffer({ className = "" }) {
     <div className={`callout callout--info ${className}`.trim()}>
       <Icon name="radar" size={17} />
       <span>
-        <span className="text-gold">★</span>{" "}
+        <Icon name="star" size={14} className="yours yours--star" />{" "}
         {home.name ?? <Tag tag={home.clan_tag} />} is your player&rsquo;s clan
         and{" "}
         <button

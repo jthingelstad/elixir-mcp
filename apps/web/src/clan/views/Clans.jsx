@@ -1,4 +1,4 @@
-import { Link, Tag, Panel, PageHead } from "@elixir-mcp/ui";
+import { Link, Tag, Panel, PageHead, Icon } from "@elixir-mcp/ui";
 import { useState } from "react";
 import { RoleChip } from "../components/RoleChip.jsx";
 import { VERIFY } from "../../components/VerifyPlayer.jsx";
@@ -65,7 +65,12 @@ export function Clans({ me, onSelect, selecting }) {
                   ) : null}
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="yours">★</span>
+                  <Icon
+                    name="star"
+                    size={14}
+                    className="yours yours--star"
+                    label="Yours"
+                  />
                   <span>{c.acting_as_name ?? <Tag tag={c.acting_as} />}</span>
                   <span className="tag">{c.acting_as}</span>
                   <RoleChip role={c.role} label={c.role_label} />

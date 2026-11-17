@@ -110,7 +110,7 @@ test("renders the record's age and Verify for an unverified player", async () =>
   ).toBeTruthy();
   expect(
     screen
-      .getByRole("link", { name: "Verify your player ›" })
+      .getByRole("link", { name: "Verify your player" })
       .getAttribute("href"),
   ).toBe("/settings/players/verify");
 });
@@ -124,7 +124,7 @@ test("renders Open Clan for a verified player whose clan is recorded", async () 
     />,
   );
   expect(
-    (await screen.findByRole("link", { name: "Open Clan ›" })).getAttribute(
+    (await screen.findByRole("link", { name: "Open Clan" })).getAttribute(
       "href",
     ),
   ).toBe("/clan");
@@ -139,9 +139,9 @@ test("renders Follow a friend for a verified player with no recorded clan", asyn
     />,
   );
   expect(
-    (
-      await screen.findByRole("link", { name: "Follow a friend ›" })
-    ).getAttribute("href"),
+    (await screen.findByRole("link", { name: "Follow a friend" })).getAttribute(
+      "href",
+    ),
   ).toBe("/home/find");
 });
 

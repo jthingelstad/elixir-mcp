@@ -20,6 +20,7 @@ import { playerHref } from "../lib/player.js";
 import { usePlayerSession } from "../lib/queries.js";
 import { tagFromPath } from "../lib/tag-url.js";
 import { sessionChips, sessionHeadline, trophyNet } from "./Session.jsx";
+import { Cheers, usePageCheered } from "./Cheers.jsx";
 import { Comments } from "./Comments.jsx";
 import { Game } from "./SessionGames.jsx";
 import { Sparkline } from "./Sparkline.jsx";
@@ -201,8 +202,8 @@ export function SessionView({
                 <TagText>{name}</TagText>
               </span>
             ) : (
-              <Link to={playerHref(player.tag)}>
-                ‹{" "}
+              <Link to={playerHref(player.tag)} className="kit-back">
+                <Icon name="chevron-left" size={16} />
                 <PlayerName tag={player.tag}>
                   <TagText>{name}</TagText>
                 </PlayerName>
@@ -273,6 +274,10 @@ export function SessionView({
       </section>
 
       {publicView ? <JoinLine /> : null}
+
+      {item.id && !publicView ? (
+        <SessionCheers item={item} tag={player.tag} />
+      ) : null}
 
       {item.id && !publicView ? (
         // Comments on the session's item (2026-11-16), read when opened:
@@ -393,6 +398,19 @@ export function SessionView({
       <SessionShare data={data} name={name} />
     </div>
   );
+}
+
+/** Cheers on a session's page (2026-11-17): the item takes your cheer
+ *  here as on the Timeline, only while it is in your own feed (the player
+ *  page's cheers read says so); otherwise nothing is drawn. */
+function SessionCheers({ item, tag }) {
+  const cheered = usePageCheered({ player: tag });
+  const it = cheered.of(item);
+  return it ? (
+    <div className="kit-session__cheers">
+      <Cheers it={it} where={cheered.where} />
+    </div>
+  ) : null;
 }
 
 /** Share this session (2026-11-17), as a battle's page shares: its public

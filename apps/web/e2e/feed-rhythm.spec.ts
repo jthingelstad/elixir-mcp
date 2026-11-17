@@ -106,13 +106,15 @@ test("short sessions fold, open in place, and each keeps its own cheer", async (
   const toggle = group.locator(".kit-group__toggle");
   await expect(toggle).toHaveAttribute("aria-expanded", "false");
   // Closed, a group offers no cheer of its own.
-  await expect(group.getByRole("button", { name: "Cheer" })).toHaveCount(0);
+  await expect(
+    group.getByRole("button", { name: "Cheer", exact: true }),
+  ).toHaveCount(0);
   await toggle.click();
   await expect(toggle).toHaveAttribute("aria-expanded", "true");
   const lines = group.locator(".kit-feed__item--line");
   expect(await lines.count()).toBeGreaterThan(1);
-  await lines.first().getByRole("button", { name: "Cheer" }).click();
-  await lines.first().getByRole("button", { name: /Royal/ }).click();
+  await lines.first().getByRole("button", { name: "Choose a cheer" }).click();
+  await lines.first().getByRole("button", { name: "Royal" }).click();
   await expect.poll(() => sent.length).toBe(1);
   // The cheer is the item's own, by its own id: a group is never cheered.
   expect(String((sent[0] as { item_id: string }).item_id)).toMatch(/^s\d+$/);
@@ -181,7 +183,9 @@ test("Clan's Feed draws the same week with the Timeline's components", async ({
   await expect(page.locator(".kit-feed__item--line").first()).toBeVisible();
   await expect(page.locator(".kit-mart--card").first()).toBeVisible();
   // No cheer on Clan's Feed: cheers live on the reader's own Timeline.
-  await expect(page.getByRole("button", { name: "Cheer" })).toHaveCount(0);
+  await expect(
+    page.getByRole("button", { name: "Cheer", exact: true }),
+  ).toHaveCount(0);
   await expect(page.locator(".kit-feed img[src='x']")).toHaveCount(0);
   await capture(page, "clan-feed", 390);
   const results = await new AxeBuilder({ page })

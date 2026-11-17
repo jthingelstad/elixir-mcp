@@ -70,7 +70,10 @@ export function Fleet({ navigate }) {
   return (
     <>
       <div className="page__crumb">
-        <Link to={`${ADMIN}/service`}>‹ Service</Link>
+        <Link to={`${ADMIN}/service`}>
+          <Icon name="chevron-left" size={16} />
+          Service
+        </Link>
       </div>
       <PageHead
         title="Collectors"

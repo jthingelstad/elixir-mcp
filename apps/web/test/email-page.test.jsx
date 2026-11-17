@@ -145,7 +145,7 @@ test(
       screen.queryByRole("switch", { name: "Card of the Week email" }),
     ).toBeNull();
     // The last one sent opens its record.
-    const last = within(week).getByRole("link", { name: "The last one ›" });
+    const last = within(week).getByRole("link", { name: "The last one" });
     expect(last.getAttribute("href")).toBe(
       "/settings/emails/3f2a9c1b-0000-4000-8000-000000000001",
     );
@@ -209,9 +209,7 @@ test(
     expect(within(row).getByText("Tue Sep 29")).toBeTruthy();
     expect(within(row).getByText("Collectors")).toBeTruthy();
     expect(
-      within(sent)
-        .getByRole("link", { name: "All sent ›" })
-        .getAttribute("href"),
+      within(sent).getByRole("link", { name: "All sent" }).getAttribute("href"),
     ).toBe("/settings/emails/sent");
   },
 );

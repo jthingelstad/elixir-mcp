@@ -1,7 +1,7 @@
 import { CLAN } from "../lib/base.js";
 import { TIMELINE } from "../../lib/moved.js";
 import { SETTINGS } from "../../lib/settings.js";
-import { Link, useClock, Tag, Empty } from "@elixir-mcp/ui";
+import { Link, useClock, Tag, Empty, Icon } from "@elixir-mcp/ui";
 import { useEffect } from "react";
 
 /**
@@ -86,7 +86,8 @@ export function Refused({ reason, me, onRecheck, checking }) {
       </h1>
       {who ? (
         <p className="page-head__note" style={{ marginBottom: "12px" }}>
-          Signed in to Elixir as <span className="yours">★</span> {who}
+          Signed in to Elixir as{" "}
+          <Icon name="star" size={14} className="yours yours--star" /> {who}
         </p>
       ) : null}
       <p className="lede">{page.body}</p>
@@ -120,7 +121,7 @@ export function Refused({ reason, me, onRecheck, checking }) {
       </div>
       <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
         <Link className="btn btn--primary" to={page.link[0]}>
-          {page.link[1]} ›
+          {page.link[1]} <Icon name="chevron-right" size={14} />
         </Link>
         {page.also ? (
           <Link className="btn" to={page.also[0]}>

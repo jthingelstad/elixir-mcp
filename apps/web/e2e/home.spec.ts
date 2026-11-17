@@ -51,10 +51,10 @@ test("@narrow recorder home fits a phone and tablet", async ({ page }) => {
     await page.setViewportSize({ width, height: 860 });
     await page.goto("/");
     for (const name of [
-      "Follow a friend ›",
-      "Bring your clan ›",
-      "The clan directory ›",
-      "Highlight a battle ›",
+      "Follow a friend",
+      "Bring your clan",
+      "The clan directory",
+      "Highlight a battle",
     ])
       await expect(
         page.locator(".home-row").getByRole("link", { name }),

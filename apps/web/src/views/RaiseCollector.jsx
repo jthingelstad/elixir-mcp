@@ -43,7 +43,10 @@ export function RaiseCollector({ navigate }) {
       <PageHead
         crumb={
           <div className="page__crumb">
-            <Link to={`${SETTINGS}/collectors`}>‹ Collectors</Link>
+            <Link to={`${SETTINGS}/collectors`}>
+              <Icon name="chevron-left" size={16} />
+              Collectors
+            </Link>
           </div>
         }
         title={runsOne ? "Run another collector" : "Run a collector"}

@@ -8,6 +8,7 @@ import {
   Table,
   Link,
   ErrorState,
+  Icon,
 } from "@elixir-mcp/ui";
 import { useStanding } from "../lib/queries.js";
 import { clanPath } from "../lib/base.js";
@@ -99,7 +100,16 @@ function Group({ status, rows, you, war, clan, navigate }) {
                 const mine = r.player_tag === you;
                 return (
                   <>
-                    {mine ? <span className="yours">★ </span> : null}
+                    {mine ? (
+                      <>
+                        <Icon
+                          name="star"
+                          size={14}
+                          className="yours yours--star"
+                          label="Yours"
+                        />{" "}
+                      </>
+                    ) : null}
                     <span
                       className={mine ? "font-semibold" : "font-medium"}
                       title={r.player_tag}
@@ -255,7 +265,12 @@ function You({ you, who, how, clan, navigate }) {
       </div>
       <div className="panel__body grid gap-3">
         <div className="flex items-center gap-2.5">
-          <span className="yours">★</span>
+          <Icon
+            name="star"
+            size={14}
+            className="yours yours--star"
+            label="Yours"
+          />
           <span className="grow text-(length:--t-body) font-semibold">
             {who?.name ?? "You"}
           </span>

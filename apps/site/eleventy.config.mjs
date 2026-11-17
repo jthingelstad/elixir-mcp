@@ -277,7 +277,7 @@ export default function (eleventyConfig) {
   eleventyConfig.addShortcode(
     "icon",
     (name, size = 18) =>
-      `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: 0 0 auto">${iconBody(name)}</svg>`,
+      `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="lucide-${name}" style="flex: 0 0 auto">${iconBody(name)}</svg>`,
   );
   /** The same glyph as the kit's Icon draws it in the top bar
    *  (packages/ui/src/Icon.tsx: stroke 1.9, `shrink-0`), for the

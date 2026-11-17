@@ -356,7 +356,7 @@ for (const width of [390, 1280]) {
       const recording = page.getByRole("region", { name: "Your recording" });
       await expect(recording).toContainText(state.state);
       await expect(
-        recording.getByRole("link", { name: "Connect your client ›" }),
+        recording.getByRole("link", { name: "Connect your client" }),
       ).not.toBeVisible();
       // On its own record page a bad tag is corrected in place.
       if (state.action === "Fix the tag") {
@@ -366,7 +366,7 @@ for (const width of [390, 1280]) {
         return;
       }
       const next = recording.getByRole("link", {
-        name: `${state.action} ›`,
+        name: `${state.action}`,
         exact: true,
       });
       // Nothing links a page to itself: on this page the action is the page.
@@ -535,12 +535,12 @@ for (const width of [390, 1280]) {
       page.getByText("Adding is temporarily unavailable."),
     ).toHaveCount(0);
     await expect(
-      recording.getByRole("link", { name: "View recorded profile ›" }),
+      recording.getByRole("link", { name: "View recorded profile" }),
     ).toHaveCount(0);
     captured = true;
     await recording.getByRole("button", { name: "Check again" }).click();
     await expect(
-      recording.getByRole("link", { name: "View recorded profile ›" }),
+      recording.getByRole("link", { name: "View recorded profile" }),
     ).toBeVisible();
     failRead = true;
     await recording.getByRole("button", { name: "Check again" }).click();
@@ -548,11 +548,11 @@ for (const width of [390, 1280]) {
       "Your recorded data could not be read just now",
     );
     await expect(
-      recording.getByRole("link", { name: "View recorded profile ›" }),
+      recording.getByRole("link", { name: "View recorded profile" }),
     ).toBeVisible();
     failRead = false;
     await recording
-      .getByRole("link", { name: "View recorded profile ›" })
+      .getByRole("link", { name: "View recorded profile" })
       .click();
     await expect(page.getByRole("tab", { name: /Record/ })).toHaveAttribute(
       "aria-selected",
@@ -562,7 +562,7 @@ for (const width of [390, 1280]) {
     await page.goBack();
     await page.reload();
     await expect(
-      recording.getByRole("link", { name: "View recorded profile ›" }),
+      recording.getByRole("link", { name: "View recorded profile" }),
     ).toBeVisible();
     expect(adds).toBe(2);
     expect(selectedReads).toBeGreaterThan(0);

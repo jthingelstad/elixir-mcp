@@ -341,7 +341,7 @@ test(
     cleanup();
     open("/settings/connections");
     await until(() => screen.getByText("Removed agents (1)"));
-    expect(screen.queryByText("Open ›")).toBeNull();
+    expect(screen.queryByText("Open")).toBeNull();
     fireEvent.click(screen.getByRole("link", { name: "journey-agent" }));
     // Restore brings it back among the agents, still suspended.
     await until(() =>

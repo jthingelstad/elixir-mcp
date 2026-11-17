@@ -28,7 +28,7 @@ eleventyComputed:
   to print the source characters.
 -#}
 <p style="margin: 0 0 14px">
-  <a class="mono" style="font-size: 12px" href="/updates">‹ All updates</a>
+  <a class="mono" style="font-size: 12px" href="/updates">{% icon "chevron-left", 14 %}All updates</a>
 </p>
 
 <div style="display: flex; align-items: center; gap: 11px; flex-wrap: wrap; margin-bottom: 6px">
@@ -69,9 +69,9 @@ eleventyComputed:
     them, and the pagination data is already in date order. -#}
 <nav style="display: flex; gap: 14px; flex-wrap: wrap; margin-top: 30px; padding-top: 18px; border-top: 1px solid var(--line-soft); font-size: 13.5px">
   {%- if pagination.href.previous %}
-  <a href="{{ pagination.href.previous }}">‹ Newer</a>
+  <a href="{{ pagination.href.previous }}">{% icon "chevron-left", 14 %}Newer</a>
   {%- endif %}
   {%- if pagination.href.next %}
-  <a style="margin-left: auto" href="{{ pagination.href.next }}">Older ›</a>
+  <a style="margin-left: auto" href="{{ pagination.href.next }}">Older {% icon "chevron-right", 14 %}</a>
   {%- endif %}
 </nav>

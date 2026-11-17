@@ -42,7 +42,10 @@ export function EmailRecord({ id, navigate, search }) {
 
   const back = (
     <div className="page__crumb">
-      <Link to={`${SETTINGS}/emails/sent`}>‹ Sent to you</Link>
+      <Link to={`${SETTINGS}/emails/sent`}>
+        <Icon name="chevron-left" size={16} />
+        Sent to you
+      </Link>
     </div>
   );
 

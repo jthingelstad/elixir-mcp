@@ -52,7 +52,7 @@
       <div class="panel__body">
         <h3 class="panel-title updates-entry__title"><a href="/updates/{{ u.slug }}">{{ u.title }}</a></h3>
         <p class="updates-entry__text">{{ u.body | firstParagraph | clamp(260) }}</p>
-        <a href="/updates/{{ u.slug }}" class="updates-entry__more">Read it ›</a>
+        <a href="/updates/{{ u.slug }}" class="updates-entry__more">Read it {% icon "chevron-right", 14 %}</a>
       </div>
     </article>
     {%- endfor %}
@@ -60,8 +60,8 @@
     {%- endfor %}
 
     <nav class="updates-pager" aria-label="More months">
-      {%- if newerKey %}<a class="btn btn--sm" href="/updates/{{ newerKey }}">‹ {{ newerLabel }}</a>{% endif %}
-      {%- if olderKey %}<a class="btn btn--sm updates-pager__older" href="/updates/{{ olderKey }}">{{ olderLabel }} ›</a>{% endif %}
+      {%- if newerKey %}<a class="btn btn--sm" href="/updates/{{ newerKey }}">{% icon "chevron-left", 14 %}{{ newerLabel }}</a>{% endif %}
+      {%- if olderKey %}<a class="btn btn--sm updates-pager__older" href="/updates/{{ olderKey }}">{{ olderLabel }} {% icon "chevron-right", 14 %}</a>{% endif %}
     </nav>
   </div>
 </div>

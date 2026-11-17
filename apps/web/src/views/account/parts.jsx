@@ -1,11 +1,14 @@
 import { Fragment } from "react";
-import { Link } from "@elixir-mcp/ui";
+import { Link, Icon } from "@elixir-mcp/ui";
 
 /** The way back from a page below the rail's own. */
 export function Crumb({ to, children }) {
   return (
     <div className="page__crumb">
-      <Link to={to}>‹ {children}</Link>
+      <Link to={to}>
+        <Icon name="chevron-left" size={16} />
+        {children}
+      </Link>
     </div>
   );
 }

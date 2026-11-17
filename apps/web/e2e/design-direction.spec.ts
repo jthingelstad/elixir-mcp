@@ -103,7 +103,10 @@ for (const width of [390, 1280]) {
           .getByRole("tab", { name: tab, exact: true })
           .click();
       if (name === "home-cheers")
-        await page.getByRole("button", { name: "Cheer", exact: true }).click();
+        await page
+          .getByRole("button", { name: "Choose a cheer", exact: true })
+          .first()
+          .click();
       await page.evaluate(() => document.fonts.ready);
       // Lazy art below the first screen must be decoded before a full-page
       // capture. Waiting only for fonts can publish a blank deck.

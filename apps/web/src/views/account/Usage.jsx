@@ -12,6 +12,7 @@ import {
   Table,
   noun,
   useClock,
+  Icon,
 } from "@elixir-mcp/ui";
 import { limitsLabel } from "../../lib/words.js";
 import { useUsage } from "../../lib/queries.js";
@@ -336,13 +337,21 @@ export function Usage({ me }) {
             <Row
               title="Requests"
               detail="Every call it made, newest first"
-              right="Open ›"
+              right={
+                <>
+                  Open <Icon name="chevron-right" size={14} />
+                </>
+              }
               href={path(`${SETTINGS}/usage/requests`)}
             />
             <Row
               title="Account events"
               detail="Changes to this agent's account, its access and what it records"
-              right="Open ›"
+              right={
+                <>
+                  Open <Icon name="chevron-right" size={14} />
+                </>
+              }
               href={`${SETTINGS}/agents/${scope}/usage/events`}
             />
           </Rows>
@@ -415,7 +424,11 @@ export function Usage({ me }) {
               <Row
                 title="Requests"
                 detail="Every call your connections made, newest first"
-                right="Open ›"
+                right={
+                  <>
+                    Open <Icon name="chevron-right" size={14} />
+                  </>
+                }
                 href={`${SETTINGS}/usage/requests`}
               />
             </Rows>

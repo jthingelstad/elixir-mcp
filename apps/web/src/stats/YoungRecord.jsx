@@ -1,4 +1,4 @@
-import { useInitialTime, Panel } from "@elixir-mcp/ui";
+import { useInitialTime, Panel, Icon } from "@elixir-mcp/ui";
 import { Link, noun } from "@elixir-mcp/ui";
 import { SETTINGS } from "../lib/settings.js";
 import { useMyClans } from "../lib/queries.js";
@@ -64,7 +64,7 @@ export function YoungRecord({ player, summary, className = "" }) {
       <div className="panel__body grid gap-2.5">
         <p className="m-0 text-body-sm text-ink-body">{step.text}</p>
         <Link className="btn btn--sm justify-self-start" to={step.to}>
-          {step.action} ›
+          {step.action} <Icon name="chevron-right" size={14} />
         </Link>
       </div>
     </Panel>

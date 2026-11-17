@@ -1,3 +1,4 @@
+import { Icon } from "./Icon.tsx";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { writeErrorText, type WriteFailure } from "./WriteError.tsx";
 import { TagText } from "./Tag.tsx";
@@ -116,7 +117,9 @@ export function FeedbackSheet({
 
   const history = historyHref ? (
     <p className="feedback-sheet__after">
-      <a href={historyHref}>Your feedback and its answers ›</a>
+      <a href={historyHref}>
+        Your feedback and its answers <Icon name="chevron-right" size={14} />
+      </a>
     </p>
   ) : null;
 

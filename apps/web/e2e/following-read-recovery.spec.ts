@@ -160,7 +160,7 @@ for (const width of [390, 1280]) {
     );
     await expect(page.getByText("You are not tracking that")).toHaveCount(0);
     await expect(
-      page.getByRole("link", { name: "‹ Players & following" }),
+      page.getByRole("link", { name: "Players & following", exact: true }),
     ).toBeVisible();
     failed = false;
     await page.getByRole("button", { name: "Try again", exact: true }).click();

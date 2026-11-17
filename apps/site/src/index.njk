@@ -56,7 +56,7 @@ navActive: home
       to cheer them on. Every Monday, right after the reset, your digest
       catches you up (or every day, if you like).
     </p>
-    <a class="home-row__link" href="/docs/follow-a-friend">Follow a friend ›</a>
+    <a class="home-row__link" href="/docs/follow-a-friend">Follow a friend {% icon "chevron-right", 14 %}</a>
   </article>
 
   <article class="home-row">
@@ -69,8 +69,8 @@ navActive: home
       plays your way in the clan directory.
     </p>
     <span class="home-row__links">
-      <a class="home-row__link" href="/docs/bring-your-clan">Bring your clan ›</a>
-      <a class="home-row__link" href="/docs/clan-directory">The clan directory ›</a>
+      <a class="home-row__link" href="/docs/bring-your-clan">Bring your clan {% icon "chevron-right", 14 %}</a>
+      <a class="home-row__link" href="/docs/clan-directory">The clan directory {% icon "chevron-right", 14 %}</a>
     </span>
   </article>
 
@@ -82,7 +82,7 @@ navActive: home
       story in your own words. Everyone who follows you sees it, and the link
       opens for anyone, no account needed.
     </p>
-    <a class="home-row__link" href="/docs/battles#highlight-a-battle">Highlight a battle ›</a>
+    <a class="home-row__link" href="/docs/battles#highlight-a-battle">Highlight a battle {% icon "chevron-right", 14 %}</a>
   </article>
 </section>
 
@@ -90,7 +90,7 @@ navActive: home
 <p class="home-next">
   <span class="home-next__mark">{% icon drop.icon, 16 %}</span>
   <span>{{ drop.label }}, the game next door: learn your elixir costs cold, signed in with your Elixir account.
-  <a href="{{ drop.href }}" target="_blank" rel="noopener" aria-label="{{ drop.action }}, {{ drop.about }} (opens {{ drop.href | host }} in a new window)">{{ drop.action }} ›</a></span>
+  <a href="{{ drop.href }}" target="_blank" rel="noopener" aria-label="{{ drop.action }}, {{ drop.about }} (opens {{ drop.href | host }} in a new window)">{{ drop.action }} {% icon "chevron-right", 14 %}</a></span>
 </p>
 {%- endif %}
 

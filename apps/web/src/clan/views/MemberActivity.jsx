@@ -8,6 +8,7 @@ import {
   Table,
   noun,
   ErrorState,
+  Icon,
 } from "@elixir-mcp/ui";
 import { useState } from "react";
 import {
@@ -141,7 +142,8 @@ export function MemberActivity({
       }
       navigate={navigate}
     >
-      ‹ Back to Members
+      <Icon name="chevron-left" size={16} />
+      Back to Members
     </Link>
   );
   const name = d?.name ?? row?.name;

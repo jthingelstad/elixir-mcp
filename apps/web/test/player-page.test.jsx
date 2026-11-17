@@ -687,11 +687,12 @@ test(
     // counts.
     expect(screen.getAllByRole("button", { name: "Cheer" })).toHaveLength(1);
     expect(screen.getByText("1 person")).toBeTruthy();
-    fireEvent.click(cheer);
+    expect(cheer.getAttribute("aria-pressed")).toBe("false");
+    fireEvent.click(screen.getByRole("button", { name: "Choose a cheer" }));
     fireEvent.click(
-      within(screen.getByRole("group", { name: "Choose a cheer" })).getByRole(
+      within(screen.getByRole("group", { name: "Cheer with" })).getByRole(
         "button",
-        { name: /Royal/ },
+        { name: "Royal" },
       ),
     );
     await waitFor(() =>

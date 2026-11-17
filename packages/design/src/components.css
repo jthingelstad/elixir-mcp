@@ -1198,9 +1198,26 @@ h1,
 code {
   font-variant-numeric: slashed-zero;
 }
-/* ★ marks what is YOURS: primary player tag, home clan, your row. */
+/* The filled star marks what is YOURS: primary player tag, home clan,
+   your row (Lucide's star, filled; docs/design/glyphs.md). */
 .yours {
   color: var(--gold);
+}
+.yours--star {
+  display: inline-block;
+  fill: currentColor;
+  vertical-align: -2px;
+}
+/* A Lucide chevron inside a link or button's words (back and onward):
+   on the text's line, a hair from the word. */
+:where(a, button) > svg.lucide-chevron-left,
+:where(a, button) > svg.lucide-chevron-right {
+  display: inline-block;
+  vertical-align: -0.2em;
+}
+:where(a, button) > svg.lucide-chevron-left {
+  margin-right: 2px;
+  margin-left: -3px;
 }
 
 /* ── Layout ───────────────────────────────────────────────── */
@@ -7814,7 +7831,7 @@ a.kit-mbattle:hover {
   height: 64px;
 }
 /* A short session, one line: face, who and what, its cheers on the right.
-   The cheers' picker opens across the whole row. */
+   The six open across the whole row. */
 .kit-feed__item--line {
   grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
@@ -7830,10 +7847,12 @@ a.kit-mbattle:hover {
   grid-row: 1;
   justify-content: flex-end;
 }
-.kit-feed__item--line .kit-cheers__who {
-  display: none;
+.kit-feed__item--line .kit-cheers__row {
+  flex-wrap: nowrap;
+  gap: 0;
 }
-.kit-feed__item--line .kit-cheers__picker,
+.kit-feed__item--line .kit-cheers__kinds,
+.kit-feed__item--line .kit-cheers__error,
 .kit-feed__item--line > .kit-cheers ~ * {
   grid-column: 1 / -1;
 }
@@ -8125,6 +8144,10 @@ a.kit-scard:focus-visible {
   gap: 2px;
 }
 
+/* Cheers (one tap since 2026-11-17, "A cheer is one tap"): Cheer gives
+   the default at once and takes yours back; the smile beside it opens the
+   six inline. Neither moves when counts change: Cheer holds the width of
+   its longer word, and the counts sit after the smile. */
 .kit-cheers {
   display: grid;
   gap: 6px;
@@ -8136,24 +8159,154 @@ a.kit-scard:focus-visible {
   gap: 6px;
   margin: 0;
 }
-.kit-cheers .kit-chip {
+.kit-cheer,
+.kit-cheer__more {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  justify-content: center;
+  gap: 6px;
+  min-width: var(--hit);
   min-height: var(--hit);
-  padding: 0 10px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
   border-radius: var(--r-pill);
-  font-size: var(--t-body-sm);
-}
-.kit-cheers .kit-cheers__add {
   background: transparent;
-  color: var(--ink-link);
+  color: var(--ink-dim);
+  font: inherit;
+  font-size: var(--t-body-sm);
+  font-weight: 600;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  user-select: none;
 }
-.kit-cheers .kit-cheers__add:hover {
-  background: var(--hover-row);
-  color: var(--ink-link-hover);
+.kit-cheer__more {
+  padding: 0;
+  border-color: transparent;
+}
+.kit-cheer__more[aria-expanded="true"] {
+  background: var(--control-hover);
+  color: var(--ink);
+}
+.kit-cheer:hover,
+.kit-cheer__more:hover {
+  background: var(--control-hover);
+  color: var(--ink);
+}
+.kit-cheer:focus-visible,
+.kit-cheer__more:focus-visible,
+.kit-cheers__kind:focus-visible {
+  outline: 2px solid var(--accent-bright);
+  outline-offset: 2px;
+}
+/* Yours: filled violet, the glyph filled too, so it reads at a glance. */
+.kit-cheer--mine,
+.kit-cheer--mine:hover {
+  border-color: var(--accent-bright);
+  background: var(--accent-bright);
+  color: var(--ground);
+}
+.kit-cheer--mine .kit-cheerglyph {
+  fill: currentColor;
+  fill-opacity: 0.22;
+}
+.kit-cheer__word {
+  display: inline-grid;
+}
+.kit-cheer__word > span {
+  grid-area: 1 / 1;
+}
+.kit-cheer__off {
+  visibility: hidden;
+}
+.kit-cheer__n {
+  min-width: 2ch;
+  font-variant-numeric: tabular-nums;
+  text-align: left;
+}
+.kit-cheer__glyph {
+  display: inline-flex;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .kit-cheer__glyph--pop {
+    animation: kit-cheer-pop 260ms cubic-bezier(0.3, 1.6, 0.5, 1);
+  }
+}
+@keyframes kit-cheer-pop {
+  0% {
+    transform: scale(0.6);
+  }
+  60% {
+    transform: scale(1.25);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+.kit-cheers__counts {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+  color: var(--ink-dim);
+  font-size: var(--t-body-sm);
+  font-variant-numeric: tabular-nums;
+}
+.kit-cheers__count {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+.kit-cheers__count--mine {
+  color: var(--accent-bright);
+  font-weight: 700;
+}
+.kit-cheers__count--mine .kit-cheerglyph {
+  fill: currentColor;
+  fill-opacity: 0.3;
 }
 .kit-cheers__who {
+  color: var(--ink-faint);
+  font-size: var(--t-caption);
+}
+/* The six, inline under the row: no sheet, no dialog. */
+.kit-cheers__kinds {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.kit-cheers__kind {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: var(--hit);
+  padding: 0 12px;
+  border: 1px solid transparent;
+  border-radius: var(--r-control);
+  white-space: nowrap;
+  background: var(--panel);
+  color: var(--ink-body);
+  font: inherit;
+  font-size: var(--t-body-sm);
+  font-weight: 600;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.kit-cheers__kind:hover {
+  background: var(--control-hover);
+  color: var(--ink);
+}
+.kit-cheers__kind[aria-pressed="true"] {
+  border-color: var(--accent-bright);
+  color: var(--accent-bright);
+}
+.kit-cheers__kind[aria-pressed="true"] .kit-cheerglyph {
+  fill: currentColor;
+  fill-opacity: 0.3;
+}
+.kit-cheers__error {
+  margin: 0;
   color: var(--ink-faint);
   font-size: var(--t-caption);
 }
@@ -8839,8 +8992,12 @@ a.kit-bell__hit:focus-visible::after {
   font-size: var(--t-body-sm);
 }
 .kit-bell__cheer {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
   margin-right: 10px;
   white-space: nowrap;
+  vertical-align: middle;
 }
 .kit-bell__note {
   padding: 0 var(--s-2) var(--s-2);

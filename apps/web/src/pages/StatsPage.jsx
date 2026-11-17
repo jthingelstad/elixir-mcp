@@ -1,4 +1,4 @@
-import { PlayerName } from "@elixir-mcp/ui";
+import { PlayerName, Icon } from "@elixir-mcp/ui";
 import { useLocation } from "@tanstack/react-router";
 import { Link, TagText } from "@elixir-mcp/ui";
 import { useMe, useNav } from "../App.jsx";
@@ -55,7 +55,7 @@ export function StatsPage() {
         ) : (
           <nav className="kit-you-stats__back" aria-label="Whose stats">
             <Link to={playerHref(player.player_tag)}>
-              ‹{" "}
+              <Icon name="chevron-left" size={16} />
               <PlayerName tag={player.player_tag}>
                 <TagText>{playerName(player)}</TagText>
               </PlayerName>

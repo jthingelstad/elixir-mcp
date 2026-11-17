@@ -137,7 +137,7 @@ export function FirstAnswer({
             </p>
             {fix ?? (
               <Link className="btn btn--sm mt-2" to={`${next.to}#fix-tag`}>
-                {next.action} ›
+                {next.action} <Icon name="chevron-right" size={14} />
               </Link>
             )}
           </div>
@@ -175,11 +175,13 @@ export function FirstAnswer({
       <div className="mb-3 flex flex-wrap items-center gap-3">
         {next && !notFound && next.action !== "Check recording status" && (
           <Link className="btn btn--primary" to={next.to}>
-            {next.action} ›
+            {next.action} <Icon name="chevron-right" size={14} />
           </Link>
         )}
         {next?.profile && (
-          <Link to={next.profile.to}>{next.profile.action} ›</Link>
+          <Link to={next.profile.to}>
+            {next.profile.action} <Icon name="chevron-right" size={14} />
+          </Link>
         )}
         <button className="btn btn--sm" onClick={refresh} disabled={loading}>
           {loading ? "Checking…" : "Check again"}
@@ -208,7 +210,7 @@ export function FirstAnswer({
               </div>
               {(!s.done || s.showAction) && s.action && (
                 <Link className="inline-block pt-1 text-mono" to={s.to}>
-                  {s.action} ›
+                  {s.action} <Icon name="chevron-right" size={14} />
                 </Link>
               )}
             </div>

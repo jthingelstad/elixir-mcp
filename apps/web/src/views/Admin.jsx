@@ -368,8 +368,8 @@ function AdminDiscord() {
           ["DELETED", "right"],
           ["REACTIONS", "right"],
           ["THREADS", "right"],
-          ["👍", "right"],
-          ["👎", "right"],
+          ["RATED UP", "right"],
+          ["RATED DOWN", "right"],
           ["NOTES", "right"],
           ["P50", "right"],
           ["P90", "right"],
@@ -422,7 +422,7 @@ function AdminDiscord() {
             ["LOST", "right"],
             ["SKIPS", "right"],
             ["DELETED", "right"],
-            ["👎", "right"],
+            ["RATED DOWN", "right"],
             ["LAST", "left"],
           ]}
           rows={destinations}
@@ -482,7 +482,7 @@ function AdminDiscordDetail({ id }) {
       "",
     );
     return {
-      text: `${last.rating === "up" ? "👍" : "👎"}${note ? ` ${note}` : ""}${list.length > 1 ? ` (${list.length} ratings)` : ""}`,
+      text: `${last.rating === "up" ? "Up" : "Down"}${note ? `: ${note}` : ""}${list.length > 1 ? ` (${list.length} ratings)` : ""}`,
       title: list.map((r) => `${r.rating} ${r.message}`).join("\n"),
       href: `${ADMIN}/feedback/${last.feedback_id}`,
     };
@@ -533,7 +533,12 @@ function AdminDiscordDetail({ id }) {
     <>
       <LogTable
         admin
-        crumb={<Link to={`${ADMIN}/discord`}>‹ Discord</Link>}
+        crumb={
+          <Link to={`${ADMIN}/discord`}>
+            <Icon name="chevron-left" size={16} />
+            Discord
+          </Link>
+        }
         title={<TagText text={who} />}
         note={
           feature
@@ -607,7 +612,10 @@ function AdminEmailRecord({ id }) {
   const rec = record.data ?? null;
   const back = (
     <div className="page__crumb">
-      <Link to={`${ADMIN}/emails`}>‹ Emails sent</Link>
+      <Link to={`${ADMIN}/emails`}>
+        <Icon name="chevron-left" size={16} />
+        Emails sent
+      </Link>
     </div>
   );
   if (record.isError || (record.isSuccess && !rec?.send))
@@ -789,7 +797,10 @@ function AdminAccountDetail({ id }) {
     return (
       <div className="panel">
         <div className="panel__body">
-          No account {id}. <Link to={`${ADMIN}/accounts`}>All accounts ›</Link>
+          No account {id}.{" "}
+          <Link to={`${ADMIN}/accounts`}>
+            All accounts <Icon name="chevron-right" size={14} />
+          </Link>
         </div>
       </div>
     );
@@ -872,7 +883,8 @@ function AdminAccountDetail({ id }) {
           style={{ fontSize: "12px" }}
           to={`${ADMIN}/accounts`}
         >
-          ‹ All accounts
+          <Icon name="chevron-left" size={16} />
+          All accounts
         </Link>
       </p>
       <section className="panel" style={{ maxWidth: "680px" }}>
@@ -1216,7 +1228,8 @@ function AdminFeedback() {
               className="btn btn--sm"
               onClick={() => setCursor(cursor.slice(0, -1))}
             >
-              ‹ Back
+              <Icon name="chevron-left" size={16} />
+              Back
             </button>
           )}
           {next && (
@@ -1225,7 +1238,8 @@ function AdminFeedback() {
               className="btn btn--sm"
               onClick={() => setCursor([...cursor, next])}
             >
-              {unanswered ? "Newer ›" : "Older ›"}
+              {unanswered ? "Newer" : "Older"}{" "}
+              <Icon name="chevron-right" size={14} />
             </button>
           )}
           <span>
@@ -1615,7 +1629,9 @@ function AdminFeedbackItem({ id, navigate }) {
       <div className="panel">
         <div className="panel__body">
           No feedback item #{id}.{" "}
-          <Link to={`${ADMIN}/feedback`}>All feedback ›</Link>
+          <Link to={`${ADMIN}/feedback`}>
+            All feedback <Icon name="chevron-right" size={14} />
+          </Link>
         </div>
       </div>
     );
@@ -1674,7 +1690,8 @@ function AdminFeedbackItem({ id, navigate }) {
           style={{ fontSize: "12px" }}
           to={`${ADMIN}/feedback`}
         >
-          ‹ All feedback
+          <Icon name="chevron-left" size={16} />
+          All feedback
         </Link>
       </p>
       <section className="panel" style={{ maxWidth: "720px" }}>

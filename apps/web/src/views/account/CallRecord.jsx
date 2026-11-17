@@ -179,7 +179,10 @@ export function CallRecord({ id, navigate }) {
 
   const back = (
     <div className="page__crumb">
-      <Link to={path(`${SETTINGS}/usage/requests`)}>‹ Requests</Link>
+      <Link to={path(`${SETTINGS}/usage/requests`)}>
+        <Icon name="chevron-left" size={16} />
+        Requests
+      </Link>
     </div>
   );
 
@@ -327,7 +330,8 @@ export function CallRecord({ id, navigate }) {
             navigate(path(`${SETTINGS}/usage/requests/${rec.prev.request_id}`))
           }
         >
-          ‹ Previous call
+          <Icon name="chevron-left" size={16} />
+          Previous call
         </button>
         <button
           className="btn btn--sm"
@@ -340,7 +344,7 @@ export function CallRecord({ id, navigate }) {
             navigate(path(`${SETTINGS}/usage/requests/${rec.next.request_id}`))
           }
         >
-          Next call ›
+          Next call <Icon name="chevron-right" size={14} />
         </button>
         <span className="footnote" style={{ marginLeft: "4px" }}>
           by the same connection
