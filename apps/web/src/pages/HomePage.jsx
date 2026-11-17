@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { Navigate, useLocation } from "@tanstack/react-router";
-import { PageHead } from "@elixir-mcp/ui";
+import { Icon, PageHead } from "@elixir-mcp/ui";
 import { useMe } from "../App.jsx";
 import { useHome, useReconcilePassport } from "../lib/queries.js";
 import { NewAccount } from "../home/NewAccount.jsx";
 import { useFirstRead } from "../home/first-read.js";
 import { HomeFeed } from "../home/Feed.jsx";
+import { useMayPost } from "../home/Post.jsx";
 import { HomePanels, TodayError, TodayFresh } from "../home/Today.jsx";
 
 const followsSomeone = (me) =>
@@ -31,6 +32,10 @@ export function HomePage() {
   // Where the feed puts its chips: the head, right of the title (design
   // canvas, 2026-11-13). The feed draws them above itself until it is set.
   const [chipsAt, setChipsAt] = useState(null);
+  // The post composer (2026-11-17), opened from the feed's top or, on a
+  // phone, from Post in the head.
+  const [writing, setWriting] = useState(false);
+  const mayPost = useMayPost();
   // The passport's catch-up (#1015): once Home draws its feed (the profile
   // list's place), after first paint, never waited on. A new account's
   // first steps write nothing until the person acts.
@@ -86,13 +91,35 @@ export function HomePage() {
           <>
             <div ref={setChipsAt} className="kit-home__chips" />
             <TodayFresh player={player} />
+            {mayPost ? (
+              <button
+                type="button"
+                className="btn btn--sm btn--primary kit-home__post"
+                aria-expanded={writing}
+                onClick={() => {
+                  setWriting(true);
+                  document
+                    .querySelector(".kit-post-compose")
+                    ?.scrollIntoView?.({ block: "nearest" });
+                }}
+              >
+                <Icon name="plus" size={16} />
+                Post
+              </button>
+            ) : null}
           </>
         }
       />
       <HomePanels
         first={live}
         player={player}
-        feed={({ suggest }) => <HomeFeed chipsAt={chipsAt} suggest={suggest} />}
+        feed={({ suggest }) => (
+          <HomeFeed
+            chipsAt={chipsAt}
+            suggest={suggest}
+            compose={{ open: writing, setOpen: setWriting }}
+          />
+        )}
       />
     </>
   );

@@ -53,6 +53,7 @@ import { CloseToggle } from "./close.jsx";
 import { PlayerRecord } from "./PlayerRecord.jsx";
 import { useAskOnOpen } from "../lib/own-refresh.js";
 import { RefreshPlayer } from "./RefreshPlayer.jsx";
+import { PostList } from "./PostList.jsx";
 import { PassportRow } from "./PassportRow.jsx";
 import { accountHref, accountOf } from "../lib/account.js";
 
@@ -283,13 +284,16 @@ export function PlayerView({ page, initialTab = "timeline" }) {
             <div className="kit-skeleton" aria-busy="true" />
           )
         ) : shown === "timeline" ? (
-          <ItemList
-            items={page.timeline}
-            empty={`Nothing recorded in the last ${page.window_days} days.`}
-            more={page.timeline_more}
-            cheered={cheered}
-            tag={p.tag}
-          />
+          <>
+            <PostList player={p.tag} />
+            <ItemList
+              items={page.timeline}
+              empty={`Nothing recorded in the last ${page.window_days} days.`}
+              more={page.timeline_more}
+              cheered={cheered}
+              tag={p.tag}
+            />
+          </>
         ) : shown === "highlights" ? (
           <Highlights items={page.highlights} cheered={cheered} own={you.own} />
         ) : shown === "moments" ? (

@@ -306,7 +306,6 @@ async function readPostCheers(db, accountId, seen) {
       text: `${r.question ? "Your question" : "Your post"}: ${clip(String(r.body ?? ""), 80)}`,
       at: null,
       battle_url: null,
-      subject_tag: r.player_tag,
       session_path: null,
       post: true,
       cheers: {},

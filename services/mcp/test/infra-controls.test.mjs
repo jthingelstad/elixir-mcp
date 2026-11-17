@@ -1551,10 +1551,15 @@ test("posts (2026-11-17): off by default, effective only with comments on, prese
     /HasPosts: !And\n\s+- !Condition HasComments\n\s+- !Equals \[!Ref PostsEnabled, "true"\]/,
   );
   // Only the web API reads the switch.
-  const env = [...template.matchAll(/POSTS_ENABLED: !If \[HasPosts, "true", !Ref AWS::NoValue\]/g)];
+  const env = [
+    ...template.matchAll(
+      /POSTS_ENABLED: !If \[HasPosts, "true", !Ref AWS::NoValue\]/g,
+    ),
+  ];
   assert.equal(env.length, 1);
   assert.equal([...template.matchAll(/POSTS_ENABLED/g)].length, 1);
-  const { PRESERVED_PARAMETERS } = await import("../../../infra/scripts/parameters.mjs");
+  const { PRESERVED_PARAMETERS } =
+    await import("../../../infra/scripts/parameters.mjs");
   assert.ok(PRESERVED_PARAMETERS.includes("PostsEnabled"));
 });
 

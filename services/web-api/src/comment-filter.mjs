@@ -110,8 +110,7 @@ const HANDLE = /(?:^|[\s(])@[a-z0-9_.]{3,}/i;
  */
 export function filterComment(text, { max = COMMENT_MAX } = {}) {
   if (!text) return { ok: false, category: "empty" };
-  if ([...text].length > max)
-    return { ok: false, category: "too_long" };
+  if ([...text].length > max) return { ok: false, category: "too_long" };
   const folded = foldForMatch(text);
   // An email address reads as a domain too; it is personal first.
   if (EMAIL.test(text)) return { ok: false, category: "personal_info" };

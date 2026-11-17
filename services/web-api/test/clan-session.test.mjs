@@ -166,6 +166,7 @@ test("the browser session carries no Clan switch: Clan is part of Elixir", async
     assert.deepEqual(data(result).features, {
       discord_login: false,
       comments: false,
+      posts: false,
     });
     assert.equal(data(result).authenticated, signedIn);
   }

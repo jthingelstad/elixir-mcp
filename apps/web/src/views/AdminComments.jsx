@@ -59,6 +59,9 @@ export function AdminComments() {
         <>
           <Spend month={data.month} cap={data.cap_usd} />
           <Reported items={data.reported ?? []} />
+          {data.posts_enabled || (data.posts ?? []).length ? (
+            <ReportedPosts items={data.posts ?? []} />
+          ) : null}
           <Suspended items={data.suspended ?? []} />
           <Refused items={data.refused ?? []} />
         </>
@@ -164,6 +167,78 @@ function Reported({ items }) {
   );
 }
 
+/** Posts (2026-11-17): reported or hidden ones, as comments are; the
+ *  same decisions, and the same pause (it stops posting too). */
+function ReportedPosts({ items }) {
+  const { stamp } = useClock();
+  const queryClient = useQueryClient();
+  const done = (out) => {
+    if (out?.ok) queryClient.invalidateQueries({ queryKey: ADMIN_KEY });
+  };
+  return (
+    <Panel title="Reported posts" titleAs="h2">
+      {items.length === 0 ? (
+        <Empty title="No posts reported" />
+      ) : (
+        <ul className="kit-comments__list kit-panel__body">
+          {items.map((p) => (
+            <li key={p.id} className="kit-comments__item">
+              <p className="kit-comments__head">
+                <span className="kit-comments__who">
+                  <Who author={p.author} />
+                </span>
+                <span className="kit-tiny">
+                  {" "}
+                  · {p.at ? stamp(p.at) : ""} ·{" "}
+                  {p.question ? "question · " : ""}
+                  {p.status === "hidden" ? "hidden" : p.status}
+                </span>
+              </p>
+              <p className="kit-comments__text">{p.text}</p>
+              {p.deck || p.cards?.length ? (
+                <p className="kit-tiny">
+                  {p.deck
+                    ? `Deck: ${p.deck.cards.map((c) => c.name).join(", ")}`
+                    : `Cards: ${p.cards.map((c) => c.name).join(", ")}`}
+                </p>
+              ) : null}
+              <p className="kit-tiny">
+                {(p.reports ?? [])
+                  .map((r) => `${reasonLabel(r.reason)} (${stamp(r.at)})`)
+                  .join("; ")}
+              </p>
+              <div className="kit-comments__acts">
+                <ConfirmAction
+                  label="Remove"
+                  className="btn btn--sm"
+                  title="Remove this post?"
+                  body="It goes for everyone. Its writer isn't told."
+                  confirm="Remove"
+                  run={() => api.adminRemovePost(p.id)}
+                  onDone={done}
+                />
+                <ConfirmAction
+                  label="Dismiss"
+                  className="btn btn--quiet btn--sm"
+                  danger={false}
+                  title="Dismiss the reports?"
+                  body="The post shows again."
+                  confirm="Dismiss"
+                  run={() => api.adminDismissPost(p.id)}
+                  onDone={done}
+                />
+              </div>
+              {p.author?.account_id ? (
+                <SuspendForm accountId={p.author.account_id} />
+              ) : null}
+            </li>
+          ))}
+        </ul>
+      )}
+    </Panel>
+  );
+}
+
 /** Pause one account's commenting for some days; 0 lifts it. */
 function SuspendForm({ accountId }) {
   const [days, setDays] = useState("7");
@@ -183,7 +258,7 @@ function SuspendForm({ accountId }) {
   return (
     <form className="kit-comments__send" onSubmit={send}>
       <label className="kit-tiny">
-        Pause commenting for{" "}
+        Pause commenting and posting for{" "}
         <input
           className="kit-comments__days"
           type="number"
@@ -210,7 +285,7 @@ function Suspended({ items }) {
   const { stamp } = useClock();
   const queryClient = useQueryClient();
   return (
-    <Panel title="Paused from commenting" titleAs="h2">
+    <Panel title="Paused from commenting and posting" titleAs="h2">
       {items.length === 0 ? (
         <p className="kit-panel__body kit-tiny">Nobody.</p>
       ) : (
@@ -262,6 +337,7 @@ function Refused({ items }) {
               title={r.text}
               detail={[
                 r.author?.name ?? r.author?.player_tag ?? "A player",
+                r.kind === "post" ? "post" : null,
                 r.stage,
                 r.category,
                 stamp(r.at),
