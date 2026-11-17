@@ -7,6 +7,7 @@ import { answered } from "../client/index.ts";
 import { useMe } from "../App.jsx";
 import { BattleView } from "./Battle.jsx";
 import { FeedItem } from "../home/FeedItem.jsx";
+import { memberPostKey, useMemberPost } from "../lib/queries.js";
 
 export function SharedItemPage() {
   const { id } = useParams({ strict: false });
@@ -112,10 +113,7 @@ export function SharedItem({
 
 export function MemberPostPage() {
   const { id } = useParams({ strict: false });
-  const query = useQuery({
-    queryKey: ["me", "posts", "item", id],
-    queryFn: answered(() => api.memberPost(id)),
-  });
+  const query = useMemberPost(id);
   const item = query.data?.ok ? query.data.data?.item : null;
   return (
     <div className="kit-shared-item">
@@ -130,7 +128,10 @@ export function MemberPostPage() {
           </button>
         </Panel>
       ) : item ? (
-        <FeedItem it={item} />
+        <FeedItem
+          it={item}
+          cheerWhere={{ key: memberPostKey(id), list: "item" }}
+        />
       ) : (
         <Panel>
           <h2>No post at this link</h2>
