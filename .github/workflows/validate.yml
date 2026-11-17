@@ -75,11 +75,12 @@ jobs:
       # Production dependencies must be clean of every advisory; every
       # dependency, the dev toolchain included, of high and critical ones
       # (2026-10-21: reported but ungated before, 12 high advisories had
-      # piled up; #32). A high advisory with no fixed release is answered
-      # in package.json `overrides` or by replacing the package, and the
-      # change note says which.
+      # piled up; #32). Jamie accepted GHSA-fc5q-39xc-vjpf in dev-only
+      # installations (#1127, 2026-11-17). The full-audit wrapper allows
+      # only that advisory and its dependent chains; all other high and
+      # critical findings still fail. The production audit is unchanged.
       - run: npm audit --omit=dev --audit-level=low
-      - run: npm audit --audit-level=high
+      - run: node infra/scripts/audit-dependencies.mjs
       - run: npm run verify:static
       # The Lambda bundles, as a deploy builds them (verify's last step).
       - run: npm run build && node infra/scripts/build.mjs
