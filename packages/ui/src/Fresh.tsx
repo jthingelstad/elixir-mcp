@@ -105,11 +105,13 @@ export function FreshChip({
       }
     >
       <summary title={ts ? when(ts) : undefined} aria-live="polite">
-        {checking
-          ? "Checking for new battles…"
-          : age == null
-            ? `${label}: never`
-            : `${label} ${agoPlain(age)}`}
+        <span className="kit-fresh__text">
+          {checking
+            ? "Checking for new battles…"
+            : age == null
+              ? `${label}: never`
+              : `${label} ${agoPlain(age)}`}
+        </span>
       </summary>
       <div className="kit-fresh__pop">
         {children}

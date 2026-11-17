@@ -6893,16 +6893,27 @@ button.kit-row {
     max-width: 100%;
   }
   /* Quiet text on the title's line: no pill, its 44px tap target centred
-     on the title so it never reaches the chips below. */
+     on the title so it never reaches the chips below. Its width leaves
+     the title's: "Timeline" is about 150px in the display face at 32px,
+     plus the head's gap (2026-11-17, the note covered the title at 320).
+     Out of flow, so a longer or shorter note never moves anything; one
+     that does not fit is cut with an ellipsis, never wrapped. */
   .kit-head--home .kit-fresh {
     position: absolute;
     top: -10px;
     right: 0;
-    max-width: calc(100% - 120px);
+    max-width: calc(100% - 166px);
   }
   .kit-head--home .kit-fresh > summary {
+    max-width: 100%;
     padding-right: 0;
     background: none;
+  }
+  .kit-head--home .kit-fresh__text {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
   /* The chips are one row that scrolls as one (round three, 2026-11-13):
      New follows the Who chips instead of sitting pinned over them, and a
@@ -6939,6 +6950,19 @@ button.kit-row {
   .kit-home__mode {
     flex-basis: 100%;
     margin-left: 0;
+  }
+}
+/* Too narrow for the note beside the title (under 375px, where the note
+   would have less than its 170px or so): it takes its own line under the
+   title, before the chips. The width decides, never the note's words, so
+   "Checking for new battles…" and back moves nothing. */
+@media (max-width: 374px) {
+  .kit-head--home .kit-fresh {
+    position: static;
+    order: -1;
+    flex-basis: 100%;
+    max-width: 100%;
+    margin-block: -10px -6px;
   }
 }
 
