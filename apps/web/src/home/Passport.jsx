@@ -169,6 +169,8 @@ function PassportView({ data, owner, yours, stampId }) {
           </Link>
         </p>
       ) : null}
+      <Who passport={p} owner={owner} count={earned.size} />
+      {/* Under whose passport it is, not above it (2026-11-16). */}
       {owner || !p.id ? null : (
         <p className="kit-passport__foot">
           <Link className="link" to={accountHref(p.id)}>
@@ -176,7 +178,6 @@ function PassportView({ data, owner, yours, stampId }) {
           </Link>
         </p>
       )}
-      <Who passport={p} owner={owner} count={earned.size} />
       {earned.size === 0 ? (
         <p className="kit-passport__foot">
           {owner

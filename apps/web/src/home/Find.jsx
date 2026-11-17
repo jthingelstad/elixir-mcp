@@ -222,9 +222,9 @@ function FollowForm() {
           <>
             <FollowCost tag={tag} />
             <p className="kit-tiny">
-              Anyone with a player tag can be followed. If they verified their
-              player on Elixir, their bell shows a new follower. Recording
-              starts at once; the first read usually lands within a minute.
+              You can follow anyone by their player tag. If they verified their
+              player on Elixir, their bell tells them. Their battles usually
+              start showing up within a minute.
             </p>
           </>
         )}
@@ -244,8 +244,8 @@ function FollowMeLink({ players }) {
   return (
     <Panel title="Your Follow me link" pad>
       <p className="kit-tiny">
-        Send it to a friend: it opens your players&rsquo; page on Elixir, ready
-        to follow. It names{" "}
+        Send it to a friend: it opens a page where they can follow you. It shows
+        only{" "}
         <TagText>
           {players.map((p, i) => (
             <span key={p.player_tag}>
@@ -255,8 +255,8 @@ function FollowMeLink({ players }) {
               </PlayerName>
             </span>
           ))}
-        </TagText>{" "}
-        and nothing else.
+        </TagText>
+        .
       </p>
       <p className="kit-find__link">
         <code>{url}</code>

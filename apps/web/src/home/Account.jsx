@@ -11,6 +11,7 @@ import {
   PageHead,
   PlayerName,
   TagText,
+  Skeleton,
 } from "@elixir-mcp/ui";
 import { api } from "../api.js";
 import { trackEvent } from "../analytics.js";
@@ -38,7 +39,7 @@ export function AccountPage() {
   const id = accountIdOf(pathname);
   const query = useAccountPage(id);
   if (!id) return <Empty title="That is not an account address" />;
-  if (query.isPending) return <div className="kit-skeleton" aria-busy="true" />;
+  if (query.isPending) return <Skeleton shape="profile" />;
   if (query.isError || (query.data && query.data.status >= 500))
     return (
       <ErrorState
@@ -166,7 +167,7 @@ export function AccountView({ page, actions = null, noPlayers = null }) {
         </nav>
       </header>
       <section className="kit-account__players" aria-labelledby="acct-players">
-        <h2 id="acct-players" className="kit-day__head">
+        <h2 id="acct-players" className="kit-account__head">
           Players
         </h2>
         {a.players.length ? (
@@ -206,7 +207,7 @@ export function AccountView({ page, actions = null, noPlayers = null }) {
         )}
       </section>
       <section className="kit-player__body" aria-labelledby="acct-timeline">
-        <h2 id="acct-timeline" className="kit-day__head">
+        <h2 id="acct-timeline" className="kit-account__head">
           Timeline
         </h2>
         <ItemList

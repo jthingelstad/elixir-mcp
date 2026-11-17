@@ -1,5 +1,12 @@
 import { useState } from "react";
-import { Empty, Link, TagText, useClock, ErrorState } from "@elixir-mcp/ui";
+import {
+  Empty,
+  Link,
+  Skeleton,
+  TagText,
+  useClock,
+  ErrorState,
+} from "@elixir-mcp/ui";
 import { CLAN, clanPath } from "../lib/base.js";
 import { useFeed, useRace } from "../lib/queries.js";
 import { n, ordinal } from "../lib/words.js";
@@ -63,7 +70,7 @@ function ClanTimeline({ clan }) {
     return (
       <section aria-labelledby="feed-timeline" className="grid gap-3">
         {head}
-        <p className="m-0 text-ink-dim">Reading the clan&rsquo;s week…</p>
+        <Skeleton rows={4} label="Reading the clan’s week" />
       </section>
     );
   const all = d.items ?? [];
