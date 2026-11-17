@@ -1,4 +1,4 @@
-import { PlayerName, PlayerOption } from "@elixir-mcp/ui";
+import { PlayerName, PlayerOption, Icon } from "@elixir-mcp/ui";
 import {
   Disclosure,
   ago,
@@ -660,13 +660,15 @@ function AwardPanel({
                   style: { width: "2.5em", color: "var(--ink-faint)" },
                 }),
                 cell: (r) =>
-                  award.state === "held"
-                    ? "—"
-                    : award.kind === "perfect_attendance"
-                      ? "✓"
-                      : position(r) == null
-                        ? "—"
-                        : `${position(r)}${sharesPlace(r) ? "=" : ""}`,
+                  award.state === "held" ? (
+                    "—"
+                  ) : award.kind === "perfect_attendance" ? (
+                    <Icon name="check" size={16} label="Yes" />
+                  ) : position(r) == null ? (
+                    "—"
+                  ) : (
+                    `${position(r)}${sharesPlace(r) ? "=" : ""}`
+                  ),
               },
               {
                 head: "",

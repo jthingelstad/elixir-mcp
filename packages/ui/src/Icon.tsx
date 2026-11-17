@@ -1,5 +1,11 @@
 import {
   Activity,
+  BicepsFlexed,
+  Flame,
+  Laugh,
+  SmilePlus,
+  Sparkles,
+  ThumbsUp,
   ArrowRight,
   ArrowUpRight,
   Award,
@@ -92,17 +98,25 @@ import {
  *
  * The wrapper stays, and it is doing three jobs worth keeping. It fixes
  * the stroke and size so a rail icon cannot arrive a different weight
- * from the one beside it. It keeps every icon `aria-hidden`: they are
- * decoration over a text label everywhere they appear and never carry
- * meaning on their own. And it takes the design's kebab-case names, so
+ * from the one beside it. It keeps an icon `aria-hidden` when it sits
+ * beside words, and names it (`label`) in the one case it stands alone,
+ * so an icon-only control is never nameless. And it takes the design's
+ * kebab-case names, so
  * `<Icon name="chart-column" />` reads the same as the design file it
  * came from.
  *
  * To add one: import it and add the line. Lucide's own name, in kebab
- * case, is the key.
+ * case, is the key. Which glyph means what is `docs/design/glyphs.md`
+ * (2026-11-17, "Lucide is the glyph library"): one idea, one glyph.
  */
 const ICONS = {
   activity: Activity,
+  "biceps-flexed": BicepsFlexed,
+  flame: Flame,
+  laugh: Laugh,
+  "smile-plus": SmilePlus,
+  sparkles: Sparkles,
+  "thumbs-up": ThumbsUp,
   "arrow-right": ArrowRight,
   "arrow-up-right": ArrowUpRight,
   award: Award,
@@ -189,18 +203,29 @@ export type IconName = keyof typeof ICONS;
 export function Icon({
   name,
   size = 18,
+  label,
+  className,
 }: {
   name: IconName | string;
   size?: number;
+  /** Only when the glyph is the whole content (a count beside it, no
+   *  word): it is then an image with this name. Inside a button or link
+   *  with words, leave it out and the glyph stays hidden from readers. */
+  label?: string;
+  className?: string;
 }) {
   const Glyph = ICONS[name as IconName];
   if (!Glyph) return null;
-  return (
+  const cls = className ? `shrink-0 ${className}` : "shrink-0";
+  return label ? (
     <Glyph
       size={size}
       strokeWidth={1.9}
-      aria-hidden="true"
-      className="shrink-0"
+      role="img"
+      aria-label={label}
+      className={cls}
     />
+  ) : (
+    <Glyph size={size} strokeWidth={1.9} aria-hidden="true" className={cls} />
   );
 }

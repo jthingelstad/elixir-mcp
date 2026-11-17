@@ -246,7 +246,7 @@ test("Verify is a step after battles, linking to Verify", async () => {
   const label = await screen.findByText(
     "Player verified (needed to act in Clan)",
   );
-  const link = screen.getByRole("link", { name: "Verify your player ›" });
+  const link = screen.getByRole("link", { name: "Verify your player" });
   expect(link.getAttribute("href")).toBe("/settings/players/verify");
   // In the record's own steps: after Battles on record.
   const order = [
@@ -278,9 +278,7 @@ test("a verified player's step is done; a friend has no Verify step", async () =
   expect(
     await screen.findByText("Player verified (needed to act in Clan)"),
   ).toBeTruthy();
-  expect(
-    screen.queryByRole("link", { name: "Verify your player ›" }),
-  ).toBeNull();
+  expect(screen.queryByRole("link", { name: "Verify your player" })).toBeNull();
   cleanup();
   respond({ ...player, is_primary: false, relationship: "friend" });
   render(<FirstAnswer claimsKey="b" />);

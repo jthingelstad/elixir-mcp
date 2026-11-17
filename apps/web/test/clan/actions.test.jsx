@@ -388,7 +388,7 @@ describe("actions", () => {
       }),
     ).toBeTruthy();
     fireEvent.click(screen.getByText(/History, 1 entry/));
-    expect(screen.getByText("‹ Feed")).toBeTruthy();
+    expect(screen.getByText("Feed")).toBeTruthy();
     expect(
       screen.getByText(
         /Earlier: declined \w+ Sep [12]( 2026)? \(knows the member\)/,
@@ -1698,9 +1698,7 @@ describe("you here", () => {
     expect(screen.getByRole("cell", { name: "16 of 16" })).toBeTruthy();
     expect(screen.getByText("Season 135, week 5 · Colosseum")).toBeTruthy();
     expect(screen.getByText(/Joined Aug 20: 23 days/)).toBeTruthy();
-    expect(
-      screen.getByRole("link", { name: "‹ Back to Members" }),
-    ).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Back to Members" })).toBeTruthy();
     expect(document.body.textContent).not.toMatch(/\bcard\b/i);
   });
 });

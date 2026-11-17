@@ -434,7 +434,10 @@ export function CollectorPage({
     return (
       <>
         <div className="page__crumb">
-          <Link to={home}>‹ Collectors</Link>
+          <Link to={home}>
+            <Icon name="chevron-left" size={16} />
+            Collectors
+          </Link>
         </div>
         <Empty title="No collector by that name">
           Collectors are named for a Clash Royale card. A drained one keeps its
@@ -454,7 +457,10 @@ export function CollectorPage({
   return (
     <>
       <div className="page__crumb">
-        <Link to={home}>‹ Collectors</Link>
+        <Link to={home}>
+          <Icon name="chevron-left" size={16} />
+          Collectors
+        </Link>
       </div>
       <PageHead
         title={name}

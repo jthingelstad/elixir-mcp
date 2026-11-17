@@ -563,7 +563,7 @@ function SessionLine({ it, inGroup = false }) {
           <p className="kit-line__go">{said}</p>
         )}
       </div>
-      {"cheers" in it ? <Cheers it={it} /> : null}
+      {"cheers" in it ? <Cheers it={it} compact /> : null}
       {"comments" in it ? <Comments it={it} /> : null}
     </article>
   );

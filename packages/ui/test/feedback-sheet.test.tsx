@@ -98,7 +98,7 @@ test("links your feedback and its answers before and after sending", async () =>
   );
   const history = () =>
     screen.getByRole("link", {
-      name: "Your feedback and its answers ›",
+      name: "Your feedback and its answers",
       hidden: true,
     });
   expect(history().getAttribute("href")).toBe("/settings/feedback");

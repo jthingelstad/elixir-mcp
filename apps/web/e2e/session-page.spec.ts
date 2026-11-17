@@ -97,7 +97,7 @@ for (const [label, width, tag] of [
       }),
     ).toBeVisible();
     await expect(
-      page.getByRole("link", { name: "‹ King Thing" }),
+      page.getByRole("link", { name: "King Thing" }),
     ).toHaveAttribute("href", "/home/player/20JJJ2CCRU");
     // Both decks with their art, most played first.
     const decks = page.locator(".kit-session__deck");

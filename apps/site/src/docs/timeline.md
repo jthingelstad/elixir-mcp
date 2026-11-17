@@ -124,7 +124,8 @@ the other decks the session switched to.
 
 Short sessions step back so the big ones stand out. A session of one or
 two battles is one line: who, when, the result and its
-trophies, and its **Cheer** on the right. Tap the line to open the
+trophies, and on the right its **Cheer**, with how many cheered it, and the
+smile that opens the six. Tap the line to open the
 session's page. Two or more short sessions in a row, whoever played them,
 fold into one row, such as "4 short sessions from Pip, Ash and 2 others",
 with their battles, wins and losses, when, and how many cheers they have
@@ -157,6 +158,8 @@ Tap the card to open the session's own page. Back brings you here. It shows:
   or a new best in trophies;
 - **Highlight** on each battle when the session is your own verified
   player's, which opens the battle's page at its highlight.
+- **Cheer**, under the figures and chips, while the session is in your own feed
+  ([Cheers](#cheers)), with the same counts as on your Timeline.
 
 Only battles Elixir recorded are on the page. When the update counted more
 than Elixir recorded, the page says how many are missing. A long session
@@ -303,13 +306,26 @@ it. Each reads on its own, so the feed never waits for them.
 ## Cheers
 
 Any item about a player or clan you follow can take a cheer from you, one
-of six that celebrate: 👏 **Well played**, 🔥 **On fire**, 👑 **Royal**,
-😮 **Wow**, 😂 **Ha** and 💪 **Grind**. There is nothing to boo with. You
-give one cheer per item: another cheer changes yours, and tapping yours
-again takes it back. **Cheer** under the item opens the six.
+of six that celebrate: **Well played** (a thumbs up), **On fire** (a
+flame), **Royal** (a crown), **Wow** (sparkles), **Ha** (a laughing face)
+and **Grind** (a flexed arm). There is nothing to boo with. You give one
+cheer per item.
 
-An item shows its cheers as counts, each with its number, and says how many
-cheered in words ("You and 2 others", "3 people"): never who. Every member
+- **Tap Cheer** under the item and it is cheered at once with **Well
+  played**. Tap it again to take your cheer back, whichever one it is.
+- **The smile beside Cheer** opens the six in a row under the item. Tap
+  one to cheer with it, or to change yours; tap yours there to take it
+  back. On a phone you can also hold your finger on **Cheer** to open
+  them. With a keyboard, the arrow keys move along the six, Enter chooses
+  and Escape closes them.
+
+Once you have cheered, **Cheer** turns violet, shows your cheer's glyph and
+says **Cheered**. If a cheer could not be saved, it goes back to how it was
+and the item says so.
+
+An item shows its cheers as counts beside **Cheer**, each kind's glyph with
+its number (yours in violet), and says how many cheered in words ("You and
+2 others", "3 people"): never who. Every member
 whose feed shows the item sees the same counts. Your account's own items
 (a sign-in, a feedback answer) take no cheers.
 

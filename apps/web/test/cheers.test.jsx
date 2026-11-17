@@ -5,11 +5,17 @@
  * same one again takes it back, and the item shows counts, never who.
  * Invented players only.
  */
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { test, expect, vi, beforeEach, afterEach } from "vitest";
-import { screen, fireEvent, waitFor, cleanup } from "@testing-library/react";
+import {
+  act,
+  screen,
+  fireEvent,
+  waitFor,
+  cleanup,
+} from "@testing-library/react";
 import { renderWithProviders } from "./helpers.jsx";
 import {
   CHEERS,
@@ -18,7 +24,9 @@ import {
   nextCheer,
   withMyCheer,
 } from "../src/home/cheer-set.js";
-import { Cheers } from "../src/home/Cheers.jsx";
+import { useQuery } from "@tanstack/react-query";
+import { Cheers, LONG_PRESS_MS, cheerWords } from "../src/home/Cheers.jsx";
+import { CheerGlyph } from "../src/home/CheerGlyph.jsx";
 import { RssLinkPanel } from "../src/views/account/RssLink.jsx";
 import { ScopeProvider } from "../src/lib/scope.js";
 import { HOME_FEED_KEY, pageCheersKey } from "../src/lib/queries.js";
@@ -92,40 +100,6 @@ test("one cheer per person: another changes it, the same takes it back", () => {
   expect(gone.my_cheer).toBeNull();
 });
 
-test("tapping a cheer sends it with the item's subjects and shows the server's counts", async () => {
-  global.fetch = vi.fn(async (path, init = {}) => {
-    calls.push({ path: String(path), method: init.method, body: init.body });
-    return reply({
-      item_id: ITEM.id,
-      cheers: { on_fire: 1, royal: 2 },
-      my_cheer: "royal",
-    });
-  });
-  renderWithProviders(<Cheers it={ITEM} />);
-  expect(
-    screen
-      .getByRole("button", { name: "On fire, 2, yours" })
-      .getAttribute("aria-pressed"),
-  ).toBe("true");
-  expect(screen.getByText("You and 2 others")).toBeTruthy();
-
-  const open = screen.getByRole("button", { name: "Cheer" });
-  expect(open.getAttribute("aria-expanded")).toBe("false");
-  fireEvent.click(open);
-  const picker = screen.getByRole("group", { name: "Choose a cheer" });
-  expect(picker.querySelectorAll("button")).toHaveLength(6);
-  fireEvent.click(screen.getByRole("button", { name: /Royal$/ }));
-
-  await waitFor(() => expect(calls).toHaveLength(1));
-  expect(calls[0].path).toBe("/api/me/cheers");
-  expect(calls[0].method).toBe("PUT");
-  expect(JSON.parse(calls[0].body)).toEqual({
-    item_id: ITEM.id,
-    cheer: "royal",
-    subjects: ["#0GVJ9V", "#0VJ2QV"],
-  });
-});
-
 test("a cheer on a player page reaches Home's copy and every page's copy (Codex on #792)", async () => {
   global.fetch = vi.fn(async () =>
     reply({
@@ -147,8 +121,8 @@ test("a cheer on a player page reaches Home's copy and every page's copy (Codex 
     pages: [{ timeline: [other] }, { timeline: [ITEM] }],
     pageParams: [null, "c1"],
   });
-  fireEvent.click(screen.getByRole("button", { name: "Cheer" }));
-  fireEvent.click(screen.getByRole("button", { name: /Royal$/ }));
+  fireEvent.click(screen.getByRole("button", { name: "Choose a cheer" }));
+  fireEvent.click(screen.getByRole("button", { name: "Royal" }));
   const want = { cheers: { on_fire: 1, royal: 2 }, my_cheer: "royal" };
   await waitFor(() =>
     expect(
@@ -162,28 +136,6 @@ test("a cheer on a player page reaches Home's copy and every page's copy (Codex 
   expect(queryClient.getQueryData(HOME_FEED_KEY).pages[0].timeline[0]).toEqual(
     other,
   );
-});
-
-test("a cheer the server refuses says so", async () => {
-  global.fetch = vi.fn(async () =>
-    reply({ error: "rate_limited", message: "Too many" }, 429),
-  );
-  renderWithProviders(<Cheers it={ITEM} />);
-  fireEvent.click(screen.getByRole("button", { name: "On fire, 2, yours" }));
-  expect((await screen.findByRole("alert")).textContent).toBe(
-    "Your cheer was not saved. Try again.",
-  );
-});
-
-test("on an agent's pages the counts show and nothing can be pressed", () => {
-  global.fetch = vi.fn(async () => reply({}));
-  renderWithProviders(
-    <ScopeProvider value="ag_example">
-      <Cheers it={ITEM} />
-    </ScopeProvider>,
-  );
-  expect(screen.queryAllByRole("button")).toHaveLength(0);
-  expect(screen.getByRole("img", { name: "On fire, 2, yours" })).toBeTruthy();
 });
 
 test("the RSS link shows once after it is made, then only that it is on", async () => {
@@ -214,27 +166,308 @@ test("the RSS link shows once after it is made, then only that it is on", async 
   expect(calls.some((c) => c.method === "POST")).toBe(true);
 });
 
-test("one cheer write at a time per item: the chips wait for the answer", async () => {
-  let answer;
-  global.fetch = vi.fn((path, init = {}) => {
-    calls.push({ path: String(path), method: init.method, body: init.body });
-    return new Promise((resolve) => {
-      answer = () =>
-        resolve(
-          reply({ item_id: ITEM.id, cheers: { on_fire: 1 }, my_cheer: null }),
-        );
+/** The item as the Timeline draws it: from Home's cached feed, so the
+ *  optimistic copy, the server's answer and a rollback all show. */
+function FeedHarness() {
+  const { data } = useQuery({
+    queryKey: HOME_FEED_KEY,
+    queryFn: () => new Promise(() => {}),
+    staleTime: Infinity,
+  });
+  const it = data?.pages?.[0]?.timeline?.[0];
+  return it ? <Cheers it={it} /> : null;
+}
+async function feedWith(item) {
+  const r = renderWithProviders(<FeedHarness />);
+  act(() =>
+    r.queryClient.setQueryData(HOME_FEED_KEY, {
+      pages: [{ timeline: [item] }],
+      pageParams: [null],
+    }),
+  );
+  await screen.findByRole("button", { name: "Cheer" });
+  return r;
+}
+const FRESH = { ...ITEM, cheers: { royal: 1 }, my_cheer: null };
+const cheerButton = () => screen.getByRole("button", { name: "Cheer" });
+/** A server that answers each write with the counts it would hold. */
+function answering() {
+  global.fetch = vi.fn(async (path, init = {}) => {
+    const body = JSON.parse(init.body);
+    calls.push({ path: String(path), method: init.method, body });
+    const after = withMyCheer(FRESH, body.cheer);
+    return reply({
+      item_id: ITEM.id,
+      cheers: after.cheers,
+      my_cheer: after.my_cheer,
     });
   });
-  renderWithProviders(<Cheers it={ITEM} />);
-  const mine = screen.getByRole("button", { name: "On fire, 2, yours" });
-  fireEvent.click(mine);
-  await waitFor(() => expect(calls).toHaveLength(1));
-  for (const b of screen.getAllByRole("button")) expect(b.disabled).toBe(true);
-  fireEvent.click(screen.getByRole("button", { name: /Royal, 1/ }));
-  expect(calls).toHaveLength(1);
-  answer();
+}
+
+test("one tap cheers at once with the default, and a second tap takes it back", async () => {
+  answering();
+  await feedWith(FRESH);
+  const button = await screen.findByRole("button", { name: "Cheer" });
+  expect(button.getAttribute("aria-pressed")).toBe("false");
+  fireEvent.click(button);
+  // Shown before the server answers.
   await waitFor(() =>
-    expect(screen.getByRole("button", { name: "Cheer" }).disabled).toBe(false),
+    expect(cheerButton().getAttribute("aria-pressed")).toBe("true"),
   );
+  await waitFor(() => expect(calls).toHaveLength(1));
+  expect(calls[0].path).toBe("/api/me/cheers");
+  expect(calls[0].method).toBe("PUT");
+  expect(calls[0].body).toEqual({
+    item_id: ITEM.id,
+    cheer: "well_played",
+    subjects: ["#0GVJ9V", "#0VJ2QV"],
+  });
+  await waitFor(() => expect(screen.getByText("You and 1 other")).toBeTruthy());
+  expect(
+    document.getElementById(cheerButton().getAttribute("aria-describedby"))
+      .textContent,
+  ).toBe("Well played 1, Royal 1. You and 1 other. Yours: Well played");
+  fireEvent.click(cheerButton());
+  await waitFor(() =>
+    expect(cheerButton().getAttribute("aria-pressed")).toBe("false"),
+  );
+  await waitFor(() => expect(calls).toHaveLength(2));
+  expect(calls[1].body.cheer).toBeNull();
+});
+
+test("a cheer of another kind is one tap on Cheer away from being taken back", async () => {
+  answering();
+  await feedWith({ ...ITEM });
+  // Yours is On fire: Cheer is pressed and wears its glyph.
+  expect(cheerButton().getAttribute("aria-pressed")).toBe("true");
+  expect(cheerButton().querySelector("svg.lucide-flame")).toBeTruthy();
+  fireEvent.click(cheerButton());
+  await waitFor(() => expect(calls).toHaveLength(1));
+  expect(calls[0].body.cheer).toBeNull();
+});
+
+test("choosing another kind: the six open inline and one tap switches", async () => {
+  answering();
+  await feedWith(FRESH);
+  const more = screen.getByRole("button", { name: "Choose a cheer" });
+  expect(more.getAttribute("aria-expanded")).toBe("false");
+  fireEvent.click(more);
+  expect(more.getAttribute("aria-expanded")).toBe("true");
+  const group = screen.getByRole("group", { name: "Cheer with" });
+  expect(more.getAttribute("aria-controls")).toBe(group.id);
+  expect(group.querySelectorAll("button")).toHaveLength(6);
+  fireEvent.click(screen.getByRole("button", { name: "Grind" }));
+  expect(screen.queryByRole("group", { name: "Cheer with" })).toBeNull();
+  await waitFor(() =>
+    expect(
+      cheerButton().querySelector("svg.lucide-biceps-flexed"),
+    ).toBeTruthy(),
+  );
+  await waitFor(() => expect(calls).toHaveLength(1));
+  expect(calls[0].body.cheer).toBe("grind");
+});
+
+test("the keyboard reaches the kinds: arrows move, Enter chooses, Escape closes", async () => {
+  answering();
+  await feedWith({ ...ITEM });
+  const more = screen.getByRole("button", { name: "Choose a cheer" });
+  more.focus();
+  // A keyboard press on a button is a click with no pointer detail.
+  fireEvent.click(more, { detail: 0 });
+  // Focus lands on yours (On fire).
+  await waitFor(() =>
+    expect(document.activeElement.textContent).toBe("On fire"),
+  );
+  expect(screen.getByRole("group", { name: "Cheer with" })).toBeTruthy();
+  fireEvent.keyDown(document.activeElement, { key: "ArrowRight" });
+  expect(document.activeElement.textContent).toBe("Royal");
+  fireEvent.keyDown(document.activeElement, { key: "ArrowLeft" });
+  fireEvent.keyDown(document.activeElement, { key: "ArrowLeft" });
+  expect(document.activeElement.textContent).toBe("Well played");
+  fireEvent.keyDown(document.activeElement, { key: "End" });
+  expect(document.activeElement.textContent).toBe("Grind");
+  fireEvent.keyDown(document.activeElement, { key: "Escape" });
+  expect(screen.queryByRole("group", { name: "Cheer with" })).toBeNull();
+  expect(document.activeElement).toBe(more);
+  expect(calls).toHaveLength(0);
+  fireEvent.click(more, { detail: 0 });
+  await waitFor(() =>
+    expect(document.activeElement.textContent).toBe("On fire"),
+  );
+  fireEvent.keyDown(document.activeElement, {
+    key: "ArrowRight",
+  });
+  fireEvent.click(document.activeElement, { detail: 0 });
+  await waitFor(() => expect(calls).toHaveLength(1));
+  expect(calls[0].body.cheer).toBe("royal");
+  await waitFor(() => expect(document.activeElement).toBe(cheerButton()));
+});
+
+test("a scroll that starts on Cheer never cheers, and a long press opens the kinds", async () => {
+  answering();
+  await feedWith(FRESH);
+  const button = cheerButton();
+  // A finger lands on Cheer and the page scrolls: the browser cancels the
+  // pointer and sends no click.
+  fireEvent.pointerDown(button, {
+    pointerType: "touch",
+    clientX: 10,
+    clientY: 10,
+  });
+  fireEvent.pointerMove(button, {
+    pointerType: "touch",
+    clientX: 10,
+    clientY: 60,
+  });
+  fireEvent.pointerCancel(button, { pointerType: "touch" });
+  await new Promise((r) => setTimeout(r, LONG_PRESS_MS + 50));
+  expect(screen.queryByRole("group", { name: "Cheer with" })).toBeNull();
+  expect(calls).toHaveLength(0);
+  expect(button.getAttribute("aria-pressed")).toBe("false");
+
+  // A finger that rests: the kinds open, and the click that ends the press
+  // is not a cheer.
+  fireEvent.pointerDown(button, {
+    pointerType: "touch",
+    clientX: 10,
+    clientY: 10,
+  });
+  await screen.findByRole("group", { name: "Cheer with" }, { timeout: 2000 });
+  fireEvent.pointerUp(button, { pointerType: "touch" });
+  fireEvent.click(button);
+  expect(calls).toHaveLength(0);
+  expect(button.getAttribute("aria-pressed")).toBe("false");
+});
+
+test("a write that fails rolls back and says so quietly", async () => {
+  global.fetch = vi.fn(async () =>
+    reply({ error: "rate_limited", message: "Too many" }, 429),
+  );
+  await feedWith(FRESH);
+  fireEvent.click(cheerButton());
+  expect((await screen.findByRole("status")).textContent).toBe(
+    "Your cheer was not saved. Try again.",
+  );
+  expect(cheerButton().getAttribute("aria-pressed")).toBe("false");
+  expect(screen.queryByText("You")).toBeNull();
+});
+
+test("taps during a write show at once and are sent in order after it", async () => {
+  const answers = [];
+  global.fetch = vi.fn((path, init = {}) => {
+    const body = JSON.parse(init.body);
+    calls.push({ body });
+    const after = withMyCheer(FRESH, body.cheer);
+    return new Promise((resolve) =>
+      answers.push(() =>
+        resolve(
+          reply({
+            item_id: ITEM.id,
+            cheers: after.cheers,
+            my_cheer: after.my_cheer,
+          }),
+        ),
+      ),
+    );
+  });
+  await feedWith(FRESH);
+  fireEvent.click(cheerButton());
+  await waitFor(() => expect(calls).toHaveLength(1));
+  // Taken back before the first write answers: shown now, held back.
+  fireEvent.click(cheerButton());
+  expect(cheerButton().getAttribute("aria-pressed")).toBe("false");
+  expect(cheerButton().disabled).toBe(false);
   expect(calls).toHaveLength(1);
+  answers[0]();
+  await waitFor(() => expect(calls).toHaveLength(2));
+  expect(calls.map((c) => c.body.cheer)).toEqual(["well_played", null]);
+  answers[1]();
+  await waitFor(() =>
+    expect(cheerButton().getAttribute("aria-pressed")).toBe("false"),
+  );
+});
+
+test("on an agent's pages the counts show and nothing can be pressed", () => {
+  global.fetch = vi.fn(async () => reply({}));
+  renderWithProviders(
+    <ScopeProvider value="ag_example">
+      <Cheers it={ITEM} />
+    </ScopeProvider>,
+  );
+  expect(screen.queryAllByRole("button")).toHaveLength(0);
+  expect(
+    screen.getByRole("img", { name: "On fire 2, Royal 1. 3 people" }),
+  ).toBeTruthy();
+});
+
+test("a line's compact Cheer carries the total, and no counts by kind", () => {
+  global.fetch = vi.fn(async () => reply({}));
+  renderWithProviders(<Cheers it={ITEM} compact />);
+  expect(cheerButton().textContent).toBe("3");
+  expect(document.querySelector(".kit-cheers__counts")).toBeNull();
+  expect(cheerWords(ITEM.cheers, ITEM.my_cheer)).toBe(
+    "On fire 2, Royal 1. You and 2 others. Yours: On fire",
+  );
+});
+
+test("each kind has one glyph, a Lucide one, drawn the same wherever it shows", () => {
+  const glyphs = CHEERS.map((c) => c.icon);
+  expect(new Set(glyphs).size).toBe(CHEERS.length);
+  expect(Object.fromEntries(CHEERS.map((c) => [c.key, c.icon]))).toEqual({
+    well_played: "thumbs-up",
+    on_fire: "flame",
+    royal: "crown",
+    wow: "sparkles",
+    ha: "laugh",
+    grind: "biceps-flexed",
+  });
+  for (const c of CHEERS) {
+    cleanup();
+    renderWithProviders(<CheerGlyph kind={c.key} />);
+    const svg = document.querySelector("svg");
+    expect(svg.getAttribute("class")).toContain(`lucide-${c.icon}`);
+    expect(svg.getAttribute("aria-hidden")).toBe("true");
+  }
+  // The feed's counts and the kinds row draw a kind with the same glyph.
+  cleanup();
+  global.fetch = vi.fn(async () => reply({}));
+  renderWithProviders(<Cheers it={ITEM} />);
+  fireEvent.click(screen.getByRole("button", { name: "Choose a cheer" }));
+  const count = document.querySelectorAll(".kit-cheers__count svg");
+  expect([...count].map((s) => s.getAttribute("class"))).toEqual([
+    expect.stringContaining("lucide-flame"),
+    expect.stringContaining("lucide-crown"),
+  ]);
+  const kinds = screen.getByRole("group", { name: "Cheer with" });
+  const drawnKinds = [...kinds.querySelectorAll("svg")];
+  expect(drawnKinds).toHaveLength(glyphs.length);
+  drawnKinds.forEach((s, i) =>
+    expect(s.getAttribute("class")).toContain(`lucide-${glyphs[i]}`),
+  );
+});
+
+test("no surface draws a cheer kind but through CheerGlyph", () => {
+  const root = path.resolve(
+    path.dirname(fileURLToPath(import.meta.url)),
+    "../src",
+  );
+  const drawn = ["home/Cheers.jsx", "shell/Bell.jsx"];
+  for (const f of drawn)
+    expect(readFileSync(path.join(root, f), "utf8")).toContain("<CheerGlyph");
+  // The emoji the six once wore are gone from the app.
+  const walk = (d) =>
+    readdirSync(d, { withFileTypes: true }).flatMap((e) =>
+      e.isDirectory()
+        ? walk(path.join(d, e.name))
+        : /\.(jsx?|tsx?)$/.test(e.name)
+          ? [path.join(d, e.name)]
+          : [],
+    );
+  for (const f of walk(root))
+    expect(
+      /[\u{1F44F}\u{1F525}\u{1F451}\u{1F62E}\u{1F602}\u{1F4AA}]/u.test(
+        readFileSync(f, "utf8"),
+      ),
+      f,
+    ).toBe(false);
 });

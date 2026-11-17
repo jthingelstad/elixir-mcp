@@ -1,4 +1,4 @@
-import { Link, PageHead, TagText, Empty } from "@elixir-mcp/ui";
+import { Link, PageHead, TagText, Empty, Icon } from "@elixir-mcp/ui";
 import { useEffect, useRef } from "react";
 import { useFirstAnswer } from "../hooks/useFirstAnswer.js";
 import { SETTINGS } from "../lib/settings.js";
@@ -57,7 +57,7 @@ export function Pending({ player, players, hrefFor, navigate }) {
           titleAs="h2"
           action={
             <Link className="btn btn--sm" to={`${status}#fix-tag`}>
-              Fix the tag ›
+              Fix the tag <Icon name="chevron-right" size={14} />
             </Link>
           }
           role="alert"
@@ -70,7 +70,7 @@ export function Pending({ player, players, hrefFor, navigate }) {
           titleAs="h2"
           action={
             <Link className="btn btn--sm" to={status}>
-              See recording status ›
+              See recording status <Icon name="chevron-right" size={14} />
             </Link>
           }
           role="status"

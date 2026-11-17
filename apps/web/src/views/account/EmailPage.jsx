@@ -148,7 +148,7 @@ export function EmailPage() {
         className="mail-pref__last"
         to={`${SETTINGS}/emails/${k.last_send_id}`}
       >
-        The last one ›
+        The last one <Icon name="chevron-right" size={14} />
       </Link>
     ) : null;
   const when_ = (k) => {
@@ -273,7 +273,7 @@ export function EmailPage() {
             Sent to you
           </h2>
           <Link className="mail-pref__all" to={`${SETTINGS}/emails/sent`}>
-            All sent ›
+            All sent <Icon name="chevron-right" size={14} />
           </Link>
         </div>
         {data?.recent?.length > 0 ? (

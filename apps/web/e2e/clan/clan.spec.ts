@@ -889,7 +889,7 @@ test.describe("signed in", () => {
     await expect(
       page.getByRole("heading", { name: "Remove from the clan: Sleepy" }),
     ).toBeVisible();
-    await page.getByRole("link", { name: "‹ Feed" }).click();
+    await page.getByRole("link", { name: "Feed" }).click();
     await expect(page).toHaveURL(/\/feed$/);
     await page.goto("/clan/0QC8RCGY/actions/99");
     await expect(page.getByText("No action #99 here")).toBeVisible();
@@ -1071,7 +1071,7 @@ test.describe("signed in", () => {
         () => document.documentElement.scrollWidth <= window.innerWidth,
       ),
     ).toBe(true);
-    await page.getByRole("link", { name: "‹ Run" }).click();
+    await page.getByRole("link", { name: "Run" }).click();
     await expect(list).toBeVisible();
     await accessible(page, "narrow run");
   });

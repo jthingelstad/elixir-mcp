@@ -1,4 +1,4 @@
-import { Link, Panel, PageHead, Table } from "@elixir-mcp/ui";
+import { Link, Panel, PageHead, Table, Icon } from "@elixir-mcp/ui";
 import { useAdminEfficiency } from "../lib/queries.js";
 import { ADMIN } from "../lib/settings.js";
 
@@ -83,7 +83,10 @@ export function Efficiency() {
       <PageHead
         crumb={
           <div className="page__crumb">
-            <Link to={`${ADMIN}/service`}>‹ Service</Link>
+            <Link to={`${ADMIN}/service`}>
+              <Icon name="chevron-left" size={16} />
+              Service
+            </Link>
           </div>
         }
         title="Efficiency"

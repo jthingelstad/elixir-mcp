@@ -125,9 +125,9 @@ test("the record: tool, metrics strip, folded meta, cut arrays, neighbours, feed
   expect(screen.queryByRole("button", { name: "show all 30" })).toBeNull();
 
   // Previous and next by the same connection.
-  fireEvent.click(screen.getByRole("button", { name: "‹ Previous call" }));
+  fireEvent.click(screen.getByRole("button", { name: "Previous call" }));
   expect(navigate).toHaveBeenCalledWith(`/settings/usage/requests/${PREV}`);
-  fireEvent.click(screen.getByRole("button", { name: "Next call ›" }));
+  fireEvent.click(screen.getByRole("button", { name: "Next call" }));
   expect(navigate).toHaveBeenCalledWith(`/settings/usage/requests/${NEXT}`);
 
   // Feedback, carrying the call as a FIELD. It used to arrive as
@@ -162,7 +162,7 @@ test("a row without a captured body still renders from the log's bounded argumen
   expect(screen.getByText("Refused: daily budget")).toBeTruthy();
   expect(screen.getByText("Not captured for this call.")).toBeTruthy();
   expect(screen.getByText(/Refused before any tool ran/)).toBeTruthy();
-  expect(screen.getByRole("button", { name: "‹ Previous call" }).disabled).toBe(
+  expect(screen.getByRole("button", { name: "Previous call" }).disabled).toBe(
     true,
   );
 });
@@ -171,7 +171,7 @@ test("an id that is not in the reader's log says so, with the way back", async (
   stub({ error: "not_found" }, 404);
   renderWithProviders(<CallRecord id={ID} navigate={() => {}} />);
   await waitFor(() => screen.getByText("That call is not in your log"));
-  expect(screen.getByText("‹ Requests")).toBeTruthy();
+  expect(screen.getByText("Requests")).toBeTruthy();
 });
 
 test("the Requests log links each call to its record", async () => {

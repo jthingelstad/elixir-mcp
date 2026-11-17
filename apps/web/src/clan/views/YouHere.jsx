@@ -112,7 +112,8 @@ export function YouHere({ clan, navigate }) {
   const head = (
     <>
       <Link to={`${base}/members`} navigate={navigate}>
-        ‹ Back to Members
+        <Icon name="chevron-left" size={16} />
+        Back to Members
       </Link>
       <div className="mt-3">
         <PageHead
@@ -226,9 +227,7 @@ export function YouHere({ clan, navigate }) {
             {d.open_actions} action{d.open_actions === 1 ? " waits" : "s wait"}{" "}
             for you
           </span>
-          <span aria-hidden="true" className="text-ink-faint">
-            ›
-          </span>
+          <Icon name="chevron-right" size={16} className="text-ink-faint" />
         </Panel>
       ) : null}
 

@@ -180,7 +180,7 @@ describe("the gate pages", () => {
       const page = REFUSALS[reason];
       expect(screen.getByRole("heading", { name: page.title })).toBeTruthy();
       const link = screen.getByRole("link", {
-        name: page.plain ? page.link[1] : `${page.link[1]} ›`,
+        name: page.plain ? page.link[1] : `${page.link[1]}`,
       });
       expect(link.getAttribute("href")).toBe(page.link[0]);
     },
@@ -211,7 +211,7 @@ describe("the gate pages", () => {
     expect(screen.queryByText(/join a clan/i)).toBeNull();
     expect(
       screen
-        .getByRole("link", { name: "Settings → Players ›" })
+        .getByRole("link", { name: "Settings → Players" })
         .getAttribute("href"),
     ).toContain("/settings/players");
   });

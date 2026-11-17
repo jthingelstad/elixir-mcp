@@ -245,7 +245,8 @@ export function ActionDetail({ clan, who, number, navigate }) {
   const head = (
     <>
       <Link to={list} navigate={navigate} className="mb-2 inline-block">
-        ‹ Feed
+        <Icon name="chevron-left" size={16} />
+        Feed
       </Link>
       <PageHead
         title={

@@ -9,6 +9,7 @@ import {
   TagText,
   useClock,
 } from "@elixir-mcp/ui";
+import { CheerGlyph } from "../home/CheerGlyph.jsx";
 import { FollowButton } from "../home/follow.jsx";
 import { needsYou, panelOf } from "../home/logic.js";
 import {
@@ -168,13 +169,13 @@ function Group({ id, title, children, tone }) {
   );
 }
 
-/** Cheers as the picker draws them, said as words. */
+/** Cheers with the glyphs the Timeline draws them with, said as words. */
 function Cheers({ row }) {
   return (
     <span role="img" aria-label={row.words} className="kit-bell__cheers">
       {row.counts.map((c) => (
         <span key={c.key} className="kit-bell__cheer">
-          <span aria-hidden="true">{c.emoji}</span> {c.count}
+          <CheerGlyph kind={c.key} size={15} /> {c.count}
         </span>
       ))}
     </span>

@@ -13,6 +13,7 @@ import {
   WriteError,
   useClock,
   useFlash,
+  Icon,
 } from "@elixir-mcp/ui";
 import { useState } from "react";
 import { api } from "../../api.js";
@@ -168,7 +169,11 @@ function AgentRow({ agent: a }) {
           {key?.created_at ? ` Key made ${whenDay(key.created_at)}.` : ""}
         </>
       }
-      right="Open ›"
+      right={
+        <>
+          Open <Icon name="chevron-right" size={14} />
+        </>
+      }
       href={`${SETTINGS}/agents/${a.public_id}/overview`}
     />
   );

@@ -108,7 +108,7 @@ for (const size of ["wide", "@narrow"]) {
         .first(),
     ).toBeVisible();
     await page.reload();
-    await page.getByRole("link", { name: "‹ Feed" }).click();
+    await page.getByRole("link", { name: "Feed" }).click();
     await expect(page).toHaveURL(/\/feed$/);
     await expect(
       page.getByText("Nothing waiting for you", { exact: true }),

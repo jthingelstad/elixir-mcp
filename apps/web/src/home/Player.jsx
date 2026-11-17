@@ -588,7 +588,7 @@ function Highlights({ items, cheered, own = false }) {
           <>
             {" "}
             <a href="/docs/battles#highlight-a-battle">
-              How to highlight a battle ›
+              How to highlight a battle <Icon name="chevron-right" size={14} />
             </a>
           </>
         ) : null}

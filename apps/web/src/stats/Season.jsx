@@ -551,7 +551,7 @@ function TopDeck({ mode, args, hrefFor }) {
       title="Most played deck"
       action={
         <Link to={hrefFor({ slug: "decks" })}>
-          Every deck {whose.you} played ›
+          Every deck {whose.you} played <Icon name="chevron-right" size={14} />
         </Link>
       }
     >

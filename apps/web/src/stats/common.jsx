@@ -35,7 +35,9 @@ export function SeasonFallback({ season, hrefFor }) {
       <Icon name="info" size={17} />
       <span>
         {empty.name} has no recorded battles yet, so this is {season.name}.{" "}
-        <Link to={hrefFor({ season: empty.key })}>Show {empty.name} ›</Link>
+        <Link to={hrefFor({ season: empty.key })}>
+          Show {empty.name} <Icon name="chevron-right" size={14} />
+        </Link>
       </span>
     </div>
   );

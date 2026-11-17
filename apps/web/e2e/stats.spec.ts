@@ -1337,7 +1337,7 @@ test.describe("Stats decks", () => {
   test("the season home links to every deck", async ({ page }) => {
     await mockApi(page, signedIn({ "POST /api/me/tool": explore() }));
     await page.goto("/home/you/stats");
-    await page.getByRole("link", { name: "Every deck you played ›" }).click();
+    await page.getByRole("link", { name: "Every deck you played" }).click();
     await expect(page).toHaveURL(/\/home\/you\/stats\/decks(\?mode=ladder)?$/);
     await expect(
       page.getByRole("heading", { level: 1, name: "Decks" }),
@@ -1543,7 +1543,7 @@ test.describe("Stats seasons", () => {
     );
     // Its most played deck is that season's, a link from all of them.
     await expect(
-      page.getByRole("link", { name: "Every deck you played ›" }),
+      page.getByRole("link", { name: "Every deck you played" }),
     ).toHaveAttribute("href", "/home/you/stats/decks?mode=ladder&season=135");
     await expect
       .poll(() =>
@@ -1603,7 +1603,7 @@ test.describe("Stats seasons", () => {
     await accessible(page, "ladder, an empty current season");
 
     // The empty season itself, one click away, says it is empty.
-    await note.getByRole("link", { name: "Show Season 136 ›" }).click();
+    await note.getByRole("link", { name: "Show Season 136" }).click();
     await expect(page).toHaveURL(/\/home\/you\/stats\?mode=ladder&season=136$/);
     await expect(
       page.getByRole("heading", {

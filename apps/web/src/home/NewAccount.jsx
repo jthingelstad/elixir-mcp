@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import { Link, TagText, writeErrorText } from "@elixir-mcp/ui";
+import { Link, TagText, writeErrorText, Icon } from "@elixir-mcp/ui";
 import { api } from "../api.js";
 import { trackEvent } from "../analytics.js";
 import { SETTINGS } from "../lib/settings.js";
@@ -140,7 +140,7 @@ function Step({
   return (
     <li className={`kit-step${done ? " kit-step--done" : ""}`}>
       <span className="kit-step__dot" aria-hidden="true">
-        {done ? "✓" : n}
+        {done ? <Icon name="check" size={16} /> : n}
       </span>
       <div className="kit-step__body">
         <Heading>

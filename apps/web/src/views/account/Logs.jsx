@@ -60,7 +60,12 @@ export function Requests({
   });
   return (
     <LogTable
-      crumb={<Link to={path(`${SETTINGS}/usage`)}>‹ Usage and limits</Link>}
+      crumb={
+        <Link to={path(`${SETTINGS}/usage`)}>
+          <Icon name="chevron-left" size={16} />
+          Usage and limits
+        </Link>
+      }
       title="Requests"
       note="Every call your connections made, newest first."
       loading={query.isPending}
@@ -118,7 +123,12 @@ export function Sent() {
   ]);
   return (
     <LogTable
-      crumb={<Link to={`${SETTINGS}/emails`}>‹ Emails</Link>}
+      crumb={
+        <Link to={`${SETTINGS}/emails`}>
+          <Icon name="chevron-left" size={16} />
+          Emails
+        </Link>
+      }
       title="Sent to you"
       note="Every email Elixir sent you, newest first. Open one to see it as it was sent, or to report a problem with it."
       loading={query.isPending}

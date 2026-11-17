@@ -384,18 +384,20 @@ for (const [label, width] of [
         .locator(".kit-feed__item")
         .filter({ hasText: "Reached Path of Legends." });
       await expect(
-        item.getByRole("button", { name: "On fire, 2" }),
+        item.getByRole("button", { name: "Cheer", exact: true }),
       ).toHaveAttribute("aria-pressed", "false");
-      await expect(item.getByText("2 people")).toBeVisible();
-      await item.getByRole("button", { name: "Cheer" }).click();
-      const picker = item.getByRole("group", { name: "Choose a cheer" });
+      await expect(item.getByText("2 people", { exact: true })).toBeVisible();
+      await item.getByRole("button", { name: "Choose a cheer" }).click();
+      const picker = item.getByRole("group", { name: "Cheer with" });
       await expect(picker.getByRole("button")).toHaveCount(6);
-      await accessible(page, "Home, cheer picker");
-      await picker.getByRole("button", { name: /Royal/ }).click();
+      await accessible(page, "Home, cheer kinds");
+      await picker.getByRole("button", { name: "Royal" }).click();
       await expect(
-        item.getByRole("button", { name: "Royal, 1, yours" }),
+        item.getByRole("button", { name: "Cheer", exact: true }),
       ).toHaveAttribute("aria-pressed", "true");
-      await expect(item.getByText("You and 2 others")).toBeVisible();
+      await expect(
+        item.getByText("You and 2 others", { exact: true }),
+      ).toBeVisible();
       expect(sent).toEqual([
         { item_id: "o1", cheer: "royal", subjects: ["#00C298UC"] },
       ]);

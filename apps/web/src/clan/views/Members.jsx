@@ -1,4 +1,4 @@
-import { Link } from "@elixir-mcp/ui";
+import { Link, Icon } from "@elixir-mcp/ui";
 import { useEffect, useState } from "react";
 import { clanPath } from "../lib/base.js";
 
@@ -44,7 +44,8 @@ export function MembersBack({ clan, navigate }) {
   const to = `${clanPath(clan.clan_tag)}/members`;
   return (
     <Link to={to} navigate={navigate} className="clan-members-back">
-      ‹ Members
+      <Icon name="chevron-left" size={16} />
+      Members
     </Link>
   );
 }

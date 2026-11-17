@@ -74,7 +74,8 @@ each one is there ([Find](/docs/follow-a-friend#find)).
 
 Everyone you follow fills **your Timeline**: their sessions, their firsts and
 their best battles, newest first ([The timeline](/docs/timeline)). Tap
-**Cheer** on anything to [cheer them on](/docs/timeline#cheers). Tap a name
+**Cheer** on anything to [cheer them on](/docs/timeline#cheers) in one
+tap, and tap it again to take it back. Tap a name
 to open that player's page.
 
 Following someone Elixir already records is free. A follow only takes one of

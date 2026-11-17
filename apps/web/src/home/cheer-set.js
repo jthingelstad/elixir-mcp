@@ -3,15 +3,30 @@
  * design canvas's set): every one celebrates, so there is no thumbs-down
  * or sad face. The keys are the server's (services/web-api/src/cheers.mjs,
  * 0243); a test pins the two lists together.
+ *
+ * Each is drawn with one Lucide glyph (2026-11-17, "Lucide is the glyph
+ * library"), the emoji they had before retired: this list is the one map
+ * from a kind to its glyph, and every place that shows a kind draws it
+ * through <CheerGlyph> (CheerGlyph.jsx), so a kind looks the same on the feed, a session's
+ * page, a battle's page and the bell. Mail, push, Discord, RSS and MCP
+ * keep their words. The first is the default: one tap gives it.
  */
 export const CHEERS = [
-  { key: "well_played", emoji: "👏", label: "Well played" },
-  { key: "on_fire", emoji: "🔥", label: "On fire" },
-  { key: "royal", emoji: "👑", label: "Royal" },
-  { key: "wow", emoji: "😮", label: "Wow" },
-  { key: "ha", emoji: "😂", label: "Ha" },
-  { key: "grind", emoji: "💪", label: "Grind" },
+  { key: "well_played", icon: "thumbs-up", label: "Well played" },
+  { key: "on_fire", icon: "flame", label: "On fire" },
+  { key: "royal", icon: "crown", label: "Royal" },
+  { key: "wow", icon: "sparkles", label: "Wow" },
+  { key: "ha", icon: "laugh", label: "Ha" },
+  { key: "grind", icon: "biceps-flexed", label: "Grind" },
 ];
+
+/** The cheer one tap gives (2026-11-17, "A cheer is one tap"). */
+export const DEFAULT_CHEER = CHEERS[0].key;
+
+const BY_KEY = new Map(CHEERS.map((c) => [c.key, c]));
+
+/** A kind as its words and glyph, the default's for an unknown key. */
+export const cheerOf = (key) => BY_KEY.get(key) ?? CHEERS[0];
 
 /** The cheers an item has, in the picker's order, with their counts. */
 export const cheerCounts = (cheers) =>

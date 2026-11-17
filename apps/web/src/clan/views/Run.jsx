@@ -1,4 +1,4 @@
-import { Link, ErrorState } from "@elixir-mcp/ui";
+import { Link, ErrorState, Icon } from "@elixir-mcp/ui";
 import { useBlocker } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { clanPath } from "../lib/base.js";
@@ -398,7 +398,8 @@ function RunSections({ clan, who, section, navigate }) {
       ) : null}
       <div className="clan-run__section">
         <Link to={base} navigate={navigate} className="clan-run__back">
-          ‹ Run
+          <Icon name="chevron-left" size={16} />
+          Run
         </Link>
         {!isPolicy ? (
           <Elsewhere clan={clan} who={who} slug={slug} navigate={navigate} />
