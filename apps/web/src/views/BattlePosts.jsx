@@ -12,7 +12,7 @@ import { useAskOnOpen } from "../lib/own-refresh.js";
  * was a highlight is a post with a battle attached). A signed-in person
  * whose own verified player played this battle posts about it on that
  * player's timeline, with words or without, then may share it as
- * /h/<id> and post it once in the clan's Discord. The server decides who
+ * an opaque /share/<id> link and post it once in the clan's Discord. The server decides who
  * may post (`can_post_as`); this panel only shows what it answered, and
  * draws nothing for anyone else. The post itself is an ordinary post:
  * the Timeline, a player's page and Clan's Feed draw it with its battle.

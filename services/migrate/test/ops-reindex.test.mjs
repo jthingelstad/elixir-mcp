@@ -128,6 +128,7 @@ test("the report reads every index, what it backs and its bloat", async () => {
   assert.deepEqual(by.battle_pkey.foreign_keys, [
     "battle_participant_battle_id_fkey",
     "player_event_battle_id_fkey",
+    "timeline_share_battle_id_fkey",
   ]);
   assert.deepEqual(by.battle_cursor_key.backs_constraint, {
     name: "battle_cursor_key",
@@ -199,7 +200,7 @@ test("a bloated index is rebuilt concurrently, valid and smaller, and keeps its 
   assert.equal(r.after.bytes, await sizeOf("battle_pkey"));
   assert.ok(r.ms >= 0);
   assert.deepEqual(r.invalid_indexes, []);
-  // The primary key and both foreign keys now use the rebuilt index.
+  // The primary key and all three foreign keys now use the rebuilt index.
   const { rows } = await db.query(
     `select conname from pg_constraint
       where conindid = 'battle_pkey'::regclass order by conname`,
@@ -210,6 +211,7 @@ test("a bloated index is rebuilt concurrently, valid and smaller, and keeps its 
       "battle_participant_battle_id_fkey",
       "battle_pkey",
       "player_event_battle_id_fkey",
+      "timeline_share_battle_id_fkey",
     ],
   );
   // A fresh build is what the estimate sizes.

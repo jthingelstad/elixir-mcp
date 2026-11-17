@@ -113,7 +113,7 @@ export function SharedItem({
 export function MemberPostPage() {
   const { id } = useParams({ strict: false });
   const query = useQuery({
-    queryKey: ["me", "post", id],
+    queryKey: ["me", "posts", "item", id],
     queryFn: answered(() => api.memberPost(id)),
   });
   const item = query.data?.ok ? query.data.data?.item : null;

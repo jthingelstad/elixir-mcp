@@ -142,11 +142,6 @@ async function readerSide(db, accountId, tag, clanTag) {
 /** The kinds that are a sitting: Home's session row draws them. */
 const SITTINGS = new Set(["battle_session", "session_standout"]);
 
-/** A sitting's numbers, as Home's session card says them, and nothing else
- *  of its facts: battles, won, lost, drawn, the trophies it moved, its
- *  longest run of wins, its modes, its decks' labels and how many battles
- *  each, its events' names, and when it started and ended (the card links
- *  its page by the start; 2026-11-16). */
 /** The canonical item with the page's common session decoration. Identity,
  * visibility and facts stay attached at the source, for every reader. */
 const pageItem = (it, fallbackDeck = null) => {

@@ -29,13 +29,9 @@ import { ItemShare } from "../home/ItemShare.jsx";
 import { CopyButton, Invite, JoinLine } from "./JoinElixir.jsx";
 
 /**
- * One battle's public page, /battle/<short id> (design canvas
- * 2026-10-01; Jamie: "Public yes. Left is the player right is
- * opponent."). Sign-in free: anyone with the link reads both decks, how
- * it ended and the players' game names. Everything here is what
- * /api/public/battles/<ref> returns - one projection that the preview
- * tags and the share image read too - so the page never derives a
- * number the record does not hold.
+ * One recorded battle's member page. The same canonical game projection
+ * supplies opaque one-battle shares; public views expose no history or
+ * signed-in controls and use plain game names.
  */
 
 const num = (n) => (typeof n === "number" ? n.toLocaleString("en-US") : "—");

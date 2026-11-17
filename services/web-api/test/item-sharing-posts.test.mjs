@@ -135,6 +135,31 @@ test("the member digest destination is private and uses the current same audienc
   );
 });
 
+test("an expired grant can be shared again before the daily trim, without reviving its old link", async () => {
+  const old = (await share(author)).data;
+  await ctx.db.query(
+    "update timeline_share set created_at=now()-interval '366 days' where share_id=$1",
+    [old.id],
+  );
+  assert.equal(
+    (await call("GET", `/api/public/shared-items/${old.id}`)).statusCode,
+    404,
+  );
+  const renewed = await share(author);
+  assert.equal(renewed.statusCode, 200, renewed.body);
+  assert.notEqual(renewed.data.id, old.id);
+  assert.equal(
+    (await call("GET", `/api/public/shared-items/${old.id}`)).statusCode,
+    404,
+  );
+  assert.equal(
+    (await call("GET", `/api/public/shared-items/${renewed.data.id}`))
+      .statusCode,
+    200,
+  );
+  assert.deepEqual((await share(follower)).data, renewed.data);
+});
+
 test("canonical edits, moderation and author status remain authoritative after sharing", async () => {
   const linked = (await share(author)).data;
   const path = `/api/public/shared-items/${linked.id}`;

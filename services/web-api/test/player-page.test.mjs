@@ -11,6 +11,7 @@ import assert from "node:assert/strict";
 import { scratchDb } from "../../../packages/ingest/test/helpers.mjs";
 import { emitEvent } from "../../../packages/ingest/src/events.mjs";
 import { createSession } from "@elixir-mcp/auth";
+import { buildTimeline } from "@elixir-mcp/tools/activity/entries";
 import { makeHandler } from "../src/handler.mjs";
 import {
   followAllRefusal,
@@ -513,19 +514,38 @@ test("a sitting carries Home's session row: sparkline, numbers, and its games by
     sitting.spark.map((b) => b.r),
     ["w", "l", "w"],
   );
-  assert.deepEqual(Object.keys(sitting.facts).sort(), [
-    "battles",
-    "by_mode",
-    "decks",
-    "drawn",
-    "ended_at",
-    "events",
-    "lost",
-    "started_at",
-    "trophy_net",
-    "won",
-    "won_in_a_row",
+  const canonical = (
+    await buildTimeline(
+      db,
+      [{ kind: "player", tag: A, relationship: null, nickname: null }],
+      {
+        fromMs: now - 30 * 86_400_000,
+        toMs: now,
+        timezone: "UTC",
+        basis: "occurred",
+        accountId: null,
+        people: { accounts: [], players: true },
+      },
+    )
+  ).timeline.find((it) => it.id === sitting.id);
+  assert.ok(canonical, "the page preserves the canonical session's identity");
+  assert.deepEqual(
+    sitting.facts,
+    canonical.facts,
+    "no facts are pruned per reader",
+  );
+  assert.match(sitting.id, /^tl_[0-9a-f]{20}$/);
+  assert.equal(sitting.section, "battles");
+  assert.equal(sitting.subject_tag, A);
+  assert.deepEqual(sitting.subjects, [
+    { tag: A, kind: "player", name: "Alder" },
   ]);
+  assert.equal(sitting.visibility, "public");
+  assert.equal(sitting.publishable, true);
+  assert.equal(sitting.facts.player_tag, A);
+  assert.equal(sitting.facts.name, "Alder");
+  assert.equal(sitting.facts.duration_s, 10 * 60);
+  assert.equal(sitting.facts.three_crown_wins, 1);
   assert.equal(sitting.facts.battles, 3);
   assert.equal(sitting.evidence.kind, "session");
 

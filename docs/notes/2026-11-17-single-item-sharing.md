@@ -16,7 +16,7 @@ Migration 0294 creates an empty timeline_share capability table with 120-bit
 random keys, unique canonical item IDs, source checks, foreign-key cascades
 and indexes. No record or post is copied or deleted. Onboarding's 293 index
 lands first. Sha256 pins and a fresh scratch schema fingerprint accompany
-both. Metadata expires after a year; canonical source retention and the
+both. Metadata expires after a year; sharing again renews an expired grant with a new random key without reviving its old URL. Canonical source retention and the
 session reader's 30-day window can end a link earlier.
 
 Creation authenticates a person, bounds issuance to 120/hour, re-resolves the
@@ -38,7 +38,7 @@ lane and MCP owner share_url, reads the new capability. No new mail,
 Discord, RSS, push or MCP publishing lane is added. MCP 13.12.0 describes the
 changed link access; JSON API 5.1.0 and item schemas are unchanged.
 
-Engineering calls: one stable link per item regardless of who shares it;
+Engineering calls: one stable active link per item regardless of who shares it;
 no sharer, opener or referral identity; no anonymous history or pagination;
 no automatic publication on an MCP read; all attested Clan facts withheld,
 even where a leader can see them. Noindex asks cooperating crawlers to stay

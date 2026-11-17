@@ -411,7 +411,7 @@ export async function postQueue(db) {
       where p.status = 'hidden'
          or exists (select 1 from post_report o
                      where o.post_id = p.post_id and o.resolved_at is null)
-      group by p.post_id, pl.name, ap.passport_id
+      group by p.post_id, pl.name, ap.passport_id, ts.share_id
       order by min(r.created_at) nulls last, p.created_at
       limit 100`,
   );

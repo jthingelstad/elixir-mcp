@@ -21,6 +21,7 @@ import { makeHandler } from "../src/handler.mjs";
 import { drawItem, makeShareImage } from "../src/share-image.mjs";
 import { fontMetrics } from "../src/font-metrics.mjs";
 import { shareSources } from "../src/share-files.mjs";
+import { buildTimeline } from "@elixir-mcp/tools/activity/entries";
 import { createItemShare } from "../src/timeline-sharing.mjs";
 
 // Made-up tags: this repository is public.
@@ -356,4 +357,60 @@ test("the member session page remains signed in and no longer emits an anonymous
   assert.equal(data(inside).item.id, item.id);
   assert.equal(data(inside).url, undefined);
   assert.equal(data(inside).image, undefined);
+});
+
+test("a clan-owned arrival shares its canonical news without opening the clan history", async () => {
+  const clan = "#0VGJQ28P";
+  await scratch.db.query(
+    "insert into clan(clan_tag,name) values($1,'<b>Clan & more</b>')",
+    [clan],
+  );
+  await scratch.db.query(
+    "insert into clan_membership(clan_tag,player_tag,role,joined_observed_at,baseline) values($1,$2,'member',$3,false)",
+    [clan, A, new Date(now - 20 * 60000)],
+  );
+  await scratch.db.query(
+    "insert into clan_event(clan_tag,event_type,timing,window_start,window_end,player_tag,role_after) values($1,'member_joined','estimated',$2,$3,$4,'member')",
+    [clan, new Date(now - 21 * 60000), new Date(now - 20 * 60000), A],
+  );
+  const built = await buildTimeline(
+    scratch.db,
+    [{ kind: "clan", tag: clan, scope: "comprehensive" }],
+    {
+      fromMs: now - 86400_000,
+      toMs: now,
+      timezone: "UTC",
+      basis: "occurred",
+      accountLines: false,
+    },
+  );
+  const item = built.timeline.find((it) => it.kind === "member_joined");
+  assert.ok(
+    item,
+    JSON.stringify(built.timeline.map((it) => [it.kind, it.subject_tag])),
+  );
+  const shared = await createItemShare(scratch.db, X, {
+    source: "game",
+    item_id: item.id,
+    kind: item.kind,
+    subject: { kind: "clan", tag: clan },
+    at: item.at,
+  });
+  assert.ok(shared);
+  const res = await get(`/api/public/shared-items/${shared.id}`);
+  assert.equal(res.statusCode, 200, res.body);
+  const body = data(res);
+  assert.equal(body.item.id, item.id);
+  assert.ok(
+    body.item.subjects.some((s) => s.kind === "clan" && s.tag === clan),
+  );
+  for (const absent of [
+    "attested_by",
+    "clan_policy",
+    "decision",
+    "hold",
+    "nickname",
+    "leader_note",
+  ])
+    assert.ok(!res.body.includes(absent), absent);
 });

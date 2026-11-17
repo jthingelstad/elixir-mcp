@@ -23,7 +23,11 @@ export async function ensureShare(db, target) {
            (share_id, item_id, item_kind, source, subject_kind, subject_tag,
             account_page_id, post_id, battle_id, anchor_at)
          values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
-         on conflict (item_id) do update set item_id = excluded.item_id
+         on conflict (item_id) do update
+           set share_id = case when timeline_share.created_at < now() - interval '1 year'
+                               then excluded.share_id else timeline_share.share_id end,
+               created_at = case when timeline_share.created_at < now() - interval '1 year'
+                                 then now() else timeline_share.created_at end
          returning share_id`,
         [
           mintShareId(),

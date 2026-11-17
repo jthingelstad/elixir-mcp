@@ -144,3 +144,21 @@ test("private and unknown items have no Share, and battle targets use the canoni
     battle_ref: "canonical-battle",
   });
 });
+
+test("a Clan news item shares from its owning clan even when a player is named too", async () => {
+  const clan = { kind: "clan", tag: "#0VGJQ28P", name: "Clan" };
+  const member = { kind: "player", tag: "#0PGQ2UYL", name: "New player" };
+  const news = {
+    ...item,
+    kind: "member_joined",
+    visibility: "public",
+    subject_tag: clan.tag,
+    subjects: [member, clan],
+  };
+  render(<ItemShare it={news} />);
+  fireEvent.click(screen.getByRole("button", { name: "Share", exact: true }));
+  await screen.findByRole("button", { name: "Link copied" });
+  expect(api.shareItem).toHaveBeenCalledWith(
+    expect.objectContaining({ source: "game", subject: clan }),
+  );
+});
