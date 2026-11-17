@@ -47,6 +47,12 @@ const PUBLIC = {
   // sender (highlight.test.mjs pins the shape).
   "GET /h/*": "record",
   "GET /api/public/highlights/*": "record",
+  // The record: a session link someone sends (2026-11-17, DECISIONS "A
+  // session's public page"): its page (and picture, .png on the same
+  // address) and its JSON, read as nobody, only when the tag, the id and
+  // the start all name one sitting (session-page.test.mjs pins it).
+  "GET /session/**": "record",
+  "GET /api/public/sessions/**": "record",
   // Status: counts of what the recorder holds, no subject named but
   // the operator credit on /api/public/status. /data and its live
   // figures read these; the site build bakes /api/public/stats.
@@ -87,13 +93,16 @@ const CLASSES = new Set([
   "plumbing",
 ]);
 
-/** The record that opens with no account, exactly: a battle link and a
- *  shared post (slice 4, #762). Growing this is a product decision. */
+/** The record that opens with no account, exactly: a battle link, a
+ *  shared post (slice 4, #762) and a session link (2026-11-17). Growing
+ *  this is a product decision. */
 const RECORD = [
   "GET /api/public/battles/*",
   "GET /api/public/highlights/*",
+  "GET /api/public/sessions/**",
   "GET /battle/*",
   "GET /h/*",
+  "GET /session/**",
 ];
 
 const PRIMARY = "#0RYQQRGY";
@@ -165,7 +174,7 @@ test("every listed public route exists", () => {
     assert.ok(keys.has(key), `${key} is listed public but not registered`);
 });
 
-test("the public list is classed, and its record is a battle link or a shared post", () => {
+test("the public list is classed, and its record is a battle link, a shared post or a session link", () => {
   for (const [key, cls] of Object.entries(PUBLIC))
     assert.ok(CLASSES.has(cls), `${key} has an unknown class ${cls}`);
   assert.deepEqual(

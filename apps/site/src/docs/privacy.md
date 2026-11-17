@@ -27,9 +27,12 @@ people it is meant for can see it.
 
 **Without an account.** Every read of the record needs a free account:
 players, clans, timelines and profiles, on the website and over MCP.
-Two pages of the record open to anyone: a
+Three pages of the record open to anyone: a
 battle's own page, with its link and share picture, so a battle can be
-shared; and a highlight its poster has shared, at its own
+shared; a session's own page from the last 30 days, with its link and
+share picture, showing its battles, decks and the players' game names and
+never a nickname, a cheer, a comment or anything of the account
+([Share a session](/docs/timeline#share-a-session)); and a highlight its poster has shared, at its own
 link, with the player's game name, their words and that battle, never a
 nickname or anything of the account
 ([Highlight a battle](/docs/battles#highlight-a-battle)). [The status page](/data) and its JSON count what the recorder holds and name no player or clan,

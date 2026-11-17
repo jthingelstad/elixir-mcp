@@ -168,7 +168,7 @@ test("the profile list puts its next step on top, the six folded under it", asyn
     />,
   );
   const head = await screen.findByRole("heading", {
-    name: "Your profile, 3 of 6 done",
+    name: "Getting set up, 3 of 6 done",
   });
   expect(head.querySelector(".kit-profile__count").textContent).toBe(
     "3 of 6 done",
@@ -192,7 +192,7 @@ test("the profile list puts its next step on top, the six folded under it", asyn
   expect(screen.getByText("Your digest is off.")).toBeTruthy();
   // Only after the older welcome can it be put away.
   expect(
-    screen.queryByRole("button", { name: "Hide your profile list" }),
+    screen.queryByRole("button", { name: "Hide the setup list" }),
   ).toBeNull();
 });
 
@@ -212,7 +212,7 @@ test("the map's Not now finishes the step with the server's answer", async () =>
   await waitFor(() =>
     expect(writes).toEqual([["/api/me/passport/map", { choice: "not_now" }]]),
   );
-  await screen.findByRole("heading", { name: "Your profile, 5 of 6 done" });
+  await screen.findByRole("heading", { name: "Getting set up, 5 of 6 done" });
   expect(screen.queryByRole("button", { name: "Not now" })).toBeNull();
 });
 
@@ -256,7 +256,7 @@ test("the map step sets the place on Home itself: no clan page, Cancel returns f
     ]),
   );
   // The passport reads again: all six done.
-  await screen.findByText("Your profile is done");
+  await screen.findByText("You’re all set up");
 });
 
 test("after the older welcome: only what is left, and Hide puts it away", async () => {
@@ -274,9 +274,7 @@ test("after the older welcome: only what is left, and Hide puts it away", async 
     "You finished your welcome. Here’s what’s left for the All Set Stamp.",
   );
   expect(document.querySelectorAll(".kit-profile__row")).toHaveLength(3);
-  fireEvent.click(
-    screen.getByRole("button", { name: "Hide your profile list" }),
-  );
+  fireEvent.click(screen.getByRole("button", { name: "Hide the setup list" }));
   await waitFor(() =>
     expect(document.querySelector(".kit-profile")).toBeNull(),
   );

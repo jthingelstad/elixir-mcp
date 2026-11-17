@@ -616,6 +616,7 @@ test("the route table has no page under /console: the Console folded", async () 
     "home/player/$tag/session/$id",
     "home/you",
     "home/you/stats/{-$page}",
+    "session/$tag/$id/$at",
     "settings/$",
     "settings/admin/$",
     "signin",

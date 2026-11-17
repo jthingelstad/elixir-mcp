@@ -33,6 +33,7 @@ import { proofOf, scoresOf, sparkOf } from "../feed.mjs";
 import { claimantsOf } from "../account-page.mjs";
 import { json } from "../http.mjs";
 import { homeClan } from "./clans.mjs";
+import { publicSessionLinks } from "../session-links.mjs";
 
 /**
  * The player page (slice 6, #764) and the follows it starts.
@@ -201,7 +202,14 @@ const pageItem = (it) => {
 /** The page's timeline as the record has it now: the player's public items
  *  in the page's window. The page and its games' read build the same one,
  *  so an item's id and evidence version agree between them. */
-const pageTimeline = (db, tag, timezone, now, window = null) =>
+const pageTimeline = (
+  db,
+  tag,
+  timezone,
+  now,
+  window = null,
+  { publicOnly = false } = {},
+) =>
   buildTimeline(
     db,
     // The reader's own nickname for this player never reaches the page, and
@@ -217,7 +225,12 @@ const pageTimeline = (db, tag, timezone, now, window = null) =>
       basis: "occurred",
       // Its verification on Elixir, told on its page too (2026-11-15).
       people: { accounts: [], players: true },
-      filter: (it) => ["public", "member"].includes(itemVisibility(it)),
+      // Signed out (the public session page, 2026-11-17): what anyone
+      // with the link may read, never a member's.
+      filter: (it) =>
+        (publicOnly ? ["public"] : ["public", "member"]).includes(
+          itemVisibility(it),
+        ),
     },
   );
 
@@ -258,17 +271,25 @@ export function markOf(it) {
   }
 }
 
-/** One sitting on its own page (2026-11-16): the item as the card draws
- *  it, a page of its games newest first with both sides' decks, the
- *  moments its games proved, and whether the reader may highlight them.
- *  The player page's public timeline, read in the sitting's window, so
- *  the item's id and evidence version are the ones every card carries.
- *  Null when the record has no such sitting for this player. */
-export async function readSessionPage(
+/** One sitting as its page reads it, for whoever reads: the item as the
+ *  card draws it, a page of its games newest first with both sides' decks,
+ *  and the moments its games proved. The player page's public timeline,
+ *  read in the sitting's window, so the item's id and evidence version are
+ *  the ones every card carries. `publicOnly` reads it as nobody (the
+ *  public session page): public items only, so a mark is a public
+ *  moment's. Null when the record has no such sitting for this player;
+ *  `{ error }` when its games' page is refused. */
+export async function readSitting(
   db,
-  account,
   tag,
-  { id, at, offset = 0, expectedVersion } = {},
+  {
+    id,
+    at,
+    offset = 0,
+    expectedVersion,
+    timezone = "UTC",
+    publicOnly = false,
+  } = {},
   now = Date.now(),
 ) {
   const { rows } = await db.query(
@@ -276,13 +297,13 @@ export async function readSessionPage(
     [tag],
   );
   if (!rows[0]) return null;
-  const built = await pageTimeline(
-    db,
-    tag,
-    account.timezone ?? "UTC",
-    now,
-    sessionWindow(at, now),
-  );
+  const window = sessionWindow(at, now);
+  // Signed out, the start must be one the page can read: never the
+  // fallback of the whole 30 days.
+  if (publicOnly && !window) return null;
+  const built = await pageTimeline(db, tag, timezone, now, window, {
+    publicOnly,
+  });
   const timeline = built.timeline ?? [];
   const item = timeline.find((it) => it.id === id && SITTINGS.has(it.kind));
   if (!item) return null;
@@ -292,7 +313,7 @@ export async function readSessionPage(
     expectedVersion,
     detail: true,
   });
-  if (games.error) return { error: games.error };
+  if (games.error) return { error: games.error, item };
   // The moments this sitting's games proved, each on its game's row. One
   // statement: the proofs that are this player's battles in the sitting.
   const proved = timeline
@@ -311,6 +332,38 @@ export async function readSessionPage(
       .filter(([b]) => ids.has(b))
       .map(([battle_id, label]) => ({ battle_id, label }));
   }
+  return {
+    player: { tag: rows[0].player_tag, name: rows[0].name ?? null },
+    item: pageItem(item),
+    games,
+    marks,
+    // Whether anyone with the link may read it: the public page's gate.
+    shareable: itemVisibility(item) === "public",
+  };
+}
+
+/** One sitting on its own page (2026-11-16), for a signed-in reader:
+ *  readSitting, and whether the reader may highlight its games. */
+export async function readSessionPage(
+  db,
+  account,
+  tag,
+  { id, at, offset = 0, expectedVersion } = {},
+  now = Date.now(),
+) {
+  const read = await readSitting(
+    db,
+    tag,
+    {
+      id,
+      at,
+      offset,
+      expectedVersion,
+      timezone: account.timezone ?? "UTC",
+    },
+    now,
+  );
+  if (!read || read.error) return read && { error: read.error };
   const { rows: claims } = await db.query(
     `select status, is_primary, relationship from claim
       where account_id = $1 and player_tag = $2`,
@@ -318,7 +371,7 @@ export async function readSessionPage(
   );
   const claim = claims[0] ?? null;
   return {
-    player: { tag: rows[0].player_tag, name: rows[0].name ?? null },
+    player: read.player,
     you: {
       // As readerSide says it: a primary or an alt is the reader's own.
       own: Boolean(
@@ -329,9 +382,12 @@ export async function readSessionPage(
       // page (highlight.mjs eligiblePlayers asks the same).
       can_highlight: claim?.status === "verified",
     },
-    item: pageItem(item),
-    games,
-    marks,
+    item: read.item,
+    games: read.games,
+    marks: read.marks,
+    // Its public page and picture, for the page's Share panel (2026-11-17):
+    // only for a sitting anyone with the link may read.
+    ...(read.shareable ? publicSessionLinks(read) : { url: null, image: null }),
   };
 }
 

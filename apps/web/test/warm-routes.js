@@ -20,6 +20,7 @@ import "../src/home/Find.jsx";
 import "../src/home/You.jsx";
 import "../src/home/Player.jsx";
 import "../src/home/SessionPage.jsx";
+import "../src/home/PublicSession.jsx";
 import "../src/home/FollowMe.jsx";
 import "../src/home/Passport.jsx";
 import "../src/home/Account.jsx";

@@ -5,7 +5,7 @@ import {
   FollowFromHere,
   followSuggestions,
 } from "../src/views/FollowFromHere.jsx";
-import { Invite } from "../src/views/Battle.jsx";
+import { Invite } from "../src/views/JoinElixir.jsx";
 import { renderWithProviders } from "./helpers.jsx";
 
 /**

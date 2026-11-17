@@ -149,7 +149,7 @@ is one feed", "The left rail stays only in Settings"]
    does not hold have arrived, whatever their date, from a cheap count
    polled while the tab is visible. [Jamie, 2026-11-14, the feedback close-out;
    `docs/notes/2026-11-14-home-new-pill.md`]
-10. **The first steps finish for good.** "Your profile, N of 6 done"
+10. **The first steps finish for good.** "Getting set up, N of 6 done"
     (the six steps of docs/product/stamps.md's profile list, which
     replaced the four-step welcome on 2026-11-14) shows one next step
     until all six are done; one active follow completes its step, turning

@@ -5,6 +5,7 @@ import {
   DeckRow,
   Empty,
   ErrorState,
+  Icon,
   Link,
   PageHead,
   PlayerName,
@@ -13,6 +14,8 @@ import {
   noun,
   useClock,
 } from "@elixir-mcp/ui";
+import { sessionPostText } from "@elixir-mcp/ui/session-story";
+import { useMe } from "../App.jsx";
 import { playerHref } from "../lib/player.js";
 import { usePlayerSession } from "../lib/queries.js";
 import { tagFromPath } from "../lib/tag-url.js";
@@ -21,6 +24,8 @@ import { Comments } from "./Comments.jsx";
 import { Game } from "./SessionGames.jsx";
 import { Sparkline } from "./Sparkline.jsx";
 import { gameMarks } from "./session-games.js";
+import { FollowFromHere } from "../views/FollowFromHere.jsx";
+import { CopyButton, Invite, JoinLine } from "../views/JoinElixir.jsx";
 
 /**
  * A session's own page (2026-11-16): what a run's page is on Strava. Its
@@ -36,6 +41,11 @@ import { gameMarks } from "./session-games.js";
  * as a rating. The reader's own verified player can highlight a game one
  * tap from its row. Where the record and the update's count differ, the
  * page says so in plain words.
+ *
+ * Its public page (2026-11-17) is /session/<tag>/<id>/<start>
+ * (PublicSession.jsx): the same view read as nobody. Signed out, this
+ * address goes there (App.jsx HomeOutlet, and the web API's 302 on a
+ * first load).
  */
 export function SessionPage() {
   const { pathname, search } = useLocation();
@@ -50,6 +60,7 @@ export function SessionPage() {
   const at = typeof search?.at === "string" ? search.at : null;
   const [page, setPage] = useState({ offset: 0, version: null });
   const queryClient = useQueryClient();
+  const { me } = useMe();
   const query = usePlayerSession(
     tag && id
       ? {
@@ -126,6 +137,7 @@ export function SessionPage() {
   return (
     <SessionView
       data={env.data}
+      me={me}
       busy={query.isFetching}
       onPage={(offset) =>
         setPage({ offset, version: env.data.item?.evidence?.version ?? null })
@@ -134,7 +146,17 @@ export function SessionPage() {
   );
 }
 
-function SessionView({ data, busy, onPage }) {
+/** The page, for a member or (`publicView`) for anyone with the link:
+ *  then no comments, no highlight and no links into the signed-in app,
+ *  names as the game spells them, and the way in for a reader with no
+ *  account. `me` is the signed-in reader, for Follow from here. */
+export function SessionView({
+  data,
+  busy,
+  onPage,
+  publicView = false,
+  me = null,
+}) {
   const { when, clock, feedWhen } = useClock();
   const { player, item, games, you } = data;
   const f = item.facts ?? {};
@@ -149,8 +171,11 @@ function SessionView({ data, busy, onPage }) {
     .map((i) => decks[i])
     .filter((d) => d?.cards?.length);
   const counted = new Map((f.decks ?? []).map((d) => [d.label, d.battles]));
+  // A deck's count over the whole session, when the read says it (a
+  // session longer than one page of games, 2026-11-17).
+  const whole = (d) => (Number.isInteger(d.battles) ? d.battles : null);
   const playedOn = (d) => battles.filter((b) => decks[b.deck] === d).length;
-  own.sort((a, b) => playedOn(b) - playedOn(a));
+  own.sort((a, b) => (whole(b) ?? playedOn(b)) - (whole(a) ?? playedOn(a)));
   const manyDecks = own.length > 1 || (f.decks ?? []).length > 1;
   const manyModes = Object.keys(f.by_mode ?? {}).length > 1;
   const marks = gameMarks(battles, {
@@ -171,12 +196,18 @@ function SessionView({ data, busy, onPage }) {
       <PageHead
         crumb={
           <div className="page__crumb">
-            <Link to={playerHref(player.tag)}>
-              ‹{" "}
-              <PlayerName tag={player.tag}>
+            {publicView ? (
+              <span>
                 <TagText>{name}</TagText>
-              </PlayerName>
-            </Link>
+              </span>
+            ) : (
+              <Link to={playerHref(player.tag)}>
+                ‹{" "}
+                <PlayerName tag={player.tag}>
+                  <TagText>{name}</TagText>
+                </PlayerName>
+              </Link>
+            )}
           </div>
         }
         title={sessionHeadline(f)}
@@ -241,7 +272,9 @@ function SessionView({ data, busy, onPage }) {
         ) : null}
       </section>
 
-      {item.id ? (
+      {publicView ? <JoinLine /> : null}
+
+      {item.id && !publicView ? (
         // Comments on the session's item (2026-11-16), read when opened:
         // only while it is in your own feed, as on Home.
         <Comments it={{ ...item, cheer_subjects: [player.tag] }} />
@@ -256,9 +289,9 @@ function SessionView({ data, busy, onPage }) {
             // The update counts by archetype; two decks under one label
             // each say their own count from the games on this page.
             const shared = own.filter((o) => o.label === d.label).length > 1;
-            const n = shared
-              ? playedOn(d)
-              : (counted.get(d.label) ?? playedOn(d));
+            const n =
+              whole(d) ??
+              (shared ? playedOn(d) : (counted.get(d.label) ?? playedOn(d)));
             return (
               <div key={`${d.label}-${i}`} className="kit-session__deck">
                 <p className="kit-decklabel">
@@ -316,8 +349,11 @@ function SessionView({ data, busy, onPage }) {
                   }
                   marks={marks.get(b.battle_id) ?? []}
                   highlightTo={
-                    you?.can_highlight && url ? `${url}#highlight` : null
+                    !publicView && you?.can_highlight && url
+                      ? `${url}#highlight`
+                      : null
                   }
+                  linked={!publicView}
                 />
               );
             })}
@@ -344,7 +380,60 @@ function SessionView({ data, busy, onPage }) {
           ) : null}
         </div>
       </section>
+
+      {!publicView && you && !you.own ? (
+        <FollowFromHere
+          sides={[{ players: [{ player_tag: player.tag, name: player.name }] }]}
+          me={me}
+        />
+      ) : null}
+
+      {publicView ? <Invite who={name} /> : null}
+
+      <SessionShare data={data} name={name} />
     </div>
+  );
+}
+
+/** Share this session (2026-11-17), as a battle's page shares: its public
+ *  link, its picture, and a line for a post. Only for a sitting anyone
+ *  with the link may read; the read leaves `url` empty otherwise. */
+function SessionShare({ data, name }) {
+  if (!data.url) return null;
+  const post = sessionPostText(
+    data.player?.name ?? name,
+    data.item?.facts,
+    data.url,
+  );
+  return (
+    <section className="panel" aria-label="Share this session">
+      <div className="panel__head">Share this session</div>
+      <div className="panel__body">
+        <div className="share-link">
+          <Icon name="link-2" size={15} />
+          <span className="share-link__url">{data.url}</span>
+          <CopyButton
+            text={data.url}
+            label="Copy link"
+            className="btn btn--sm btn--gold"
+          />
+        </div>
+        <div className="share-actions">
+          {data.image ? (
+            <a className="btn btn--sm" href={data.image} download>
+              <Icon name="layers" size={15} />
+              Share image
+            </a>
+          ) : null}
+          <CopyButton text={post} label="Copy for a post" />
+        </div>
+        <p className="footnote">
+          Anyone with the link can open this page, no account needed: the
+          session’s battles, the decks, and the players’ game names. It stays up
+          for 30 days.
+        </p>
+      </div>
+    </section>
   );
 }
 

@@ -64,9 +64,9 @@ export function ProfileList({ first, player }) {
         <h2
           id="kit-profile-head"
           // A flex row reads each part as its own word: say it whole.
-          aria-label={`Your profile, ${view.done} of ${view.total} done`}
+          aria-label={`Getting set up, ${view.done} of ${view.total} done`}
         >
-          <span>Your profile</span>
+          <span>Getting set up</span>
           <span className="kit-profile__count">
             {view.done} of {view.total} done
           </span>
@@ -260,7 +260,7 @@ function Dismiss({ onDone }) {
         type="button"
         className="btn btn--sm btn--quiet"
         disabled={busy}
-        aria-label="Hide your profile list"
+        aria-label="Hide the setup list"
         onClick={async () => {
           setBusy(true);
           setErr("");
@@ -296,7 +296,7 @@ function Finished() {
           <Icon name="check" size={16} />
         </span>
         <div className="kit-profile__body">
-          <h3>Your profile is done</h3>
+          <h3>You’re all set up</h3>
           <p>All six steps. That earns the {stampName("all_set")} Stamp.</p>
         </div>
       </div>

@@ -237,6 +237,16 @@ test("the website's page is newest first, with decks, a teammate and a duel's ga
     CARDS_A.map((c) => c.id).sort(),
   );
   assert.ok(page.decks.every((d) => "label" in d));
+  // Each of the player's decks counts the whole sitting, not this page:
+  // deck A played 20 of the 26, one of them past the first 25.
+  assert.equal(page.decks[page.battles.at(-1).deck].battles, 20);
+  assert.equal(page.decks[last.deck].battles, 4);
+  assert.equal(
+    page.battles.filter((b) => b.deck === page.battles.at(-1).deck).length,
+    19,
+  );
+  // An opponent's deck carries no count of the player's battles.
+  assert.equal(page.decks[last.opponent_deck].battles, undefined);
   // Game names only: a nickname is its account's own.
   assert.ok(!JSON.stringify(page).includes(NICK));
   assert.equal(page.next_offset, 25);

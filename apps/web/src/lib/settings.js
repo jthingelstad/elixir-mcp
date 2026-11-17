@@ -246,6 +246,7 @@ const TITLES = {
   verify: "Verify",
   emails: "Emails",
   notifications: "Notifications",
+  comments: "Comments & blocks",
   sent: "Sent to you",
   email: "Email",
   connections: "Connections & agents",

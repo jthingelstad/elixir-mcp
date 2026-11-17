@@ -513,3 +513,38 @@ export const sessionDayApi = (overrides = {}) =>
     },
     ...overrides,
   });
+
+/** A session's public page (2026-11-17): a friend's twelve-battle sitting
+ *  at /session/<tag>/<id>/<start>, the id in the timeline's real shape so
+ *  the address reads as one. The friend's game name is hostile markup. */
+export const SHARED_TAG = ADA;
+export const SHARED_NAME = `<i>Ada</i> & "co"`;
+export const SHARED_ID = "tl_a1b2c3d4e5f60718293a";
+export const SHARED_START = Math.floor(Date.parse(AGO(start12)) / 1000);
+export const SHARED_PATH = `/session/${ADA.slice(1)}/${SHARED_ID}/${SHARED_START}`;
+const SHARED_URL = `https://elixir.poapkings.com${SHARED_PATH}`;
+const sharedItem = {
+  ...TWELVE_PAGE.item,
+  id: SHARED_ID,
+  facts: { ...sessionTwelve.facts, player_tag: ADA, name: SHARED_NAME },
+};
+
+/** What GET /api/public/sessions/... answers: the sitting read as
+ *  nobody, so no `you`, no comments and no nickname. */
+export const SHARED_PUBLIC = {
+  player: { tag: ADA, name: SHARED_NAME },
+  item: sharedItem,
+  games: TWELVE_EVIDENCE,
+  marks: TWELVE_PAGE.marks,
+  open: false,
+  url: SHARED_URL,
+  image: `${SHARED_URL}.png`,
+};
+
+/** The same sitting on the member page (GET /api/player/session), with
+ *  its comments open and the reader's own marks. */
+export const SHARED_MEMBER = {
+  ...SHARED_PUBLIC,
+  you: { own: false, can_highlight: false },
+  item: { ...sharedItem, comments: { count: 2, latest: [], open: true } },
+};
