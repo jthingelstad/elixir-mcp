@@ -36,6 +36,7 @@ import {
 import { FeedRows } from "./FeedItem.jsx";
 import { SessionGames } from "./SessionGames.jsx";
 import { PeopleToFollow } from "./People.jsx";
+import { PostComposer } from "./Post.jsx";
 
 /**
  * Home's one feed (slice 7, #765): the last seven days of everyone you
@@ -79,7 +80,18 @@ import { PeopleToFollow } from "./People.jsx";
  * under it, so a phone sees who to follow without scrolling past the side
  * panels; Home leaves the side panel out meanwhile.
  */
-export function HomeFeed({ chipsAt = null, suggest = false } = {}) {
+export function HomeFeed({
+  chipsAt = null,
+  suggest = false,
+  compose = null,
+} = {}) {
+  // The post composer's open state (2026-11-17): the page head's Post
+  // opens it on a phone, so the page may hold it; else the feed does.
+  const [ownOpen, setOwnOpen] = useState(false);
+  const writing = compose ?? { open: ownOpen, setOpen: setOwnOpen };
+  const composer = (
+    <PostComposer open={writing.open} setOpen={writing.setOpen} />
+  );
   const { day, feedDayHeading: dayHeading } = useClock();
   const query = useHomeFeed();
   const pages = query.data?.pages ?? [];
@@ -159,6 +171,7 @@ export function HomeFeed({ chipsAt = null, suggest = false } = {}) {
     return (
       <div ref={top} tabIndex={-1} className="kit-feed__top">
         {pill}
+        {composer}
         <Quiet
           follows={
             passport.data?.ok
@@ -230,6 +243,7 @@ export function HomeFeed({ chipsAt = null, suggest = false } = {}) {
         </div>
       ) : null}
       {chipsAt ? createPortal(chips, chipsAt) : chips}
+      {composer}
       {days.length === 0 ? (
         <p className="kit-week__quiet">
           {newOnly

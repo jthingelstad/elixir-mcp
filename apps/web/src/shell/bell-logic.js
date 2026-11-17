@@ -191,12 +191,15 @@ export function reactionRow(r) {
     counts,
     words: counts.map((c) => `${c.label} ${c.count}`).join(", "),
     total: r.total,
-    // A sitting opens its own page (2026-11-16); a moment its battle.
-    to: isSessionPath(String(r.session_path ?? "").split("?")[0])
-      ? r.session_path
-      : battle.startsWith("/battle/")
-        ? battle
-        : null,
+    // A sitting opens its own page (2026-11-16); a moment its battle; a
+    // post of yours (2026-11-17) your Profile, where your posts are.
+    to: r.post
+      ? "/home/you"
+      : isSessionPath(String(r.session_path ?? "").split("?")[0])
+        ? r.session_path
+        : battle.startsWith("/battle/")
+          ? battle
+          : null,
     new: r.new === true,
   };
 }

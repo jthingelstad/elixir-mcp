@@ -46,7 +46,9 @@ test("percent-encoding is undone once", () => {
     WANT,
   );
   assert.deepEqual(
-    parseDeckLink(`https://link.clashroyale.com/deck/en?deck=${IDS.join("%3B")}`),
+    parseDeckLink(
+      `https://link.clashroyale.com/deck/en?deck=${IDS.join("%3B")}`,
+    ),
     { cards: IDS, tower_troop: null },
   );
 });

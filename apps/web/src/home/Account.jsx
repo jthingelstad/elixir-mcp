@@ -18,6 +18,7 @@ import { trackEvent } from "../analytics.js";
 import { accountIdOf } from "../lib/account.js";
 import { playerHref } from "../lib/player.js";
 import { useAccountPage, useInvalidate } from "../lib/queries.js";
+import { PostList } from "./PostList.jsx";
 import { BlockButton, UnblockButton } from "./Block.jsx";
 import { useCommentsOn } from "./Comments.jsx";
 import { ItemList } from "./Player.jsx";
@@ -216,6 +217,7 @@ export function AccountView({ page, actions = null, noPlayers = null }) {
           ))
         )}
       </section>
+      <PostList account={a.id} />
       <section className="kit-player__body" aria-labelledby="acct-timeline">
         <h2 id="acct-timeline" className="kit-account__head">
           Timeline

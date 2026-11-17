@@ -12298,3 +12298,176 @@ h1.kit-post__title {
 .kit-comments__days {
   width: 4.5em;
 }
+
+/* Posts (2026-11-17): apps/web src/home/Post.jsx. The words are the
+   writer's, drawn as plain text that wraps; a deck is the session's
+   DeckRow; loose cards are art with their names. */
+.kit-post-compose {
+  display: grid;
+  gap: var(--s-2);
+  margin-bottom: var(--s-3);
+  padding: var(--s-3);
+  border: 1px solid var(--line);
+  border-radius: var(--r-control);
+  background: var(--panel-raised);
+}
+.kit-post-compose--quiet {
+  padding: 0;
+  border-style: dashed;
+  background: transparent;
+}
+.kit-post-compose__start {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  width: 100%;
+  min-height: var(--hit);
+  padding: var(--s-2) var(--s-3);
+  border: 0;
+  border-radius: inherit;
+  background: transparent;
+  color: var(--ink-dim);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.kit-post-compose__start:hover {
+  color: var(--ink);
+  background: var(--control-hover);
+}
+.kit-post-compose__start:focus-visible {
+  outline: 2px solid var(--accent-bright);
+  outline-offset: 2px;
+}
+.kit-post-compose__field {
+  min-height: 88px;
+}
+.kit-post-compose__acts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-1) var(--s-2);
+  margin-left: auto;
+}
+.kit-written {
+  display: grid;
+  gap: var(--s-2);
+  margin-top: var(--s-1);
+  min-width: 0;
+}
+.kit-written__label {
+  justify-self: start;
+  margin: 0;
+  padding: 2px var(--s-2);
+  border-radius: var(--r-pill);
+  background: var(--ground-sunken);
+  color: var(--ink-body);
+  font-size: var(--t-body-sm);
+  font-weight: 600;
+}
+.kit-written__text {
+  margin: 0;
+  color: var(--ink);
+  font-size: var(--t-body);
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+.kit-written__deck {
+  display: grid;
+  gap: var(--s-1);
+  min-width: 0;
+  max-width: 420px;
+}
+.kit-written__decklabel {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.kit-written__copy {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-1) var(--s-2);
+}
+.kit-written__copy .btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-1);
+}
+.kit-written__cards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.kit-written__card {
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  width: 64px;
+  min-height: var(--hit);
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+}
+button.kit-written__card {
+  cursor: pointer;
+}
+button.kit-written__card:focus-visible {
+  outline: 2px solid var(--accent-bright);
+  outline-offset: 2px;
+}
+.kit-written__name {
+  max-width: 100%;
+  font-size: var(--t-body-sm);
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+.kit-post-picker {
+  display: grid;
+  gap: var(--s-2);
+}
+.kit-post-picker .btn {
+  justify-self: start;
+}
+.kit-post-list {
+  display: grid;
+  gap: var(--s-2);
+  margin-bottom: var(--s-4);
+}
+.kit-home__post {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-1);
+}
+@media (min-width: 900px) {
+  .kit-home__post {
+    display: none;
+  }
+}
+/* On a phone the Post button above the feed opens the composer, so the
+   quiet start line is for wider screens only. */
+@media (max-width: 899px) {
+  .kit-post-compose--quiet {
+    display: none;
+  }
+}
+/* What the reader may do about a post: a quiet row of its own, so Report
+   and its reasons never squeeze the cheers. */
+.kit-written__acts {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  align-items: center;
+  gap: var(--s-1) var(--s-2);
+  margin: 6px 0 0;
+}
+.kit-written__acts > .btn {
+  flex: 0 0 auto;
+}
+.kit-written__acts > :not(.btn) {
+  flex: 1 1 100%;
+}

@@ -430,6 +430,23 @@ export const api = {
   block: (target) => request("POST", "/api/me/blocks", target),
   unblock: (accountId) =>
     request("DELETE", `/api/me/blocks/${encodeURIComponent(accountId)}`),
+  // Posts (2026-11-17): a person's own short posts. Yours alone, never
+  // an agent's pages; every one answers 404 posts_off while posts are off.
+  posts: ({ player, account, mine }) =>
+    request(
+      "GET",
+      `/api/me/posts?${new URLSearchParams(
+        player ? { player } : account ? { account } : { mine: mine ? "1" : "" },
+      )}`,
+    ),
+  writePost: ({ text, question, deck_link, cards }) =>
+    request("POST", "/api/me/posts", { text, question, deck_link, cards }),
+  deletePost: (id) =>
+    request("DELETE", `/api/me/posts/${encodeURIComponent(id)}`),
+  reportPost: (id, reason) =>
+    request("POST", "/api/me/post-reports", { id, reason }),
+  adminRemovePost: (id) => request("POST", "/api/admin/posts/remove", { id }),
+  adminDismissPost: (id) => request("POST", "/api/admin/posts/dismiss", { id }),
   // Admin's comment queue.
   adminComments: () => request("GET", "/api/admin/comments"),
   adminRemoveComment: (id) =>

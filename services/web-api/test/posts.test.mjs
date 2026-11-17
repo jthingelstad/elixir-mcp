@@ -611,7 +611,7 @@ test("posts never reach the record's timeline, which MCP, mail, push, RSS and Di
     .filter(Boolean)
     .filter(
       (f) =>
-        !/^(db\/|docs\/|services\/web-api\/(src|test)\/|services\/migrate\/src\/ops-account-remove|services\/jobs\/src\/index|packages\/record\/src\/retention|apps\/web\/)/.test(
+        !/^(db\/|docs\/|services\/web-api\/(src|test)\/|services\/migrate\/(src|test)\/ops-account-remove|services\/jobs\/src\/index|packages\/record\/src\/retention|apps\/web\/)/.test(
           f,
         ),
     );

@@ -28,6 +28,7 @@ import { signedCount } from "@elixir-mcp/ui/session-story";
 import { Cheers } from "./Cheers.jsx";
 import { cheerCounts } from "./cheer-set.js";
 import { Comments } from "./Comments.jsx";
+import { PostActions, PostBody } from "./Post.jsx";
 import { RacePlace } from "./RacePlace.jsx";
 
 /**
@@ -222,7 +223,8 @@ export function FeedItem({ it, open = false, onToggle = null }) {
   const clanSubject = clan
     ? (it.subjects ?? []).find((s) => s.kind === "clan")
     : null;
-  const moment = !sitting && !clan && it.kind !== "battle_highlight";
+  const post = it.kind === "post";
+  const moment = !sitting && !clan && !post && it.kind !== "battle_highlight";
   const band = BAND_WORDS[it.kind];
   const card = sittingCard(it);
   const sessionTo = card
@@ -303,6 +305,8 @@ export function FeedItem({ it, open = false, onToggle = null }) {
       </header>
       {it.kind === "battle_highlight" ? (
         <HighlightBody it={it} who={who} />
+      ) : post ? (
+        <PostBody it={it} />
       ) : moment ? (
         <MomentBody it={it} text={text} />
       ) : card ? (
@@ -316,6 +320,7 @@ export function FeedItem({ it, open = false, onToggle = null }) {
       )}
       {it.kind === "week_resolved" ? <RacePlace rank={it.facts?.rank} /> : null}
       {moment && it.battle_url ? <MomentBattle it={it} /> : null}
+      {post ? <PostActions it={it} /> : null}
       <footer className="kit-feed__foot">
         {"cheers" in it ? <Cheers it={it} /> : null}
         <span className="share-actions kit-feed__links">{links}</span>

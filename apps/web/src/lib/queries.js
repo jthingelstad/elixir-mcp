@@ -629,6 +629,33 @@ export const useItemComments = (it, enabled = true) =>
     retry: false,
   });
 
+/** One player's or account's posts (2026-11-17), as the reader may see
+ *  them: a player page's and an account page's list. */
+export const postsKey = (ask) => [
+  "me",
+  "posts",
+  ask.player ? "player" : ask.account ? "account" : "mine",
+  ask.player ?? ask.account ?? "",
+];
+export const usePosts = (ask, enabled = true) =>
+  useQuery({
+    queryKey: postsKey(ask),
+    queryFn: payload(() => api.posts(ask)),
+    enabled,
+    staleTime: 30_000,
+    retry: false,
+  });
+
+/** After a post is written, deleted or reported: Home's feed and every
+ *  list of posts read again. */
+export function usePostsChanged() {
+  const queryClient = useQueryClient();
+  return useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: ["me", "posts"] });
+    return queryClient.invalidateQueries({ queryKey: HOME_FEED_KEY });
+  }, [queryClient]);
+}
+
 /** The tags that find an item in your feed: a page's item carries the
  *  follows its cheers read came through, a feed item its own subjects. */
 export const itemSubjects = (it) =>

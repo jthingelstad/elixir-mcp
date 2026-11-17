@@ -30,6 +30,10 @@ import {
  * The words are other people's: drawn as plain text, never as links,
  * Markdown or tags.
  */
+/** A question post (2026-11-17) takes answers: the same comments, with
+ *  "Answer" as the way in. */
+const isQuestion = (it) => it?.kind === "post" && it?.post?.question === true;
+
 export function useCommentsOn() {
   const { me } = useMe();
   const scope = useScope();
@@ -81,7 +85,7 @@ export function Comments({ it }) {
               setOpen(true);
             }}
           >
-            Comment
+            {isQuestion(it) ? "Answer" : "Comment"}
           </button>
         ) : null}
       </div>
@@ -165,11 +169,11 @@ export function Composer({ it, autoFocus = false }) {
       <textarea
         id={fieldId}
         ref={box}
-        aria-label="Your comment"
+        aria-label={isQuestion(it) ? "Your answer" : "Your comment"}
         className="kit-comments__field"
         rows={2}
         maxLength={COMMENT_MAX * 2}
-        placeholder="Say something nice"
+        placeholder={isQuestion(it) ? "Your answer" : "Say something nice"}
         value={text}
         aria-invalid={error ? true : undefined}
         aria-describedby={`${fieldId}-help`}
@@ -292,7 +296,7 @@ function CommentRow({ c, it }) {
 
 /** Why you report it: one reason. You stop seeing it at once; two reports
  *  hide it until an admin looks. Its writer is never told. */
-function ReportForm({ id, subjects, onDone }) {
+export function ReportForm({ id, subjects, onDone, run = null }) {
   const [reason, setReason] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
@@ -301,7 +305,9 @@ function ReportForm({ id, subjects, onDone }) {
     e.preventDefault();
     if (!reason || busy) return;
     setBusy(true);
-    const res = await api.reportComment(id, reason, subjects);
+    const res = run
+      ? await run(reason)
+      : await api.reportComment(id, reason, subjects);
     setBusy(false);
     if (res.ok) onDone();
     else setError("Your report wasn't sent. Try again.");

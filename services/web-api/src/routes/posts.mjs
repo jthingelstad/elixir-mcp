@@ -31,6 +31,8 @@ import {
   writePost,
 } from "../posts.mjs";
 import { json } from "../http.mjs";
+import { withCheers } from "../cheers.mjs";
+import { withComments } from "../comments.mjs";
 
 /** List reads one person may make in an hour (a player or account page
  *  opened). */
@@ -105,8 +107,15 @@ export function postsRoutes({ resolveAccount, posts = null }) {
         by = { accountId: id };
       } else if (q.mine) by = { accountId: account.accountId };
       else return notFound();
+      // Each with its cheers and comments, as the Timeline draws it.
+      const items = await postsBy(db, account.accountId, { subjects, ...by });
       return json(200, {
-        posts: await postsBy(db, account.accountId, { subjects, ...by }),
+        posts: await withComments(
+          db,
+          await withCheers(db, items, account.accountId),
+          account.accountId,
+          { enabled: true },
+        ),
       });
     },
 
