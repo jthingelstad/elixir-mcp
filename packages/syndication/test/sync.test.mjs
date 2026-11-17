@@ -126,7 +126,7 @@ test("a sitting is posted once, edited as it grows, and edited once more when it
   const sitting = first.posts[0];
   assert.match(
     sitting.content,
-    /^\S.* played 5 battles in one sitting .*still going\./,
+    /^\S.* played 5 battles in one session .*still going\./,
   );
   assert.match(
     sitting.content,
@@ -183,7 +183,7 @@ test("a sitting is posted once, edited as it grows, and edited once more when it
   assert.ok(grown[0].revision > sitting.revision);
   assert.match(
     grown[0].content,
-    /played 10 battles in one sitting .*still going/,
+    /played 10 battles in one session .*still going/,
   );
   const after = await ledger();
   assert.equal(after.length, 2);
@@ -242,7 +242,7 @@ test("a sitting is posted once, edited as it grows, and edited once more when it
   assert.ok(edit.revision > grown[0].revision);
   assert.match(
     edit.content,
-    /played 10 battles in one sitting \(7W-3L; 10 Ranked; Master II\)\./,
+    /played 10 battles in one session \(7W-3L; 10 Ranked; Master II\)\./,
   );
   assert.doesNotMatch(edit.content, /still going/);
   assert.equal(closing.length, 2);

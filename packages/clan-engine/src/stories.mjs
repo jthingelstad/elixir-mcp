@@ -70,7 +70,7 @@ export const STORY_SKIPS = {
   already_told:
     "Told already: the same battle, or the same milestone reached again this week.",
   already_told_today:
-    "Told already today: the same sitting as an earlier post about this member.",
+    "Told already today: the same session as an earlier post about this member.",
 };
 
 /** Kinds told one at a time: each is its own story. */
@@ -619,8 +619,8 @@ function sittingStory(it, { after = false, told = new Set() } = {}) {
     .map(([m, n]) => `${n} ${m}`);
   const partner = f.teammate?.name;
   let text = after
-    ? `In the same sitting they went ${rec} over ${plural(f.battles ?? 0, "battle")}`
-    : `${who(it)} went ${rec} over ${plural(f.battles ?? 0, "battle")} in one sitting`;
+    ? `In the same session they went ${rec} over ${plural(f.battles ?? 0, "battle")}`
+    : `${who(it)} went ${rec} over ${plural(f.battles ?? 0, "battle")} in one session`;
   if (partner)
     text +=
       f.teammate.battles >= f.battles
