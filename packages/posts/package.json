@@ -1,0 +1,21 @@
+{
+  "name": "@elixir-mcp/posts",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Member posts: one audience, read and normalization for the app and digest.",
+  "main": "src/index.mjs",
+  "exports": {
+    ".": "./src/index.mjs",
+    "./paths": "./src/paths.mjs"
+  },
+  "scripts": {
+    "test": "node --test '**/*.test.mjs'"
+  },
+  "dependencies": {
+    "@elixir-mcp/claims": "0.1.0",
+    "@elixir-mcp/contracts": "0.1.0",
+    "@elixir-mcp/ingest": "0.1.0",
+    "@elixir-mcp/tools": "0.1.0"
+  }
+}
