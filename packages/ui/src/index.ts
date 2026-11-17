@@ -60,6 +60,7 @@ export { useScrollHint } from "./scrollHint.ts";
 export { Panel, Row, Rows } from "./Panel.tsx";
 export { Table, type TableColumn, type TableGroup } from "./Table.tsx";
 export { Empty, ErrorState } from "./Empty.tsx";
+export { Skeleton } from "./Skeleton.tsx";
 export { Stat, Stats } from "./Stats.tsx";
 export { Avatar, avatarCardOf, avatarHue, avatarInitials } from "./Avatar.tsx";
 export {

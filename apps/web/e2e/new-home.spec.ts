@@ -296,7 +296,7 @@ for (const [label, width] of [
       );
       await find.getByRole("tab", { name: "Search" }).click();
       await expect(
-        page.getByText("their bell shows a new follower", { exact: false }),
+        page.getByText("their bell tells them", { exact: false }),
       ).toBeVisible();
       await noSideways(page);
       await accessible(page, "Find");

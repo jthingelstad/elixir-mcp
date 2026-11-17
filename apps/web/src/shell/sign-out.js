@@ -4,7 +4,7 @@ import { api } from "../api.js";
 import { forgetSession } from "../lib/session-hint.js";
 
 const SIGN_OUT_NOTE =
-  "Ends this browser's Elixir session. Drop manages its own sign-in.";
+  "Signs you out of Elixir on this browser. Drop has its own sign-in.";
 
 /** Sign out, as the bar has always done it: a failure says so where it was
  *  asked for (the avatar's menu, or You), and the browser stays where it

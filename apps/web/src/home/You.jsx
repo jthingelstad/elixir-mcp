@@ -1,4 +1,5 @@
 import {
+  Empty,
   ErrorState,
   SHELL_PRODUCTS,
   Link,
@@ -7,6 +8,7 @@ import {
   Row,
   Rows,
   Tabs,
+  Skeleton,
 } from "@elixir-mcp/ui";
 import { useMe } from "../App.jsx";
 import { STATS, statsPlayers } from "../stats/stats.js";
@@ -36,7 +38,10 @@ export function YouPage() {
       {me?.page_id ? (
         <YouAccountPage id={me.page_id} claims={me?.claims} />
       ) : (
-        <PageHead title="You" />
+        <>
+          <PageHead title="You" />
+          {me?.claims?.length ? null : <AddYourPlayer />}
+        </>
       )}
       <YouAccount me={me} />
     </div>
@@ -54,7 +59,7 @@ export function YouTabs() {
 
 function YouAccountPage({ id, claims }) {
   const query = useAccountPage(id);
-  if (query.isPending) return <div className="kit-skeleton" aria-busy="true" />;
+  if (query.isPending) return <Skeleton shape="profile" />;
   const env = query.data;
   if (query.isError || !env || env.status !== 200)
     return (
@@ -77,15 +82,30 @@ function YouAccountPage({ id, claims }) {
           </Link>
         ) : null
       }
-      noPlayers={
-        <p className="kit-week__quiet">
-          No player yet.{" "}
-          <Link className="link" to={`${SETTINGS}/players#add-player-tag`}>
-            Add your player
-          </Link>
-        </p>
-      }
+      noPlayers={<AddYourPlayer />}
     />
+  );
+}
+
+/** With no player yet, the one thing to do next, said plainly, with
+ *  where the tag is (2026-11-16: it was a quiet line among the rows). */
+function AddYourPlayer() {
+  return (
+    <Empty
+      title="Add your player"
+      titleAs="h2"
+      action={
+        <Link
+          className="btn btn--primary"
+          to={`${SETTINGS}/players#add-player-tag`}
+        >
+          Add your player
+        </Link>
+      }
+    >
+      In Clash Royale, open your profile: your player tag starts with # and sits
+      under your name. Add it and Elixir starts recording your battles.
+    </Empty>
   );
 }
 

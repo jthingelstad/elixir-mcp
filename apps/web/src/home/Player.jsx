@@ -22,6 +22,7 @@ import {
   TagText,
   useClock,
   useFlash,
+  Skeleton,
 } from "@elixir-mcp/ui";
 import { useNav } from "../App.jsx";
 import { trackEvent } from "../analytics.js";
@@ -83,7 +84,7 @@ export function PlayerPage() {
   useClansOfViewer(canonical);
   // An address that names no tag reads nothing: the query never runs.
   if (!tag) return <Empty title="That is not a player tag" />;
-  if (query.isPending) return <div className="kit-skeleton" aria-busy="true" />;
+  if (query.isPending) return <Skeleton shape="profile" />;
   if (query.isError || (query.data && query.data.status >= 500))
     return (
       <ErrorState

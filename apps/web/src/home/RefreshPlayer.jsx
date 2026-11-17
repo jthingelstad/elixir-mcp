@@ -56,7 +56,7 @@ function RefreshButton({ state }) {
     <div className="kit-player__refresh" aria-live="polite">
       <button
         type="button"
-        className="btn"
+        className="btn btn--sm"
         onClick={state.ask}
         disabled={state.checking}
         aria-busy={state.checking || undefined}
