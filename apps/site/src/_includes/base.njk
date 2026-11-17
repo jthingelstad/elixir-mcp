@@ -85,8 +85,10 @@
           <button type="button" class="kit-top__icon" data-session-face="in" data-help-open aria-label="{{ shell.help.label }}">
             {% chromeIcon shell.help.icon, 18 %}
           </button>
+          {#- Notifications, beside the avatar at every width (2026-11-17): a
+              static page has no dropdown, so it opens the one on the Timeline. -#}
           <a class="kit-top__icon kit-bell" data-session-face="in" href="{{ shell.bell.staticPath }}" aria-label="{{ shell.bell.label }}">
-            {% chromeIcon shell.bell.icon, 18 %}
+            {% chromeIcon shell.bell.icon, 20 %}
           </a>
           {#- Play Drop is in the account menu and the footer, not the bar
               (the canvas's shell, 2026-11-12). -#}
@@ -130,10 +132,6 @@
           <span>{{ tab.label }}</span>
         </a>
         {%- endfor %}
-        <a href="{{ shell.bell.staticPath }}">
-          {% chromeIcon shell.bell.icon, 22 %}
-          <span>{{ shell.bell.tab }}</span>
-        </a>
       </nav>
     </div>
     {#- Help, on a static page: the same drawer as the app's (HelpDrawer.jsx, the

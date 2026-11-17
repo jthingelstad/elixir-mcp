@@ -782,11 +782,16 @@ test(
     const bell = site.querySelector('.kit-bell[data-session-face="in"]');
     assert.equal(bell.getAttribute("href"), kit.SHELL_PLACES.bell.staticPath);
     assert.equal(bell.getAttribute("aria-label"), kit.SHELL_PLACES.bell.label);
-    // The phone's tabs are the signed-in face only, and are the app's five.
-    assert.deepEqual(hrefs('nav.kit-bottom[data-session-face="in"] a'), [
-      ...kit.SHELL_TABS.map((t) => [t.label, t.path]),
-      [kit.SHELL_PLACES.bell.tab, kit.SHELL_PLACES.bell.staticPath],
-    ]);
+    // The phone's tabs are the signed-in face only, and are the app's four:
+    // the bell is in the bar beside the avatar at every width (2026-11-17).
+    assert.deepEqual(
+      hrefs('nav.kit-bottom[data-session-face="in"] a'),
+      kit.SHELL_TABS.map((t) => [t.label, t.path]),
+    );
+    assert.equal(
+      site.querySelector(".kit-bottom .kit-bell, .kit-bottom [href*='bell']"),
+      null,
+    );
     // The logo, on both faces.
     for (const img of site.querySelectorAll(".kit-top__brand img"))
       assert.equal(img.getAttribute("src").split("?")[0], kit.SHELL_LOGO);

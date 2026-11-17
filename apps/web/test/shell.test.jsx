@@ -122,7 +122,10 @@ describe("the bar on a page", () => {
       // The bell opens what needs you in place; nothing does, so no dot.
       const bell = within(bar).getByRole("button", { name: "Notifications" });
       expect(bell.getAttribute("aria-haspopup")).toBe("dialog");
+      expect(bell.getAttribute("aria-expanded")).toBe("false");
       expect(bell.querySelector(".kit-bell__dot")).toBeNull();
+      // Beside the avatar, the bar's last control (Jamie, 2026-11-17).
+      expect(bell.nextElementSibling.className).toBe("kit-top__account");
       // Play Drop left the bar (2026-11-12): it is in the You menu and the
       // footer.
       expect(within(bar).queryByRole("link", { name: /Play Drop/ })).toBeNull();
@@ -131,9 +134,40 @@ describe("the bar on a page", () => {
       const tabs = screen.getByRole("navigation", { name: "Main, phone" });
       expect(
         [...tabs.querySelectorAll("a, button")].map((a) => a.textContent),
-      ).toEqual(["Timeline", "Find", "Clan", "Profile", "Bell"]);
+      ).toEqual(["Timeline", "Find", "Clan", "Profile"]);
+      // The bell left the phone's tabs for the bar (2026-11-17).
+      expect(tabs.querySelector(".kit-bell")).toBeNull();
       // On Find, Find is the lit tab.
       expect(tabs.querySelector("[aria-current]").textContent).toBe("Find");
+    },
+  );
+
+  test(
+    "the bell opens its dropdown in place: expanded, controlling it, and back",
+    { timeout: 20000 },
+    async () => {
+      me = SIGNED_IN;
+      render(<App />);
+      await screen.findByRole("navigation", { name: "Main" });
+      const bar = document.querySelector(".kit-top");
+      const bell = within(bar).getByRole("button", { name: "Notifications" });
+      expect(bell.hasAttribute("aria-controls")).toBe(false);
+      const at = window.location.pathname;
+      fireEvent.click(bell);
+      const sheet = await screen.findByRole("dialog", {
+        name: "Notifications",
+        hidden: true,
+      });
+      // In place: no page to go to.
+      expect(window.location.pathname).toBe(at);
+      expect(bell.getAttribute("aria-expanded")).toBe("true");
+      expect(bell.getAttribute("aria-controls")).toBe(sheet.id);
+      fireEvent(sheet, new Event("cancel", { cancelable: true }));
+      await waitFor(() =>
+        expect(screen.queryByRole("dialog", { hidden: true })).toBeNull(),
+      );
+      expect(bell.getAttribute("aria-expanded")).toBe("false");
+      expect(bell.hasAttribute("aria-controls")).toBe(false);
     },
   );
 

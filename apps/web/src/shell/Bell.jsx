@@ -32,9 +32,11 @@ import { bellCount, bellGroups, bellLabel } from "./bell-logic.js";
  *
  * Its shape since #1009 (2026-11-14): an inbox in two parts. Needs you is
  * what waits on you; it stays until it is done, wherever it is done. The
- * rest is events, split into New and Earlier, every row one target. On a
- * wide screen it is a popover under the bell; on a phone, where the bell is
- * a tab, a sheet from the foot of the screen.
+ * rest is events, split into New and Earlier, every row one target. Since
+ * 2026-11-17 it is a dropdown under the top bar's bell at every width: a
+ * box under the bell on a wide screen, the screen's width (less a margin)
+ * on a phone, scrolling inside while the page behind stays put. There is
+ * no page of its own: `/timeline?bell` opens it.
  *
  * The badge counts what needs you plus what is new since you last opened
  * the bell (an unread answer until you read it). Opening it moves your seen
@@ -58,26 +60,33 @@ export function useBell(me, enabled) {
 /** The badge's number: at most "99+". */
 const badge = (n) => (n > 99 ? "99+" : String(n));
 
-export function BellButton({ bell, onOpen, phone = false }) {
+/** The dropdown's id, for the button's aria-controls while it is open. */
+export const BELL_SHEET_ID = "bell-sheet";
+
+/**
+ * The bell in the top bar, beside your avatar, at every width (Jamie,
+ * 2026-11-17: "the bell should move off the bottom and become a
+ * notification drop down next to your profile icon in the upper right").
+ * `expanded` is whether its dropdown is open.
+ */
+export function BellButton({ bell, onOpen, expanded = false }) {
   const words = SHELL_PLACES.bell;
   const label = bellLabel(words.label, bell);
   return (
     <button
       type="button"
-      className={
-        phone
-          ? "kit-bell kit-bell--tab"
-          : "kit-top__icon kit-bell kit-bell--bar"
-      }
+      className="kit-top__icon kit-bell"
       aria-haspopup="dialog"
-      aria-label={phone ? undefined : label}
+      aria-expanded={expanded}
+      aria-controls={expanded ? BELL_SHEET_ID : undefined}
+      aria-label={label}
       onClick={(e) => onOpen(e.currentTarget)}
     >
       <span className="kit-bell__mark">
-        <Icon name={words.icon} size={phone ? 22 : 18} />
+        <Icon name={words.icon} size={20} />
         {bell.lit ? (
-          // The number on the bar and on the phone's tab alike (#1009);
-          // the button's name says it in words.
+          // The number on the bell (#1009); the button's name says it in
+          // words.
           <span
             className="kit-bell__dot kit-bell__dot--count"
             aria-hidden="true"
@@ -86,14 +95,6 @@ export function BellButton({ bell, onOpen, phone = false }) {
           </span>
         ) : null}
       </span>
-      {phone ? (
-        <span>
-          {words.tab}
-          {bell.lit ? (
-            <span className="sr-only">{label.slice(words.label.length)}</span>
-          ) : null}
-        </span>
-      ) : null}
     </button>
   );
 }
@@ -187,10 +188,14 @@ function Cheers({ row }) {
   );
 }
 
-/** Where the popover sits: under the bar's bell, its right edge on the
- *  bell's. A phone's sheet ignores these. */
-function placeUnder(dialog, from) {
-  const r = from?.closest?.(".kit-top") ? from.getBoundingClientRect() : null;
+/** The bar's bell on screen, for a dropdown a page or a link opened. */
+const barBell = () => document.querySelector(".kit-top button.kit-bell");
+
+/** Where the dropdown sits: under the bar's bell, its right edge on the
+ *  bell's. A phone keeps the top and spans the screen. */
+function placeUnder(dialog, opener) {
+  const from = opener?.closest?.(".kit-top") ? opener : barBell();
+  const r = from ? from.getBoundingClientRect() : null;
   if (!r) {
     dialog.style.removeProperty("--bell-top");
     dialog.style.removeProperty("--bell-right");
@@ -460,6 +465,7 @@ export function BellSheet({ me, onClose, returnTo = null }) {
     // oxlint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- a modal dialog: its backdrop tap and arrow keys are the sheet's own
     <dialog
       ref={box}
+      id={BELL_SHEET_ID}
       className="kit-bell__sheet"
       aria-labelledby="bell-title"
       onCancel={(e) => {

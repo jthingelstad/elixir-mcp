@@ -46,9 +46,11 @@ public"). An agent has no Timeline page; it reads the same timeline over MCP.
 ## What it holds
 
 The product tabs are Timeline, Find, Clan and Profile, with search, Help
-and the bell (Notifications) in the top bar; on a phone they are tabs at the foot, with the bell
-beside them. The left rail is Settings' alone. [Jamie, 2026-11-12, "Home
-is one feed", "The left rail stays only in Settings"]
+and the bell (Notifications) in the top bar; on a phone they are tabs at the
+foot. The bell is in the top bar next to the avatar at every width, never a
+tab. [Jamie, 2026-11-17, "Notifications is a dropdown by your avatar"] The
+left rail is Settings' alone. [Jamie, 2026-11-12, "Home is one feed", "The
+left rail stays only in Settings"]
 
 - **Timeline** (`/timeline`; `/home` forwards): one feed of the last seven days, newest first, in
   days, with the chips Everyone, Friends, Clan and You, and All or New. A
@@ -75,11 +77,13 @@ is one feed", "The left rail stays only in Settings"]
   (counts, never who), new followers, the Clan Actions waiting for you,
   answers to your feedback and your account's own notices. [Jamie,
   2026-11-12, "The bell is what is about you"] Laid out as Needs you,
-  then New, then Earlier; a popover under the bar's bell on a wide screen,
-  a sheet from the foot on a phone; every line one tap, no buttons but
-  Follow back. Its number counts what needs you plus what is new on both
-  the bar and the phone tab. Back from a line, it opens where you left
-  it. [engineering, 2026-11-14, #1009, "The bell is a compact inbox"]
+  then New, then Earlier; a dropdown under the bar's bell at every width
+  (since 2026-11-17: a box on a wide screen, the screen's width less a
+  margin on a phone, scrolling inside), with no page of its own; every
+  line one tap, no buttons but Follow back. Its number counts what needs
+  you plus what is new. Back from a line, it opens where you left it.
+  [engineering, 2026-11-14, #1009, "The bell is a compact inbox"; Jamie,
+  2026-11-17, "Notifications is a dropdown by your avatar"]
 - **Away from Elixir**, the bell's news still reaches you: a push on a
   device where you turned notifications on, and Cheers on your play in
   your inbox for what no push or look at the bell already told. Counts,

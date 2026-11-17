@@ -690,7 +690,11 @@ test.describe("signed in", () => {
     );
     for (const name of ["Find", "Clan", "Profile"])
       await expect(tabs.getByRole("link", { name })).toBeVisible();
-    await expect(tabs.getByRole("button", { name: /Bell/ })).toBeVisible();
+    // Four tabs: the bell is in the bar beside the account (2026-11-17).
+    await expect(tabs.locator("a, button")).toHaveCount(4);
+    await expect(
+      page.locator(".kit-top").getByRole("button", { name: /^Notifications/ }),
+    ).toBeVisible();
     // The bar's own places are the tabs here; the account stays on the bar.
     await expect(page.locator(".kit-top__nav")).toBeHidden();
     await expect(
