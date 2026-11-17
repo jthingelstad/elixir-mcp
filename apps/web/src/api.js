@@ -421,7 +421,7 @@ export const api = {
   // Posts (2026-11-17): a person's own short posts. Yours alone, never
   // an agent's pages. A post about nothing in the record answers 404
   // posts_off while posts are off; a post about a battle (what was a
-  // highlight, 0291) works either way.
+  // highlight, 0292) works either way.
   posts: ({ player, account, mine }) =>
     request(
       "GET",

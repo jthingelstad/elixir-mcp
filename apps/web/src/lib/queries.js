@@ -761,7 +761,7 @@ export const usePlayerMap = (enabled = true) =>
     staleTime: 60_000,
   });
 
-/** The battle page's post panel (#762; a highlight until 0291): your
+/** The battle page's post panel (#762; a highlight until 0292): your
  *  posts about this battle and the verified players you may post it as.
  *  Yours, never an agent's. */
 export const useBattlePosts = (battle, enabled = true) =>

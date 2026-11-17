@@ -61,7 +61,7 @@ export const ACTIVITY_CATEGORIES = {
     kinds: ["bracket_observed", "race_finished", "week_resolved"],
   },
   // Social slice 9 (#767): a member's shared post about a battle (a
-  // highlight until 0291; the key stays `highlights`), posted here only
+  // highlight until 0292; the key stays `highlights`), posted here only
   // by that member's own act on the battle page, never from the timeline,
   // so it names no kinds. Off until a leader turns it on: the channel is
   // the leaders', and a member's words reach it only when they say so.

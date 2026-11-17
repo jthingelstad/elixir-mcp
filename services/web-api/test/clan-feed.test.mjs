@@ -1,7 +1,7 @@
 /**
  * Clan's Feed (slice 8, #766) over a scratch database (golden rule 9): the
  * clan's timeline for one member, newest first, carrying the posts about
- * battles (highlights until 0291) of the clan's current members (a member
+ * battles (highlights until 0292) of the clan's current members (a member
  * who has left is not in it), each post once, as the post it is, each
  * item as the Timeline draws it (2026-11-17) without Home's own fields;
  * none of the reader's own account items. Synthetic tags only.

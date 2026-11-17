@@ -9,7 +9,7 @@ import { clanPosts } from "./posts.mjs";
  * Clan's Feed (slice 8, #766): the clan's timeline for one signed-in member,
  * newest first. The clan's own items and its members' moments come from the
  * clan subject read comprehensively, its current members' posts ride along
- * (their posts about battles always, 0291; the rest while posts are on),
+ * (their posts about battles always, 0292; the rest while posts are on),
  * and nothing of the reader's own account (feedback answers, mail)
  * is in it.
  *
@@ -84,7 +84,7 @@ export async function readClanFeed(
   // Its members' posts now (2026-11-17), read live: a clanmate sees a
   // member's posts here as they see the member's play. Never anyone's in
   // a block with the reader (posts.mjs). Posts about battles always (what
-  // highlights were, 0291); posts about nothing in the record while posts
+  // highlights were, 0292); posts about nothing in the record while posts
   // are on.
   // A post takes cheers and answers here too, so each carries the
   // reader's cheers and comments, as the Timeline's do (#1100, Codex).

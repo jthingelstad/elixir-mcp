@@ -6,7 +6,7 @@ import { HOME_FEED_KEY, keys, useBattlePosts } from "../lib/queries.js";
 import { useAskOnOpen } from "../lib/own-refresh.js";
 
 /**
- * Post about this battle (social slice 4, #762; 2026-11-17, 0291: what
+ * Post about this battle (social slice 4, #762; 2026-11-17, 0292: what
  * was a highlight is a post with a battle attached). A signed-in person
  * whose own verified player played this battle posts about it on that
  * player's timeline, with words or without, then may share it as

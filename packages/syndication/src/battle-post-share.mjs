@@ -1,6 +1,6 @@
 /** A shared post about a battle, posted in its player's clan's Discord
  *  (social slice 9, #767; Jamie, 2026-11-12: "a shared post can post to
- *  the clan's Discord through Clan's webhook"). Until 0291 this was a
+ *  the clan's Discord through Clan's webhook"). Until 0292 this was a
  *  shared highlight; a highlight is now a post with a battle attached.
  *
  *  Only by its author's own act, once, and only where the clan's leaders
@@ -13,8 +13,8 @@
  *    (Clan ▸ Social ▸ Discord) is connected and on, with the clan's
  *    policy saved and "Shared posts about battles" turned on by a leader
  *    (off by default: `activityCategories`, key `highlights`);
- *  - once per post (0254, carried to account_post by 0291): a second ask
- *    sends nothing, and a highlight posted before 0291 keeps its stamp.
+ *  - once per post (0254, carried to account_post by 0292): a second ask
+ *    sends nothing, and a highlight posted before 0292 keeps its stamp.
  *
  *  The message goes the way every clan activity post goes: an outbox
  *  object on the timeline-discord/ lane, kind `clan_activity`, with the
@@ -38,7 +38,7 @@ import { aside, newLedgerId, recordPosts } from "./quality.mjs";
 
 /** The relay's key for this post's Discord line: one per post, in the
  *  form its lane takes (`tl_` and 20 hex). A highlight that went before
- *  0291 went under `highlight-clan:<uuid>`; its stamp came over with it,
+ *  0292 went under `highlight-clan:<uuid>`; its stamp came over with it,
  *  so it is never asked again. */
 export const battlePostKey = (postId) =>
   `tl_${createHash("sha256")

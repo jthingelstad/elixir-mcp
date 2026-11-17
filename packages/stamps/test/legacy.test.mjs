@@ -99,7 +99,7 @@ const facts = (id, stamp) =>
   );
 const ids = (rows) => rows.map((g) => `${g.stamp_id}:${g.level}`).sort();
 
-/** A post about a battle with words (0291; a highlight before). */
+/** A post about a battle with words (0292; a highlight before). */
 async function story(accountId, at) {
   const {
     rows: [b],

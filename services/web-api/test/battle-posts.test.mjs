@@ -1,5 +1,5 @@
 /**
- * Posts about battles (social slice 4, #762; 2026-11-17, 0291: what was
+ * Posts about battles (social slice 4, #762; 2026-11-17, 0292: what was
  * a highlight is a post with a battle attached). A person posts about one
  * of their verified players' battles on that player's timeline, words
  * optional, and may share it as /h/<id>. Pinned here: only a verified

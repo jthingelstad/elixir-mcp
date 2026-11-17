@@ -22,7 +22,7 @@
  *  them (AGENT_SCOPED_ROUTES does not list them). A post about nothing in
  *  the record needs posts on (the stack's PostsEnabled with
  *  CommentsEnabled; else 404 `posts_off`); a post about a battle, what a
- *  highlight was, works either way (0291). Blocking from a post rides
+ *  highlight was, works either way (0292). Blocking from a post rides
  *  `POST /api/me/blocks` `{ post_id }`. */
 import { checkRateLimit } from "@elixir-mcp/auth";
 import { accountOfPage } from "@elixir-mcp/claims";

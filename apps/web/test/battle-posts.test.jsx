@@ -5,7 +5,7 @@ import { BattlePosts } from "../src/views/BattlePosts.jsx";
 import { renderWithProviders } from "./helpers.jsx";
 
 /**
- * The battle page's post panel (#762; a highlight until 0291, a post with
+ * The battle page's post panel (#762; a highlight until 0292, a post with
  * a battle attached since): it shows only what the server answered about
  * who may post, words are optional, and words are text, never markup.
  */

@@ -418,7 +418,7 @@ test("a dry run is the default: it reports what would go and writes nothing", as
     account_clan: 2,
     account_clan_declined: 1,
     player_nickname: 1,
-    // Frozen at 0291: the person's post about a battle is an account_post
+    // Frozen at 0292: the person's post about a battle is an account_post
     // row now.
     battle_highlight: 0,
     timeline_cheer: 1,
