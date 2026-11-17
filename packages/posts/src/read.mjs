@@ -120,6 +120,8 @@ export async function readVisiblePosts(
  * watermark. Same audience/status predicate, without attachment/game reads.
  * Current notify-enabled claims are read in the same statement; account-only
  * follows and own posts do not require a cached game week. Edits never count.
+ * PostgreSQL microseconds are compared at the millisecond precision the
+ * normalized item and its JSON watermark carry, so a read post stays read.
  */
 export async function countNewPosts(
   db,
@@ -137,7 +139,7 @@ export async function countNewPosts(
          and coalesce(p.updated_at, p.created_at) >= $3
          and p.created_at <= $4
        order by p.created_at desc, p.post_id desc limit 200
-     ) visible where created_at > $2`,
+     ) visible where date_trunc('milliseconds', created_at) > $2`,
     [
       readerId,
       new Date(sinceMs),

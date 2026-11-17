@@ -13,6 +13,8 @@ The first-page watermark includes live posts. N new adds a bounded live
 post count to the existing stored-week count, without building a game
 record. A post counts by creation; editing does not create more news.
 Account-only follows and own posts work even without a cached game week.
+The count compares PostgreSQL timestamps at the same millisecond precision
+as normalized JSON items, so sub-millisecond creation times do not repeat.
 
 The digest explicitly reads visible-only plain posts in its creation
 window, then applies its existing limits. Existing battle posts retain
