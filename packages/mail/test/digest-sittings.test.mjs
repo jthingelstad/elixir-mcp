@@ -76,16 +76,19 @@ test("a one- or two-battle sitting is one line; deck art once per person", () =>
 });
 
 test("hostile names in a sitting stay text, in HTML and the text part", () => {
-  const { html } = renderMail(
-    "tracking_report",
-    read("tracking_report"),
-    links,
-  );
-  for (const raw of ["<b>Bo</b>", "<script>", "<i>Rapid</i>", "<img src=x>"])
+  const facts = read("tracking_report");
+  const dove = facts.people.find((p) => p.name === "Dove Sunny");
+  const [duo, ranked] = dove.sittings;
+  duo.facts.together[0].name = `<i>Rapid</i> "Clear"`;
+  ranked.deck.label = "<b>deck</b>";
+  ranked.facts.decks[0].label = "<b>deck</b>";
+  ranked.facts.ranked.promotions[0].from_name = "<img src=x>";
+  ranked.deck.cards[0].name = "<script>x</script>";
+  const { html } = renderMail("tracking_report", facts, links);
+  for (const raw of ["<i>Rapid", "<b>deck", "<img src=x>", "<script>"])
     assert.ok(!html.includes(raw), raw);
   assert.ok(html.includes("&lt;i&gt;Rapid&lt;/i&gt;"));
-  const text = words(html);
-  assert.ok(text.includes(`Against <i>Rapid</i> "Clear"`));
+  assert.ok(words(html).includes(`With <i>Rapid</i> "Clear"`));
 });
 
 test("a path that is not a session page is no link", () => {

@@ -30,8 +30,9 @@ told more than three hours late says when in words ("Yesterday").
 Every post ends with one link back to Elixir, **Open in Elixir**, and
 Discord shows no preview of it: the address is in angle brackets and
 each post and edit is sent with previews turned off. It opens the most
-specific page a clan member may read once signed in: the battle's page
-for one member's battle the record holds, the clan's **War** for a war
+specific page a clan member may read once signed in: the session's own
+page for one member's session, the battle's page for one member's battle
+the record holds, the clan's **War** for a war
 story, its **Standings** for an award, the member's player page for
 another story about one member, and the clan's **Feed** for a join, a
 departure, a role change or a story about several members. A post edited

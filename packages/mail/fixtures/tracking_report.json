@@ -473,73 +473,6 @@
     }
    ],
    "more_sittings": 3
-  },
-  {
-   "tag": "#0YRL2GQP",
-   "name": "<b>Bo</b> & \"Co\" <script>x</script>",
-   "nickname": null,
-   "relationship": "watching",
-   "sessions": 2,
-   "battles": 2,
-   "wins": 1,
-   "losses": 1,
-   "trophies": null,
-   "progress": null,
-   "items": [],
-   "more_items": 0,
-   "sittings": [
-    {
-     "kind": "battle_session",
-     "at": "2026-11-09T18:05:00.000Z",
-     "facts": {
-      "battles": 1,
-      "won": 1,
-      "lost": 0,
-      "drawn": 0,
-      "by_mode": {
-       "casual": 1
-      },
-      "together": [
-       {
-        "player_tag": "#0CLVCJQG",
-        "name": "<i>Rapid</i> \"Clear\"",
-        "with": 0,
-        "against": 1
-       }
-      ],
-      "started_at": "2026-11-09T18:02:00.000Z",
-      "ended_at": "2026-11-09T18:05:00.000Z"
-     },
-     "path": "/home/player/0YRL2GQP/session/tl_0000000000000000d101?at=2026-11-09T18%3A02%3A00.000Z"
-    },
-    {
-     "kind": "battle_session",
-     "at": "2026-11-05T20:11:00.000Z",
-     "facts": {
-      "battles": 1,
-      "won": 0,
-      "lost": 1,
-      "drawn": 0,
-      "by_mode": {
-       "event": 1
-      },
-      "events": [
-       {
-        "event_tag": "chaos-draft",
-        "name": "C.H.A.O.S Draft <img src=x>",
-        "battles": 1,
-        "won": 0,
-        "lost": 1,
-        "drawn_decks": true
-       }
-      ],
-      "started_at": "2026-11-05T20:08:00.000Z",
-      "ended_at": "2026-11-05T20:11:00.000Z"
-     },
-     "path": "/home/player/0YRL2GQP/session/tl_0000000000000000d102?at=2026-11-05T20%3A08%3A00.000Z"
-    }
-   ],
-   "more_sittings": 0
   }
  ],
  "more_people": 0,
@@ -592,12 +525,11 @@
   ]
  },
  "following": 5,
- "coverage": "You follow 5 people; 4 have something recorded this week. A gap means unknown. It does not mean they didn’t play.",
+ "coverage": "You follow 5 people; 3 have something recorded this week. A gap means unknown. It does not mean they didn’t play.",
  "player_verifications": {
   "#0CLVCJQG": true,
   "#0C8Q20PV": false,
   "#082ULV0U": false,
-  "#20JJJ2CCRU": true,
-  "#0YRL2GQP": false
+  "#20JJJ2CCRU": true
  }
 }

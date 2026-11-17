@@ -79,10 +79,15 @@ something for that role to do.
   says departed, even after a leader says removed, because the mail
   reaches people outside the clan. [engineering, 2026-11-05, 2026-11-12;
   Jamie, 2026-11-05, 2026-11-11, A2]
+- **Their sessions,** as the feed's session card tells them: the result,
+  figures and facts worth a chip, the deck played most, a small session
+  as one line, each opening its own page; a person's biggest three, the
+  rest counted. Your own stay on your feed. [engineering, 2026-11-16]
 - **You:** your own and your alts' firsts and progress. [engineering,
   2026-11-12]
 - **Left to Clan and Stats:** the war-deck trend, per-member performance,
-  the form line, opponents and decks. [engineering, 2026-11-12]
+  the form line, opponents, and decks beyond a session's most played.
+  [engineering, 2026-11-12, 2026-11-16]
 
 ## Principles that decide the details
 

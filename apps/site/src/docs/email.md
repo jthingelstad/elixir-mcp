@@ -7,7 +7,7 @@ order: 4
 navTitle: "Email"
 icon: mail
 lede: "One digest of the people you follow and your clan, weekly or daily. Besides it, only mail with something for you to do or read: clan actions waiting, cheers on your play, your collector's week, and answers to your feedback."
-reviewed: "2026-11-16 notifications on your phone or computer; 2026-11-16 Cheers on your play, at most once a day; 2026-11-13 the digest's clan news is its own switch; 2026-11-13 the digest is Weekly, Daily or Off; 2026-11-12 one digest: the clan report, Arena week and milestone mails folded into it; 2026-11-12 your digest, weekly or daily by your choice; 2026-10-12 the collector week is Saturday to Saturday; 2026-10-12 no email is composed by a model"
+reviewed: "2026-11-17 the digest tells each friend's sessions, and every session opens its own page; 2026-11-16 notifications on your phone or computer; 2026-11-16 Cheers on your play, at most once a day; 2026-11-13 the digest's clan news is its own switch; 2026-11-13 the digest is Weekly, Daily or Off; 2026-11-12 one digest: the clan report, Arena week and milestone mails folded into it; 2026-11-12 your digest, weekly or daily by your choice; 2026-10-12 the collector week is Saturday to Saturday; 2026-10-12 no email is composed by a model"
 ---
 
 # Email
@@ -31,7 +31,7 @@ The text and links still work with custom fonts or images blocked.
 | **Your digest** | Mondays at 11:00 UTC, right after the weekly reset, or daily, or off: your choice | The people you follow and your clan's week in one story, each player once: [below](#your-digest). Skipped when nothing happened. |
 | **Clan actions waiting** | When an action becomes yours | From [Clan](/clan), when something new in your clan is yours to do (promote, welcome, answer a departure, say whether you are away), with everything waiting for you and a link to act. Clan checks each morning, after its daily read, and mails only when something new is yours since your last one: nothing waiting, nothing sent, and at most one a day per clan. Only if you can act on it, only to the account that verified the player. Clan writes the words and Elixir sends them, so the app needs no address to mail you. |
 | **Collector activity** | Sundays at 14:00 UTC | Only if you run an [Elixir Collector](/docs/operators): each collector by its card, its full reported version and the collector page's security status (signed, dev build, unverified or mismatch), whether it is checking in, silent or stopped, its fetches this week and how many of them added new facts to the record; how much was blocked as already recorded, and your limits: an active collector raises them to [Family](/docs/roles#upgrades). One mail per account, every collector you run pooled. Covers Saturday 00:00 UTC to the next Saturday 00:00 UTC, the week that closed the night before. |
-| **Cheers on your play** | At most once a day, around 6 pm in your account's time zone | When people cheered your players' battles and posts, or started following your players, and you have not seen it in Elixir yet: how many cheers on each item and how many new followers, never who. Each line opens the battle or the player. Nothing new, nothing sent. What you already saw in the bell, or in your last one of these, is not told again. Only about the players you verified. |
+| **Cheers on your play** | At most once a day, around 6 pm in your account's time zone | When people cheered your players' battles and posts, or started following your players, and you have not seen it in Elixir yet: how many cheers on each item and how many new followers, never who. Each line opens the session, the battle or the player. Nothing new, nothing sent. What you already saw in the bell, or in your last one of these, is not told again. Only about the players you verified. |
 | **Answers to your feedback** | When answered | When Elixir's maintainer answers [feedback](/docs/your-account#feedback) you filed and you have not read the answer yet: what you wrote, the answer, its status and the version it shipped in, with a link to the item. One mail per answer, sent after ten quiet minutes, so a correction made straight away is one mail. Getting the email does not count as reading the answer: opening the item does. An agent's feedback is answered to the agent, never mailed. |
 
 All of them start **on** for an active person account, and each is **a
@@ -64,13 +64,24 @@ chooses what to say, and the timeline keeps everything.
   arrives, once.
 - **From people you follow:** each friend and watched player who played
   or posted, friends first, up to twelve with the rest counted. Each has
-  their battles and record, their trophies, and up to three things:
+  their sessions, then their battles and record, their trophies, and up to
+  three things:
   their [highlights](/docs/timeline#highlights) first, with their own
   words, then the big [firsts](/docs/milestones) (a new arena, league,
   best band, form, legendary badge or career step), a move between clans
   or a return, each with a link to the battle that did it when the record
   knows it. Cards unlocked and badge levels are a count. A clanmate you
   follow says which of your clans they are in.
+- **Their sessions:** up to three of each friend's biggest sessions, told
+  the way your feed's session card tells them, the rest counted with a
+  link to their page. A session of three or more battles shows its result
+  ("Won 8 of 12 on Trophy Road, 5 in a row"), its record and trophies,
+  three-crown wins, the widest win, a Ranked climb, a challenge's furthest
+  run, who you follow it was played with, and the deck played most, with
+  the deck's eight cards on one session a friend. A session of one or two
+  battles is one line. Each session's result opens its own page. Your own
+  sessions stay on your feed; under You, the digest keeps your week's
+  count and your firsts.
 - **Your clan:** each clan you follow with news of its own: a river race
   that finished (its place and fame), who joined and departed, and role
   changes, as a headline and at most three facts with the rest counted.
