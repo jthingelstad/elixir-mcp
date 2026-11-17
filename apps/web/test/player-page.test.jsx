@@ -92,9 +92,12 @@ let page;
 let plan;
 let posted;
 let pageCheers;
+// Replies for the session page, in turn, when a test sets them.
+let sessionReplies;
 beforeEach(() => {
   cleanup();
   page = PAGE;
+  sessionReplies = null;
   pageCheers = {};
   posted = [];
   plan = {
@@ -131,6 +134,7 @@ beforeEach(() => {
     if (p.startsWith("/api/player?")) return reply(page);
     if (p.startsWith("/api/player/session?")) {
       posted.push([p, null]);
+      if (sessionReplies?.length) return sessionReplies.shift();
       const item = page.timeline[0];
       return reply({
         player: { tag: "#0VJ2QV", name: "Copper Fern" },
@@ -399,6 +403,93 @@ test(
     // Not the reader's own player: no Highlight.
     expect(screen.queryByRole("link", { name: /^Highlight/ })).toBeNull();
     expect(document.title).toBe("Session - Home - Elixir");
+  },
+);
+
+test(
+  "a session page reads again after its games changed, and counts two decks of one archetype apart",
+  { timeout: 20000 },
+  async () => {
+    const card = (key) => ({ key, name: `Card ${key}`, cost: 3 });
+    const hogA = {
+      label: "Hog Rider cycle",
+      cards: [1, 2, 3, 4, 5, 6, 7, 8].map(card),
+    };
+    const hogB = {
+      label: "Hog Rider cycle",
+      cards: [1, 2, 3, 4, 5, 6, 7, 9].map(card),
+    };
+    const item = {
+      id: "s3",
+      kind: "battle_session",
+      at: "2026-11-10T14:00:00.000Z",
+      text: "Copper Fern played three battles",
+      facts: {
+        battles: 3,
+        won: 3,
+        lost: 0,
+        by_mode: { ladder: 3 },
+        decks: [{ label: "Hog Rider cycle", battles: 3 }],
+        started_at: "2026-11-10T14:00:00.000Z",
+        ended_at: "2026-11-10T14:40:00.000Z",
+      },
+      evidence: { kind: "session", version: "ev_2", count: 3 },
+    };
+    const battle = (n, deck) => ({
+      battle_id: `b${n}`,
+      at: `2026-11-10T14:${10 * n}:00.000Z`,
+      mode_group: "ladder",
+      outcome: "win",
+      crowns: 1,
+      trophy_change: 30,
+      opponents: [{ player_tag: "#00L0", name: "Umber", crowns: 0 }],
+      deck,
+    });
+    sessionReplies = [
+      // A battle landed after the page was read.
+      reply({ error: "evidence_changed" }, 409),
+      reply({
+        player: { tag: "#0VJ2QV", name: "Copper Fern" },
+        you: { own: false, can_highlight: false },
+        item,
+        games: {
+          item_id: "s3",
+          kind: "session",
+          version: "ev_2",
+          count: 3,
+          completeness: "recorded_sitting",
+          open: false,
+          order: "newest_first",
+          decks: [hogA, hogB],
+          offset: 0,
+          limit: 25,
+          next_offset: null,
+          battles: [battle(3, 0), battle(2, 0), battle(1, 1)],
+        },
+        marks: [],
+      }),
+    ];
+    window.history.pushState({}, "", "/home/player/0VJ2QV/session/s3");
+    render(<App />);
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Read them again" }),
+    );
+    // The first page is read again, not served from the cache.
+    await screen.findByRole("heading", {
+      level: 1,
+      name: "Won 3 of 3 on Trophy Road",
+    });
+    expect(
+      posted.filter(([q]) => q.startsWith("/api/player/session?")),
+    ).toHaveLength(2);
+    // The update's 3 is the archetype's; each deck says its own.
+    const decks = [
+      ...document.querySelectorAll(".kit-session__deck .kit-decklabel"),
+    ].map((d) => d.textContent);
+    expect(decks).toEqual([
+      "Hog Rider cycle · 2 battles",
+      "Hog Rider cycle · 1 battle",
+    ]);
   },
 );
 

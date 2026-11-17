@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "@tanstack/react-router";
 import {
   DeckRow,
@@ -46,6 +47,7 @@ export function SessionPage() {
   }
   const at = typeof search?.at === "string" ? search.at : null;
   const [page, setPage] = useState({ offset: 0, version: null });
+  const queryClient = useQueryClient();
   const query = usePlayerSession(
     tag && id
       ? {
@@ -88,7 +90,15 @@ export function SessionPage() {
           <button
             type="button"
             className="btn btn--sm"
-            onClick={() => setPage({ offset: 0, version: null })}
+            onClick={() => {
+              // Every page of this session is stale now, the first one
+              // included: read it again rather than serve the cached copy
+              // whose version the server just refused.
+              queryClient.invalidateQueries({
+                queryKey: ["me", "player-session"],
+              });
+              setPage({ offset: 0, version: null });
+            }}
           >
             Read them again
           </button>
@@ -235,7 +245,12 @@ function SessionView({ data, busy, onPage }) {
             {own.length === 1 ? "The deck" : "The decks"}
           </h2>
           {own.map((d, i) => {
-            const n = counted.get(d.label) ?? playedOn(d);
+            // The update counts by archetype; two decks under one label
+            // each say their own count from the games on this page.
+            const shared = own.filter((o) => o.label === d.label).length > 1;
+            const n = shared
+              ? playedOn(d)
+              : (counted.get(d.label) ?? playedOn(d));
             return (
               <div key={`${d.label}-${i}`} className="kit-session__deck">
                 <p className="kit-decklabel">
