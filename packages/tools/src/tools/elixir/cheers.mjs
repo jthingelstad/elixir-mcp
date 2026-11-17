@@ -37,7 +37,7 @@ export function cheerableItems(built) {
  */
 export const elixir_cheers = {
   description:
-    "The cheers other people gave the timeline items about your primary player (your owner's, for an agent) in the last days: each cheered item's id, kind, time and sentence with its cheers as counts by kind (well_played, on_fire, royal, wow, ha, grind), and the total. Counts only, never who cheered; your own cheers are not counted. Read-only: an agent never gives a cheer. For a person's own connection and their agents.",
+    "The cheers other people gave the timeline items about your primary player (your owner's, for an agent) in the last days: each cheered item's id, kind, time and sentence with its cheers as counts by kind (keyed by the cheer's id: well_played, on_fire, royal, wow, ha, grind and fourteen more, listed in docs timeline#cheers), and the total. Counts only, never who cheered; your own cheers are not counted. Read-only: an agent never gives a cheer. For a person's own connection and their agents.",
   inputSchema: {
     type: "object",
     properties: {

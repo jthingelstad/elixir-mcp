@@ -40,20 +40,47 @@ message keeps its words, and so do push, Discord, RSS and MCP.
 
 ### Cheers (one map: `apps/web/src/home/cheer-set.js`)
 
+Twenty since 2026-11-17 ("Reactions are glyphs alone; a larger set").
+The first six open first, in this fixed order; More shows the rest.
+
 | Cheer | Stored id | Glyph |
 | --- | --- | --- |
 | Well played (the one-tap default) | `well_played` | `thumbs-up` |
 | On fire | `on_fire` | `flame` |
-| Royal | `royal` | `crown` |
+| Royal | `royal` | `gem` (`crown` until 2026-11-17) |
 | Wow | `wow` | `sparkles` |
 | Ha | `ha` | `laugh` |
 | Grind | `grind` | `biceps-flexed` |
+| Love it | `love_it` | `heart` |
+| Good game | `good_game` | `handshake` |
+| Congrats | `congrats` | `party-popper` |
+| Clutch | `clutch` | `zap` |
+| High five | `high_five` | `hand` |
+| Champion | `champion` | `medal` |
+| Nailed it | `nailed_it` | `target` |
+| Climbing | `climbing` | `rocket` |
+| Big brain | `big_brain` | `brain` |
+| Ice cold | `ice_cold` | `snowflake` |
+| Close one | `close_one` | `hourglass` |
+| Lucky | `lucky` | `clover` |
+| Fun to watch | `fun_to_watch` | `popcorn` |
+| Getting better | `getting_better` | `sprout` |
 
 `CheerGlyph` draws a kind from this map and nothing else does: the feed's
 cards and lines, a session's page, a battle's page, a player's page and the
 bell all show a kind the same way. Yours is filled (the glyph tinted, the
-button violet); everyone else's is the outline. `smile-plus` opens the six
-and `x` closes them.
+button violet); everyone else's is the outline. A cheer glyph is shown
+alone, never beside its name: the name is the control's `aria-label` and a
+tooltip on hover, keyboard focus and a long press. `smile-plus` opens the
+six (and stays while they are open, lit); `plus` is More reactions.
+
+Kept off the cheers because they already mean something here: `crown`
+(a Ranked league, the game's crowns), `star` (close friend), `bell`
+(Notifications), `trophy`, `award`, `castle`, `shield`, `swords`, `eye`.
+`heart` was the bell's reaction row until 2026-11-17; that row is `smile`
+now. `rocket` is also the docs index's "New here?" mark, on another
+surface, which is fine. Every cheer kind is positive or playful and
+kid-safe: no thumbs-down, anger, skull, mocking or romantic kinds.
 
 ### Everywhere else
 
@@ -63,7 +90,7 @@ and `x` closes them.
 | `chevron-left` | Back to the page above (a crumb, a Back link) |
 | `chevron-right` | Opens the row or page it ends ("Open", "All", a row's link) |
 | `chevron-down`, `chevron-up` | Opens or closes in place (a folded group, a section) |
-| `x` | Closes a sheet, a panel or the cheer kinds |
+| `x` | Closes a sheet or a panel |
 | `star` (filled) | Yours: your clan, your close friend |
 | `check` | Done (a step, a perfect attendance) |
 | `copy`, `link-2` | Copy, a link (sharing a session or a battle) |

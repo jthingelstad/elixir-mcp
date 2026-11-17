@@ -3362,7 +3362,7 @@ export const OUTPUT_SCHEMAS = {
             type: "object",
             additionalProperties: { type: "integer" },
             description:
-              "Count per cheer (well_played, on_fire, royal, wow, ha, grind); only the cheers given. Never who.",
+              "Count per cheer, keyed by its id (one of twenty: well_played, on_fire, royal, wow, ha, grind, love_it, good_game, congrats, clutch, high_five, champion, nailed_it, climbing, big_brain, ice_cold, close_one, lucky, fun_to_watch, getting_better); only the cheers given. Never who.",
           },
         }),
       },

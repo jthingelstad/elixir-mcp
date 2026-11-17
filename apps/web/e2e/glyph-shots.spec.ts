@@ -44,7 +44,7 @@ for (const width of [390, 1280]) {
     await card.screenshot({
       path: path.join(shots!, `card-${width}-${tagSuffix}.png`),
     });
-    const more = card.getByRole("button", { name: /^(Cheer|Choose a cheer)$/ });
+    const more = card.getByRole("button", { name: "Choose a cheer" });
     await more.last().click();
     await card.screenshot({
       path: path.join(shots!, `kinds-${width}-${tagSuffix}.png`),

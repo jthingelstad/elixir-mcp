@@ -203,7 +203,7 @@ const cheer = (who, item, value, opts = {}) =>
     ...opts,
   });
 
-test("the six cheers are the database's six", async () => {
+test("the twenty cheers are the database's twenty, the first six unchanged", async () => {
   assert.deepEqual(CHEER_KEYS, [
     "well_played",
     "on_fire",
@@ -211,6 +211,20 @@ test("the six cheers are the database's six", async () => {
     "wow",
     "ha",
     "grind",
+    "love_it",
+    "good_game",
+    "congrats",
+    "clutch",
+    "high_five",
+    "champion",
+    "nailed_it",
+    "climbing",
+    "big_brain",
+    "ice_cold",
+    "close_one",
+    "lucky",
+    "fun_to_watch",
+    "getting_better",
   ]);
   const { rows } = await db.query(
     `select pg_get_constraintdef(oid) as def from pg_constraint
@@ -218,7 +232,21 @@ test("the six cheers are the database's six", async () => {
         and pg_get_constraintdef(oid) like '%cheer%'
         and pg_get_constraintdef(oid) not like '%item_id%'`,
   );
+  assert.equal(rows.length, 1);
   for (const key of CHEER_KEYS) assert.ok(rows[0].def.includes(`'${key}'`));
+});
+
+test("every kind is stored and counted, and switching between them keeps one", async () => {
+  const item = await highlightOf("friend");
+  for (const key of CHEER_KEYS) {
+    const r = await cheer("friend", item, key);
+    assert.equal(r.status, 200, `${key}: ${JSON.stringify(r.body)}`);
+    assert.deepEqual(r.body.cheers, { [key]: 1 });
+    assert.equal(r.body.my_cheer, key);
+  }
+  const owners = await highlightOf("owner");
+  assert.deepEqual(owners.cheers, { getting_better: 1 });
+  assert.equal((await cheer("friend", item, null)).status, 200);
 });
 
 test("a cheer: one per person per item, changed or taken back, counts only", async () => {

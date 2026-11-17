@@ -10,6 +10,7 @@ import {
   useClock,
 } from "@elixir-mcp/ui";
 import { CheerGlyph } from "../home/CheerGlyph.jsx";
+import { foldCounts } from "../home/cheer-set.js";
 import { FollowButton } from "../home/follow.jsx";
 import { needsYou, panelOf } from "../home/logic.js";
 import {
@@ -169,15 +170,19 @@ function Group({ id, title, children, tone }) {
   );
 }
 
-/** Cheers with the glyphs the Timeline draws them with, said as words. */
+/** Cheers with the glyphs the Timeline draws them with, said as words: the
+ *  top kinds by count and the rest folded into one number, as the Timeline
+ *  shows a busy item (foldCounts). */
 function Cheers({ row }) {
+  const { shown, rest } = foldCounts(row.cheers ?? {});
   return (
     <span role="img" aria-label={row.words} className="kit-bell__cheers">
-      {row.counts.map((c) => (
+      {shown.map((c) => (
         <span key={c.key} className="kit-bell__cheer">
           <CheerGlyph kind={c.key} size={15} /> {c.count}
         </span>
       ))}
+      {rest ? <span className="kit-bell__cheer">+{rest}</span> : null}
     </span>
   );
 }

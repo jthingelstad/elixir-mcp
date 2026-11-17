@@ -384,20 +384,25 @@ for (const [label, width] of [
         .locator(".kit-feed__item")
         .filter({ hasText: "Reached Path of Legends." });
       await expect(
-        item.getByRole("button", { name: "Cheer", exact: true }),
+        item.getByRole("button", { name: /^Cheer(ed)?: / }),
       ).toHaveAttribute("aria-pressed", "false");
-      await expect(item.getByText("2 people", { exact: true })).toBeVisible();
+      await expect(
+        item.locator(".kit-cheers .sr-only").filter({ hasText: "2 people" }),
+      ).toHaveCount(1);
       await item.getByRole("button", { name: "Choose a cheer" }).click();
       const picker = item.getByRole("group", { name: "Cheer with" });
-      await expect(picker.getByRole("button")).toHaveCount(6);
+      // Six, then More reactions; glyphs alone.
+      await expect(picker.getByRole("button")).toHaveCount(7);
       await accessible(page, "Home, cheer kinds");
       await picker.getByRole("button", { name: "Royal" }).click();
       await expect(
-        item.getByRole("button", { name: "Cheer", exact: true }),
+        item.getByRole("button", { name: /^Cheer(ed)?: / }),
       ).toHaveAttribute("aria-pressed", "true");
       await expect(
-        item.getByText("You and 2 others", { exact: true }),
-      ).toBeVisible();
+        item
+          .locator(".kit-cheers .sr-only")
+          .filter({ hasText: "You and 2 others" }),
+      ).toHaveCount(1);
       expect(sent).toEqual([
         { item_id: "o1", cheer: "royal", subjects: ["#00C298UC"] },
       ]);
