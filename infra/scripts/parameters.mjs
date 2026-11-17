@@ -93,6 +93,11 @@ export const PRESERVED_PARAMETERS = [
   // The activity mail's rule (2026-11-16): on by default, switched off
   // only by hand; a deploy never resets it.
   "ActivityMail",
+  // Comments (2026-11-16): the switch, on only once the app secret
+  // carries moderation_api_key, and the month's spend cap for their
+  // check. A deploy never resets either.
+  "CommentsEnabled",
+  "CommentsMonthlyCapUsd",
 ];
 
 /**

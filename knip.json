@@ -113,8 +113,8 @@
       "project": ["src/**/*.mjs", "test/**/*.mjs"]
     },
     "services/web-api": {
-      "entry": ["src/index.mjs", "test/**/*.test.mjs"],
-      "project": ["src/**/*.mjs", "test/**/*.mjs"]
+      "entry": ["src/index.mjs", "test/**/*.test.mjs", "eval/*.mjs"],
+      "project": ["src/**/*.mjs", "test/**/*.mjs", "eval/*.mjs"]
     },
     "packages/clan-state": {
       "entry": ["test/**/*.test.mjs"],

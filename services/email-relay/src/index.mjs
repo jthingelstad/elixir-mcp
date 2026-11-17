@@ -111,6 +111,9 @@ const modelWorker =
         secret: process.env.CLAN_MODEL_SECRET,
         storage: modelStorage(process.env.OUTBOX_BUCKET, s3),
         provider: createAnthropicClient(),
+        // Comments' check (2026-11-16): Elixir's own key, present only
+        // when the stack's CommentsEnabled is true.
+        moderationKey: process.env.MODERATION_API_KEY || null,
       })
     : null;
 

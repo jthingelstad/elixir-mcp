@@ -52,8 +52,13 @@ const unknown = () => ({
     "The model did not answer in time. Its request may have reached the provider; review the use record before trying again.",
 });
 function validRequest(request) {
-  if (
-    !request ||
+  if (!request) return false;
+  // A comment's check (2026-11-16) carries no key: the relay holds
+  // Elixir's own moderation key and adds it. Every other method carries
+  // the clan's sealed key.
+  if (request.method === "moderate") {
+    if (request.key !== null) return false;
+  } else if (
     !/^sk-ant-[A-Za-z0-9_-]{20,200}$/.test(request.key ?? "") ||
     !["models", "write", "turn"].includes(request.method)
   )
@@ -70,6 +75,10 @@ function validRequest(request) {
   if (request.method === "models") return request.input === null;
   if (request.method === "turn") return validTurn(request.input);
   const input = request.input;
+  // A check answers in a few tokens; the relay never spends Elixir's key
+  // on a long one.
+  if (request.method === "moderate" && !(input?.max_tokens <= 256))
+    return false;
   return Boolean(
     input &&
     typeof input.model === "string" &&
@@ -193,6 +202,9 @@ export function createModelBridge({
   return {
     models: (key) => call("models", key),
     write: (key, input) => call("write", key, input),
+    /** A comment's check on Elixir's own moderation key, which only the
+     *  relay holds (comment-check.mjs), waited for. */
+    moderate: (input) => call("moderate", null, input),
     /** One round of the activity channel's editor, waited for. */
     turn: (key, input) => call("turn", key, input),
     /** Start a write the caller collects later: `{ ok, id }`. The relay
@@ -216,6 +228,9 @@ export function createModelWorker({
   storage,
   provider,
   now = Date.now,
+  /** Elixir's own key for comment checks; null = every check answers
+   *  `moderation_off`, so comments fail closed. */
+  moderationKey = null,
 }) {
   const box = createBox(secret, "clan model bridge v1");
   return async function work(key) {
@@ -245,11 +260,21 @@ export function createModelWorker({
           ? { timeoutMs: request.timeout_ms }
           : {};
         response =
-          request.method === "write"
-            ? await provider.write(request.key, { ...request.input, ...wait })
-            : request.method === "turn"
-              ? await provider.turn(request.key, { ...request.input, ...wait })
-              : await provider.models(request.key);
+          request.method === "moderate"
+            ? moderationKey
+              ? await provider.write(moderationKey, {
+                  ...request.input,
+                  ...wait,
+                })
+              : { ok: false, status: 0, code: "moderation_off" }
+            : request.method === "write"
+              ? await provider.write(request.key, { ...request.input, ...wait })
+              : request.method === "turn"
+                ? await provider.turn(request.key, {
+                    ...request.input,
+                    ...wait,
+                  })
+                : await provider.models(request.key);
       } catch {
         response = unknown();
       }

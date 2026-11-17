@@ -133,6 +133,23 @@ Parameters:
     Description: >-
       Set to true once the app secret carries discord_client_secret; only
       the relay holds it, to trade a sign-in's code (docs/SECRETS.md).
+  CommentsEnabled:
+    Type: String
+    Default: "false"
+    AllowedValues: ["true", "false"]
+    Description: >-
+      Comments on timeline items (2026-11-16). Set to true only once the
+      app secret carries moderation_api_key (Elixir's own Anthropic key
+      for the check before each comment); the relay then holds the key and
+      the API takes comments. False, comments are off everywhere
+      (docs/SECRETS.md).
+  CommentsMonthlyCapUsd:
+    Type: String
+    Default: "10"
+    AllowedPattern: "^[0-9]{1,4}(\\.[0-9]{1,2})?$"
+    Description: >-
+      The most comment checks may spend in a calendar month, in US
+      dollars. At the cap comments pause; they never post unchecked.
   TurnstileMode:
     Type: String
     Default: observe
@@ -159,6 +176,7 @@ Conditions:
   HasUnsubscribeKey: !Equals [!Ref UnsubscribeKeyInSecret, "true"]
   HasTurnstileKey: !Equals [!Ref TurnstileKeyInSecret, "true"]
   ActivityMailOn: !Equals [!Ref ActivityMail, "on"]
+  HasComments: !Equals [!Ref CommentsEnabled, "true"]
   HasDiscordLogin: !And
     - !Equals [!Ref DiscordSecretInSecret, "true"]
     - !Not [!Equals [!Ref DiscordClientId, ""]]
@@ -1434,6 +1452,10 @@ Resources:
           DISCORD_CLIENT_ID:
             !If [HasDiscordLogin, !Ref DiscordClientId, !Ref AWS::NoValue]
           CLAN_MODEL_SECRET: !Sub "{{resolve:secretsmanager:${AppSecretName}:SecretString:clan_sealing_secret}}"
+          # Comments (2026-11-16): on only with CommentsEnabled; the check
+          # runs through the relay, which alone holds the moderation key.
+          COMMENTS_ENABLED: !If [HasComments, "true", !Ref AWS::NoValue]
+          COMMENTS_CAP_USD: !Ref CommentsMonthlyCapUsd
 
           AWS_LAMBDA_NODEJS_ENTRYPOINT: index.mjs
           DB_POOL_MAX: "4"
@@ -1731,6 +1753,12 @@ Resources:
             - !Sub "{{resolve:secretsmanager:${AppSecretName}:SecretString:discord_client_secret}}"
             - !Ref AWS::NoValue
           CLAN_MODEL_SECRET: !Sub "{{resolve:secretsmanager:${AppSecretName}:SecretString:clan_sealing_secret}}"
+          # Comments' check (2026-11-16): Elixir's own Anthropic key, used
+          # for that check alone; only the relay reaches Anthropic.
+          MODERATION_API_KEY: !If
+            - HasComments
+            - !Sub "{{resolve:secretsmanager:${AppSecretName}:SecretString:moderation_api_key}}"
+            - !Ref AWS::NoValue
 
   EmailEventSource:
     Type: AWS::Lambda::EventSourceMapping

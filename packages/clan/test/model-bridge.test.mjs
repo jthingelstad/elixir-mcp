@@ -477,3 +477,92 @@ test("an editor's round goes through the bridge to the provider's turn; a malfor
     assert.equal(storage.objects.size, before, "nothing sent");
   }
 });
+test("a comment's check carries no key; only the relay's moderation key is spent", async () => {
+  const moderationKey = `sk-ant-${"m".repeat(24)}`;
+  const check = { ...input, max_tokens: 64, effort: "low" };
+  const run = async ({ withKey, ask }) => {
+    const storage = memory();
+    const seen = [];
+    const worker = createModelWorker({
+      secret: "old-secret",
+      storage,
+      moderationKey: withKey ? moderationKey : null,
+      provider: {
+        async write(k, r) {
+          seen.push([k, r.max_tokens, r.effort]);
+          return { ok: true, input: { allow: true, category: "none" } };
+        },
+      },
+    });
+    const bridge = createModelBridge({
+      secret: "old-secret",
+      storage,
+      pause: async () =>
+        worker(
+          [...storage.objects.keys()].find((k) =>
+            k.startsWith("clan-model/request/"),
+          ),
+        ).catch(() => {}),
+    });
+    const result = await ask(bridge).catch((e) => ({ thrown: e }));
+    const serialized = [...storage.objects.values()].join();
+    assert.equal(serialized.includes(moderationKey), false);
+    assert.equal(serialized.includes(check.prompt), false);
+    return { result, seen };
+  };
+  const ok = await run({ withKey: true, ask: (b) => b.moderate(check) });
+  assert.equal(ok.result.ok, true);
+  assert.deepEqual(ok.seen, [[moderationKey, 64, "low"]]);
+  // No key on the relay: the check fails closed, nothing is spent.
+  const off = await run({ withKey: false, ask: (b) => b.moderate(check) });
+  assert.equal(off.result.ok, false);
+  assert.equal(off.result.code, "moderation_off");
+  assert.deepEqual(off.seen, []);
+  // A long check is never sent on Elixir's key.
+  const long = await run({
+    withKey: true,
+    ask: (b) => b.moderate({ ...check, max_tokens: 4000 }),
+  });
+  assert.notEqual(long.result.ok, true);
+  assert.deepEqual(long.seen, []);
+});
+test("a moderate request that names a key, or a write with none, never reaches the provider", async () => {
+  for (const [method, k] of [
+    ["moderate", key],
+    ["write", null],
+  ]) {
+    const storage = memory();
+    const box = createBox("old-secret", "clan model bridge v1");
+    storage.objects.set(
+      modelRequestKey(id),
+      JSON.stringify({
+        v: 1,
+        id,
+        box: box.seal(
+          JSON.stringify({
+            key: k,
+            method,
+            input: { ...input, max_tokens: 64 },
+            expires_at: 45000,
+          }),
+          `request:${id}`,
+        ),
+      }),
+    );
+    let calls = 0;
+    const worker = createModelWorker({
+      secret: "old-secret",
+      storage,
+      now: () => 1,
+      moderationKey: `sk-ant-${"m".repeat(24)}`,
+      provider: {
+        write: async () => {
+          calls++;
+          return { ok: true, input: {} };
+        },
+      },
+    });
+    await worker(modelRequestKey(id)).catch(() => {});
+    assert.equal(calls, 0, method);
+  }
+});
