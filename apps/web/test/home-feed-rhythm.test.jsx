@@ -324,3 +324,21 @@ test("0289: a Ranked season's finish names the league, a rating only in Ultimate
     smallMoment({ kind: "ranked_season_finished", facts: {}, subjects: [] }),
   ).toBe(true);
 });
+
+test("0289: a first win names the card as its deck slot does, and keeps its card", () => {
+  expect(
+    momentHead({
+      kind: "card_first_win",
+      facts: { card: "Musketeer", card_id: 26000014, form: "evolution" },
+    }),
+  ).toEqual({ kicker: "First win", title: "Evo Musketeer" });
+  expect(
+    momentHead({
+      kind: "card_first_win",
+      facts: { card: "Cannoneer", card_id: 159000001, form: null },
+    }),
+  ).toEqual({ kicker: "First win", title: "Cannoneer" });
+  expect(smallMoment({ kind: "card_first_win", facts: {}, subjects: [] })).toBe(
+    false,
+  );
+});

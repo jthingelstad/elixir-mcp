@@ -137,6 +137,21 @@ export const TIMELINE_KIND_SCHEMAS = {
     at: "the profile read that saw the card at its top level",
     facts: [...MEMBER, "card", "card_id", "rarity", "level"],
   },
+  // The first win with a card, form or tower troop the previous profile
+  // read did not show (0289).
+  card_first_win: {
+    version: 1,
+    at: "the winning battle",
+    facts: [
+      ...MEMBER,
+      "card",
+      "card_id",
+      "rarity",
+      "form",
+      "tower_troop",
+      "battle_id",
+    ],
+  },
   king_tower_leveled: {
     version: 1,
     at: "the profile read that saw the level",

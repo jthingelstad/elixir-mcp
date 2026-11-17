@@ -29,11 +29,13 @@ import { followClanForPlayer } from "@elixir-mcp/claims";
 import { RACE_MATCHMAKING, admissionValue, admit } from "./admission.mjs";
 import { ingestBattlelog } from "./battles.mjs";
 import { detectDeckSwitches } from "./deck-switch.mjs";
+import { detectFirstWins } from "./card-first-win.mjs";
 import { ingestClanRoster } from "./roster.mjs";
 import {
   projectPlayerBadges,
   projectPlayerSnapshot,
   pinArenaMoment,
+  rankedFinishAfterBattles,
 } from "./snapshots.mjs";
 import { refreshDailyRollups } from "./rollups.mjs";
 import { isFirstRead, logFirstRead } from "./first-read.mjs";
@@ -175,6 +177,23 @@ const PROJECTORS = {
           receiptId,
         })
       ).written;
+    // The first win with a new card (0289): the same live poll.
+    if (fresh && result.priorMark && result.battlesSeen > result.battlesSkipped)
+      result.cardFirstWins = (
+        await detectFirstWins(db, {
+          playerTag: entityKey,
+          mark: result.priorMark,
+          observedAt: fetchedAt,
+          receiptId,
+        })
+      ).written;
+    // A Master I season finish waiting on its Ranked battle (#1111).
+    if (fresh && result.priorMark && result.battlesSeen > result.battlesSkipped)
+      await rankedFinishAfterBattles(db, {
+        playerTag: entityKey,
+        observedAt: fetchedAt,
+        receiptId,
+      });
     // The observer's battles named an arena (0101): if the snapshot does
     // not know it yet, the profile is owed a read now, not in eight hours.
     if (fresh && result.arenaEvidence) {

@@ -228,6 +228,30 @@ test("a deck switch is a full moment with its mode, its deck and the deck's card
   }
 });
 
+test("a first win is a full moment named as its deck slot, with the card's art (0289)", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.clock.setFixedTime(new Date(FEED_NOW));
+  await page.route("**/assets/cards/**", (route) =>
+    route.fulfill({ status: 200, contentType: "image/png", body: PNG }),
+  );
+  await mockApi(page, rhythmApi());
+  await page.goto("/timeline");
+  const item = page
+    .locator(".kit-feed__item")
+    .filter({ hasText: "won with Evo Musketeer for the first time" });
+  await expect(item).toBeVisible();
+  await expect(item.locator(".kit-moment__kicker")).toHaveText("First win");
+  await expect(item.locator(".kit-moment__title")).toHaveText("Evo Musketeer");
+  await expect(item.locator(".kit-mart--card img")).toHaveCount(1);
+  if (shots) {
+    mkdirSync(shots, { recursive: true });
+    await item.evaluate((el) => el.scrollIntoView({ block: "center" }));
+    await item.screenshot({ path: path.join(shots, "first-win-390.png") });
+  }
+});
+
 test("small moments fold into one row that opens to a line each (2026-11-17)", async ({
   page,
 }) => {

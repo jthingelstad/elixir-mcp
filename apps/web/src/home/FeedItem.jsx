@@ -119,7 +119,12 @@ const BAND_WORDS = {
 };
 
 /** A moment's medal, for a moment with no art of its own. */
-const VIOLET = new Set(["card_unlocked", "card_form_unlocked", "card_maxed"]);
+const VIOLET = new Set([
+  "card_unlocked",
+  "card_form_unlocked",
+  "card_maxed",
+  "card_first_win",
+]);
 
 /** The moments that read as the day's headline (2026-11-17): a new best, a
  *  new league in Ranked, a new Arena. An Arena move down is a moment, not a
@@ -428,6 +433,7 @@ function HighlightLinks({ facts }) {
 }
 
 const FORM_WORD = { evolution: "New Evo", hero: "New Hero" };
+const FIRST_WIN_FORM = { evolution: "Evo", hero: "Hero" };
 /** A deck switch's kicker names its mode: modes are different games. */
 const SWITCH_KICKER = {
   ladder: "New deck on Trophy Road",
@@ -463,6 +469,17 @@ export function momentHead(it) {
         : null;
     case "card_maxed":
       return f.card ? { kicker: "Maxed", title: f.card } : null;
+    // The first win with a new card, form or tower troop (0289), named
+    // as a deck slot shows it.
+    case "card_first_win":
+      return f.card
+        ? {
+            kicker: "First win",
+            title: FIRST_WIN_FORM[f.form]
+              ? `${FIRST_WIN_FORM[f.form]} ${f.card}`
+              : f.card,
+          }
+        : null;
     case "king_tower_leveled":
       return typeof f.level === "number"
         ? { kicker: "King Tower", title: `Level ${f.level}` }
@@ -520,9 +537,15 @@ function momentCardOf(it) {
     ? { id: f.card_id, name: f.card ?? "" }
     : it.kind === "card_form_unlocked" && f.card_id && FORM_WORD[f.form]
       ? { id: f.card_id, name: f.card ?? "", form: f.form }
-      : it.moment_card?.id
-        ? { id: it.moment_card.id, name: it.moment_card.name }
-        : (it.moment_cards?.[0] ?? null);
+      : it.kind === "card_first_win" && f.card_id
+        ? {
+            id: f.card_id,
+            name: f.card ?? "",
+            ...(FIRST_WIN_FORM[f.form] ? { form: f.form } : {}),
+          }
+        : it.moment_card?.id
+          ? { id: it.moment_card.id, name: it.moment_card.name }
+          : (it.moment_cards?.[0] ?? null);
 }
 
 /** A badge's own art (0288, 2026-11-17, the owner: "Yes use badge

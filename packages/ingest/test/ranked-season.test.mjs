@@ -12,7 +12,11 @@ import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
 import { ensureSeason } from "@elixir-mcp/record/season";
 import { playerEvents } from "./event-rows.mjs";
-import { profileRolledPast, projectPlayerSnapshot } from "../src/snapshots.mjs";
+import {
+  profileRolledPast,
+  projectPlayerSnapshot,
+  rankedFinishAfterBattles,
+} from "../src/snapshots.mjs";
 import { scratchDb } from "./helpers.mjs";
 
 let ctx;
@@ -88,12 +92,12 @@ const lg = (leagueNumber, trophies = 0, rank = null) => ({
   rank,
 });
 
-async function rankedBattle(tag, at) {
+async function rankedBattle(tag, at, createdAt = at) {
   const id = `ranked-${tag}-${at}`;
   await ctx.db.query(
     `insert into battle (battle_id, battle_time, type, type_class, created_at)
-     values ($1, $2, 'pathOfLegend', 'pvp', $2)`,
-    [id, at],
+     values ($1, $2, 'pathOfLegend', 'pvp', $3)`,
+    [id, at, createdAt],
   );
   await ctx.db.query(
     `insert into battle_participant (battle_id, player_tag, side, outcome, battle_time, type_class, type)
@@ -209,4 +213,32 @@ test("a row an unrolled read filed before the fix is corrected by the next rolle
     [],
     "a correction is not a new finish: a deploy onto stale rows is silent",
   );
+});
+
+test("Master I whose Ranked battle the log delivers after the rolled read: the battle log says it then, once (Codex on #1111)", async () => {
+  const LATE = "#0YRQJGCJL";
+  await player(LATE);
+  await read(LATE, "2026-10-20T12:00:00Z", lg(1), UNROLLED);
+  await read(LATE, "2026-11-02T11:00:00Z", lg(1), ROLLED);
+  assert.deepEqual(await finishes(LATE), [], "no Ranked battle yet: silent");
+  // Played on 1 November, delivered on 3 November.
+  await rankedBattle(LATE, "2026-11-01T20:00:00Z", "2026-11-03T08:00:00Z");
+  const at = "2026-11-03T08:00:05Z";
+  await rankedFinishAfterBattles(ctx.db, { playerTag: LATE, observedAt: at });
+  await rankedFinishAfterBattles(ctx.db, { playerTag: LATE, observedAt: at });
+  const rows = await finishes(LATE);
+  assert.equal(rows.length, 1, "once");
+  assert.equal(rows[0].occurred_at.toISOString(), "2026-11-02T10:00:00.000Z");
+  assert.equal(rows[0].window_end.toISOString(), "2026-11-03T08:00:05.000Z");
+});
+
+test("a Ranked battle the record held before the filing never retries: a deploy over filed seasons is silent", async () => {
+  // ROWAN: Master I, no battle, filed on 2 November. A battle that
+  // reached the record before the filing is not a late delivery.
+  await rankedBattle(ROWAN, "2026-10-22T18:00:00Z", "2026-10-22T18:01:00Z");
+  await rankedFinishAfterBattles(ctx.db, {
+    playerTag: ROWAN,
+    observedAt: "2026-11-03T09:00:00Z",
+  });
+  assert.deepEqual(await finishes(ROWAN), []);
 });

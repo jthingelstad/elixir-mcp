@@ -130,7 +130,7 @@ export async function hydratePlayerEvents(db, rows) {
   const cards = new Map();
   if (cardIds.length) {
     const { rows: cs } = await db.query(
-      `select card_id, name, rarity from card where card_id = any($1)`,
+      `select card_id, name, rarity, kind from card where card_id = any($1)`,
       [cardIds],
     );
     for (const c of cs) cards.set(c.card_id, c);
@@ -153,7 +153,12 @@ export async function hydratePlayerEvents(db, rows) {
   const battles = await describeBattles(
     db,
     rows
-      .filter((r) => r.battle_id && r.event_type !== "deck_switched")
+      .filter(
+        (r) =>
+          r.battle_id &&
+          r.event_type !== "deck_switched" &&
+          r.event_type !== "card_first_win",
+      )
       .map((r) => ({ battle_id: r.battle_id, player_tag: r.player_tag })),
   );
   for (const r of rows) {
@@ -234,6 +239,18 @@ export async function hydratePlayerEvents(db, rows) {
           prior_deck_hash: r.prior_deck_hash,
           battles: r.battles,
           wins: r.wins,
+        };
+        break;
+      // The first win with a new card or form (0289): the winning
+      // battle by id; the form's bit rides in step.
+      case "card_first_win":
+        r.payload = {
+          card_id: r.card_id,
+          name: card?.name ?? null,
+          rarity: card?.rarity ?? null,
+          tower_troop: card?.kind === "support",
+          form: r.step === null ? null : (FORM_OF_BIT.get(r.step) ?? null),
+          battle_id: r.battle_id,
         };
         break;
       // A Ranked season's final league (0289): the rating only in
