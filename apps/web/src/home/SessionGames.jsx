@@ -173,7 +173,7 @@ function Who({ p, linked = true }) {
 /** One game's row. A session's page (2026-11-16) adds the opponent's deck
  *  (`theirs`), the facts it marked (`marks`), the deck it was played with
  *  when the sitting saw several (`mine`) and, for the reader's own verified
- *  player, a way to highlight it (`highlightTo`). Its public page
+ *  player, a way to post about it (`postTo`). Its public page
  *  (2026-11-17) draws names unlinked (`linked`). */
 export function Game({
   b,
@@ -183,7 +183,7 @@ export function Game({
   theirs = null,
   mine = null,
   marks = [],
-  highlightTo = null,
+  postTo = null,
   linked = true,
 }) {
   const outcome = RESULT[b.outcome] ? b.outcome : "unknown";
@@ -309,9 +309,9 @@ export function Game({
             Battle<span className="sr-only"> at {at}</span>
           </Link>
         ) : null}
-        {url && highlightTo ? (
-          <Link to={highlightTo} className="kit-sgame__go">
-            Highlight<span className="sr-only"> the battle at {at}</span>
+        {url && postTo ? (
+          <Link to={postTo} className="kit-sgame__go">
+            Post<span className="sr-only"> about the battle at {at}</span>
           </Link>
         ) : null}
       </span>

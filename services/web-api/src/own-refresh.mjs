@@ -2,7 +2,7 @@
  * Your own battles, read now (2026-11-14). The owner opened Elixir to share
  * a win he had just played and it was not there: a battle log is read on
  * the scheduler's cadence, not when its player shows up. Opening the app,
- * the freshness chip, the highlight composer and your own player page ask
+ * the freshness chip, the battle-post composer and your own player page ask
  * the live lane (packages/tools live.mjs) for a RECORDING read of your own
  * verified players' battle logs, so the app feels live for the person
  * using it, within limits:

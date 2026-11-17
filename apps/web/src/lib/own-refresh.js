@@ -2,7 +2,7 @@
  * Your own battles, read now (2026-11-14). The app asks once when it
  * starts, again when the tab comes back after five minutes or more hidden,
  * when you tap the freshness chip, open your own player page or a battle
- * you could highlight. The server holds the real limits (one ask per five
+ * you could post about. The server holds the real limits (one ask per five
  * minutes per account, your own verified players only, the global bucket
  * and a daily allowance: services/web-api/src/own-refresh.mjs); a refusal
  * is `queued: false` and the page simply carries on.
@@ -34,7 +34,7 @@ const MIN_WAIT_S = 5;
 const MAX_WAIT_S = 60;
 
 /** What landing refreshes: your Home's reads (head, feed, week), player
- *  pages and their games (the list a highlight is picked from). */
+ *  pages and their games (the list a battle to post about is picked from). */
 export const LANDED_KEYS = [
   ["me", "home"],
   ["me", "player"],
@@ -275,7 +275,7 @@ export function useRefreshOnOpen(me) {
 }
 
 /** Ask when a page that starts sharing opens (your own player page, a
- *  battle you could highlight): the same call, under the same limits. */
+ *  battle you could post about): the same call, under the same limits. */
 export function useAskOnOpen(enabled) {
   const { ask } = useOwnRefresh();
   useEffect(() => {

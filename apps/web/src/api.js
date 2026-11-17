@@ -366,23 +366,9 @@ export const api = {
     ),
   publicBattle: (ref) =>
     request("GET", `/api/public/battles/${encodeURIComponent(ref)}`),
-  // Highlights (#762): a person's own posts of their verified players'
-  // battles, and a shared post's public read.
-  myHighlights: (battle) =>
-    request("GET", `/api/me/highlights?battle=${encodeURIComponent(battle)}`),
-  postHighlight: ({ battle, player_tag, words }) =>
-    request("POST", "/api/me/highlights", { battle, player_tag, words }),
-  editHighlight: (id, words) =>
-    request("PUT", `/api/me/highlights/${encodeURIComponent(id)}`, { words }),
-  deleteHighlight: (id) =>
-    request("DELETE", `/api/me/highlights/${encodeURIComponent(id)}`),
-  shareHighlight: (id) =>
-    request("POST", "/api/me/highlights/share", { highlight_id: id }),
-  // A shared highlight in its player's clan's Discord, once (#767).
-  postHighlightToClan: (id) =>
-    request("POST", "/api/me/highlights/discord", { highlight_id: id }),
+  // A shared post about a battle, as anyone with its link reads it.
   publicPost: (id) =>
-    request("GET", `/api/public/highlights/${encodeURIComponent(id)}`),
+    request("GET", `/api/public/posts/${encodeURIComponent(id)}`),
   myRequests: (agent) => request("GET", `${home(agent)}/requests`),
   callRecord: (request_id, agent) =>
     request(
@@ -433,7 +419,9 @@ export const api = {
   unblock: (accountId) =>
     request("DELETE", `/api/me/blocks/${encodeURIComponent(accountId)}`),
   // Posts (2026-11-17): a person's own short posts. Yours alone, never
-  // an agent's pages; every one answers 404 posts_off while posts are off.
+  // an agent's pages. A post about nothing in the record answers 404
+  // posts_off while posts are off; a post about a battle (what was a
+  // highlight, 0291) works either way.
   posts: ({ player, account, mine }) =>
     request(
       "GET",
@@ -443,6 +431,19 @@ export const api = {
     ),
   writePost: ({ text, question, deck_link, cards }) =>
     request("POST", "/api/me/posts", { text, question, deck_link, cards }),
+  // The battle page's panel: your posts about this battle and the
+  // verified players you may post it as.
+  postsOnBattle: (battle) =>
+    request("GET", `/api/me/posts?battle=${encodeURIComponent(battle)}`),
+  writeBattlePost: ({ battle, player_tag, text }) =>
+    request("POST", "/api/me/posts", { battle, player_tag, text }),
+  editPost: (id, text) =>
+    request("PUT", `/api/me/posts/${encodeURIComponent(id)}`, { text }),
+  // A post about a battle gets its public link, /h/<id>.
+  sharePost: (id) => request("POST", "/api/me/post-shares", { id }),
+  // A shared post about a battle in its player's clan's Discord, once
+  // (#767).
+  postToClanDiscord: (id) => request("POST", "/api/me/post-discord", { id }),
   deletePost: (id) =>
     request("DELETE", `/api/me/posts/${encodeURIComponent(id)}`),
   reportPost: (id, reason) =>

@@ -21,7 +21,7 @@
  *  in-process, as Home's feed and elixir_timeline read it): for each
  *  person they follow, their sittings and battles counted, then the
  *  moments worth a line, each with the battle that made it when the
- *  record knows it, and their highlights with their own words. Then the
+ *  record knows it, and their posts about battles with their own words. Then the
  *  clans they track, their own news only (clanNews), and their own week.
  *  Nothing is derived a second time: every number is the timeline
  *  entry's, every person's sentence the timeline's (itemText).
@@ -42,7 +42,7 @@ import { BIG_FIRST_KINDS, progressOf } from "@elixir-mcp/tools/friends-week";
 import { verifiedPlayerIdentities } from "@elixir-mcp/auth/player-identities";
 import { battleLinks } from "@elixir-mcp/record/battle-links";
 
-/** The items a digest tells: a highlight (the player's post), the big
+/** The items a digest tells: a post about a battle (kind battle_highlight), the big
  *  firsts the milestone mail told (each with the battle that made it),
  *  and a person's clan moves and return. Chosen before the timeline's
  *  cap, so the cap is spent on what the mail can say; card unlocks and
@@ -69,14 +69,14 @@ const DIGEST_SPAN_MS = {
   daily: 86400_000,
 };
 
-/** Items a person shows, newest highlights first; the rest counted. */
+/** Items a person shows, newest battle posts first; the rest counted. */
 const ITEMS_PER_PERSON = 3;
 /** Sittings a person shows: their biggest, told newest first; the rest
  *  counted. [engineering, 2026-11-16] */
 const SITTINGS_PER_PERSON = 3;
 /** How far the digest's timeline read goes before its cap. MCP's cap
  *  (150) is sized to its result limit; the mail picks a few per person, so
- *  a week of sittings from everyone followed must not push a highlight
+ *  a week of sittings from everyone followed must not push a battle post
  *  out of it. [engineering, 2026-11-16] */
 const DIGEST_TIMELINE_CAP = 2000;
 /** People drawn in one digest, busiest first; the rest counted. */
@@ -172,9 +172,9 @@ const battleRef = (f) =>
   null;
 
 /** One item as the digest prints it: the timeline's time-free sentence,
- *  and for a highlight the player's words beside it (escaped at the
- *  render, never here), and the battle's public page when the record
- *  knows the battle. A highlight's share link is never carried: a
+ *  and for a post about a battle the player's words beside it (escaped
+ *  at the render, never here), and the battle's public page when the
+ *  record knows the battle. A post's share link is never carried: a
  *  follower's digest is not the owner's. */
 function digestItem(it, tz, links) {
   const f = it.facts ?? {};
@@ -359,7 +359,7 @@ export async function buildDigest({
         (it.subject_tag === tag || it.subjects?.some((s) => s.tag === tag)) &&
         !toldByClan(it),
     );
-    // Highlights first (the player's own post), then the rest; each
+    // Posts about battles first (the player's own words), then the rest; each
     // group newest first, the timeline's own order.
     const ordered = [
       ...mine.filter((it) => it.kind === "battle_highlight"),
@@ -398,7 +398,7 @@ export async function buildDigest({
   });
   // The timeline's entries are the subjects that played (or moved) in
   // the window; an item can still come from a subject with no entry: a
-  // highlight of an older battle, posted or edited now. Such a subject
+  // post about an older battle, written or edited now. Such a subject
   // stands with no battles, so a post alone is still told (Codex on
   // #783).
   const entered = new Set(

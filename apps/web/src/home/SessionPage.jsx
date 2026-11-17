@@ -39,7 +39,7 @@ import { CopyButton, Invite, JoinLine } from "../views/JoinElixir.jsx";
  * result and crowns, who was on the other side and their deck, the
  * trophies, mode and time, and the battle's own page. Games that mattered
  * say so in facts ("5th win in a row", "Three crowns", a new best), never
- * as a rating. The reader's own verified player can highlight a game one
+ * as a rating. The reader's own verified player can post about a game one
  * tap from its row. Where the record and the update's count differ, the
  * page says so in plain words.
  *
@@ -148,7 +148,7 @@ export function SessionPage() {
 }
 
 /** The page, for a member or (`publicView`) for anyone with the link:
- *  then no comments, no highlight and no links into the signed-in app,
+ *  then no comments, no posting and no links into the signed-in app,
  *  names as the game spells them, and the way in for a reader with no
  *  account. `me` is the signed-in reader, for Follow from here. */
 export function SessionView({
@@ -353,10 +353,8 @@ export function SessionView({
                     manyDecks && Number.isInteger(b.deck) ? decks[b.deck] : null
                   }
                   marks={marks.get(b.battle_id) ?? []}
-                  highlightTo={
-                    !publicView && you?.can_highlight && url
-                      ? `${url}#highlight`
-                      : null
+                  postTo={
+                    !publicView && you?.can_post && url ? `${url}#post` : null
                   }
                   linked={!publicView}
                 />

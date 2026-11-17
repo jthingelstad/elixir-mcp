@@ -12498,6 +12498,17 @@ h1.kit-post__title {
   margin: 0;
   overflow-wrap: anywhere;
 }
+/* A post's battle (0291: what was a highlight): its line, both decks and
+   Open battle, under the words. */
+.kit-written__battle {
+  display: grid;
+  gap: var(--s-1);
+  min-width: 0;
+  justify-items: start;
+}
+.kit-written__battle .kit-feed__text {
+  margin: 0;
+}
 .kit-written__copy {
   display: flex;
   flex-wrap: wrap;

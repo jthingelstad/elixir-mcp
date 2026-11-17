@@ -71,7 +71,6 @@ import { accountHref, accountOf } from "../lib/account.js";
  */
 export const PLAYER_TABS = [
   { key: "timeline", label: "Timeline" },
-  { key: "highlights", label: "Highlights" },
   { key: "moments", label: "Moments" },
   { key: "follows", label: "Follows" },
   // Explore's player and profile records, folded in (2026-11-12).
@@ -181,11 +180,7 @@ export function PlayerView({ page, initialTab = "timeline" }) {
     ...PLAYER_TABS.map((t) => ({
       ...t,
       count:
-        t.key === "highlights"
-          ? page.highlights.length
-          : t.key === "moments"
-            ? page.moments.length
-            : null,
+        t.key === "moments" ? page.moments.length : null,
     })),
     ...(inClan.clan ? [CLAN_TAB] : []),
   ];
@@ -294,8 +289,6 @@ export function PlayerView({ page, initialTab = "timeline" }) {
               tag={p.tag}
             />
           </>
-        ) : shown === "highlights" ? (
-          <Highlights items={page.highlights} cheered={cheered} own={you.own} />
         ) : shown === "moments" ? (
           <Moments
             items={page.moments}
@@ -409,7 +402,6 @@ function Counts({ page, onPick }) {
     <div className="kit-statrow">
       {stat("Following", page.follows.count, "follows")}
       {stat("Followers", page.followers.count, "follows")}
-      {stat("Highlights", page.highlights.length, "highlights")}
     </div>
   );
 }
@@ -433,15 +425,13 @@ const VIOLET = new Set([
 ]);
 
 /** The medal tile beside an item (canvas Player .item): a sitting's bars, a
- *  highlight's bookmark, a clan's shield, a moment's star. */
+ *  clan's shield, a moment's star. */
 function Medal({ kind, tile = true }) {
   const [icon, tone] = SITTINGS.has(kind)
     ? ["activity", "violet"]
-    : kind === "battle_highlight"
-      ? ["bookmark", ""]
-      : CLAN_KINDS.has(kind)
-        ? ["shield", "clan"]
-        : ["star", VIOLET.has(kind) ? "violet" : ""];
+    : CLAN_KINDS.has(kind)
+      ? ["shield", "clan"]
+      : ["star", VIOLET.has(kind) ? "violet" : ""];
   return (
     <span
       className={`kit-medal${tile ? " kit-medal--tile" : ""}${tone ? ` kit-medal--${tone}` : ""}`}
@@ -521,9 +511,6 @@ export function ItemList({
                         {feedWhen(it.at)}
                       </time>
                     ) : null}
-                    {it.words ? (
-                      <p className="kit-feed__words">{it.words}</p>
-                    ) : null}
                     {card ? <Sitting it={it} href={href} /> : null}
                     {open ? (
                       <PlayerGames
@@ -583,62 +570,6 @@ export function ItemList({
       ) : null}
     </>
   );
-}
-
-/** The Highlights tab (canvas .hcard): each the player's pick, with their
- *  words, its cheers and its battle. */
-function Highlights({ items, cheered, own = false }) {
-  const { when, feedWhen } = useClock();
-  // Your own empty tab says how one is made (round two, 2026-11-13).
-  if (items.length === 0)
-    return (
-      <p className="kit-week__quiet">
-        No highlights posted yet.
-        {own ? (
-          <>
-            {" "}
-            <a href="/docs/battles#highlight-a-battle">
-              How to highlight a battle <Icon name="chevron-right" size={14} />
-            </a>
-          </>
-        ) : null}
-      </p>
-    );
-  return items.map((it, i) => {
-    const battle = battlePath(it);
-    const withCheers = cheered?.of(it);
-    return (
-      <article key={it.id ?? i} className="kit-hcard">
-        <p className="kit-hcard__when">
-          <Icon name="crown" size={18} />
-          {it.at ? (
-            <time dateTime={it.at} title={when(it.at)}>
-              {feedWhen(it.at)}
-            </time>
-          ) : null}
-        </p>
-        <p className="kit-hcard__title">
-          <TagText>{it.text}</TagText>
-        </p>
-        {it.words ? <p className="kit-hcard__words">“{it.words}”</p> : null}
-        {withCheers || battle.startsWith("/battle/") ? (
-          <footer className="kit-feed__foot">
-            {withCheers ? (
-              <Cheers it={withCheers} where={cheered.where} />
-            ) : null}
-            <span className="share-actions kit-feed__links">
-              {battle.startsWith("/battle/") ? (
-                <Link to={battle} className="btn btn--sm">
-                  Open the battle
-                </Link>
-              ) : null}
-            </span>
-          </footer>
-        ) : null}
-        {withCheers ? <Comments it={withCheers} /> : null}
-      </article>
-    );
-  });
 }
 
 /** The Moments tab: sunken tiles, a medal each (canvas Player moments). */

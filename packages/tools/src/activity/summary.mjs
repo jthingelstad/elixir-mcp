@@ -563,8 +563,9 @@ export function itemText(it, timeZone = "UTC") {
   switch (it.kind) {
     case "battle_session":
       return `${member || subj} played ${plural(f.battles, "battle")}${f.battles > 1 ? " in one session" : ""}${togetherPart(f)} (${sitting(f)}${rankedPart(f.ranked)})${played(f)}${f.open ? ", still going" : ""}.`;
-    // A highlight is the player's post: the battle, then their words as
-    // they wrote them (escaped at each output that needs it, never here).
+    // A highlight is the player's post about a battle (0291: a post with
+    // a battle attached): the battle, then their words as they wrote them
+    // (escaped at each output that needs it, never here).
     case "battle_highlight": {
       const b = f.battle ?? {};
       const result =
@@ -579,7 +580,7 @@ export function itemText(it, timeZone = "UTC") {
       const words = String(f.words ?? "")
         .replace(/\s+/g, " ")
         .trim();
-      return `${member || subj} highlighted a ${b.crowns ?? "?"}-${b.crowns_against ?? "?"} ${result} against ${against(b)}${mode ? ` (${mode})` : ""}${words ? `: “${words}”` : "."}`;
+      return `${member || subj} posted about a ${b.crowns ?? "?"}-${b.crowns_against ?? "?"} ${result} against ${against(b)}${mode ? ` (${mode})` : ""}${words ? `: “${words}”` : "."}`;
     }
     case "session_standout": {
       const run =

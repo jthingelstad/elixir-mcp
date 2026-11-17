@@ -32,9 +32,9 @@ import { accountRoutes } from "./routes/account.mjs";
 import { discordRoutes } from "./routes/discord.mjs";
 import { timelineDiscordRoutes } from "./routes/timeline-discord.mjs";
 import {
-  highlightClanDiscord,
-  postHighlightToClan,
-  wakeAfterHighlight,
+  battlePostClanDiscord,
+  postBattlePostToClan,
+  wakeAfterPost,
 } from "@elixir-mcp/syndication";
 import { emailRoutes } from "./routes/email.mjs";
 import { clansRoutes } from "./routes/clans.mjs";
@@ -53,7 +53,7 @@ import { deadlineMs } from "./deadline.mjs";
 import { principalsRoutes } from "./routes/principals.mjs";
 import { battleRoutes } from "./routes/battle.mjs";
 import { sessionRoutes } from "./routes/session.mjs";
-import { highlightRoutes } from "./routes/highlight.mjs";
+import { sharedPostRoutes } from "./routes/shared-post.mjs";
 import { cheersRoutes } from "./routes/cheers.mjs";
 import { commentsRoutes } from "./routes/comments.mjs";
 import { postsRoutes } from "./routes/posts.mjs";
@@ -75,7 +75,7 @@ import {
 } from "./http.mjs";
 
 /** A clan's saved policy, from Clan's ledger in Postgres: what a shared
- *  highlight's post to the clan's Discord is allowed by (#767). */
+ *  battle post's line in the clan's Discord is allowed by (#767). */
 const clanPolicy = (db, clanTag) =>
   createPostgresLedger(db).currentPolicy(clanTag);
 
@@ -506,11 +506,39 @@ export function makeHandler({
     // Comments, blocks and reports (2026-11-16), off unless the stack's
     // CommentsEnabled is true.
     ...commentsRoutes({ resolveAccount, comments, posts: postsOn }),
-    // Posts (2026-11-17), off unless PostsEnabled and CommentsEnabled.
+    // Posts (2026-11-17): a post about nothing in the record only with
+    // PostsEnabled and CommentsEnabled; a post about a battle (what was a
+    // highlight until 0291) either way, its words checked while comments
+    // are on.
     ...postsRoutes({
       resolveAccount,
-      posts: postsOn ? comments : null,
+      posts: {
+        plain: postsOn,
+        check: comments?.enabled === true ? comments : null,
+      },
+      // A post about a battle, or words that change, wakes the Discord
+      // syndication of the timelines its player reaches, as an admission
+      // does.
+      wake: discord?.outbox
+        ? (d, post) => wakeAfterPost(d, post, { outbox: discord.outbox })
+        : null,
+      // A shared post about a battle in its player's clan's Discord, by
+      // its author's act, through the clan's activity channel and the
+      // relay (#767).
+      clanDiscord: discord?.outbox
+        ? {
+            state: (d, accountId, id) =>
+              battlePostClanDiscord(d, accountId, id, { policyFor: clanPolicy }),
+            post: (d, accountId, id) =>
+              postBattlePostToClan(d, accountId, id, {
+                outbox: discord.outbox,
+                policyFor: clanPolicy,
+              }),
+          }
+        : null,
     }),
+    // A shared post's public page, picture and JSON.
+    ...sharedPostRoutes({ siteShell, shareImage }),
     ...pushRoutes({ resolveAccount, publicKey: vapidPublicKey }),
     // The bell's stored week rides the same wake (bell_week, 0247).
     ...bellRoutes({
@@ -522,30 +550,6 @@ export function makeHandler({
     ...peopleRoutes({ resolveAccount, blocks: comments?.enabled === true }),
     ...passportRoutes({ resolveAccount }),
     ...accountsRoutes({ resolveAccount, blocks: comments?.enabled === true }),
-    ...highlightRoutes({
-      resolveAccount,
-      siteShell,
-      shareImage,
-      // A post, or words that change, wakes the Discord syndication of
-      // the timelines its player reaches, as an admission does.
-      wake: discord?.outbox
-        ? (d, highlight) =>
-            wakeAfterHighlight(d, highlight, { outbox: discord.outbox })
-        : null,
-      // A shared highlight in its player's clan's Discord, by its owner's
-      // act, through the clan's activity channel and the relay (#767).
-      clanDiscord: discord?.outbox
-        ? {
-            state: (d, accountId, id) =>
-              highlightClanDiscord(d, accountId, id, { policyFor: clanPolicy }),
-            post: (d, accountId, id) =>
-              postHighlightToClan(d, accountId, id, {
-                outbox: discord.outbox,
-                policyFor: clanPolicy,
-              }),
-          }
-        : null,
-    }),
     // Clan, a part of Elixir: its routes under /api/clan (routes/clan.mjs).
     ...clanRoutes({ clan, resolvePerson }),
     ...emailRoutes({

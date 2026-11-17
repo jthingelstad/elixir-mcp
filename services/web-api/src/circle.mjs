@@ -92,7 +92,7 @@ const tagsOf = (it) =>
   );
 
 /** Whether an item is a moment about a player's play: not a sitting, a
- *  highlight, a clan's line or an account's news. */
+ *  post about a battle, a clan's line or an account's news. */
 const isMoment = (it) =>
   !SITTINGS.has(it.kind) &&
   !NOT_MOMENTS.has(it.kind) &&

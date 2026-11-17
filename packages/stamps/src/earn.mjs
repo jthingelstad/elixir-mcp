@@ -12,10 +12,10 @@
  *    (it threw, or the write came through a door with no hook) is
  *    repaired by the next settle of the same account.
  *  - earnFact: a ladder fact with its accepted action (a cheer, a
- *    highlight), then the level that count reaches.
+ *    post about a battle), then the level that count reaches.
  *  - reconcilePassport: the owner's bounded, idempotent pass from Home or
  *    their passport: a missed place save, Storyteller facts from the
- *    account's own highlights, Played Together days from the recorded
+ *    account's own posts about battles, Played Together days from the recorded
  *    battles read since the last pass, then a settle.
  *
  * Every function takes a client OUTSIDE a transaction (the store's
@@ -52,7 +52,7 @@ export const RECONCILE = Object.freeze({
   BATTLES: 200,
   /** Facts offered to the store in one call, across both ladders. */
   FACTS: 40,
-  /** Own highlights read in one call, oldest first. */
+  /** Own posts about battles read in one call, oldest first. */
   HIGHLIGHTS: 60,
   /** A battle recorded at least this long ago counts as settled: the
    *  checkpoint moves only past settled battles, so a battle whose
@@ -166,28 +166,31 @@ function localDay(at, zone) {
 }
 
 /**
- * Storyteller from the account's own highlights with words: each one the
- * stored facts do not already hold (by source or by battle) is offered.
- * Repairs a highlight whose hook failed. Bounded by RECONCILE.HIGHLIGHTS
- * and the fact budget.
+ * Storyteller from the account's own posts about battles with words (what
+ * were highlights until 0291): each one the stored facts do not already
+ * hold (by source or by battle) is offered. Repairs a post whose hook
+ * failed. A highlight counted before 0291 holds its battle, so the post
+ * it became is never counted again. Bounded by RECONCILE.HIGHLIGHTS and
+ * the fact budget.
  */
-async function storytellerFromHighlights(db, accountId, { now, budget }) {
+async function storytellerFromPosts(db, accountId, { now, budget }) {
   const facts = await storedFacts(db, accountId, "storyteller");
   if (facts.length >= FACT_CAPS.storyteller) return [];
   const sources = new Set(facts.map((f) => f.source_hash));
   const battles = new Set(facts.map((f) => f.qualifier));
   const { rows } = await db.query(
-    `select highlight_id::text as highlight_id, battle_id, created_at
-       from battle_highlight
-      where account_id = $1::uuid and words ~ '[^[:space:]]'
-      order by created_at, highlight_id
+    `select post_id::text as post_id, battle_id, created_at
+       from account_post
+      where account_id = $1::uuid and battle_id is not null
+        and status <> 'removed' and body ~ '[^[:space:]]'
+      order by created_at, post_id
       limit $2::int`,
     [accountId, RECONCILE.HIGHLIGHTS],
   );
   const granted = [];
   for (const h of rows) {
     if (budget.left <= 0) break;
-    const source = `highlight:${h.highlight_id}`;
+    const source = `post:${h.post_id}`;
     if (sources.has(sha256(`storyteller\n${source}`))) continue;
     const qualifier = `battle:${sha256(h.battle_id)}`;
     if (battles.has(qualifier)) continue;
@@ -423,7 +426,7 @@ export async function reconcilePassport(
     if (!list?.map_place_saved_at && (await placeSaved()))
       latch = { map_choice: "place", place_saved: true };
   }
-  const told = await storytellerFromHighlights(db, accountId, {
+  const told = await storytellerFromPosts(db, accountId, {
     now,
     budget,
   });

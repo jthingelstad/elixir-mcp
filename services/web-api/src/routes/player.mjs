@@ -21,7 +21,6 @@ import {
   buildTimeline,
   itemVisibility,
   NEWS_SOURCES,
-  playerHighlights,
   readTimelineEvidence,
   sessionDeck,
   sessionSpark,
@@ -57,7 +56,6 @@ import { publicSessionLinks } from "../session-links.mjs";
 
 /** The page's timeline window, as Home's Timeline reads a week. */
 const PAGE_DAYS = 30;
-const HIGHLIGHTS = 30;
 /** One confirmed follow takes at most a clan's worth of players. */
 export const FOLLOW_ALL_MAX = 50;
 const MOMENT_KINDS = new Set(NEWS_SOURCES.player_moments);
@@ -168,8 +166,7 @@ const sittingFacts = (f = {}) => ({
   ended_at: f.ended_at ?? null,
 });
 
-/** One item, as the page draws it: its sentence; for a highlight, its
- *  battle; for a sitting, what Home's session row draws (G7, 2026-11-12):
+/** One item, as the page draws it: its sentence; for a sitting, what Home's session row draws (G7, 2026-11-12):
  *  its sparkline, its numbers and its games' evidence handle. Never its
  *  facts whole: the page needs none of the rest. */
 const pageItem = (it) => {
@@ -181,12 +178,6 @@ const pageItem = (it) => {
     kind: it.kind,
     at: shownAt(it) || it.at || null,
     text: String(it.text ?? ""),
-    ...(it.kind === "battle_highlight"
-      ? {
-          words: it.facts?.words ?? null,
-          battle_url: it.facts?.battle?.url ?? null,
-        }
-      : {}),
     ...(SITTINGS.has(it.kind)
       ? {
           facts: sittingFacts(it.facts),
@@ -343,7 +334,7 @@ export async function readSitting(
 }
 
 /** One sitting on its own page (2026-11-16), for a signed-in reader:
- *  readSitting, and whether the reader may highlight its games. */
+ *  readSitting, and whether the reader may post about its games. */
 export async function readSessionPage(
   db,
   account,
@@ -378,9 +369,9 @@ export async function readSessionPage(
         claim &&
         (claim.is_primary || ["primary", "alt"].includes(claim.relationship)),
       ),
-      // A verified player's games can be highlighted from their battle
-      // page (highlight.mjs eligiblePlayers asks the same).
-      can_highlight: claim?.status === "verified",
+      // A verified player's games can be posted about from their battle
+      // page (battle-posts.mjs battleFor asks the same).
+      can_post: claim?.status === "verified",
     },
     item: read.item,
     games: read.games,
@@ -415,14 +406,19 @@ async function readPlayerPage(db, account, tag, now = Date.now()) {
   // where the record does not know the battle.
   const proofs = (built.timeline ?? []).map(proofOf);
   const links = await battleLinks(db, proofs.filter(Boolean));
-  const timeline = (built.timeline ?? []).map((it, i) => {
-    const item = pageItem(it);
-    const link = proofs[i] ? links.get(proofs[i]) : null;
-    return link && !item.battle_url ? { ...item, battle_url: link.url } : item;
-  });
-  const highlights = (
-    await playerHighlights(db, tag, { timezone, limit: HIGHLIGHTS, now })
-  ).map(pageItem);
+  // A post about a battle (what was a highlight, 0291) is the page's
+  // Posts list's, read as the post it is (GET /api/me/posts?player=), so
+  // the record's own line for it is left out here: one item, not two.
+  const timeline = (built.timeline ?? [])
+    .map((it, i) => {
+      if (it.kind === "battle_highlight") return null;
+      const item = pageItem(it);
+      const link = proofs[i] ? links.get(proofs[i]) : null;
+      return link && !item.battle_url
+        ? { ...item, battle_url: link.url }
+        : item;
+    })
+    .filter(Boolean);
   // The verified account's badges, follows and followers: the one reader
   // players_follows serves too (@elixir-mcp/tools/social). No verified
   // account, nothing to show: follows are an account's.
@@ -488,7 +484,6 @@ async function readPlayerPage(db, account, tag, now = Date.now()) {
     timeline,
     timeline_more: built.timeline_more ?? 0,
     moments: timeline.filter((it) => MOMENT_KINDS.has(it.kind)),
-    highlights,
     // The verified owner's passport in one row (#1015): the same owner as
     // the badges, a main and an alt alike; null for an unverified claim,
     // nobody's player or an owner with no passport yet. One statement,

@@ -4,7 +4,7 @@ import { Comments } from "../home/Comments.jsx";
 
 /**
  * Cheers on a battle's page (2026-11-12): the items in your own feed that
- * this battle proves or that highlight it (a posted highlight, a moment it
+ * this battle proves or that post about it (a post about it, a moment it
  * proved), each with its cheers. Signed-in members only: the page draws
  * this only for them, and a reader with no such item sees nothing at all,
  * no panel and no counts. Anyone signed out sees neither the cheers nor how

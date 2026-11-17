@@ -271,11 +271,11 @@ function clanBlock(k, c) {
   return `<div>${esc(sentence(capFirst(k.headline)))}</div>${k.bullets?.length ? c.list(k.bullets.map((b) => esc(capFirst(clause(b))))) : ""}${more}`;
 }
 
-/** A highlight's words as the player wrote them, in a quiet quote. */
+/** A battle post's words as the player wrote them, in a quiet quote. */
 const quote = (words) =>
   `<div style="margin:6px 0 0;padding:2px 0 2px 10px;border-left:2px solid ${M.gold};font-family:${FONT};font-size:14px;line-height:1.5;color:${M.ink};">“${esc(words)}”</div>`;
 
-/** One item of the digest: the timeline's sentence, a highlight's words
+/** One item of the digest: the timeline's sentence, a battle post's words
  *  under it, and the battle's page when the record knows it. Every
  *  string is escaped here, at its output (DECISIONS "A name is escaped
  *  at its output"). */
@@ -433,7 +433,7 @@ function digestPerson(x, c, sittings = {}) {
  *  art for the first ART_PEOPLE), one line each under BRIEF_BYTES, and a
  *  count with a link to their page past that. Past ITEMS_BYTES, a person's
  *  items are counted too, "N more on your timeline", as the mail already
- *  counts what it leaves out: long highlights alone could pass the clip. */
+ *  counts what it leaves out: long battle posts alone could pass the clip. */
 const DIGEST_BUDGET = {
   FULL_BYTES: 40_000,
   BRIEF_BYTES: 60_000,
@@ -442,7 +442,7 @@ const DIGEST_BUDGET = {
 };
 
 /** HTML as Gmail counts it: UTF-8 bytes, not string length (a CJK
- *  highlight is three bytes a character; Codex on #1085). */
+ *  post is three bytes a character; Codex on #1085). */
 const bytes = (html) => Buffer.byteLength(html, "utf8");
 
 function digestPeople(people, c) {
@@ -534,7 +534,7 @@ function digest(f, c) {
     ${c.button("Open your Timeline", `${SITE}/timeline`)}
     ${c.small(`Anyone with a player tag can be followed: ${c.link(`${SITE}/home/find`, "follow a friend")}. Everyone you follow: <a href="${c.T(MAIL_PATHS.players)}" style="color:${M.link};">Settings › Players</a>.`)}
     ${c.cov(esc(f.coverage ?? ""))}`;
-  // The inbox preview: a highlight's words first, else who played.
+  // The inbox preview: a battle post's words first, else who played.
   const lead = posted[0]
     ? `${posted[0].name}: “${posted[0].items.find((it) => it.kind === "battle_highlight")?.words ?? ""}”`
     : people
@@ -562,7 +562,7 @@ function digest(f, c) {
       c.shell({
         kind: "tracking_report",
         title,
-        subtitle: `${since ? `Since ${esc(since)} · ` : ""}${posted.length ? `${n(posted.length)} highlight${posted.length === 1 ? "" : "s"} · ` : ""}${people.length ? `${n(people.length)} ${people.length === 1 ? "person" : "people"} you follow played ${n(total)} battle${total === 1 ? "" : "s"}` : `your ${span}`}`,
+        subtitle: `${since ? `Since ${esc(since)} · ` : ""}${posted.length ? `${n(posted.length)} battle post${posted.length === 1 ? "" : "s"} · ` : ""}${people.length ? `${n(people.length)} ${people.length === 1 ? "person" : "people"} you follow played ${n(total)} battle${total === 1 ? "" : "s"}` : `your ${span}`}`,
         preheader,
         body,
         why: digestWhyLine(daily ? "daily" : "weekly", c.timezone),

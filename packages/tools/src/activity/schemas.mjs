@@ -71,10 +71,12 @@ export const TIMELINE_KIND_SCHEMAS = {
   // A battle its player highlighted with their own words (social slice
   // 4, #762): the one single-battle item. share_url only for the owner's
   // own reads (the account that posted it, or its agents), once shared.
+  // 2 (2026-11-17, 0291): a highlight is a post with a battle attached;
+  // post_id names the post, and highlight_id carries the same value.
   battle_highlight: {
-    version: 1,
+    version: 2,
     at: "when the player posted it; the battle's own time is battle.battle_time",
-    facts: [...MEMBER, "highlight_id", "words", "battle"],
+    facts: [...MEMBER, "highlight_id", "post_id", "words", "battle"],
     optional: ["share_url"],
   },
   badge_earned: {

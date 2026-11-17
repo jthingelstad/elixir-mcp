@@ -47,8 +47,9 @@ export const keys = {
   feedback: ["me", "feedback"],
   // Whether your timeline's RSS link is on (never the link itself).
   rss: ["me", "rss"],
-  // Your highlights of one battle, and the players you may post it as.
-  highlights: (battle) => ["me", "highlights", battle],
+  // Your posts about one battle, and the players you may post it as:
+  // under ["me", "posts"], so every post change reads it again.
+  battlePosts: (battle) => ["me", "posts", "battle", battle],
   verifyList: ["me", "verify"],
   callRecord: (id) => ["me", "requests", id],
   principalIdentities: (id) => ["me", "principals", id, "identities"],
@@ -760,12 +761,13 @@ export const usePlayerMap = (enabled = true) =>
     staleTime: 60_000,
   });
 
-/** The battle page's highlight panel (#762): your posts of this battle
- *  and the verified players you may post it as. Yours, never an agent's. */
-export const useMyHighlights = (battle, enabled = true) =>
+/** The battle page's post panel (#762; a highlight until 0291): your
+ *  posts about this battle and the verified players you may post it as.
+ *  Yours, never an agent's. */
+export const useBattlePosts = (battle, enabled = true) =>
   useQuery({
-    queryKey: keys.highlights(battle),
-    queryFn: payload(() => api.myHighlights(battle)),
+    queryKey: keys.battlePosts(battle),
+    queryFn: payload(() => api.postsOnBattle(battle)),
     enabled: enabled && Boolean(battle),
   });
 

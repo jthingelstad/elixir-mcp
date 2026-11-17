@@ -148,7 +148,7 @@ export function earnedMap(earned) {
 const UNITS = {
   played_together: ["day", "days"],
   cheerleader: ["day", "days"],
-  storyteller: ["highlighted battle", "highlighted battles"],
+  storyteller: ["battle posted about", "battles posted about"],
   inner_circle: ["player", "players"],
 };
 export function unitWord(stampId, n) {

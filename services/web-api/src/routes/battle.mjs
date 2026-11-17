@@ -60,7 +60,7 @@ const SHELL_TAGS =
   /<title>[\s\S]*?<\/title>|<meta\s[^>]*?(?:property="og:[^"]*"|name="(?:twitter:[^"]*|description|robots)")[^>]*>/g;
 
 /** The shell named for a battle, or for whatever `named` says it is (a
- *  shared highlight, routes/highlight.mjs: its own title, words, link
+ *  shared post about a battle, routes/shared-post.mjs: its own title, words, link
  *  and picture). Every value is escaped here, as it is written. */
 export function namedShell(shell, read, named = null) {
   const { title, description } = named ?? previewOf(read);

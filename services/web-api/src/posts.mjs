@@ -39,7 +39,10 @@ import {
   deckLink,
   findDeckLink,
   parseDeckLink,
+  postUrl,
 } from "@elixir-mcp/contracts";
+import { battlePostFacts } from "@elixir-mcp/tools/activity/entries";
+import { battleFor, pickPlayer } from "./battle-posts.mjs";
 import { cachedVocabulary } from "@elixir-mcp/ingest/card-roles";
 import { checkComment, POST_REFUSAL_WORDS } from "./comment-check.mjs";
 import { tidyComment } from "./comment-filter.mjs";
@@ -53,6 +56,9 @@ import {
 /** Posts one account may start a check for: per minute and per day. */
 export const POSTS_PER_MINUTE = 1;
 export const POSTS_PER_DAY = 5;
+/** The same for posts about a battle, whose words are checked apart. */
+export const BATTLE_POSTS_PER_MINUTE = 3;
+export const BATTLE_POSTS_PER_DAY = 30;
 /** The most loose cards one post carries. */
 export const POST_CARDS_MAX = 8;
 /** The most posts one read returns (a page's list). */
@@ -68,12 +74,43 @@ const POST_ID = /^[1-9][0-9]{0,18}$/;
 /* ------------------------------------------------------------------ */
 
 /**
- * What a post request asks for: `{ text, question, deck, cards }` (deck
- * as the link reads it, ids not yet checked), or `{ error, message }`.
- * The deck comes from `deck_link`, or else from a deck link in the words,
- * which is taken out of them: the post keeps the cards, never the link.
+ * What a post request asks for: `{ text, question, deck, cards, battle,
+ * player_tag }` (deck as the link reads it, ids not yet checked), or
+ * `{ error, message }`. The deck comes from `deck_link`, or else from a
+ * deck link in the words, which is taken out of them: the post keeps the
+ * cards, never the link. A post about a battle (`battle`, its id or link,
+ * and `player_tag`, which of the author's players played it) carries the
+ * battle alone, and its words may be empty (0291).
  */
 export function readPostInput(body) {
+  const battle =
+    body?.battle != null && body.battle !== ""
+      ? String(body.battle).slice(0, 400)
+      : null;
+  if (battle) {
+    if (body.text != null && typeof body.text !== "string")
+      return { error: "bad_request", message: "Write something first." };
+    if (
+      (body.deck_link != null && body.deck_link !== "") ||
+      (Array.isArray(body.cards) && body.cards.length)
+    )
+      return {
+        error: "refused",
+        category: "cards",
+        message: "A post about a battle carries the battle alone.",
+      };
+    return {
+      text: body.text ?? "",
+      question: body.question === true,
+      deck: null,
+      cards: [],
+      battle,
+      player_tag:
+        body.player_tag != null && body.player_tag !== ""
+          ? String(body.player_tag)
+          : null,
+    };
+  }
   if (typeof body?.text !== "string")
     return { error: "bad_request", message: "Write something first." };
   let text = body.text;
@@ -119,7 +156,14 @@ export function readPostInput(body) {
       category: "cards",
       message: "A post carries a deck or some cards, not both.",
     };
-  return { text, question: body.question === true, deck, cards };
+  return {
+    text,
+    question: body.question === true,
+    deck,
+    cards,
+    battle: null,
+    player_tag: null,
+  };
 }
 
 /** The catalog's rows for some ids: a Map of id to `{ id, name, kind,
@@ -211,19 +255,24 @@ async function suspended(db, accountId) {
 
 /** Why the account may not start a post's check now, or null: posts' own
  *  per-minute and per-day caps, and the cooldown after repeated refusals
- *  of comments and posts alike. */
-async function throttled(db, accountId) {
+ *  of comments and posts alike. A post about a battle counts against its
+ *  own, wider caps (BATTLE_POSTS_*): highlighting was bounded only by
+ *  one a battle, and a sitting can hold several worth telling. */
+async function throttled(db, accountId, battle = false) {
+  const kind = battle ? "battle_post" : "post";
+  const perMinute = battle ? BATTLE_POSTS_PER_MINUTE : POSTS_PER_MINUTE;
+  const perDay = battle ? BATTLE_POSTS_PER_DAY : POSTS_PER_DAY;
   const { rows } = await db.query(
-    `select count(*) filter (where kind = 'post'
+    `select count(*) filter (where kind = $3
                                and created_at > now() - interval '1 minute')::int as minute,
-            count(*) filter (where kind = 'post')::int as day,
+            count(*) filter (where kind = $3)::int as day,
             count(*) filter (where verdict = 'refuse'
                                and created_at > now() - make_interval(mins => $2))::int as refused,
             min(created_at) filter (where verdict = 'refuse'
                                and created_at > now() - make_interval(mins => $2)) as first_refused
        from comment_check
       where account_id = $1 and created_at > now() - interval '1 day'`,
-    [accountId, COOLDOWN_MINUTES],
+    [accountId, COOLDOWN_MINUTES, kind],
   );
   const r = rows[0];
   if (r.refused >= COOLDOWN_AFTER)
@@ -234,17 +283,17 @@ async function throttled(db, accountId) {
       ).toISOString(),
       message: "Take a break for a bit, then try again.",
     };
-  if (r.minute >= POSTS_PER_MINUTE)
+  if (r.minute >= perMinute)
     return {
       error: "rate_limited",
       retry: 60,
       message: "Give it a minute before the next post.",
     };
-  if (r.day >= POSTS_PER_DAY)
+  if (r.day >= perDay)
     return {
       error: "rate_limited",
       retry: 3600,
-      message: `That's ${POSTS_PER_DAY} posts today. Try again tomorrow.`,
+      message: `That's ${perDay} posts today. Try again tomorrow.`,
     };
   return null;
 }
@@ -261,7 +310,8 @@ async function repeated(db, accountId, body) {
 }
 
 /** What a post carries, for the check's line about it. */
-function carriesOf({ deck, cards }) {
+function carriesOf({ deck, cards, battle }) {
+  if (battle) return "one of their battles attached";
   if (deck) return "a deck of eight cards attached";
   if (cards.length)
     return `${cards.length} card${cards.length === 1 ? "" : "s"} attached`;
@@ -269,23 +319,50 @@ function carriesOf({ deck, cards }) {
 }
 
 /**
- * Write a post. `posts` is the comments config (`{ enabled, capUsd,
- * moderate }`) with posts on. `input` is readPostInput's answer.
- * Returns `{ ok, post }` (the post as its author's feed draws it) or
- * `{ error, category?, message }`.
+ * Write a post. `cfg` is `{ plain, check }`: `plain` whether posts about
+ * nothing in the record are on (the stack's PostsEnabled with
+ * CommentsEnabled); `check` the comments config (`{ capUsd, moderate }`)
+ * while comments are on, else null. A post about a battle is a
+ * highlight's successor and works with either flag off (0291): its words
+ * pass the post check while comments are on, and with them off are kept
+ * as a highlight's were, after the plain filter alone. `input` is
+ * readPostInput's answer. Returns `{ ok, post }` (the post as its
+ * author's feed draws it) or `{ error, category?, message }`.
  */
-export async function writePost(db, account, input, posts) {
-  if (!posts?.enabled) return { error: "posts_off" };
+export async function writePost(db, account, input, cfg) {
   const accountId = account.accountId;
-  const tag = await posterTag(db, accountId);
-  if (!tag)
-    return { error: "not_verified", message: "Verify your player to post." };
+  let tag;
+  let battleId = null;
+  if (input.battle) {
+    const on = await battleFor(db, accountId, input.battle);
+    if (on.error) return on;
+    battleId = on.battle_id;
+    tag = pickPlayer(on.players, input.player_tag);
+    if (!tag)
+      return {
+        error: "not_your_battle",
+        message:
+          "Only a player you have verified, who played this battle, can post about it.",
+      };
+  } else {
+    if (!cfg?.plain) return { error: "posts_off" };
+    tag = await posterTag(db, accountId);
+    if (!tag)
+      return { error: "not_verified", message: "Verify your player to post." };
+  }
   if (await suspended(db, accountId))
     return { error: "not_open", message: "You can't post right now." };
   const fine = await checkAttachments(db, input);
   if (!fine.ok) return fine;
   // One check at a time per account, comments and posts alike: the
   // limits count logged checks, which land only once the model answers.
+  return withCheckLock(db, accountId, () =>
+    writeChecked(db, accountId, tag, battleId, input, cfg),
+  );
+}
+
+/** Run `fn` holding the account's one check at a time. */
+async function withCheckLock(db, accountId, fn) {
   const key = `comment-post:${accountId}`;
   const { rows: got } = await db.query(
     "select pg_try_advisory_lock(hashtext($1)) as ok",
@@ -298,31 +375,38 @@ export async function writePost(db, account, input, posts) {
       message: "Your last post is still being checked. Try again soon.",
     };
   try {
-    return await writeChecked(db, accountId, tag, input, posts);
+    return await fn();
   } finally {
     await db.query("select pg_advisory_unlock(hashtext($1))", [key]);
   }
 }
 
-async function writeChecked(db, accountId, tag, input, posts) {
-  const slow = await throttled(db, accountId);
+/** The words' check, or why they are refused: `{ ok }` or a refusal.
+ *  Empty words on a post about a battle need none. */
+async function checkWords(db, accountId, itemId, body, input, cfg) {
+  const battle = Boolean(input.battle);
+  if (battle && body === "") return { ok: true };
+  const slow = await throttled(db, accountId, battle);
   if (slow) return slow;
-  const body = tidyComment(input.text);
-  if (body && (await repeated(db, accountId, body)))
+  // The same words twice is spam in a post about nothing; "gg" under two
+  // battles is not.
+  if (!battle && body && (await repeated(db, accountId, body)))
     return {
       error: "refused",
       category: "spam",
       message: POST_REFUSAL_WORDS.spam,
     };
-  const itemId = newItemId();
   const verdict = await checkComment(db, {
-    moderate: posts.moderate,
-    capUsd: posts.capUsd,
+    moderate: cfg?.check?.moderate ?? null,
+    capUsd: cfg?.check?.capUsd ?? 0,
     accountId,
     itemId,
     body,
-    post: { question: input.question, carries: carriesOf(input) },
+    post: { question: input.question, carries: carriesOf(input), battle },
   });
+  // With comments off there is no model to ask: a post about a battle
+  // keeps its words after the plain filter, as a highlight did.
+  if (verdict.verdict === "error" && battle && !cfg?.check) return { ok: true };
   if (verdict.verdict === "paused")
     return { error: "paused", message: POST_REFUSAL_WORDS.paused };
   if (verdict.verdict === "error")
@@ -334,10 +418,30 @@ async function writeChecked(db, accountId, tag, input, posts) {
       message:
         POST_REFUSAL_WORDS[verdict.category] ?? POST_REFUSAL_WORDS.harassment,
     };
+  return { ok: true };
+}
+
+async function writeChecked(db, accountId, tag, battleId, input, cfg) {
+  const body = tidyComment(input.text);
+  if (battleId) {
+    const { rows } = await db.query(
+      `select 1 from account_post where player_tag = $1 and battle_id = $2`,
+      [tag, battleId],
+    );
+    if (rows.length)
+      return {
+        error: "already_posted",
+        message: "You've already posted about this battle as that player.",
+      };
+  }
+  const itemId = newItemId();
+  const checked = await checkWords(db, accountId, itemId, body, input, cfg);
+  if (!checked.ok) return checked;
   const { rows } = await db.query(
     `insert into account_post
-       (item_id, account_id, player_tag, body, question, deck, cards)
-     values ($1, $2, $3, $4, $5, $6::jsonb, $7::int[])
+       (item_id, account_id, player_tag, body, question, deck, cards, battle_id)
+     values ($1, $2, $3, $4, $5, $6::jsonb, $7::int[], $8)
+     on conflict (player_tag, battle_id) where battle_id is not null do nothing
      returning post_id`,
     [
       itemId,
@@ -347,21 +451,85 @@ async function writeChecked(db, accountId, tag, input, posts) {
       input.question === true,
       input.deck ? JSON.stringify(input.deck) : null,
       input.cards,
+      battleId,
     ],
   );
+  if (rows.length === 0)
+    return {
+      error: "already_posted",
+      message: "You've already posted about this battle as that player.",
+    };
   const [post] = await postItems(
     db,
-    await readRows(db, `p.post_id = $2::bigint`, [accountId, rows[0].post_id]),
+    await readRows(
+      db,
+      `p.post_id = $2::bigint`,
+      [accountId, rows[0].post_id],
+      { plain: true },
+    ),
     accountId,
   );
   return { ok: true, post };
+}
+
+/**
+ * The author changes a post's words (2026-11-17, as a highlight's could
+ * be): they pass the same check, and words that change count up its
+ * revision and stamp updated_at, so the timeline serves the same item
+ * grown and a cross-posted line is edited in place. A post about nothing
+ * keeps some words; a post about a battle may drop them. The same words
+ * again change nothing. `{ ok, post, changed }` or `{ error, ... }`.
+ */
+export async function editPost(db, account, id, text, cfg) {
+  const row = await postRow(db, id);
+  if (!row || row.status === "removed" || row.account_id !== account.accountId)
+    return { error: "not_found" };
+  const battle = row.battle_id !== null;
+  if (!battle && !cfg?.plain) return { error: "posts_off" };
+  if (typeof text !== "string")
+    return { error: "bad_request", message: "Write something first." };
+  const body = tidyComment(text);
+  if (await suspended(db, account.accountId))
+    return { error: "not_open", message: "You can't post right now." };
+  let changed = body !== row.body;
+  if (changed) {
+    const input = {
+      question: row.question,
+      battle: battle ? row.battle_id : null,
+      deck: row.deck,
+      cards: row.cards ?? [],
+    };
+    const checked = await withCheckLock(db, account.accountId, () =>
+      checkWords(db, account.accountId, row.item_id, body, input, cfg),
+    );
+    if (!checked.ok) return checked;
+    const { rowCount } = await db.query(
+      `update account_post
+          set body = $2, revision = revision + 1, updated_at = now()
+        where post_id = $1::bigint and body <> $2`,
+      [row.post_id, body],
+    );
+    changed = rowCount > 0;
+  }
+  const [post] = await postItems(
+    db,
+    await readRows(
+      db,
+      `p.post_id = $2::bigint`,
+      [account.accountId, row.post_id],
+      { plain: true },
+    ),
+    account.accountId,
+  );
+  return { ok: true, post, changed };
 }
 
 /** One post's row for its author or an admin, or null. */
 async function postRow(db, id) {
   if (!POST_ID.test(String(id ?? ""))) return null;
   const { rows } = await db.query(
-    `select post_id::text as post_id, item_id, account_id, player_tag, status
+    `select post_id::text as post_id, item_id, account_id, player_tag, status,
+            battle_id, body, question, deck, cards
        from account_post where post_id = $1::bigint`,
     [String(id)],
   );
@@ -465,29 +633,38 @@ export async function dismissPostReports(db, id) {
 
 const POST_COLS = `p.post_id::text as post_id, p.item_id, p.account_id,
        p.player_tag, p.body, p.question, p.deck, p.cards, p.status,
-       p.created_at, pl.name as player_name, ap.passport_id as author_page`;
+       p.battle_id, p.share_id, p.revision, p.created_at,
+       pl.name as player_name, ap.passport_id as author_page`;
 const POST_JOIN = `join account a on a.account_id = p.account_id
                      and a.kind = 'person' and a.status = 'approved'
        left join player pl on pl.player_tag = p.player_tag
        left join account_passport ap on ap.account_id = p.account_id`;
 /** What a reader (`$1`) sees: visible posts, and their own while hidden
  *  for review; never one by anyone in a block with them, either way, and
- *  never one they reported while the report is open. */
-const SEEN = `(p.status = 'visible'
+ *  never one they reported while the report is open. A post about
+ *  nothing in the record only while `plain` (posts are on); a post about
+ *  a battle always, as a highlight was (0291). */
+const seen = (plain) => `(p.status = 'visible'
          or (p.status = 'hidden' and p.account_id = $1::uuid))
         and not ${blockedSql("p.account_id", "$1::uuid")}
         and not exists (select 1 from post_report pr
                          where pr.post_id = p.post_id
-                           and pr.account_id = $1::uuid and pr.resolved_at is null)`;
+                           and pr.account_id = $1::uuid and pr.resolved_at is null)
+        ${plain ? "" : "and p.battle_id is not null"}`;
 
 /** Posts a reader sees, by an extra condition (its parameters from $2),
  *  newest first. */
-async function readRows(db, where, params, limit = POSTS_PAGE) {
+async function readRows(
+  db,
+  where,
+  params,
+  { plain = false, limit = POSTS_PAGE } = {},
+) {
   const { rows } = await db.query(
     `select ${POST_COLS}
        from account_post p
        ${POST_JOIN}
-      where ${SEEN} and ${where}
+      where ${seen(plain)} and ${where}
       order by p.created_at desc, p.post_id desc
       limit ${Number(limit)}`,
     params,
@@ -508,38 +685,55 @@ const AUDIENCE = `(p.account_id = $1::uuid
  * The posts in a reader's Home window (`fromMs` to `toMs`), as feed items:
  * their own, and those of the players and accounts they follow. `subjects`
  * are the feed's own (subjectsFor), so a follow with its notice off reads
- * the same as it does for the reader's other items.
+ * the same as it does for the reader's other items. A post about a battle
+ * shows from when its words last changed, as a highlight did.
  */
-export async function homePosts(db, readerId, { subjects, fromMs, toMs }) {
+export async function homePosts(
+  db,
+  readerId,
+  { subjects, fromMs, toMs, plain = false },
+) {
   const tags = subjects.filter((s) => s.kind === "player").map((s) => s.tag);
   const rows = await readRows(
     db,
-    `${AUDIENCE} and p.created_at >= $3 and p.created_at <= $4`,
+    `${AUDIENCE} and coalesce(p.updated_at, p.created_at) >= $3
+        and p.created_at <= $4`,
     [readerId, tags, new Date(fromMs), new Date(toMs)],
-    200,
+    { plain, limit: 200 },
   );
   return postItems(db, rows, readerId);
 }
 
 /** Whether a post (its row) is one the reader may see now: the same
- *  audience Home reads. */
-async function canSeePost(db, readerId, itemId, subjects) {
+ *  audience Home reads, or any post about a battle. */
+async function canSeePost(db, readerId, itemId, subjects, plain) {
   const tags = subjects.filter((s) => s.kind === "player").map((s) => s.tag);
-  const rows = await readRows(db, `${AUDIENCE} and p.item_id = $3`, [
-    readerId,
-    tags,
-    itemId,
-  ]);
+  const rows = await readRows(
+    db,
+    `(${AUDIENCE} or p.battle_id is not null) and p.item_id = $3`,
+    [readerId, tags, itemId],
+    { plain },
+  );
   return rows.length ? (await postItems(db, rows, readerId))[0] : null;
 }
 
-/** A post the reader may see by either road: their Home audience, or
+/** A post the reader may see by either road: their Home audience (a post
+ *  about a battle is as open as the battle, on its player's page), or
  *  Clan's Feed (the post's player is in a clan with one of theirs now).
  *  Cheers, comments and reports on a post ask this. */
-export async function visiblePost(db, readerId, itemId, subjects) {
-  const home = await canSeePost(db, readerId, itemId, subjects);
+export async function visiblePost(
+  db,
+  readerId,
+  itemId,
+  subjects,
+  { plain = false } = {},
+) {
+  const home = await canSeePost(db, readerId, itemId, subjects, plain);
   if (home) return home;
-  const rows = await readRows(db, `p.item_id = $2`, [readerId, itemId], 1);
+  const rows = await readRows(db, `p.item_id = $2`, [readerId, itemId], {
+    plain,
+    limit: 1,
+  });
   if (rows.length === 0) return null;
   if (!(await inClanWith(db, readerId, rows[0].player_tag))) return null;
   return (await postItems(db, rows, readerId))[0];
@@ -564,37 +758,55 @@ async function inClanWith(db, readerId, playerTag) {
 }
 
 /** A player's posts a reader may see (their page and their account's
- *  page): the same audience as Home, newest first. */
+ *  page): the same audience as Home, newest first; every post about a
+ *  battle, which a player's page showed to everyone as a highlight. */
 export async function postsBy(
   db,
   readerId,
-  { subjects, playerTag = null, accountId = null },
+  { subjects, playerTag = null, accountId = null, plain = false },
 ) {
   const tags = subjects.filter((s) => s.kind === "player").map((s) => s.tag);
   const rows = playerTag
-    ? await readRows(db, `${AUDIENCE} and p.player_tag = $3`, [
-        readerId,
-        tags,
-        playerTag,
-      ])
-    : await readRows(db, `${AUDIENCE} and p.account_id = $3::uuid`, [
-        readerId,
-        tags,
-        accountId,
-      ]);
+    ? await readRows(
+        db,
+        `(${AUDIENCE} or p.battle_id is not null) and p.player_tag = $3`,
+        [readerId, tags, playerTag],
+        { plain },
+      )
+    : await readRows(
+        db,
+        `(${AUDIENCE} or p.battle_id is not null) and p.account_id = $3::uuid`,
+        [readerId, tags, accountId],
+        { plain },
+      );
   return postItems(db, rows, readerId);
 }
 
 /** A clan's Feed: the posts of its members now, in the window, for a
  *  reader the Clan handler has proved is in the clan. */
-export async function clanPosts(db, readerId, { clanTag, fromMs, toMs }) {
+export async function clanPosts(
+  db,
+  readerId,
+  { clanTag, fromMs, toMs, plain = false },
+) {
   const rows = await readRows(
     db,
     `p.player_tag in (select player_tag from clan_membership
                        where clan_tag = $2 and left_observed_at is null)
-        and p.created_at >= $3 and p.created_at <= $4`,
+        and coalesce(p.updated_at, p.created_at) >= $3
+        and p.created_at <= $4`,
     [readerId, clanTag, new Date(fromMs), new Date(toMs)],
-    100,
+    { plain, limit: 100 },
+  );
+  return postItems(db, rows, readerId);
+}
+
+/** The reader's own posts about one battle (the battle page's panel). */
+export async function ownPostsOn(db, readerId, battleId) {
+  const rows = await readRows(
+    db,
+    `p.account_id = $1::uuid and p.battle_id = $2`,
+    [readerId, battleId],
   );
   return postItems(db, rows, readerId);
 }
@@ -642,12 +854,17 @@ export async function postItems(db, rows, readerId) {
     ...(r.cards ?? []),
   ]);
   const catalog = await catalogRows(db, ids.map(Number));
+  const battles = await battlePostFacts(
+    db,
+    rows.filter((r) => r.battle_id).map((r) => r.item_id),
+  );
   const roles = rows.some((r) => r.deck)
     ? (await cachedVocabulary(db)).roles
     : [];
   return rows.map((r) => {
     const at = new Date(r.created_at).toISOString();
     const mine = r.account_id === readerId;
+    const about = r.battle_id ? (battles.get(r.item_id) ?? null) : null;
     return {
       id: r.item_id,
       kind: "post",
@@ -669,6 +886,12 @@ export async function postItems(db, rows, readerId) {
           const c = catalog.get(Number(id));
           return { id: Number(id), name: c?.name ?? String(id) };
         }),
+        // A post about a battle (0291): the battle as the timeline tells
+        // it, both decks, and its share link for its author.
+        battle: about?.battle ?? null,
+        versus: about?.versus ?? null,
+        share_url: mine && r.share_id ? postUrl(r.share_id) : null,
+        edited: Number(r.revision) > 1,
         author: {
           account_id: r.author_page ?? null,
           player_tag: r.player_tag,
@@ -676,6 +899,7 @@ export async function postItems(db, rows, readerId) {
         },
         status: mine && r.status !== "visible" ? r.status : undefined,
         mine,
+        can_edit: mine,
         can_delete: mine,
         can_report: !mine,
         can_block: !mine,

@@ -9,7 +9,6 @@ import {
   PlayerName,
   TagText,
   useClock,
-  useFlash,
 } from "@elixir-mcp/ui";
 import { playerHref } from "../lib/player.js";
 import { accountHref, accountOf } from "../lib/account.js";
@@ -242,6 +241,9 @@ export function FeedItem({
     ? (it.subjects ?? []).find((s) => s.kind === "clan")
     : null;
   const post = it.kind === "post";
+  // A post about a battle is a post (0291); the record's own line for one
+  // (kind battle_highlight) is drawn as its sentence where a page still
+  // holds it (a battle's cheers), never as a moment.
   const moment = !sitting && !clan && !post && it.kind !== "battle_highlight";
   const band = BAND_WORDS[it.kind];
   const card = sittingCard(it);
@@ -262,9 +264,6 @@ export function FeedItem({
         >
           Open battle
         </Link>
-      ) : null}
-      {it.kind === "battle_highlight" ? (
-        <HighlightLinks facts={it.facts} />
       ) : null}
       {accountOf(it) ? (
         <Link to={accountHref(accountOf(it))} className="btn btn--sm">
@@ -321,9 +320,7 @@ export function FeedItem({
           <FollowButton tag={who.tag} name={who.name} lazy />
         ) : null}
       </header>
-      {it.kind === "battle_highlight" ? (
-        <HighlightBody it={it} who={who} />
-      ) : post ? (
+      {post ? (
         <PostBody it={it} />
       ) : moment ? (
         <MomentBody it={it} text={text} />
@@ -345,90 +342,6 @@ export function FeedItem({
       </footer>
       {"comments" in it ? <Comments it={it} /> : null}
     </article>
-  );
-}
-
-/** A highlight as the canvas draws it: what happened, the player's own
- *  words on the gold rule, and both decks with the score between when the
- *  record kept them (`versus`, built with the highlight's read). */
-function HighlightBody({ it, who }) {
-  const f = it.facts ?? {};
-  const b = f.battle ?? {};
-  const words = String(f.words ?? "")
-    .replace(/\s+/g, " ")
-    .trim();
-  const suffix = words ? `: “${words}”` : "";
-  const said =
-    suffix && it.text?.endsWith(suffix)
-      ? `${it.text.slice(0, -suffix.length)}.`
-      : it.text;
-  const v = it.versus;
-  const known =
-    typeof b.crowns === "number" && typeof b.crowns_against === "number";
-  const result =
-    b.outcome === "win" ? "Won" : b.outcome === "loss" ? "Lost" : null;
-  const theirName = b.opponents?.length === 1 ? b.opponents[0].name : null;
-  return (
-    <>
-      <p className="kit-feed__text">
-        <TagText>{said}</TagText>
-      </p>
-      {said !== it.text ? (
-        <blockquote className="kit-feed__words">
-          <TagText>{words}</TagText>
-        </blockquote>
-      ) : null}
-      {v?.mine && v?.theirs && known ? (
-        <DeckVersus
-          showCost
-          left={{
-            name: <TagText>{who?.name ?? who?.tag ?? "You"}</TagText>,
-            label: v.mine.label ? <TagText>{v.mine.label}</TagText> : null,
-            cards: v.mine.cards,
-          }}
-          right={{
-            name: <TagText>{theirName ?? "Their deck"}</TagText>,
-            label: v.theirs.label ? <TagText>{v.theirs.label}</TagText> : null,
-            cards: v.theirs.cards,
-          }}
-          score={`${b.crowns}-${b.crowns_against}`}
-          scoreLabel={`${result ? `${result} ` : ""}${b.crowns} to ${b.crowns_against}`}
-          note={b.mode_group ? modeWord(b.mode_group) : null}
-        />
-      ) : null}
-    </>
-  );
-}
-
-/** A highlight's row (#762): its battle, and its share link when it is
- *  yours and shared (the server sends share_url to its owner only). */
-function HighlightLinks({ facts }) {
-  const [copied, flash] = useFlash();
-  const battle = String(facts?.battle?.url ?? "").replace(
-    /^https?:\/\/[^/]+/,
-    "",
-  );
-  return (
-    <>
-      {battle.startsWith("/battle/") ? (
-        <Link to={battle} className="btn btn--sm">
-          Open battle
-        </Link>
-      ) : null}
-      {facts?.share_url ? (
-        <button
-          type="button"
-          className="link kit-tl__more"
-          onClick={() => {
-            navigator.clipboard?.writeText(facts.share_url);
-            flash();
-          }}
-        >
-          <Icon name={copied ? "check" : "copy"} size={14} />
-          {copied ? "Copied" : "Copy share link"}
-        </button>
-      ) : null}
-    </>
   );
 }
 

@@ -60,13 +60,14 @@ export const ACTIVITY_CATEGORIES = {
     why: "The week's bracket, the boat crossing the finish line, and how the week finished.",
     kinds: ["bracket_observed", "race_finished", "week_resolved"],
   },
-  // Social slice 9 (#767): a member's shared highlight, posted here only
+  // Social slice 9 (#767): a member's shared post about a battle (a
+  // highlight until 0291; the key stays `highlights`), posted here only
   // by that member's own act on the battle page, never from the timeline,
   // so it names no kinds. Off until a leader turns it on: the channel is
   // the leaders', and a member's words reach it only when they say so.
   highlights: {
-    label: "Shared highlights",
-    why: "A member's highlight of one of their battles, with their words, when they choose to post it here. Off until a leader turns it on.",
+    label: "Shared posts about battles",
+    why: "A member's post about one of their battles, with their words, when they choose to post it here. Off until a leader turns it on.",
     kinds: [],
   },
 };

@@ -635,7 +635,7 @@ async function buildFeed(db, account, { fromMs, toMs }) {
 
 /** A page's place: the week it reads, how far in, and the item it ended
  *  on (its shown instant and id). The next page starts after that item, so
- *  a highlight or fact posted or removed between pages, which the read
+ *  a post or fact written or removed between pages, which the read
  *  serves live, never repeats or skips one (Codex on #818). A cursor from
  *  before carries no item and reads by offset. Opaque to the page. */
 const feedCursor = (fromMs, toMs, offset, last, mode = null) =>
@@ -709,19 +709,29 @@ async function readFeed(
     wake,
     perf,
   });
-  // Posts (2026-11-17): read live over the week, as highlights are, by
-  // their own audience (posts.mjs); a person's feed only. Never stored in
-  // the week, so nothing built from it (digest, mail, push, RSS, MCP)
-  // ever holds one.
-  const own =
-    posts && account.kind === "person"
-      ? await homePosts(db, account.accountId, {
-          subjects: week.subjects,
-          fromMs: week.fromMs,
-          toMs: Math.max(Date.now(), week.toMs),
-        })
-      : [];
-  const whole = [...week.items, ...own].sort(feedOrder);
+  // Posts (2026-11-17): read live over the week by their own audience
+  // (posts.mjs); a person's feed only. A post about nothing in the record
+  // only while posts are on, and never stored in the week, so nothing
+  // built from it (digest, mail, push, RSS, MCP) ever holds one. A post
+  // about a battle always (0291): the week holds the record's own line
+  // for it (kind battle_highlight, which the digest, mail, push, RSS and
+  // MCP read), and a person's Home draws the post itself instead, so the
+  // line is left out here: one item, not two.
+  const person = account.kind === "person";
+  const own = person
+    ? await homePosts(db, account.accountId, {
+        subjects: week.subjects,
+        fromMs: week.fromMs,
+        toMs: Math.max(Date.now(), week.toMs),
+        plain: posts,
+      })
+    : [];
+  const whole = [
+    ...(person
+      ? week.items.filter((it) => it.kind !== "battle_highlight")
+      : week.items),
+    ...own,
+  ].sort(feedOrder);
   // A mode filter (2026-11-17) chooses the week's items before the pages
   // are cut, so every page is thirty of that mode's items and More reads
   // on in the same mode; the chips' counts are that mode's too.
