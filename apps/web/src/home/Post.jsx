@@ -9,7 +9,6 @@ import {
   Link,
   TagText,
   avatarCardOf,
-  useFlash,
 } from "@elixir-mcp/ui";
 import { api } from "../api.js";
 import { useMe } from "../App.jsx";
@@ -489,7 +488,6 @@ export function PostActions({ it }) {
   const [reporting, setReporting] = useState(false);
   const [reported, setReported] = useState(false);
   const [editing, setEditing] = useState(false);
-  const [copied, flash] = useFlash();
   const name = p.author?.name ?? p.author?.player_tag ?? "this player";
   if (reported)
     return (
@@ -499,19 +497,6 @@ export function PostActions({ it }) {
     );
   return (
     <div className="kit-written__acts">
-      {p.share_url ? (
-        <button
-          type="button"
-          className="btn btn--quiet btn--sm"
-          onClick={() => {
-            navigator.clipboard?.writeText(p.share_url);
-            flash();
-          }}
-        >
-          <Icon name={copied ? "check" : "copy"} size={14} />
-          {copied ? "Copied" : "Copy share link"}
-        </button>
-      ) : null}
       {p.can_edit && !editing ? (
         <button
           type="button"

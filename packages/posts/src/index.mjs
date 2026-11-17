@@ -3,6 +3,7 @@ export {
   readVisiblePosts,
   countNewPosts,
   readVisiblePost,
+  readPublishedPost,
   visiblePost,
   postsBy,
   clanPosts,

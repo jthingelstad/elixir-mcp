@@ -23,7 +23,7 @@ import pg from "pg";
 import { processResult } from "../../../packages/ingest/src/pipeline.mjs";
 import { emailHash } from "../../../packages/auth/src/index.mjs";
 import { makeHandler } from "../src/handler.mjs";
-import { mintShareId } from "../src/battle-posts.mjs";
+
 import { makeShareImage } from "../src/share-image.mjs";
 import { shareSources } from "../src/share-files.mjs";
 import {
@@ -209,14 +209,6 @@ after(async () => {
   await dropScratch(name);
 });
 
-test("share ids: 15 base32 characters, random, never sequential", () => {
-  const ids = new Set(Array.from({ length: 200 }, () => mintShareId()));
-  assert.equal(ids.size, 200);
-  for (const id of ids) assert.match(id, /^[a-z2-7]{15}$/);
-  assert.equal(mintShareId(Buffer.alloc(15, 0)), "aaaaaaaaaaaaaaa");
-  assert.equal(mintShareId(Buffer.alloc(15, 255)), "777777777777777");
-});
-
 test("only a verified player of yours who played the battle can be posted as", async () => {
   // Signed out.
   const out = await call("POST", "/api/me/posts", {
@@ -325,12 +317,26 @@ test("create without words, edit, share, then delete: the link is a 404", async 
   // Somebody else's post is not theirs to change, share or delete.
   for (const [method, p, body] of [
     ["PUT", `/api/me/posts/${h.id}`, { text: "hijack" }],
-    ["POST", "/api/me/post-shares", { id: h.id }],
+    ["POST", "/api/me/item-shares", { id: h.id }],
     ["DELETE", `/api/me/posts/${h.id}`, undefined],
   ]) {
     const r = await call(method, p, { who: "friend", body });
     assert.equal(r.status, 404, `${method} ${p}`);
   }
+
+  // A game-scope selector must not publish post words through a path
+  // that never checked the reader's post visibility.
+  const bypass = await call("POST", "/api/me/item-shares", {
+    who: "stranger",
+    body: {
+      source: "game",
+      kind: "battle_highlight",
+      item_id: item.id,
+      subject: { kind: "player", tag: PLAYER },
+      at: item.at,
+    },
+  });
+  assert.equal(bypass.status, 404);
 
   const edited = await call("PUT", `/api/me/posts/${h.id}`, {
     who: "owner",
@@ -340,35 +346,33 @@ test("create without words, edit, share, then delete: the link is a 404", async 
   assert.equal(edited.body.post.post.text, HOSTILE_WORDS);
   assert.equal(edited.body.post.post.edited, true);
 
-  const shared = await call("POST", "/api/me/post-shares", {
+  const shared = await call("POST", "/api/me/item-shares", {
     who: "owner",
-    body: { id: h.id },
+    body: { source: "post", post_id: h.id, item_id: made.body.post.id },
   });
   assert.equal(shared.status, 200);
-  const url = shared.body.share_url;
-  assert.match(url, /^https:\/\/elixir\.poapkings\.com\/h\/[a-z2-7]{15}$/);
+  const url = shared.body.url;
+  assert.match(url, /^https:\/\/elixir\.poapkings\.com\/share\/[a-z2-7]{24}$/);
   const shareId = url.split("/").at(-1);
   // Sharing twice is the same link.
-  const twice = await call("POST", "/api/me/post-shares", {
+  const twice = await call("POST", "/api/me/item-shares", {
     who: "owner",
-    body: { id: h.id },
+    body: { source: "post", post_id: h.id, item_id: made.body.post.id },
   });
-  assert.equal(twice.body.share_url, url);
+  assert.equal(twice.body.url, url);
 
   // Open, signed out: the page, the JSON and the picture.
-  const page = await request("GET", `/h/${shareId}`);
+  const page = await request("GET", `/share/${shareId}`);
   assert.equal(page.statusCode, 200);
-  assert.match(page.headers["cache-control"], /max-age=60/);
-  const json = await call("GET", `/api/public/posts/${shareId}`);
+  assert.match(page.headers["cache-control"], /no-store/);
+  const json = await call("GET", `/api/public/shared-items/${shareId}`);
   assert.equal(json.status, 200);
-  assert.equal(json.body.post.words, HOSTILE_WORDS);
-  assert.equal(json.body.post.name, HOSTILE_NAME);
-  assert.equal(json.body.post.player_tag, PLAYER);
-  assert.equal(json.body.post.side, "left");
-  assert.equal(json.body.post.url, url);
-  assert.equal(json.body.battle.id.length > 0, true);
-  assert.equal(json.body.sides.length, 2);
-  const png = await request("GET", `/h/${shareId}.png`);
+  assert.equal(json.body.item.post.text, HOSTILE_WORDS);
+  assert.equal(json.body.item.post.author.name, HOSTILE_NAME);
+  assert.equal(json.body.item.post.author.player_tag, PLAYER);
+  assert.equal(json.body.url, url);
+  assert.ok(json.body.item.post.battle);
+  const png = await request("GET", `/share/${shareId}.png`);
   assert.equal(png.statusCode, 200);
   assert.equal(png.headers["content-type"], "image/png");
   assert.equal(png.isBase64Encoded, true);
@@ -377,16 +381,19 @@ test("create without words, edit, share, then delete: the link is a 404", async 
   const text = JSON.stringify(json.body);
   for (const leak of [ownerId, OWNER, "account", "nickname", "email"])
     assert.equal(text.includes(leak), false, leak);
-  assert.equal("post_id" in json.body.post, false);
+  assert.equal("post_id" in json.body.item.post, false);
 
   // Deleted: gone from the panel, and every address of the post 404s.
   const gone = await call("DELETE", `/api/me/posts/${h.id}`, {
     who: "owner",
   });
   assert.equal(gone.status, 200);
-  assert.equal((await request("GET", `/h/${shareId}`)).statusCode, 404);
-  assert.equal((await request("GET", `/h/${shareId}.png`)).statusCode, 404);
-  assert.equal((await call("GET", `/api/public/posts/${shareId}`)).status, 404);
+  assert.equal((await request("GET", `/share/${shareId}`)).statusCode, 404);
+  assert.equal((await request("GET", `/share/${shareId}.png`)).statusCode, 404);
+  assert.equal(
+    (await call("GET", `/api/public/shared-items/${shareId}`)).status,
+    404,
+  );
   const after = await call("GET", `/api/me/posts?battle=${battleId}`, {
     who: "owner",
   });
@@ -406,9 +413,9 @@ test("a plain post cannot be shared", async () => {
      returning post_id::text as id`,
     [ownerId, PLAYER],
   );
-  const r = await call("POST", "/api/me/post-shares", {
+  const r = await call("POST", "/api/me/item-shares", {
     who: "owner",
-    body: { id: p.id },
+    body: { source: "post", post_id: p.id, item_id: "tl_0000000000000000abcd" },
   });
   assert.equal(r.status, 404);
   await db.query(`delete from account_post where post_id = $1::bigint`, [p.id]);
@@ -420,13 +427,17 @@ test("a shared post's page escapes the name and the words in its tags", async ()
     body: { battle: otherBattleId, text: HOSTILE_WORDS },
   });
   assert.equal(made.status, 201, JSON.stringify(made.body));
-  const shared = await call("POST", "/api/me/post-shares", {
+  const shared = await call("POST", "/api/me/item-shares", {
     who: "owner",
-    body: { id: made.body.post.post.id },
+    body: {
+      source: "post",
+      post_id: made.body.post.post.id,
+      item_id: made.body.post.id,
+    },
   });
-  const url = shared.body.share_url;
+  const url = shared.body.url;
   const shareId = url.split("/").at(-1);
-  const page = await request("GET", `/h/${shareId}`);
+  const page = await request("GET", `/share/${shareId}`);
   const html = page.body;
   assert.equal(page.statusCode, 200);
   // The only markup is the shell's own.
@@ -463,7 +474,10 @@ test("the timeline item carries the words, and the link only for its owner", asy
     item.facts.battle.url,
     /^https:\/\/elixir\.poapkings\.com\/battle\//,
   );
-  assert.match(item.facts.share_url, /^https:\/\/elixir\.poapkings\.com\/h\//);
+  assert.match(
+    item.facts.share_url,
+    /^https:\/\/elixir\.poapkings\.com\/share\//,
+  );
   assert.ok(item.text.includes(HOSTILE_WORDS));
   assert.ok(item.text.includes("posted about"), item.text);
 

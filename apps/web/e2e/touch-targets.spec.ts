@@ -217,7 +217,7 @@ test("a battle's page: names, the decks' cards and Side by side", async ({
   await mockApi(
     page,
     homeApi({
-      [`GET /api/public/battles/${BATTLE.battle.short_id}`]: [200, BATTLE],
+      [`GET /api/me/battles/${BATTLE.battle.short_id}`]: [200, BATTLE],
     }),
   );
   await page.goto(`/battle/${BATTLE.battle.short_id}`);

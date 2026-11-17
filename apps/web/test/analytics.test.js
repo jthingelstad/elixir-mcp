@@ -47,13 +47,13 @@ describe("analyticsLocation", () => {
     expect(new URL(seen.url).searchParams.get("id")).toBe("2ABC");
   });
 
-  test("a session's public page is one page, its id the record", () => {
-    const seen = at("/session/0JQ8PL2V/tl_a1b2c3d4e5f60718293a/1794000000");
-    expect(seen.path).toBe("/session");
+  test("a shared item is one measurement page with no capability in its URL", () => {
+    const seen = at("/share/abcdefghijklmnopqrstuvwx");
+    expect(seen.path).toBe("/share");
     const url = new URL(seen.url);
-    expect(url.pathname).toBe("/session");
-    expect(url.searchParams.get("id")).toBe("tl_a1b2c3d4e5f60718293a");
-    expect(seen.url).not.toContain("0JQ8PL2V");
+    expect(url.pathname).toBe("/share");
+    expect(url.search).toBe("");
+    expect(seen.url).not.toContain("abcdefghijklmnopqrstuvwx");
   });
 
   test("Settings reports the kind of page, never which player, agent or record", () => {

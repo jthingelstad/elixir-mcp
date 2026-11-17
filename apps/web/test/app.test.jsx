@@ -605,7 +605,6 @@ test("the route table has no page under /console: the Console folded", async () 
       .sort(),
   ).toEqual([
     "battle/$ref",
-    "h/$id",
     "home/@{$handle}",
     "home/account/$id",
     "home/account/$id/passport",
@@ -614,11 +613,12 @@ test("the route table has no page under /console: the Console folded", async () 
     "home/passport",
     "home/player/$tag",
     "home/player/$tag/session/$id",
+    "home/post/$id",
     "home/you",
     "home/you/stats/{-$page}",
-    "session/$tag/$id/$at",
     "settings/$",
     "settings/admin/$",
+    "share/$id",
     "signin",
     "timeline",
   ]);

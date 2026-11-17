@@ -12653,3 +12653,30 @@ button.kit-written__card:focus-visible {
 .kit-written__acts > :not(.btn) {
   flex: 1 1 100%;
 }
+
+/* Share belongs to one card. It wraps beside reactions on a320px phone. */
+.kit-item-share {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-1);
+  max-width: 100%;
+}
+.kit-share-link {
+  display: grid;
+  gap: var(--s-1);
+  min-width: 0;
+  max-width: 100%;
+}
+.kit-share-link input {
+  width: 100%;
+  min-height: 44px;
+}
+.kit-shared-item {
+  max-width: 960px;
+  margin-inline: auto;
+  min-width: 0;
+}
+.kit-shared-item .kit-feed__item {
+  margin-block: var(--s-4);
+}

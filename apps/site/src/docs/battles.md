@@ -30,7 +30,7 @@ answers from the perspective of the tag you asked about:
 | Field | Meaning |
 |---|---|
 | `battle_id` | the record's identity; `battles_query({ battle_id })` returns it from every side, and takes the short id or the `url` as well |
-| `url` | the battle's public page, `https://elixir.poapkings.com/battle/<short id>`: both decks, the towers and how it ended, readable without signing in (see [A battle's page](#a-battles-page)). The short id is the first 12 characters of `battle_id`, longer only where another recorded battle shares them. It is the link to hand a person for one battle |
+| `url` | the battle's member page, `https://elixir.poapkings.com/battle/<short id>`: both decks, the towers and how it ended, readable after signing in (see [A battle's page](#a-battles-page)). The short id is the first 12 characters of `battle_id`, longer only where another recorded battle shares them. It is the link to hand a person for one battle |
 | `battle_time` | when it was played, ISO 8601 UTC. Never when it was recorded |
 | `battle_time_local` | the same instant as ISO 8601 with a UTC offset (`2026-09-09T23:31:47-05:00`), present when a timezone applies (the account's, or the call's `timezone`) |
 | `type` | the API's battle type, exactly as the game names it (`PvP`, `riverRacePvP`, `boatBattle`, ...) |
@@ -98,119 +98,69 @@ not report tower state for that side. `verbosity: "compact"` drops `deck`,
 
 ### A battle's page
 
-Every battle has a page anyone can open, no account needed: the `url` above,
-`/battle/<short id>`. The player whose battle log the record read first is on
-the left and the opponent on the right; then both decks as the game lays them
-out (each with the game's own copy-deck link, which opens Clash Royale with
-the deck ready to save), the towers each side kept (laid out as the arena
-has them: a Princess Tower, the King Tower in the middle, the other Princess
-Tower, the Princess Towers in the order the game reports them), how it ended, the two
-sides' numbers next to each other, the left player's session around it when
-it holds other battles, and, for a one-on-one battle, the two players' other
-recorded meetings when there are any. A duel reads game by game: tap a game
-for its decks, and its crowns and towers where the record kept them. In a
-game where one side took three crowns, the game leaves the other side's King
-Tower value out, so the page and its picture show that King Tower as
-destroyed; the page's JSON marks it `king: 0` with `king_inferred: true`
-beside it. Any other missing value reads as not recorded. The
-score at the top is the games won when the games agree with the battle's
-result, else the crowns summed over the games. The page shows
-game names only, never a nickname or anything of an account, and its link
-unfurls in a chat as the battle itself. The same projection is JSON at
-`/api/public/battles/<short id>`.
+Every recorded battle has a member page at `/battle/<short id>`, the `url`
+above. Sign in to open it. The player whose battle log Elixir read first
+is on the left, the opponent on the right. Both decks keep the game's two
+rows of four cards; a small phone stacks the two panels. Towers, the score,
+mode, time and how it ended come from the record. A duel reads game by game.
+Missing numbers stay missing. When three crowns prove a missing King Tower
+fell, the page marks it `king: 0` with `king_inferred: true`.
 
-On the smallest phones, the players' deck panels stack in their existing
-order, each keeping two rows of four cards. Larger phones and desktop show
-the panels side by side.
+The member page also shows recorded meetings and the surrounding session
+when available. **Follow from here** lists the players you can follow,
+with any slot cost shown before you agree. The member data read is
+`/api/me/battles/<short id>`; it requires an account.
 
-Signed out, a battle's page, a shared post and a shared session
-([Share a session](/docs/timeline#share-a-session)) carry one way in:
-**Join Elixir** opens the signup form and **Sign in** the sign-in form,
-and either brings you back to the page you were reading. The link names
-only the battle or the post, never who sent it to you.
+**Share this battle** shares this battle directly. It does not ask you to
+create a post. The new random `/share/<id>` link opens one battle without
+an account: both decks, game names and the recorded game facts, followed by
+**Create an account** and **Sign in**. It carries no links into another
+battle, session, player or clan's history. Anyone holding it can pass it on.
 
-Signed in, **Follow from here** lists the page's players: a shared
-post's player first, then the rest of its battle; on a battle's page
-the left side first, then the right. Each says before the tap whether a
-Follow is free or uses one of your player slots ([What a player slot
-costs](/docs/recording#what-a-player-slot-costs)), and **Follow** adds
-the player as a friend, as Find's Follow does. Your own players are left
-out. An account with no player of its own is asked to add it first, as
-Find asks.
+The link's `.png` picture is 1200 by 630, with the same game facts and
+unaltered card art. **Share image** is available after sharing. The member
+battle's `.png` picture requires sign-in too. Previous anonymous battle,
+session and post links return 404. [Sharing a Timeline item](/docs/timeline#share-a-timeline-item)
+explains the audience and lifetime.
 
 ### Cheers
 
-Signed in, a battle's page has **In your feed** when an item in your own
-feed is about this battle: a post about it, or a moment it proved, such
-as the win that reached a new league. Each takes your cheer and shows its
-counts as it does on your Timeline ([Cheers](/docs/timeline#cheers)). A battle with
-no such item for you shows no cheers at all, and signed out the page shows
-neither cheers nor how many there are. A shared post's page (`/h/<id>`)
-carries no cheers.
-
-Add `.png` to the link for the battle's picture: the page drawn as one 1200 by
-630 image, with the names left and right, both decks two by four with their
-levels, the elixir numbers, the towers' hitpoints (the King Tower in the
-middle, as on the page) and how it ended, and the link under it. It is what the link shows when it unfurls, and it can be posted
-on its own with the link beside it. Its time is in UTC, since a picture has no
-reader's clock.
+A member battle page has **In your feed** when your Timeline contains an
+item about it: a post, or a moment the battle proved. These items take
+cheers and show counts as on your Timeline. A battle with no such item for
+you shows none. Shared pages show no cheers or comments.
 
 <a id="highlight-a-battle"></a>
 
 ### Post about a battle
 
-On a battle's page, a signed-in person whose own **verified** player played
-it can post about it: write up to 500 characters, or nothing at all, and tap
-**Post**. The post goes on that player's timeline with the battle attached
-and your words, where the people who follow the player read it ([The
-timeline](/docs/timeline)). An unverified claim never lets anyone post as a
-player ([Verify](/docs/verify)). One post per player per battle; when two of
-your verified players played it, you choose which one posts. A post about a
-battle carries the battle alone, never a deck or cards as well.
+If one of your **verified** players played a battle, you can post about it
+from its page. Write up to 500 characters or leave the words empty, choose
+the player when more than one of yours played, then tap **Post**. The post
+joins that player's Timeline with the battle attached. One post per player
+per battle; a post about a battle carries no separate deck or cards.
 
-Your words are checked as any post's are ([Limits](/docs/limits)): a link, a
-long number or an @handle is turned away.
+The same [post check](/docs/limits) applies. **Edit words** changes your
+post; **Delete** removes it and its words. Only the author can edit or
+delete it. Any member who can see it can **Share** its link. The shared
+page shows the words, game names and the attached battle's facts and decks.
+An edit updates the shared item; a deletion or moderation hide stops it
+opening. It never includes comments or private nicknames.
 
-Your post stays on the battle's page for you: **Edit words** changes them,
-**Delete** takes the post off the timeline and deletes the words. Only the
-account that posted it can change, share or delete it.
-
-**Share** gives the post its own link, `/h/<id>`. The id is random and
-names only the post, never you or whoever opens it. Anyone with the link can
-open it without an account: the player's game name, your words, and the
-battle from that player's side: both decks with the score between them, the
-elixir numbers, the towers' hitpoints and how it ended, with a link to the
-battle's own page for the rest. It
-never shows a nickname, an email or anything of your account. The link
-unfurls in a chat with your words, and adding `.png` to it gives the battle's
-picture with the player's name, your words and the link. The same post is
-JSON at `/api/public/posts/<id>`. Sharing again gives the same link.
-Deleting the post makes the link answer "No post at this link" within
-about a minute.
-
-Once a post is shared, and when its player is in a clan whose leaders
-have turned on **Shared posts about battles** for the clan's Discord channel
-([The clan's activity in Discord](/docs/clan-discord#the-clans-activity-in-discord)),
-you may choose **Post in your clan's Discord**. Elixir posts it there once,
-through the clan's own webhook: the player's game name, the result, your
-words and the link, which shows no preview. Nobody can be pinged by it,
-whatever the name or words say. Editing or deleting the post later
-does not change the channel's post.
+Once shared, its author may choose **Post in your clan's Discord** when
+the clan's leaders have enabled **Shared posts about battles**. It posts
+once through the clan's existing webhook, with game name, result, words and
+link. No mentions or preview. Later edits or deletion do not change the
+message already sent to Discord.
 
 ### Share with your context
 
-In Stats › Battles, choose a recorded battle. Inspect
-its facts, then choose **Share with your context** for a primary or alt on
-your account. Write up to 500 characters about why it mattered, or leave it
-blank, and preview the message before copying it or opening your device's
-Share sheet. Back keeps your words for editing; Cancel clears the draft.
-Clipboard or sharing interruptions keep the preview available for a manual
-retry or selection/copy.
-
-Your context travels in the shared message alongside the canonical battle
-link. It is not saved on the public page or encoded in its URL; opening the
-link alone shows the recorded game facts. Only words you deliberately type
-join the message, with no private notes or account details added.
+Share one of your players' recorded battles, then **Share with your
+context** offers an optional message draft. Write why it mattered, or leave
+the field blank, and preview before copying or opening your device's Share
+sheet. Back keeps your words; Cancel clears the draft. Your words travel in
+the message beside the opaque battle link. They are not saved in Elixir,
+added to its public page or encoded in the URL.
 
 ## Opponents
 

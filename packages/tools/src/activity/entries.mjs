@@ -4336,7 +4336,7 @@ export const VERSUS_DECK_SQL = (hash) => `(select jsonb_build_object(
 async function battlePostRows(db, where, params, accountId, held = false) {
   const { rows } = await db.query(
     `select p.post_id::text as post_id, p.item_id, p.player_tag, p.battle_id,
-            p.body as words, p.share_id, p.created_at,
+            p.body as words, ts.share_id, p.created_at,
             coalesce(p.updated_at, p.created_at) as updated_at, p.revision,
             pl.name,
             (p.account_id = (select coalesce(a.owned_by_account_id, a.account_id)
@@ -4357,6 +4357,8 @@ async function battlePostRows(db, where, params, accountId, held = false) {
               where o.battle_id = p.battle_id and o.side <> me.side
               order by o.player_tag limit 1) as their_deck
        from account_post p
+       left join timeline_share ts on ts.item_id = p.item_id
+         and ts.created_at >= now() - interval '1 year'
        join account au on au.account_id = p.account_id
                       and au.kind = 'person' and au.status = 'approved'
        left join player pl on pl.player_tag = p.player_tag

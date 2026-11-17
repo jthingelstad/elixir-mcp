@@ -50,7 +50,7 @@ const mocks = signedIn({
           },
         ]
       : [404, { error: "unmocked" }],
-  [`GET /api/public/battles/${BATTLE.battle.short_id}`]: [200, BATTLE],
+  [`GET /api/me/battles/${BATTLE.battle.short_id}`]: [200, BATTLE],
 });
 
 async function fits(page: Page, name: string) {

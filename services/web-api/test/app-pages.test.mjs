@@ -6,7 +6,7 @@
  */
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { makeAppPages, publicSessionFrom } from "../src/app-pages.mjs";
+import { makeAppPages } from "../src/app-pages.mjs";
 
 test("retired app paths are passed through, never rendered", async () => {
   const seen = [];
@@ -113,63 +113,30 @@ test("the Timeline reached through the site's failover gets the bare shell", asy
   assert.doesNotMatch(res.body, /elixir-bootstrap/);
 });
 
-/** A session's signed-in address, as mail, the bell, Discord and RSS have
- *  sent it since 2026-11-16 (2026-11-17): signed out it forwards to the
- *  session's public page, never a sign-in wall; signed in it is the
- *  member's page as before. */
-test("an old session link: signed out to its public page, signed in rendered", async () => {
-  const id = `tl_${"a1".repeat(10)}`;
-  const at = "2026-11-16T14:05:07.000Z";
-  const start = Math.floor(Date.parse(at) / 1000);
-  const old = `/home/player/0PQRV/session/${id}`;
-  const pages = (authenticated) =>
-    makeAppPages({
+test("member session links keep their sign-in wall and never forward to a public history", async () => {
+  for (const authenticated of [true, false]) {
+    const render = async ({ url, me }) =>
+      `${authenticated}:${me.data.authenticated}:${url}`;
+    const pages = makeAppPages({
       dispatch: async () => ({
         statusCode: 200,
-        headers: {},
         body: JSON.stringify({ authenticated }),
       }),
-      shell: async () => '<html><div id="root"></div></html>',
-      render: async ({ url }) => `rendered ${url}`,
+      render,
+      shell: async () => '<div id="root"></div>',
     });
-  for (const request of [
-    {
-      queryStringParameters: { at },
-      rawQueryString: `at=${encodeURIComponent(at)}`,
-    },
-    { rawQueryString: `at=${encodeURIComponent(at)}` },
-  ]) {
-    const out = await pages(false)({
+    const result = await pages({
       method: "GET",
-      path: old,
+      path: "/home/player/0PQRV/session/tl_00000000000000000001",
       headers: {},
-      ...request,
+      rawQueryString: "at=2026-11-16T14%3A05%3A07Z",
     });
-    assert.equal(out.statusCode, 302);
-    assert.equal(out.headers.location, `/session/0PQRV/${id}/${start}`);
-    assert.equal(out.headers["cache-control"], "private, no-store");
-    const inside = await pages(true)({
-      method: "GET",
-      path: old,
-      headers: {},
-      ...request,
-    });
-    assert.equal(inside.statusCode, 200);
-    assert.match(inside.body, /rendered \/home\/player\/0PQRV\/session\//);
+    assert.equal(result.statusCode, 200);
+    assert.equal(result.headers.location, undefined);
+    assert.match(
+      result.body,
+      new RegExp(`${authenticated}:${authenticated}:/home/player/`),
+    );
+    assert.equal(result.headers["cache-control"], "private, no-store");
   }
-  assert.equal(
-    publicSessionFrom({ path: `${old}/`, queryStringParameters: { at } }),
-    `/session/0PQRV/${id}/${start}`,
-  );
-  // Without its start, or not a session's id, it stays the app's page.
-  for (const request of [
-    { path: old },
-    { path: old, queryStringParameters: { at: "nonsense" } },
-    { path: "/home/player/0PQRV/session/abc", queryStringParameters: { at } },
-    {
-      path: `/home/player/%E0%A4%A/session/${id}`,
-      queryStringParameters: { at },
-    },
-  ])
-    assert.equal(publicSessionFrom(request), null, JSON.stringify(request));
 });

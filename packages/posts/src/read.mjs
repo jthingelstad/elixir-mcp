@@ -36,9 +36,11 @@ export async function catalogRows(db, ids) {
 
 const POST_COLS = `p.post_id::text as post_id, p.item_id, p.account_id,
        p.player_tag, p.body, p.question, p.deck, p.cards, p.status,
-       p.battle_id, p.share_id, p.revision, p.created_at,
+       p.battle_id, ts.share_id, p.revision, p.created_at,
        pl.name as player_name, ap.passport_id as author_page`;
-const POST_JOIN = `join account a on a.account_id = p.account_id
+const POST_JOIN = `left join timeline_share ts on ts.item_id = p.item_id
+                     and ts.created_at >= now() - interval '1 year'
+       join account a on a.account_id = p.account_id
                      and a.kind = 'person' and a.status = 'approved'
        left join player pl on pl.player_tag = p.player_tag
        left join account_passport ap on ap.account_id = p.account_id`;
@@ -196,7 +198,7 @@ export async function readVisiblePost(
   db,
   readerId,
   postId,
-  { subjects = [], plain = false, visibleOnly = false } = {},
+  { subjects = [], plain = false, visibleOnly = false, open = false } = {},
 ) {
   if (!readerId || !memberPostPath(postId)) return null;
   return postForReader(
@@ -204,9 +206,24 @@ export async function readVisiblePost(
     readerId,
     String(postId),
     subjects,
-    { plain, visibleOnly },
+    { plain, visibleOnly, open },
     "post_id",
   );
+}
+
+/** One already-shared post, after the capability gate. No account or
+ * follow lookup can substitute for that gate. Moderation and author
+ * status are rechecked; normalization is the member reader's own.
+ */
+export async function readPublishedPost(db, postId, { plain = false } = {}) {
+  if (!memberPostPath(postId)) return null;
+  const { rows } = await db.query(
+    `select ${POST_COLS} from account_post p ${POST_JOIN}
+      where p.post_id = $1::bigint and p.status = 'visible'
+        ${plain ? "" : "and p.battle_id is not null"}`,
+    [String(postId)],
+  );
+  return (await postItems(db, rows, null))[0] ?? null;
 }
 
 /** Whether the reader's own player is in the clan a post's player is in

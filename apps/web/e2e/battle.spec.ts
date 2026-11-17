@@ -3,8 +3,8 @@ import AxeBuilder from "@axe-core/playwright";
 import { ME, SIGNED_OUT, mockApi } from "./fixtures.ts";
 import { BATTLE, DUEL } from "./battle-fixture.ts";
 
-/** A battle's public page (2026-10-01): sign-in free, the recorded
- *  player left and the opponent right, both decks, how it ended. */
+/** Members read a battle and its surrounding history. An opaque public
+ * link shows only the selected battle and a way to sign in. */
 
 async function accessible(page: Page, name: string) {
   const results = await new AxeBuilder({ page })
@@ -21,39 +21,49 @@ async function accessible(page: Page, name: string) {
   ).toEqual([]);
 }
 
-const battles: Parameters<typeof mockApi>[1] = {
-  [`GET /api/public/battles/${BATTLE.battle.short_id}`]: [200, BATTLE],
-  [`GET /api/public/battles/${DUEL.battle.short_id}`]: [200, DUEL],
-  "GET /api/public/battles/ffffffffffff": [404, { error: "not_found" }],
+const SHARE_ID = "abcdefghijklmnopqrstuvwx";
+const SHARE_PATH = `/share/${SHARE_ID}`;
+const sharedBattle = {
+  battle: Object.fromEntries(
+    Object.entries(BATTLE.battle).filter(
+      ([key]) => !["url", "image"].includes(key),
+    ),
+  ),
+  sides: BATTLE.sides,
 };
 
-test("signed out: both decks, the score, how it ended, and the way in", async ({
+const battles: Parameters<typeof mockApi>[1] = {
+  [`GET /api/public/shared-items/${SHARE_ID}`]: [
+    200,
+    {
+      item: {
+        ...sharedBattle,
+        kind: "battle",
+        id: "tl_0123456789abcdef0123",
+        at: BATTLE.battle.battle_time,
+      },
+    },
+  ],
+  [`GET /api/me/battles/${BATTLE.battle.short_id}`]: [200, BATTLE],
+  [`GET /api/me/battles/${DUEL.battle.short_id}`]: [200, DUEL],
+  "GET /api/me/battles/ffffffffffff": [404, { error: "not_found" }],
+};
+
+test("an opaque public battle has two decks and a way in, without anonymous history", async ({
   page,
 }) => {
   await mockApi(page, { "GET /api/me": [200, SIGNED_OUT], ...battles });
-  await page.goto(`/battle/${BATTLE.battle.short_id}`);
+  await page.goto(SHARE_PATH);
   const left = BATTLE.sides[0]!.players[0]!.name as string;
   const right = BATTLE.sides[1]!.players[0]!.name as string;
-  await expect(page.getByRole("heading", { level: 1 })).toContainText(
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+    "Shared on Elixir",
+  );
+  await expect(page.getByRole("heading", { level: 2 }).first()).toContainText(
     `${left} beat ${right} 2 to 1 on Trophy Road`,
   );
-  await expect(page).toHaveTitle(`${left} and ${right} - Battle - Elixir`);
-  // Public and signed out: no place on the bar is the one you are in.
-  await expect(
-    page.getByRole("navigation", { name: "Main" }).locator("[aria-current]"),
-  ).toHaveCount(0);
-  // Left is the player, right the opponent, each with a deck to copy.
   const decks = page.getByRole("region", { name: /’s deck$/ });
   await expect(decks).toHaveCount(2);
-  await expect(decks.first()).toHaveAccessibleName(`${left}’s deck`);
-  const copy = page.getByRole("link", {
-    name: `Copy ${left}’s deck into Clash Royale`,
-  });
-  await expect(copy).toHaveAttribute(
-    "href",
-    /^https:\/\/link\.clashroyale\.com\/en\/\?clashroyale:\/\/copyDeck\?deck=(\d+;){7}\d+&tt=159000000$/,
-  );
-  // Eight card tiles a side, each a link to its card page.
   await expect(
     decks.first().getByRole("link", { name: /level 16$/ }),
   ).toHaveCount(8);
@@ -63,29 +73,38 @@ test("signed out: both decks, the score, how it ended, and the way in", async ({
   await expect(
     page.getByRole("region", { name: "Side by side" }),
   ).toContainText("13,591 → 13,621");
-  // No account: game names only, no player links, and the way in.
-  await expect(page.locator(".battle__name").first()).toHaveText(left);
-  await expect(page.locator("a.battle__name")).toHaveCount(0);
-  await expect(page.getByRole("link", { name: "Join Elixir" })).toHaveAttribute(
-    "href",
-    `/signin?signup&return_to=${encodeURIComponent(`/battle/${BATTLE.battle.short_id}`)}`,
+  await expect(page.locator("a.battle__name, .kit-player-name")).toHaveCount(0);
+  await expect(page.getByRole("region", { name: /’s session$/ })).toHaveCount(
+    0,
   );
-  // No raw battle hash at the foot; the way in is also up top.
-  await expect(page.getByText(BATTLE.battle.id)).toHaveCount(0);
-  await expect(page.getByRole("link", { name: "Join free" })).toHaveAttribute(
+  await expect(
+    page.getByRole("region", { name: "Share this battle" }),
+  ).toHaveCount(0);
+  await expect(
+    page.getByRole("region", { name: "Follow from here" }),
+  ).toHaveCount(0);
+  const invite = page.getByRole("region", { name: "See more on Elixir" });
+  await expect(
+    invite.getByRole("link", { name: "Create an account" }),
+  ).toHaveAttribute(
     "href",
-    `/signin?signup&return_to=${encodeURIComponent(`/battle/${BATTLE.battle.short_id}`)}`,
+    `/signin?signup&return_to=${encodeURIComponent(SHARE_PATH)}`,
   );
-  await expect(page.locator(".rail")).toHaveCount(0);
-  // The picture and the link, never an embed.
-  const share = page.getByRole("region", { name: "Share this battle" });
+  await accessible(page, "shared battle");
+});
+
+test("a bare battle address stays behind sign-in", async ({ page }) => {
+  const reads: string[] = [];
+  page.on("request", (request) => {
+    if (request.url().includes("/api/me/battles/")) reads.push(request.url());
+  });
+  await mockApi(page, { "GET /api/me": [200, SIGNED_OUT], ...battles });
+  await page.goto(`/battle/${BATTLE.battle.short_id}`);
   await expect(
-    share.getByRole("link", { name: "Share image" }),
-  ).toHaveAttribute("href", `${BATTLE.battle.url}.png`);
-  await expect(
-    share.getByRole("button", { name: "Copy for a post" }),
+    page.getByRole("link", { name: "Sign in", exact: true }).first(),
   ).toBeVisible();
-  await accessible(page, "battle");
+  await expect(page.locator(".battle")).toHaveCount(0);
+  expect(reads).toEqual([]);
 });
 
 test("signed in: your side says so, names open the record, another battle stays in the page", async ({
@@ -98,7 +117,7 @@ test("signed in: your side says so, names open the record, another battle stays 
   await mockApi(page, {
     "GET /api/me": [200, me],
     ...battles,
-    [`GET /api/public/battles/${nextShort}`]: [200, DUEL],
+    [`GET /api/me/battles/${nextShort}`]: [200, DUEL],
   });
   await page.goto(`/battle/${BATTLE.battle.short_id}`);
   await expect(page.locator(".battle__score .chip--ok")).toHaveText("you");
@@ -118,7 +137,7 @@ test("signed in: your side says so, names open the record, another battle stays 
   await expect(page.getByRole("tablist", { name: "Games" })).toBeVisible();
 });
 
-test("joining from a battle link: Join Elixir, the age question, back on the battle, Follow from here", async ({
+test("joining from a shared battle keeps the capability, then member battle has Follow from here", async ({
   page,
 }) => {
   // Social slice 5 (#763): the way in carries only the page; after the
@@ -179,9 +198,12 @@ test("joining from a battle link: Join Elixir, the age question, back on the bat
       return [200, { player_tag: right, relationship: "friend", added: true }];
     },
   });
-  const here = `/battle/${BATTLE.battle.short_id}`;
+  const here = SHARE_PATH;
   await page.goto(here);
-  await page.getByRole("link", { name: "Join Elixir" }).click();
+  await page
+    .getByRole("region", { name: "See more on Elixir" })
+    .getByRole("link", { name: "Create an account" })
+    .click();
   await expect(
     page.getByRole("heading", { name: "Create your Elixir account" }),
   ).toBeVisible();
@@ -196,6 +218,10 @@ test("joining from a battle link: Join Elixir, the age question, back on the bat
   await page.getByLabel("6-digit code").fill("123456");
   await page.getByRole("button", { name: "Sign in", exact: true }).click();
   await expect(page).toHaveURL(new RegExp(`${here}$`));
+  await expect(
+    page.getByRole("region", { name: "Follow from here" }),
+  ).toHaveCount(0);
+  await page.goto(`/battle/${BATTLE.battle.short_id}`);
   const from = page.getByRole("region", { name: "Follow from here" });
   await expect(from).toContainText("Free · already recorded");
   await expect(from).toContainText("Uses 1 of your 50 follows");
@@ -212,7 +238,7 @@ test("joining from a battle link: Join Elixir, the age question, back on the bat
 test("a duel: games won on top, then each game's decks and towers", async ({
   page,
 }) => {
-  await mockApi(page, { "GET /api/me": [200, SIGNED_OUT], ...battles });
+  await mockApi(page, { "GET /api/me": [200, ME], ...battles });
   await page.goto(`/battle/${DUEL.battle.short_id}`);
   await expect(page.getByRole("heading", { level: 1 })).toContainText(
     "2 to 1 games on War",
@@ -234,7 +260,7 @@ test("a duel: games won on top, then each game's decks and towers", async ({
 });
 
 test("a battle Elixir does not hold says so", async ({ page }) => {
-  await mockApi(page, { "GET /api/me": [200, SIGNED_OUT], ...battles });
+  await mockApi(page, { "GET /api/me": [200, ME], ...battles });
   await page.goto("/battle/ffffffffffff");
   await expect(page.getByText("No battle at this link")).toBeVisible();
 });
@@ -243,7 +269,7 @@ test("@narrow on a phone with room both decks still sit side by side", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 440, height: 860 });
-  await mockApi(page, { "GET /api/me": [200, SIGNED_OUT], ...battles });
+  await mockApi(page, { "GET /api/me": [200, ME], ...battles });
   await page.goto(`/battle/${BATTLE.battle.short_id}`);
   const decks = page.getByRole("region", { name: /’s deck$/ });
   await expect(decks).toHaveCount(2);

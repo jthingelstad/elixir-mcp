@@ -1,95 +1,138 @@
 import { test, expect, vi, afterEach } from "vitest";
-import { screen, cleanup } from "@testing-library/react";
-import { api } from "../src/api.js";
-import { Post } from "../src/views/Post.jsx";
+import { screen, cleanup, fireEvent } from "@testing-library/react";
+import { PlayerIdentityProvider } from "@elixir-mcp/ui";
+import { SharedItem } from "../src/views/SharedItem.jsx";
 import { BATTLE } from "../e2e/battle-fixture.ts";
+import { HOG } from "../e2e/session-fixture.ts";
 import { renderWithProviders } from "./helpers.jsx";
 
-/**
- * A shared post, /h/<id> (canvas Highlight, 2026-11-13; a post about a battle since 0292): who won and the
- * score, both decks with the score between, four numbers side by side and
- * the way to the battle's own page. Invented players only.
- */
-const ok = (data) => ({ ok: true, status: 200, data });
+const ID = "tl_0123456789abcdef0123";
+const TAG = "#0QU8VGV";
 const HOSTILE = '<img src=x onerror="alert(1)">';
-const post = (side = "left") => {
-  const sides = structuredClone(BATTLE.sides);
-  sides[1].players[0].name = HOSTILE;
-  return {
-    ...BATTLE,
-    sides,
-    post: {
-      share_id: "k7q2mabcdefghij",
-      url: "https://elixir.example.test/h/k7q2mabcdefghij",
-      image: "https://elixir.example.test/h/k7q2mabcdefghij.png",
-      player_tag: sides[side === "left" ? 0 : 1].players[0].player_tag,
-      name: sides[side === "left" ? 0 : 1].players[0].name,
-      side,
-      outcome: side === "left" ? "win" : "loss",
-      words: "Two pushes at the end.",
-      created_at: "2026-11-10T14:00:00.000Z",
+const item = {
+  id: ID,
+  kind: "post",
+  at: "2026-11-17T12:00:00.000Z",
+  subjects: [{ kind: "player", tag: TAG, name: HOSTILE }],
+  post: {
+    text: "Two pushes at the end.",
+    question: true,
+    author: { player_tag: TAG, name: HOSTILE },
+    battle: {
+      crowns: 2,
+      crowns_against: 1,
+      outcome: "win",
+      mode_group: "ladder",
+      opponents: [{ name: "Birch Lantern" }],
     },
-  };
+    versus: { mine: HOG, theirs: HOG },
+  },
 };
-
 afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
 });
 
-test("the post: its player's result, both decks with the score, and the full battle", async () => {
-  vi.spyOn(api, "publicPost").mockResolvedValue(ok(post()));
+test("a shared post is one item with writing and two decks, with no member actions or browsing", () => {
+  window.history.replaceState({}, "", "/share/abcdefghijklmnopqrstuvwx");
   const { container } = renderWithProviders(
-    <Post shareId="k7q2mabcdefghij" me={{ authenticated: false }} />,
+    <PlayerIdentityProvider players={{ [TAG]: true }}>
+      <SharedItem read={{ item }} me={{ authenticated: false }} />
+    </PlayerIdentityProvider>,
   );
-  const title = await screen.findByRole("heading", { level: 1 });
-  expect(title.textContent).toBe(`Birch Lantern beat ${HOSTILE} 2-1`);
-  // Names are text at every output, never markup.
-  expect(container.querySelector("img[src='x']")).toBeNull();
+  expect(screen.getByRole("heading", { level: 1 }).textContent).toBe(
+    "Shared on Elixir",
+  );
   expect(screen.getByText("Two pushes at the end.")).toBeTruthy();
+  expect(screen.getByText("Question")).toBeTruthy();
   expect(container.querySelectorAll(".kit-vs .kit-deckrow")).toHaveLength(2);
-  expect(screen.getByText("2 to 1 crowns")).toBeTruthy();
-  expect(screen.getByText("Average elixir")).toBeTruthy();
+  expect(container.querySelector("img[src='x']")).toBeNull();
   expect(
-    screen.getByRole("link", { name: "The full battle" }).getAttribute("href"),
-  ).toBe("/battle/ccd04012bda8");
-  // Signed out: the way in, under the post.
-  expect(screen.getByText("Follow Birch Lantern on Elixir")).toBeTruthy();
+    container.querySelector(".kit-player-name, .kit-verified, .kit-feed__foot"),
+  ).toBeNull();
+  expect(
+    container.querySelector('a[href^="/battle/"], a[href^="/home/player/"]'),
+  ).toBeNull();
+  expect(screen.queryByRole("region", { name: "Comments" })).toBeNull();
+  const back = encodeURIComponent("/share/abcdefghijklmnopqrstuvwx");
+  expect(
+    screen
+      .getByRole("link", { name: "Create an account" })
+      .getAttribute("href"),
+  ).toBe(`/signin?signup&return_to=${back}`);
+  expect(
+    screen.getByRole("link", { name: "Sign in" }).getAttribute("href"),
+  ).toBe(`/signin?return_to=${back}`);
 });
 
-test("a post from the right-hand side reads from its own player", async () => {
-  vi.spyOn(api, "publicPost").mockResolvedValue(ok(post("right")));
-  renderWithProviders(
-    <Post shareId="k7q2mabcdefghij" me={{ authenticated: false }} />,
+test("signed-in viewers still see public names without reader aliases or verified marks", () => {
+  const { container } = renderWithProviders(
+    <PlayerIdentityProvider players={{ [TAG]: true }}>
+      <SharedItem
+        read={{ item }}
+        me={{
+          authenticated: true,
+          claims: [{ player_tag: TAG, nickname: "Private Alias" }],
+        }}
+      />
+    </PlayerIdentityProvider>,
   );
-  const title = await screen.findByRole("heading", { level: 1 });
-  expect(title.textContent).toBe(`${HOSTILE} lost to Birch Lantern 1-2`);
+  expect(container.textContent).not.toContain("Private Alias");
+  expect(container.querySelector(".kit-player-name, .kit-verified")).toBeNull();
+  expect(
+    screen
+      .getByRole("link", { name: "Open your Timeline" })
+      .getAttribute("href"),
+  ).toBe("/timeline");
+  expect(screen.queryByRole("link", { name: "Create an account" })).toBeNull();
 });
 
-test("a 2v2 post keeps every player's deck through the battle's own view", async () => {
-  const p = post();
-  p.sides[0].players.push({
-    ...structuredClone(p.sides[0].players[0]),
+test("a shared 2v2 battle preserves four decks but no history or member actions", () => {
+  const read = structuredClone(BATTLE);
+  delete read.battle.url;
+  delete read.battle.image;
+  read.battle.kind = "2v2";
+  read.sides[1].players[0].name = HOSTILE;
+  read.sides[0].players.push({
+    ...read.sides[0].players[0],
     player_tag: "#00VYVC",
     name: "Willow Kite",
   });
-  p.sides[1].players.push({
-    ...structuredClone(p.sides[1].players[0]),
-    player_tag: "#PYLQ77",
+  read.sides[1].players.push({
+    ...read.sides[1].players[0],
+    player_tag: "#0QU8VGV",
     name: "Cedar Gull",
   });
-  vi.spyOn(api, "publicPost").mockResolvedValue(ok(p));
   const { container } = renderWithProviders(
-    <Post shareId="k7q2mabcdefghij" me={{ authenticated: false }} />,
+    <SharedItem
+      read={{ item: { ...read, kind: "battle", id: ID } }}
+      me={{ authenticated: true }}
+    />,
   );
-  const title = await screen.findByRole("heading", { level: 1 });
-  expect(title.textContent).toBe(
-    `Birch Lantern and Willow Kite beat ${HOSTILE} and Cedar Gull 2-1`,
-  );
-  // No side-by-side pair for four players: the battle view draws all four.
-  expect(container.querySelector(".kit-vs")).toBeNull();
-  expect(container.querySelector(".kit-nums")).toBeNull();
+  expect(screen.getAllByRole("region", { name: /’s deck$/ })).toHaveLength(4);
   expect(screen.getAllByText("Willow Kite").length).toBeGreaterThan(0);
-  expect(screen.getAllByText("Cedar Gull").length).toBeGreaterThan(0);
-  expect(container.querySelector("img[src='x']")).toBeNull();
+  expect(container.querySelector("img[src='x'], a.battle__name")).toBeNull();
+  expect(screen.queryByRole("region", { name: /’s session$/ })).toBeNull();
+  expect(screen.queryByRole("region", { name: "Follow from here" })).toBeNull();
+  expect(
+    screen.queryByRole("region", { name: "Share this battle" }),
+  ).toBeNull();
+  expect(screen.queryByRole("button", { name: "Cheer" })).toBeNull();
+});
+
+test("missing, loading and failed reads stay distinct without stale content", () => {
+  const retry = vi.fn();
+  const { rerender } = renderWithProviders(
+    <SharedItem pending me={{ authenticated: false }} />,
+  );
+  expect(screen.getByRole("status").textContent).toContain("Loading");
+  rerender(<SharedItem failed retry={retry} />);
+  expect(screen.getByText("Elixir did not answer.")).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "Try again" }));
+  expect(retry).toHaveBeenCalledOnce();
+  rerender(<SharedItem read={null} />);
+  expect(
+    screen.getByRole("heading", { name: "No item at this link" }),
+  ).toBeTruthy();
+  expect(screen.queryByText(item.post.text)).toBeNull();
 });

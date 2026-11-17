@@ -1,0 +1,19 @@
+{
+  "name": "@elixir-mcp/sharing",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Opaque single-item share capabilities and the canonical public projection, with no anonymous browsing or account data.",
+  "exports": {
+    ".": "./src/index.mjs",
+    "./paths": "./src/paths.mjs",
+    "./projection": "./src/projection.mjs"
+  },
+  "scripts": {
+    "test": "node --test 'test/*.test.mjs'"
+  },
+  "dependencies": {
+    "@elixir-mcp/contracts": "0.1.0",
+    "@elixir-mcp/tools": "0.1.0"
+  }
+}

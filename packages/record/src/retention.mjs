@@ -134,6 +134,7 @@ export const TRIMMED = Object.freeze([
   },
   plain("feedback", "created_at", YEAR, "status in ('done', 'declined')"),
   plain("timeline_cheer", "created_at", YEAR),
+  plain("timeline_share", "created_at", YEAR),
   // Comments (0282) go at a year like cheers; one an owner or an admin
   // removed goes 30 days after its removal (sweepOperational).
   plain("timeline_comment", "created_at", YEAR),

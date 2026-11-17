@@ -1,5 +1,4 @@
 import { readFile } from "node:fs/promises";
-import { publicSessionPath } from "@elixir-mcp/ui/session-story";
 
 /** Server rendering (React, the router, the console's pages) is loaded
  *  on the first page, never at import: a cold start that serves a JSON
@@ -32,30 +31,6 @@ const TIMELINE = "/timeline";
  *  the signed-out page, so it gets the bare app shell with no bootstrap,
  *  and the browser reads the session itself through `/api/me`. */
 const TIMELINE_VIA_SITE = /^\/timeline\/index\.html$/;
-/** A session's signed-in address, as mail, the bell, Discord and RSS have
- *  sent it since 2026-11-16: `/home/player/<tag>/session/<id>?at=<start>`.
- *  Signed out it forwards to the session's public page (2026-11-17), so a
- *  link already sent opens for anyone, never on a sign-in wall; signed in
- *  it is the member's page as before. Null when the address does not name
- *  a session with its start. */
-const SESSION_PAGE = /^\/home\/player\/([^/]+)\/session\/(tl_[0-9a-f]{20})\/?$/;
-export function publicSessionFrom(request) {
-  const m = SESSION_PAGE.exec(request.path ?? "");
-  if (!m) return null;
-  const at =
-    request.queryStringParameters?.at ??
-    new URLSearchParams(request.rawQueryString ?? "").get("at");
-  if (!at) return null;
-  let tag;
-  try {
-    tag = decodeURIComponent(m[1]);
-  } catch {
-    return null;
-  }
-  if (!/^#?[0-9A-Za-z]{3,15}$/.test(tag)) return null;
-  return publicSessionPath(tag.toUpperCase(), m[2], at);
-}
-
 const safeJson = (value) =>
   JSON.stringify(value)
     .replace(/</g, "\\u003c")
@@ -129,20 +104,6 @@ export function makeAppPages({
       status: session.statusCode,
       data: JSON.parse(session.body),
     };
-    const publicSession =
-      me.ok && me.data?.authenticated === false
-        ? publicSessionFrom(request)
-        : null;
-    if (publicSession)
-      return {
-        statusCode: 302,
-        headers: {
-          location: publicSession,
-          "cache-control": "private, no-store",
-          vary: "Cookie, Authorization",
-        },
-        body: "",
-      };
     let clanMe;
     if (/^\/clan(?:\/|$)/.test(request.path)) {
       let clanSession = session;

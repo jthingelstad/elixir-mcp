@@ -1,6 +1,8 @@
 import { useEffect, useId, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useWrite } from "../client/index.ts";
-import { ConfirmAction, Icon, WriteError, useFlash } from "@elixir-mcp/ui";
+import { ConfirmAction, WriteError } from "@elixir-mcp/ui";
+import { ItemShare } from "../home/ItemShare.jsx";
 import { api } from "../api.js";
 import { HOME_FEED_KEY, keys, useBattlePosts } from "../lib/queries.js";
 import { useAskOnOpen } from "../lib/own-refresh.js";
@@ -46,6 +48,7 @@ export function BattlePosts({ battle, sides }) {
         {posts.map((it) => (
           <Posted
             key={it.id}
+            it={it}
             p={it.post}
             name={nameOf(it.subject_tag)}
             invalidate={invalidate}
@@ -107,8 +110,8 @@ function Compose({ battle, players, nameOf, invalidate }) {
     >
       <p className="footnote mb-3">
         It goes on {nameOf(player)}’s timeline as a post with this battle and
-        your words. People in Elixir see it there; nobody outside Elixir does
-        until you share it.
+        your words. People in Elixir see it there; a member who can see it can
+        share a link to it.
       </p>
       {players.length > 1 && (
         <>
@@ -148,13 +151,16 @@ function Compose({ battle, players, nameOf, invalidate }) {
   );
 }
 
-function Posted({ p, name, invalidate }) {
+function Posted({ it, p, name, invalidate }) {
+  const client = useQueryClient();
+  const shared = () => {
+    for (const queryKey of invalidate)
+      void client.invalidateQueries({ queryKey });
+  };
   const id = useId();
   const [editing, setEditing] = useState(false);
   const [words, setWords] = useState(p.text);
-  const [copied, flash] = useFlash();
   const edit = useWrite(api.editPost, { invalidate });
-  const share = useWrite(api.sharePost, { invalidate });
   const remove = useWrite(api.deletePost, { invalidate });
   return (
     <div className="highlight-posted">
@@ -198,37 +204,10 @@ function Posted({ p, name, invalidate }) {
           ? "Only you see this one for now: it's waiting for a look."
           : `On ${name}’s timeline`}
       </p>
-      {p.share_url && (
-        <div className="share-link">
-          <Icon name="link-2" size={15} />
-          <span className="share-link__url">{p.share_url}</span>
-          <button
-            type="button"
-            className="btn btn--sm"
-            onClick={() => {
-              navigator.clipboard?.writeText(p.share_url);
-              flash();
-            }}
-          >
-            <Icon name={copied ? "check" : "copy"} size={14} />
-            {copied ? "Copied" : "Copy"}
-          </button>
-        </div>
-      )}
-      <WriteError error={share.error} />
       <WriteError error={remove.error} />
       {!editing && (
         <div className="highlight-posted__actions">
-          {!p.share_url && p.status !== "hidden" && (
-            <button
-              className="btn btn--sm"
-              type="button"
-              disabled={share.busy}
-              onClick={() => share.run(p.id)}
-            >
-              Share
-            </button>
-          )}
+          {p.status !== "hidden" && <ItemShare it={it} onReady={shared} />}
           <button
             className="btn btn--sm"
             type="button"
@@ -245,7 +224,7 @@ function Posted({ p, name, invalidate }) {
             title="Delete this post?"
             body={
               p.share_url
-                ? "It leaves the timeline with its cheers and comments, its words are deleted, and its link stops opening within about a minute."
+                ? "It leaves the timeline with its cheers and comments, its words are deleted, and its link stops opening."
                 : "It leaves the timeline with its cheers and comments, and its words are deleted."
             }
             confirm="Delete"

@@ -1,5 +1,7 @@
 # Timeline
 
+> Later direction, Jamie, 2026-11-17: any member may share a public-safe Timeline item they can see, including another person's post. Its opaque link opens that item alone. Old public battle/session/post links may 404. This replaces owner-only highlight sharing below.
+
 *Rewritten 2026-11-13 to the social layer, from the brief Jamie ratified
 on 2026-10-12, under [`VISION.md`](../../VISION.md) and the rulings in
 [DECISIONS](../DECISIONS.md) of 2026-11-11 and 2026-11-12. Ratified by Jamie, 2026-11-13

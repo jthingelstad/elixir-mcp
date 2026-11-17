@@ -100,8 +100,12 @@ test("a posted one shows its words as text, with Share and Edit words", async ()
   // words are ordinary small buttons, and Delete is a quiet link.
   const text = container.textContent;
   expect(text.indexOf("<img src=x")).toBeLessThan(text.indexOf("timeline"));
-  for (const name of ["Share", "Edit words"])
-    expect(screen.getByRole("button", { name }).className).toBe("btn btn--sm");
+  for (const name of ["Share", "Edit words"]) {
+    expect(screen.getByRole("button", { name }).className).toContain("btn--sm");
+    expect(screen.getByRole("button", { name }).className).not.toMatch(
+      /btn--primary|btn--gold|btn--danger/,
+    );
+  }
   expect(screen.getByRole("button", { name: "Delete" }).className).toContain(
     "link",
   );
@@ -129,7 +133,7 @@ test("a post without words says so, and its words can be added", async () => {
 const SHARED = {
   id: "42",
   text: "gg",
-  share_url: "https://elixir.poapkings.com/h/abc",
+  share_url: "https://elixir.poapkings.com/share/abcdefghijklmnopqrstuvwx",
 };
 
 test("a shared post offers its clan's Discord only when the server says so, and asks first", async () => {

@@ -17,6 +17,7 @@ import { whenAt } from "@elixir-mcp/ui/time";
 import { fontMetrics } from "./font-metrics.mjs";
 import { scoreOf } from "./battle-page.mjs";
 import {
+  SITTINGS,
   deckCaption,
   modesSaid,
   sessionChips,
@@ -118,9 +119,11 @@ export function makeShareImage({ assets, cardArt = async () => null }) {
   return async function render(read) {
     const f = await load();
     const art = await artFor(read, cardArt);
-    const svg = read.session
-      ? drawSession(read, { ...f, art })
-      : drawBattle(read, { ...f, art });
+    const svg = read.shared
+      ? drawItem(read, { ...f, art })
+      : read.session
+        ? drawSession(read, { ...f, art })
+        : drawBattle(read, { ...f, art });
     const resvg = new Resvg(svg, {
       fitTo: { mode: "original" },
       font: { fontBuffers: f.fonts, defaultFontFamily: "Inter" },
@@ -139,6 +142,18 @@ async function artFor(read, cardArt) {
   const sessionDeck = read.session
     ? (read.item?.deck ?? topDeck(read.games))
     : null;
+  for (const c of [
+    ...(read.item?.deck?.cards ?? []),
+    ...(read.item?.post?.deck?.cards ?? []),
+    ...(read.item?.post?.cards ?? []),
+    ...(read.item?.post?.versus?.mine?.cards ?? []),
+    ...(read.item?.post?.versus?.theirs?.cards ?? []),
+  ])
+    cards.set(`${c.id}:${c.form ?? "base"}`, c);
+  for (const side of read.item?.sides ?? [])
+    for (const p of side.players)
+      for (const c of shownDeck(read.item, p)?.cards ?? [])
+        cards.set(`${c.id}:${c.form ?? "base"}`, c);
   for (const c of sessionDeck?.cards ?? [])
     cards.set(`${c.id}:${c.form ?? "base"}`, c);
   for (const side of read.sides ?? [])
@@ -958,4 +973,177 @@ function drawPlainDeck(push, f, deck, { x, y, w, gap }) {
       ),
     );
   });
+}
+
+/** One item, no comments, history, reader identity or private Clan state. */
+export function drawItem(read, f) {
+  const { item, url } = read;
+  if (item.kind === "battle")
+    return drawBattle(
+      { ...item, battle: { ...item.battle, url, image: `${url}.png` } },
+      f,
+    );
+  if (SITTINGS.has(item.kind))
+    return drawSession(
+      {
+        item,
+        url,
+        player: {
+          tag: item.subject_tag,
+          name: item.subjects?.find((s) => s.kind === "player")?.name,
+        },
+        games: { decks: [] },
+      },
+      f,
+    );
+  if (
+    item.post?.battle &&
+    item.post?.versus?.mine &&
+    item.post?.versus?.theirs
+  ) {
+    const p = item.post;
+    const b = p.battle;
+    const out = [
+      GROUND,
+      text(PAD, 62, "Elixir", {
+        family: "Clash",
+        size: 38,
+        fill: "url(#gold)",
+      }),
+    ];
+    const words = wrap(
+      p.text || item.text || "A battle shared on Elixir",
+      f.regular,
+      25,
+      1090,
+    );
+    words
+      .slice(0, 2)
+      .forEach((line, i) =>
+        out.push(
+          text(
+            PAD,
+            115 + i * 33,
+            i === 1 && words.length > 2
+              ? fit(words.slice(1).join(" "), f.regular, 25, 1090)
+              : line,
+            { size: 25 },
+          ),
+        ),
+      );
+    out.push(
+      text(
+        260,
+        213,
+        fit(
+          p.author?.name ?? p.author?.player_tag ?? "Player",
+          f.bold,
+          23,
+          360,
+        ),
+        { size: 23, weight: 700, anchor: "middle", fill: C.ink },
+      ),
+    );
+    out.push(
+      text(
+        930,
+        213,
+        fit(
+          b.opponents?.map((o) => o.name ?? o.player_tag).join(" and ") ??
+            "Opponent",
+          f.bold,
+          23,
+          360,
+        ),
+        { size: 23, weight: 700, anchor: "middle", fill: C.ink },
+      ),
+    );
+    drawPlainDeck((s) => out.push(s), f, p.versus.mine, {
+      x: 94,
+      y: 240,
+      w: 78,
+      gap: 6,
+    });
+    drawPlainDeck((s) => out.push(s), f, p.versus.theirs, {
+      x: 764,
+      y: 240,
+      w: 78,
+      gap: 6,
+    });
+    if (typeof b.crowns === "number" && typeof b.crowns_against === "number")
+      out.push(
+        text(600, 345, `${b.crowns}–${b.crowns_against}`, {
+          size: 46,
+          weight: 700,
+          anchor: "middle",
+          fill: C.gold,
+        }),
+      );
+    const mode = MODE_LABEL[b.mode_group] ?? b.game_mode?.name;
+    if (mode)
+      out.push(
+        text(600, 385, fit(mode, f.regular, 19, 280), {
+          size: 19,
+          anchor: "middle",
+        }),
+      );
+    out.push(
+      text(PAD, 548, fit(url, f.regular, 19, 1090), { size: 19, fill: C.link }),
+    );
+    out.push(
+      text(PAD, 596, fit(DISCLAIMER, f.regular, 12, 1090), {
+        size: 12,
+        fill: C.dim,
+      }),
+    );
+    return `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">${out.join("\n")}</svg>`;
+  }
+  const deck =
+    item.post?.deck ??
+    item.deck ??
+    (item.post?.cards?.length ? { cards: item.post.cards } : null);
+  const out = [GROUND];
+  out.push(
+    text(PAD, 66, "Elixir", { family: "Clash", size: 38, fill: "url(#gold)" }),
+  );
+  const who =
+    item.subjects?.find((s) => s.kind === "player") ?? item.subjects?.[0];
+  out.push(
+    text(
+      PAD,
+      130,
+      fit(who?.name ?? who?.tag ?? "A Timeline update", f.bold, 30, 1090),
+      { size: 30, weight: 700, fill: C.ink },
+    ),
+  );
+  const words =
+    item.post?.text ||
+    item.text ||
+    (item.facts ? sessionHeadline(item.facts) : "Shared on Elixir");
+  const max = deck ? 615 : 1090;
+  const lines = wrap(words, f.regular, 27, max).slice(0, 9);
+  lines.forEach((line, i) =>
+    out.push(
+      text(PAD, 190 + i * 37, i === 8 ? fit(line, f.regular, 27, max) : line, {
+        size: 27,
+      }),
+    ),
+  );
+  if (deck)
+    drawPlainDeck((s) => out.push(s), f, deck, {
+      x: 730,
+      y: 180,
+      w: 91,
+      gap: 10,
+    });
+  out.push(
+    text(PAD, 548, fit(url, f.regular, 19, 1090), { size: 19, fill: C.link }),
+  );
+  out.push(
+    text(PAD, 596, fit(DISCLAIMER, f.regular, 12, 1090), {
+      size: 12,
+      fill: C.dim,
+    }),
+  );
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">${out.join("\n")}</svg>`;
 }

@@ -13,9 +13,7 @@ export function PlayerBattleShare({ url, players }) {
   // Use the server's canonical battle link, never the current page URL:
   // a visited URL can carry unrelated query or fragment credentials.
   if (
-    !/^https:\/\/elixir\.poapkings\.com\/battle\/[a-f0-9]{12,64}$/.test(
-      url ?? "",
-    )
+    !/^https:\/\/elixir\.poapkings\.com\/share\/[a-z2-7]{24}$/.test(url ?? "")
   )
     return null;
   const title = `${players}: Clash Royale battle`;

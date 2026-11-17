@@ -32,7 +32,6 @@ import { proofOf, scoresOf, sparkOf } from "../feed.mjs";
 import { claimantsOf } from "../account-page.mjs";
 import { json } from "../http.mjs";
 import { homeClan } from "./clans.mjs";
-import { publicSessionLinks } from "../session-links.mjs";
 
 /**
  * The player page (slice 6, #764) and the follows it starts.
@@ -148,45 +147,18 @@ const SITTINGS = new Set(["battle_session", "session_standout"]);
  *  longest run of wins, its modes, its decks' labels and how many battles
  *  each, its events' names, and when it started and ended (the card links
  *  its page by the start; 2026-11-16). */
-const sittingFacts = (f = {}) => ({
-  battles: f.battles ?? null,
-  won: f.won ?? null,
-  lost: f.lost ?? null,
-  drawn: f.drawn ?? null,
-  trophy_net: f.trophy_net ?? null,
-  won_in_a_row: f.won_in_a_row ?? null,
-  by_mode: f.by_mode ?? {},
-  decks: (f.decks ?? [])
-    .filter((d) => d?.label)
-    .map((d) => ({ label: d.label, battles: d.battles ?? null })),
-  events: (f.events ?? [])
-    .filter((e) => e?.name)
-    .map((e) => ({ name: e.name, battles: e.battles ?? null })),
-  started_at: f.started_at ?? null,
-  ended_at: f.ended_at ?? null,
-});
-
-/** One item, as the page draws it: its sentence; for a sitting, what Home's session row draws (G7, 2026-11-12):
- *  its sparkline, its numbers and its games' evidence handle. Never its
- *  facts whole: the page needs none of the rest. */
-const pageItem = (it) => {
+/** The canonical item with the page's common session decoration. Identity,
+ * visibility and facts stay attached at the source, for every reader. */
+const pageItem = (it, fallbackDeck = null) => {
   const spark = SITTINGS.has(it.kind) ? sparkOf(it) : null;
   const scores = SITTINGS.has(it.kind) ? scoresOf(sessionSpark(it)) : null;
-  const deck = SITTINGS.has(it.kind) ? sessionDeck(it) : null;
+  const deck = SITTINGS.has(it.kind) ? (sessionDeck(it) ?? fallbackDeck) : null;
   return {
-    id: it.id ?? null,
-    kind: it.kind,
+    ...it,
     at: shownAt(it) || it.at || null,
-    text: String(it.text ?? ""),
-    ...(SITTINGS.has(it.kind)
-      ? {
-          facts: sittingFacts(it.facts),
-          ...(spark ? { spark } : {}),
-          ...(scores ? { scores } : {}),
-          ...(deck ? { deck } : {}),
-          ...(it.evidence?.kind === "session" ? { evidence: it.evidence } : {}),
-        }
-      : {}),
+    ...(spark ? { spark } : {}),
+    ...(scores ? { scores } : {}),
+    ...(deck ? { deck } : {}),
   };
 };
 
@@ -325,7 +297,7 @@ export async function readSitting(
   }
   return {
     player: { tag: rows[0].player_tag, name: rows[0].name ?? null },
-    item: pageItem(item),
+    item: pageItem(item, games.decks?.[0] ?? null),
     games,
     marks,
     // Whether anyone with the link may read it: the public page's gate.
@@ -376,9 +348,8 @@ export async function readSessionPage(
     item: read.item,
     games: read.games,
     marks: read.marks,
-    // Its public page and picture, for the page's Share panel (2026-11-17):
-    // only for a sitting anyone with the link may read.
-    ...(read.shareable ? publicSessionLinks(read) : { url: null, image: null }),
+    // Sharing is an explicit capability request, never an enumerable URL.
+    shareable: read.shareable,
   };
 }
 

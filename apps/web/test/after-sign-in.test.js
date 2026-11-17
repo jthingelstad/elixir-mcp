@@ -37,11 +37,11 @@ test("sign-in and external destinations are not remembered", () => {
   expect(takeAfterSignIn()).toBeNull();
 });
 
-test("a player page, public battle and shared post context survive sign-in", () => {
+test("a player page, member battle and shared item context survive sign-in", () => {
   for (const path of [
     "/home/player/2ABC?from=mail",
     "/battle/ccd04012bda8",
-    "/h/abcdefghijk2345",
+    "/share/abcdefghijklmnopqrstuvwx",
   ]) {
     rememberAfterSignIn(path);
     expect(takeAfterSignIn()).toBe(path);
@@ -76,6 +76,12 @@ test("return paths refuse normalized traversal, credentials, external and look-a
     "/console/explore/player/2ABC#login_token=secret",
     "/battles/ccd04012bda8",
     "/battle/garbage",
+    "/h/abcdefghijk2345",
+    "/session/0JQ8PL2V/tl_a1b2c3d4e5f60718293a/1794000000",
+    "/share/abcdefghijklmnopqrstuvw",
+    "/share/abcdefghijklmnopqrstuvwxy",
+    "/share/ABCDEFGHIJKLMNOPQRSTUVWX",
+    "/share/0bcdefghijklmnopqrstuvwx",
     "/h/garbage",
     "/h/ABCDEFGHIJK2345",
   ]) {

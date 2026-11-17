@@ -1,8 +1,5 @@
-/** A battle's own page, /battle/<short id> (Jamie, 2026-10-01): the app
- *  shell the console runs in, with the battle's preview tags written into
- *  it, so a link pasted in a chat unfurls as the battle and not as
- *  Elixir's home. The page itself is the app's (apps/web BattlePage),
- *  reading /api/public/battles/<ref>; this route only names it. */
+/** Member battle pages/data/pictures authenticate before reading the
+ * record. Opaque /share links alone open a single public item. */
 import { readFile } from "node:fs/promises";
 import { GetObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { cardArtPath } from "@elixir-mcp/contracts";
@@ -161,56 +158,63 @@ export function shareAssetsIn(dir) {
     })());
 }
 
-const page = (statusCode, body, maxAge) => ({
-  statusCode,
-  headers: {
-    "content-type": "text/html; charset=utf-8",
-    "cache-control": `public, max-age=${maxAge}`,
-  },
-  body,
-});
-
-/** The share picture: a PNG, base64 for the gateway. A battle does not
- *  change once recorded, so the edge keeps it a day; a name it carries
- *  is the name as last recorded, and a day is how stale that may get. */
-async function picture(db, ref, shareImage) {
-  const text = (statusCode, body, maxAge) => ({
-    statusCode,
-    headers: {
-      "content-type": "text/plain; charset=utf-8",
-      "cache-control": `public, max-age=${maxAge}`,
-    },
-    body,
-  });
-  if (!shareImage) return text(503, "The share picture is not set up.", 0);
-  const read = await readPublicBattle(db, ref, { around: false });
-  if (read.status !== 200) return text(404, "No battle at this address.", 60);
-  const png = await shareImage(read);
-  return {
-    statusCode: 200,
-    headers: {
-      "content-type": "image/png",
-      "cache-control": "public, max-age=86400",
-    },
-    body: Buffer.from(png).toString("base64"),
-    isBase64Encoded: true,
+const privateHeaders = {
+  "cache-control": "private, no-store",
+  "x-robots-tag": "noindex, nofollow",
+};
+export function battleRoutes({ siteShell, resolveAccount, shareImage }) {
+  const read = async (db, event) => {
+    const account = await resolveAccount(db, event);
+    if (!account) return null;
+    const ref = String(event.pathParam ?? "");
+    return readPublicBattle(db, ref.endsWith(".png") ? ref.slice(0, -4) : ref);
   };
-}
-
-export function battleRoutes({ siteShell, shareImage }) {
   return {
+    "GET /api/me/battles/*": async (db, event) => {
+      const found = await read(db, event);
+      return {
+        statusCode: found?.status ?? 404,
+        headers: { ...privateHeaders, "content-type": "application/json" },
+        body: JSON.stringify(
+          found?.status === 200
+            ? { ...found, status: undefined }
+            : found?.status === 300
+              ? { error: "ambiguous", matches: found.matches }
+              : { error: "not_found" },
+        ),
+      };
+    },
     "GET /battle/*": async (db, event) => {
-      const ref = String(event.pathParam ?? "");
-      if (ref.endsWith(".png"))
-        return picture(db, ref.slice(0, -".png".length), shareImage);
-      if (!siteShell)
-        return page(503, "<!doctype html><title>Elixir</title>", 0);
-      const shell = await siteShell();
-      const read = await readPublicBattle(db, ref);
-      // Not a battle Elixir holds: the app says so in its own words, and
-      // the edge forgets the answer soon, since the battle may yet arrive.
-      if (read.status !== 200) return page(404, shell, 60);
-      return page(200, namedShell(shell, read), 3600);
+      const found = await read(db, event);
+      if (found?.status !== 200 || !siteShell)
+        return {
+          statusCode: 404,
+          headers: privateHeaders,
+          body: "No battle at this address.",
+        };
+      if (String(event.pathParam).endsWith(".png")) {
+        if (!shareImage)
+          return {
+            statusCode: 503,
+            headers: privateHeaders,
+            body: "The picture is not set up.",
+          };
+        const png = await shareImage(found);
+        return {
+          statusCode: 200,
+          headers: { ...privateHeaders, "content-type": "image/png" },
+          body: Buffer.from(png).toString("base64"),
+          isBase64Encoded: true,
+        };
+      }
+      return {
+        statusCode: 200,
+        headers: {
+          ...privateHeaders,
+          "content-type": "text/html; charset=utf-8",
+        },
+        body: namedShell(await siteShell(), found),
+      };
     },
   };
 }

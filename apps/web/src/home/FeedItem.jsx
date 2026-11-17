@@ -35,6 +35,7 @@ import { Cheers } from "./Cheers.jsx";
 import { cheerCounts } from "./cheer-set.js";
 import { Comments } from "./Comments.jsx";
 import { PostActions, PostBody } from "./Post.jsx";
+import { ItemShare } from "./ItemShare.jsx";
 import { RacePlace } from "./RacePlace.jsx";
 
 /**
@@ -63,8 +64,14 @@ function subjectOf(it) {
  *  their page; a clan's line names the clan; the account's own items are
  *  yours. Never a nickname here: the sentence below says it the way the
  *  timeline does. */
-function Who({ who, close = false }) {
+function Who({ who, close = false, plain = false }) {
   if (who?.kind === "player") {
+    if (plain)
+      return (
+        <span className="kit-feed__name">
+          <TagText>{who.name ?? who.tag}</TagText>
+        </span>
+      );
     const name = (
       <Link to={playerHref(who.tag)} className="kit-feed__name">
         <PlayerName tag={who.tag}>
@@ -232,6 +239,7 @@ export function FeedItem({
   open = false,
   onToggle = null,
   cheerWhere = undefined,
+  publicView = false,
 }) {
   const sitting = SITTINGS.has(it.kind);
   const clan = isClanItem(it);
@@ -310,10 +318,14 @@ export function FeedItem({
           clan={who ? who.kind !== "player" : false}
         />
         <div className="kit-feed__who">
-          <Who who={who} close={isClose(it)} />
+          <Who
+            who={who}
+            close={!publicView && isClose(it)}
+            plain={publicView}
+          />
           <When it={it} />
         </div>
-        {it.offer_follow && who?.kind === "player" ? (
+        {!publicView && it.offer_follow && who?.kind === "player" ? (
           // A clan arrival you do not follow (canvas .ih .follow): the one
           // Follow, asked first, priced when its dialog opens.
           <FollowButton tag={who.tag} name={who.name} lazy />
@@ -326,20 +338,25 @@ export function FeedItem({
       ) : card ? (
         <Sitting
           it={it}
-          href={sessionTo}
+          href={publicView ? null : sessionTo}
           who={who?.kind === "player" ? (who.name ?? who.tag) : null}
         />
       ) : (
         text
       )}
       {it.kind === "week_resolved" ? <RacePlace rank={it.facts?.rank} /> : null}
-      {moment && it.battle_url ? <MomentBattle it={it} /> : null}
-      {post ? <PostActions it={it} /> : null}
-      <footer className="kit-feed__foot">
-        {"cheers" in it ? <Cheers it={it} where={cheerWhere} /> : null}
-        <span className="share-actions kit-feed__links">{links}</span>
-      </footer>
-      {"comments" in it ? <Comments it={it} /> : null}
+      {moment && it.battle_url && !publicView ? <MomentBattle it={it} /> : null}
+      {post && !publicView ? <PostActions it={it} /> : null}
+      {!publicView ? (
+        <footer className="kit-feed__foot">
+          {"cheers" in it ? <Cheers it={it} where={cheerWhere} /> : null}
+          <span className="share-actions kit-feed__links">
+            {links}
+            <ItemShare it={it} />
+          </span>
+        </footer>
+      ) : null}
+      {!publicView && "comments" in it ? <Comments it={it} /> : null}
     </article>
   );
 }
@@ -636,6 +653,7 @@ function SessionLine({ it, inGroup = false }) {
       </div>
       {"cheers" in it ? <Cheers it={it} compact /> : null}
       {"comments" in it ? <Comments it={it} /> : null}
+      <ItemShare it={it} />
     </article>
   );
 }
@@ -685,6 +703,7 @@ function MomentLine({ it, inGroup = false }) {
         </p>
       </div>
       {"cheers" in it ? <Cheers it={it} compact /> : null}
+      <ItemShare it={it} />
     </article>
   );
 }

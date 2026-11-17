@@ -9,8 +9,6 @@
  *    one, after the check (comment-check.mjs, the post policy).
  *  - `PUT /api/me/posts/<id>` `{ text }`: the author changes the words.
  *  - `DELETE /api/me/posts/<id>`: the author's own goes at once.
- *  - `POST /api/me/post-shares` `{ id }`: a post about a battle gets its
- *    public link, /h/<share id> (routes/shared-post.mjs serves it).
  *  - `POST /api/me/post-discord` `{ id }`: a shared post about a battle,
  *    once, in its player's clan's Discord (#767).
  *  - `POST /api/me/post-reports` `{ id, reason }`.
@@ -40,7 +38,7 @@ import {
   visiblePost,
   writePost,
 } from "../posts.mjs";
-import { battleFor, sharePost } from "../battle-posts.mjs";
+import { battleFor } from "../battle-posts.mjs";
 import { factAfter } from "../passport-hooks.mjs";
 import { json } from "../http.mjs";
 import { withCheers } from "../cheers.mjs";
@@ -224,13 +222,6 @@ export function postsRoutes({
       if (refused) return refused;
       const out = await deletePost(db, account, event.pathParam);
       return out.error ? notFound() : json(200, out);
-    },
-
-    "POST /api/me/post-shares": async (db, event, body) => {
-      const { account, refused } = await person(db, event, true);
-      if (refused) return refused;
-      const out = await sharePost(db, account.accountId, body?.id);
-      return out.error ? notFound() : json(200, { share_url: out.share_url });
     },
 
     // The author posts a shared post about a battle in its player's

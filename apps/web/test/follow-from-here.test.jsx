@@ -144,13 +144,13 @@ test("an account with no player of its own is asked for it first, as on the Time
 });
 
 test("the way in carries only this page, to Join Elixir and to Sign in", () => {
-  window.history.pushState({}, "", "/h/abcdefghijklmno");
+  window.history.pushState({}, "", "/share/abcdefghijklmnopqrstuvwx");
   renderWithProviders(<Invite who="Ana" />);
   expect(screen.getByText("Follow Ana on Elixir")).toBeTruthy();
   expect(
     screen.getByRole("link", { name: "Join Elixir" }).getAttribute("href"),
-  ).toBe("/signin?signup&return_to=%2Fh%2Fabcdefghijklmno");
+  ).toBe("/signin?signup&return_to=%2Fshare%2Fabcdefghijklmnopqrstuvwx");
   expect(
     screen.getByRole("link", { name: "Sign in" }).getAttribute("href"),
-  ).toBe("/signin?return_to=%2Fh%2Fabcdefghijklmno");
+  ).toBe("/signin?return_to=%2Fshare%2Fabcdefghijklmnopqrstuvwx");
 });

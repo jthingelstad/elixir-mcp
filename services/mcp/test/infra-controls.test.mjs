@@ -1249,7 +1249,7 @@ test("every behaviour compresses; only identical-for-everyone reads are cached (
   );
   assert.deepEqual(
     cached.map(([path]) => path),
-    ["/api/public/*", "/battle/*", "/h/*", "/session/*", "/.well-known/*"],
+    ["/api/public/*", "/.well-known/*"],
   );
   for (const [path, block] of cached) {
     // Nothing but the path reaches the origin, so one cached object is
@@ -1274,15 +1274,19 @@ test("every public read is cached at the edge by one /api/public/* behaviour (#7
   const paths = behaviours.map(([p]) => p);
   // CloudFront takes the FIRST pattern that matches, so the public
   // behaviour must come before the CachingDisabled /api/v1/* and /api/*.
-  assert.equal(paths[0], "/api/public/*");
+  assert.equal(paths[0], "/api/public/shared-items/*");
+  assert.ok(
+    paths.indexOf("/api/public/shared-items/*") <
+      paths.indexOf("/api/public/*"),
+  );
   assert.ok(paths.indexOf("/api/public/*") < paths.indexOf("/api/v1/*"));
   assert.ok(paths.indexOf("/api/v1/*") < paths.indexOf("/api/*"));
   // It replaces the two specific behaviours (#23): nothing else under it.
   assert.deepEqual(
     paths.filter((p) => p.startsWith("/api/public")),
-    ["/api/public/*"],
+    ["/api/public/shared-items/*", "/api/public/*"],
   );
-  const [, block] = behaviours[0];
+  const [, block] = behaviours.find(([p]) => p === "/api/public/*");
   assert.match(block, /TargetOriginId: api\n/);
   assert.match(block, /AllowedMethods: \[GET, HEAD\]\n/);
   assert.ok(block.includes(`CachePolicyId: ${CACHING_OPTIMIZED}\n`));

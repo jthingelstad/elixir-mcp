@@ -15,7 +15,8 @@ official API is current-state only), served on one origin,
 | `/console`, `/ladder`, `/data/service` | nothing: the Console folded on 2026-11-12 and its old addresses stopped forwarding on 2026-11-13 (Jamie: "It is fine to break url support"); CloudFront has no behaviour for them, so they are the site's 404 | none |
 | `/home/you/stats` | Stats (Ladder until 2026-11-12): your season, read back, Profile's last tab | `apps/web/src/stats` |
 | `/clan`, `/api/clan` | Clan, a part of Elixir: running a clan on its policy | `packages/clan*` |
-| `/battle/<id>` | a battle's public page | `services/web-api` |
+| `/battle/<id>` | a member battle page; anonymous reads 404 | `services/web-api` |
+| `/share/<id>` | one public-safe Timeline item through an opaque capability | `services/web-api` |
 | `/mcp`, `/a/<id>/mcp`, `/oauth/*`, `/.well-known/*` | the MCP and OAuth doors | `services/mcp`, `packages/tools` |
 | `/api/v1` | `GET /api/v1/me` alone, for Sign in with Elixir | `services/web-api` |
 

@@ -534,108 +534,15 @@ test("scoreOf: games won only where they agree with the recorded result", () => 
   );
 });
 
-test("the JSON route: 200 cached an hour, 404 and 300 a minute", async () => {
-  const id = await battleOf("PvP");
-  const ok = await get(`/api/public/battles/${id.slice(0, 12)}`);
-  assert.equal(ok.statusCode, 200, ok.body);
-  assert.equal(ok.headers["cache-control"], "public, max-age=3600");
-  const body = JSON.parse(ok.body);
-  assert.equal(body.battle.id, id);
-  assert.equal("status" in body, false);
-
-  const none = await get("/api/public/battles/ffffffffffff");
-  assert.equal(none.statusCode, 404);
-  assert.equal(none.headers["cache-control"], "public, max-age=60");
-  const junk = await get("/api/public/battles/not-a-battle");
-  assert.equal(junk.statusCode, 404);
-
-  // A hand-cut prefix two battles share names both.
-  const twin = id.slice(0, 12) + (id[12] === "0" ? "1" : "0") + id.slice(13);
-  await db.query(
-    `insert into battle (battle_id, battle_time, type, type_class)
-     select $2, battle_time, type, type_class from battle where battle_id = $1`,
-    [id, twin],
-  );
-  try {
-    const both = await get(`/api/public/battles/${id.slice(0, 12)}`);
-    assert.equal(both.statusCode, 300);
-    assert.equal(JSON.parse(both.body).matches.length, 2);
-  } finally {
-    await db.query(`delete from battle where battle_id = $1`, [twin]);
-  }
-});
-
-test("the page: the app shell named for the battle", async () => {
+test("old bare battle pages, pictures and data routes are closed to anonymous readers", async () => {
   const id = await battleOf("PvP");
   const read = await readPublicBattle(db, id);
-  const res = await get(`/battle/${read.battle.short_id}`);
-  assert.equal(res.statusCode, 200);
-  assert.match(res.headers["content-type"], /^text\/html/);
-  assert.equal(res.headers["cache-control"], "public, max-age=3600");
-  const { title } = previewOf(read);
-  assert.ok(res.body.includes(`<title>`));
-  assert.ok(res.body.includes(" - Elixir</title>"));
-  assert.ok(res.body.includes('<meta name="robots" content="noindex" />'));
-  assert.ok(
-    res.body.includes(`<link rel="canonical" href="${read.battle.url}" />`),
-  );
-  assert.ok(res.body.includes('<link rel="stylesheet" href="/app.css" />'));
-  assert.ok(res.body.includes('<div id="root"></div>'));
-  // The shell's own tags give way: one title, one og:title.
-  assert.equal(res.body.match(/<title>/g).length, 1);
-  assert.equal(res.body.match(/property="og:title"/g).length, 1);
-  assert.equal(res.body.includes('content="index"'), false);
-  assert.ok(title.length > 0);
-
-  // The preview is the battle's own picture.
-  assert.ok(
-    res.body.includes(
-      `<meta property="og:image" content="${read.battle.url}.png" />`,
-    ),
-  );
-  assert.ok(
-    res.body.includes(
-      `<meta name="twitter:image" content="${read.battle.url}.png" />`,
-    ),
-  );
-  assert.equal(res.body.includes("/assets/og.png"), false);
-
-  const missing = await get("/battle/ffffffffffff");
-  assert.equal(missing.statusCode, 404);
-  assert.equal(missing.headers["cache-control"], "public, max-age=60");
-});
-
-test("the picture: a 1200 by 630 PNG, cached a day, and a 404 for no battle", async () => {
-  const id = await battleOf("PvP");
-  const before = await writes();
-  const res = await get(`/battle/${id.slice(0, 12)}.png`);
-  assert.equal(res.statusCode, 200, res.body);
-  assert.equal(res.headers["content-type"], "image/png");
-  assert.equal(res.headers["cache-control"], "public, max-age=86400");
-  assert.equal(res.isBase64Encoded, true);
-  const png = Buffer.from(res.body, "base64");
-  assert.deepEqual(
-    [...png.subarray(0, 8)],
-    [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a],
-  );
-  // IHDR: width and height, big-endian, after the signature and header.
-  assert.equal(png.readUInt32BE(16), 1200);
-  assert.equal(png.readUInt32BE(20), 630);
-  // A picture view writes nothing either.
-  assert.deepEqual(await writes(), before);
-
-  const none = await get("/battle/ffffffffffff.png");
-  assert.equal(none.statusCode, 404);
-  assert.equal(none.headers["cache-control"], "public, max-age=60");
-  assert.match(none.headers["content-type"], /^text\/plain/);
-
-  const bare = makeHandler({ databaseUrl, secret: "test" });
-  const off = await bare({
-    path: `/battle/${id.slice(0, 12)}.png`,
-    method: "GET",
-    headers: {},
-  });
-  assert.equal(off.statusCode, 503);
+  for (const path of [
+    `/battle/${read.battle.short_id}`,
+    `/battle/${read.battle.short_id}.png`,
+    `/api/public/battles/${read.battle.short_id}`,
+  ])
+    assert.equal((await get(path)).statusCode, 404, path);
 });
 
 test("the picture's read skips the meetings and the sitting", async () => {
@@ -644,16 +551,6 @@ test("the picture's read skips the meetings and the sitting", async () => {
   assert.equal(read.status, 200);
   assert.deepEqual(read.meetings, []);
   assert.deepEqual(read.sitting, []);
-});
-
-test("the page without a shell says so rather than guessing", async () => {
-  const bare = makeHandler({ databaseUrl, secret: "test" });
-  const res = await bare({
-    path: "/battle/ffffffffffff",
-    method: "GET",
-    headers: {},
-  });
-  assert.equal(res.statusCode, 503);
 });
 
 test("namedShell escapes what a player named themselves", () => {

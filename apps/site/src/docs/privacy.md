@@ -25,20 +25,9 @@ publish. Clan adds facts of its own (a clan's awards, a leader's note
 on why a member left). Each one says where it came from, and only the
 people it is meant for can see it.
 
-**Without an account.** Every read of the record needs a free account:
-players, clans, timelines and profiles, on the website and over MCP.
-Three pages of the record open to anyone: a
-battle's own page, with its link and share picture, so a battle can be
-shared; a session's own page from the last 30 days, with its link and
-share picture, showing its battles, decks and the players' game names and
-never a nickname, a cheer, a comment or anything of the account
-([Share a session](/docs/timeline#share-a-session)); and a post about a battle its poster has shared, at its own
-link, with the player's game name, their words and that battle, never a
-nickname or anything of the account
-([Post about a battle](/docs/battles#post-about-a-battle)). [The status page](/data) and its JSON count what the recorder holds and name no player or clan,
-except that each collector is credited to its operator's primary player.
-The game's card list, this site and its docs, and signing in open too.
-Any other page of the record asks you to sign in, or to create an account.
+**Without an account.** Reading players, clans, Timelines, profiles and the record's browsing and data pages needs a free account, on the website and over MCP. Members can share individual Timeline updates and posts through a link. Anyone with that link can open the one item it names, with the players' game names and the item's facts, words, cards or battle. The shared page does not open a player's or clan's Timeline or history. Nicknames, comments, the account's own notices and private Clan state are not shared.
+
+[The status page](/data) and its JSON count what the recorder holds and name no player or clan, except that each collector is credited to its operator's primary player. The game's card list, this site and its docs, and signing in open too. Other pages of the record ask you to sign in, or to create an account.
 
 **Your account.** Signing in keeps your email address, so the service
 can send you sign-in codes and mail about your account. A new account
@@ -104,8 +93,9 @@ after a year, or with your account. The people you block are listed in
 your settings, and they are never told.
 
 **Posts.** A post you write is kept with your account and shown in Elixir
-to the people who follow you or your player and to your clanmates. Treat
-a post as public: it may also go out in Elixir's emails and notifications
+to the people who follow you or your player and to your clanmates. Another
+member who can see your post can share its link. A shared post can be read
+without signing in. Treat a post as public: it may also go out in Elixir's emails and notifications
 to those people, in the RSS feeds and Discord channels that carry your
 timeline, to agents connected to Elixir, and on pages anyone with the
 link can open. Inside Elixir, people in a block with you don't see your
