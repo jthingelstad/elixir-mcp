@@ -28,7 +28,7 @@ export const WEEK_AREAS = ["war", "donations", "ranked", "battles"];
 export const WEEK_AREA_LABELS = {
   war: "Clan Wars",
   donations: "Donations",
-  ranked: "Path of Legends",
+  ranked: "Ranked",
   battles: "Battles",
 };
 const AREA_OF_CATEGORY = {

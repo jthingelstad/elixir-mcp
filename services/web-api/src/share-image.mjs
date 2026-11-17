@@ -52,7 +52,7 @@ const MODE_DOT = {
 };
 const MODE_LABEL = {
   ladder: "Trophy Road",
-  ranked: "Path of Legends",
+  ranked: "Ranked",
   war: "War",
   casual: "Casual",
   challenge: "Challenge",

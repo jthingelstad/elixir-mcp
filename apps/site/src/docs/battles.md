@@ -36,7 +36,7 @@ answers from the perspective of the tag you asked about:
 | `type` | the API's battle type, exactly as the game names it (`PvP`, `riverRacePvP`, `boatBattle`, ...) |
 | `game_mode` | `{ id, name }` of the game mode, in the game's own naming, event modes included |
 | `arena` | `{ id, name }`, the higher side's arena stamped at battle time (the same shape as `trophy_floor.arena`); `id` is `null` on a row the id never reached |
-| `league_number` | the API's own `leagueNumber` on the battle, passed through unchanged (`null` only when the payload omitted it). The API sends it on battles that are not ranked too (a Trophy Road battle can carry `1`), so it names a Path of Legends league only on a `pathOfLegend` battle, where it is the league the battle started in; elsewhere the record assigns it no meaning |
+| `league_number` | the API's own `leagueNumber` on the battle, passed through unchanged (`null` only when the payload omitted it). The API sends it on battles that are not ranked too (a Trophy Road battle can carry `1`), so it names a Ranked league only on a `pathOfLegend` battle, where it is the league the battle started in; elsewhere the record assigns it no meaning |
 | `mode_group` | the contract's fold of `type` and the event tag (`ladder`, `ranked`, `war`, `casual`, `challenge`, `event` or `tournament`): a battle carrying an event tag is `event`, except a clanmate battle (`clanMate`, `clanMate2v2`), which is `casual` even when tagged; otherwise friendlies, clanmate battles, an untagged `unknown` battle and any type the fold does not know yet are `casual`, and there is no `other`. It is the same word `mode` takes as an argument, so no consumer keeps its own copy of the table |
 | `context` | full verbosity: the battle's own facts as the log carried them. `event_tag` names the event a challenge or event battle belongs to (joins `game_events` by tag; a battle can name an event the daily events read never sighted); `tournament_tag` the tournament; `ladder_tournament` and `hosted` the API's own flags; `deck_selection` how the deck was chosen. Compact carries `deck_selection` alone, at the top level |
 | `deck_selection` | `collection` for the player's own deck, `warDeckPick` for a river-race duel deck picked from the player's own war decks (both chosen by the player and kept as stable deck identities); `draft`, `draftCompetitive`, `pick`, `predefined`, `eventDeck` and the like for a deck handed out or drafted on the spot, which has no identity a player will play again. Read it before treating a `deck_hash` as a deck the player owns |
@@ -76,7 +76,7 @@ every object, and the response repeats it in a note whenever the field is
 served. Do not describe a player's leak as good or poor play.
 
 `trophy_change` is the trophies the battle moved, on Trophy Road (`PvP`),
-Path of Legends (`pathOfLegend`) and the seasonal Trophy Road past 14,000
+Ranked (`pathOfLegend`) and the seasonal Trophy Road past 14,000
 (`trail`, game mode Ladder); other modes carry `null`. On a
 Trophy Road **loss** it has a second meaning: every arena has a trophy
 floor its players cannot fall below, a loss standing exactly on the floor
@@ -243,7 +243,7 @@ This table is generated from the contract, so it is what the tools accept.
 | Group | In the game | API battle types folded |
 |---|---|---|
 {%- for m in tools.modes %}
-| `{{ m.group }}` | {% if m.group == "ladder" %}Trophy Road{% elif m.group == "ranked" %}Path of Legends{% elif m.group == "war" %}river race battles, duels and boat battles{% elif m.group == "casual" %}2v2, friendly and clanmate battles (a clanmate battle even when it carries an event tag), and the API's rare `unknown` type when it carries none{% elif m.group == "challenge" %}challenges{% elif m.group == "event" %}event content: every battle the API marks with an event tag, except a clanmate battle{% elif m.group == "tournament" %}tournaments{% else %}{{ m.group }}{% endif %} | {% if m.group == "event" %}any type with an `eventTag` but `clanMate` and `clanMate2v2`; in practice `trail`, and `unknown` for events such as Royale Shuffle{% else %}{% for t in m.types | reject("equalto", "trail") %}`{{ t }}`{% if not loop.last %}, {% endif %}{% endfor %}{% endif %} |
+| `{{ m.group }}` | {% if m.group == "ladder" %}Trophy Road{% elif m.group == "ranked" %}Ranked{% elif m.group == "war" %}river race battles, duels and boat battles{% elif m.group == "casual" %}2v2, friendly and clanmate battles (a clanmate battle even when it carries an event tag), and the API's rare `unknown` type when it carries none{% elif m.group == "challenge" %}challenges{% elif m.group == "event" %}event content: every battle the API marks with an event tag, except a clanmate battle{% elif m.group == "tournament" %}tournaments{% else %}{{ m.group }}{% endif %} | {% if m.group == "event" %}any type with an `eventTag` but `clanMate` and `clanMate2v2`; in practice `trail`, and `unknown` for events such as Royale Shuffle{% else %}{% for t in m.types | reject("equalto", "trail") %}`{{ t }}`{% if not loop.last %}, {% endif %}{% endfor %}{% endif %} |
 {%- endfor %}
 
 `game_mode.name` is finer than the group: an event mode such as a Chaos or
@@ -259,7 +259,7 @@ clanmate battles included.
 ## Events are their own group
 
 Game modes are played as different games. A card that carries a river race
-only somewhat predicts Trophy Road and says little about Path of Legends, and
+only somewhat predicts Trophy Road and says little about Ranked, and
 in several modes the player does not choose the deck at all. So Elixir keeps
 populations apart rather than pooling them, and the sharpest line is between a
 permanent format and a time-bound event.

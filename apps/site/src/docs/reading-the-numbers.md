@@ -149,7 +149,7 @@ denominator:
 - Duel crowns are summed over rounds, so `crowns_for` and `crowns_against`
   mix units when a window holds duels; `duel_battles` says how many did.
 - On a weekly row (`battles_performance` `group_by: "week"`),
-  `trophy_mode_battles` counts the Trophy Road and Path of Legends battles
+  `trophy_mode_battles` counts the Trophy Road and Ranked battles
   played, plus any other battle that reported a trophy delta, and `trophy_battles` the ones for which the game reported a
   trophy delta: a loss standing on an arena floor reports none (see
   [`trophy_change`](/docs/battles#what-a-battle-record-holds)), so `trophy_battles` can be lower than the

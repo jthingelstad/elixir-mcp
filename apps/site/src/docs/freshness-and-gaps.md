@@ -118,7 +118,7 @@ Three tables hold the record's day-grained history, one row per subject per
 
 | Series | Written by | From | Read by |
 |---|---|---|---|
-| a player's day (trophies, donations, arena, clan and rank, the game's own last-seen, and for a recorded profile the lifetime block: battles, wins, losses, three-crown wins, star points, collection level, king tower level, total donations, challenge and tournament counters, Path of Legends standings, and the API's legacy `leagueStatistics` as `season_trophies` / `season_best_trophies`, which mirror Trophy Road and a frozen best, not the seasonal Trophy Road: read that with `progress_key`) | the roster poll of every clan the recorder follows (every member, whether or not their profile is recorded) and the profile poll of every recorded player, sharing one row | 2026-03-07 for the first recorded players; 2026-03-11 for POAP KINGS' members; the day a clan or player is first polled otherwise | `players_series`, `clans_members_series` |
+| a player's day (trophies, donations, arena, clan and rank, the game's own last-seen, and for a recorded profile the lifetime block: battles, wins, losses, three-crown wins, star points, collection level, king tower level, total donations, challenge and tournament counters, Ranked standings, and the API's legacy `leagueStatistics` as `season_trophies` / `season_best_trophies`, which mirror Trophy Road and a frozen best, not the seasonal Trophy Road: read that with `progress_key`) | the roster poll of every clan the recorder follows (every member, whether or not their profile is recorded) and the profile poll of every recorded player, sharing one row | 2026-03-07 for the first recorded players; 2026-03-11 for POAP KINGS' members; the day a clan or player is first polled otherwise | `players_series`, `clans_members_series` |
 | a clan's day (clan score, war trophies, member count, required trophies, weekly donations, and on request `type` and `location_id`) | the roster poll | 2026-03-11 for POAP KINGS; the first poll otherwise | `clans_series` |
 | a player's progress buckets (the seasonal Trophy Road, 2v2 League, Merge Tactics: trophies, best trophies, arena per bucket) | the profile poll | 2026-03-07 | `players_series` with `progress_key` |
 
@@ -156,7 +156,7 @@ counting a River Race battle or a donation, and
 results use `battles_performance` with `mode: "war"`; for donations,
 `total_donations`. `players_profile.attributes` carries the same three.
 
-A player's past Path of Legends finals are kept once per season: the
+A player's past Ranked finals are kept once per season: the
 profile poll in the following month carries the API's
 `lastPathOfLegendSeasonResult`, and the record files it under the season it
 closes (`league`, `trophies`, `rank`; `rank` is `null` unless the player was

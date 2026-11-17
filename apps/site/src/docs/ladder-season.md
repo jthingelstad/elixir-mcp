@@ -63,7 +63,7 @@ over:
 - **Win rate**, over decided battles (draws outside both sides).
 - **Three-crown rate**, over head-to-head battles (duel rounds and boat
   battles left out, as the tool leaves them out).
-- **Net trophies**, in Trophy Road and Path of Legends only, where
+- **Net trophies**, in Trophy Road and Ranked only, where
   trophies move; over the mode's battles.
 
 A side needs at least **10 battles** before it is set beside the other.
@@ -93,7 +93,7 @@ numbers, each with the battles it is over:
 
 - **Won–lost**, over the side's battles.
 - **Win rate**, over decided battles.
-- **Net trophies**, in Trophy Road and Path of Legends only.
+- **Net trophies**, in Trophy Road and Ranked only.
 - **Decks played**: how many different decks (a deck is its exact cards,
   as on Decks) you played. In war a duel has no single deck and is not
   counted.

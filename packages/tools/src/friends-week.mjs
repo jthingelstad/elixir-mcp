@@ -46,8 +46,7 @@ export function modeLabel(gameMode = "", type = "") {
   if (/^casual$/i.test(g)) return "Casual";
   if (/^event$/i.test(g)) return "Events";
   if (/^other$/i.test(g)) return "Other";
-  if (/^Ranked/i.test(g) || /pathoflegend|ranked/i.test(type))
-    return "Path of Legends";
+  if (/^Ranked/i.test(g) || /pathoflegend|ranked/i.test(type)) return "Ranked";
   if (/^CW_Duel/i.test(g)) return "War · Duel";
   if (/^CW_Battle/i.test(g) || /riverRacePvP/i.test(type)) return "War · 1v1";
   if (/^CW_Boat|boat/i.test(g) || /boat/i.test(type)) return "War · Boat";

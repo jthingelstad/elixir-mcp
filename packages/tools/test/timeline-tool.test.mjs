@@ -1151,10 +1151,10 @@ test("9.15.0: a duplicated ledger moment keeps one id whichever row a window hol
     assert.ok(!JSON.stringify(it).includes(String(n)), "no raw sequence");
 });
 
-test("11.15.0: a ranked sitting's trophy_net is Trophy Road's alone, and trophy_net_by_mode names what it moved (#381, #382)", async () => {
-  // A member wins five Path of Legends games in a row (+30 each): the
-  // streak rung makes it a standout, Trophy Road does not move, and
-  // battles_performance's net_trophies over the same games is 150.
+test("11.15.0, 2026-11-16: a ranked sitting's trophy_net is Trophy Road's alone; Ranked's unrated +30s are no net, and its climb is told", async () => {
+  // A member wins five Ranked games in a row (+30 each, no rating): two
+  // in Master III, then three in Champion. The streak rung makes it a
+  // standout and Trophy Road does not move.
   const { rows: mem } = await ctx.db.query(
     `select cm.player_tag from clan_membership cm join player p on p.player_tag = cm.player_tag
       where cm.clan_tag = $1 and cm.left_observed_at is null and p.name is not null
@@ -1163,12 +1163,12 @@ test("11.15.0: a ranked sitting's trophy_net is Trophy Road's alone, and trophy_
   );
   const tag = mem[0].player_tag;
   const base = Date.parse("2026-09-13T12:00:00Z");
-  const mk = async (i, type, change) => {
+  const mk = async (i, type, change, league = null) => {
     const at = new Date(base + i * 4 * 60_000).toISOString();
     await ctx.db.query(
-      `insert into battle (battle_id, battle_time, type, type_class, created_at)
-       values ($1, $2, $3, 'pvp', '2026-09-13T12:40:00Z')`,
-      [`rk-${i}`, at, type],
+      `insert into battle (battle_id, battle_time, type, type_class, created_at, league_number, deck_selection)
+       values ($1, $2, $3, 'pvp', '2026-09-13T12:40:00Z', $4, 'collection')`,
+      [`rk-${i}`, at, type, league],
     );
     await ctx.db.query(
       `insert into battle_participant (battle_id, player_tag, battle_time, side, outcome, trophy_change, clan_tag, type, type_class)
@@ -1176,7 +1176,7 @@ test("11.15.0: a ranked sitting's trophy_net is Trophy Road's alone, and trophy_
       [`rk-${i}`, tag, at, change, CLAN, type],
     );
   };
-  for (let i = 0; i < 5; i++) await mk(i, "pathOfLegend", 30);
+  for (let i = 0; i < 5; i++) await mk(i, "pathOfLegend", 30, i < 2 ? 3 : 4);
   // One Trophy Road win after them: ladder keeps its own net.
   await mk(5, "PvP", 12);
 
@@ -1190,7 +1190,237 @@ test("11.15.0: a ranked sitting's trophy_net is Trophy Road's alone, and trophy_
   assert.equal(isError, false, JSON.stringify(body));
   const item = body.timeline.find((it) => it.facts.player_tag === tag);
   assert.ok(item, JSON.stringify(body.timeline));
-  assert.equal(item.schema, "session_standout/4");
+  assert.equal(item.schema, "session_standout/5");
   assert.equal(item.facts.trophy_net, 12, "Trophy Road's alone");
-  assert.deepEqual(item.facts.trophy_net_by_mode, { ranked: 150, ladder: 12 });
+  assert.deepEqual(item.facts.trophy_net_by_mode, { ladder: 12 });
+  assert.deepEqual(item.facts.ranked, {
+    battles: 5,
+    won: 5,
+    lost: 0,
+    league_from: 3,
+    league_from_name: "Master III",
+    league_to: 4,
+    league_to_name: "Champion",
+    promotions: [
+      {
+        from: 3,
+        to: 4,
+        from_name: "Master III",
+        to_name: "Champion",
+        battle_id: "rk-1",
+        at: "2026-09-13T12:04:00.000Z",
+      },
+    ],
+  });
+  assert.match(item.text, /5 Ranked, 1 Trophy Road/);
+  assert.match(item.text, /; climbed Master III to Champion/);
+  assert.doesNotMatch(item.text, /Path of Legends/);
+});
+
+test("2026-11-16: an Ultimate Champion sitting carries its rating, and only rated changes are Ranked's net", async () => {
+  const { rows: mem } = await ctx.db.query(
+    `select cm.player_tag from clan_membership cm join player p on p.player_tag = cm.player_tag
+      where cm.clan_tag = $1 and cm.left_observed_at is null and p.name is not null
+      order by cm.player_tag offset 2 limit 1`,
+    [CLAN],
+  );
+  const tag = mem[0].player_tag;
+  const base = Date.parse("2026-09-14T12:00:00Z");
+  // Five wins in a row at Ultimate Champion: 1,850 up to 1,940.
+  const changes = [20, 18, 17, 19, 16];
+  let rating = 1850;
+  for (const [i, change] of changes.entries()) {
+    const at = new Date(base + i * 4 * 60_000).toISOString();
+    await ctx.db.query(
+      `insert into battle (battle_id, battle_time, type, type_class, created_at, league_number, deck_selection)
+       values ($1, $2, 'pathOfLegend', 'pvp', '2026-09-14T12:40:00Z', 7, 'collection')`,
+      [`uc-${i}`, at],
+    );
+    await ctx.db.query(
+      `insert into battle_participant (battle_id, player_tag, battle_time, side, outcome, trophy_change, starting_trophies, clan_tag, type, type_class)
+       values ($1, $2, $3, 0, 'win', $4, $5, $6, 'pathOfLegend', 'pvp')`,
+      [`uc-${i}`, tag, at, change, rating, CLAN],
+    );
+    rating += change;
+  }
+  const { isError, body } = await call("elixir_timeline", {
+    from: "2026-09-14T12:30:00Z",
+    to: "2026-09-14T12:50:00Z",
+    kinds: ["session_standout"],
+    basis: "observed",
+    mark_read: false,
+  });
+  assert.equal(isError, false, JSON.stringify(body));
+  const item = body.timeline.find((it) => it.facts.player_tag === tag);
+  assert.ok(item, JSON.stringify(body.timeline));
+  assert.deepEqual(item.facts.trophy_net_by_mode, { ranked: 90 });
+  assert.deepEqual(item.facts.ranked.rating, { from: 1850, to: 1940 });
+  assert.deepEqual(item.facts.ranked.promotions, []);
+  assert.match(item.text, /; Ultimate Champion, rating 1,850 to 1,940/);
+});
+
+test("2026-11-16: a 2v2 names the followed players met, never a stranger", async () => {
+  const { rows: mem } = await ctx.db.query(
+    `select cm.player_tag, p.name from clan_membership cm join player p on p.player_tag = cm.player_tag
+      where cm.clan_tag = $1 and cm.left_observed_at is null and p.name is not null
+      order by cm.player_tag offset 3 limit 3`,
+    [CLAN],
+  );
+  const [a, b, c] = mem;
+  // An invented stranger: not recorded, in no followed clan.
+  const stranger = "#0PLUG2V9";
+  await ctx.db.query(
+    `insert into player (player_tag, name) values ($1, 'Stranger Fern') on conflict do nothing`,
+    [stranger],
+  );
+  const base = Date.parse("2026-09-15T12:00:00Z");
+  for (let i = 0; i < 5; i++) {
+    const at = new Date(base + i * 4 * 60_000).toISOString();
+    const id = `tv-${i}`;
+    await ctx.db.query(
+      `insert into battle (battle_id, battle_time, type, type_class, created_at, deck_selection)
+       values ($1, $2, 'clanMate2v2', 'pvp', '2026-09-15T12:40:00Z', 'collection')`,
+      [id, at],
+    );
+    for (const [tag, side, outcome] of [
+      [a.player_tag, 0, "win"],
+      [b.player_tag, 0, "win"],
+      [c.player_tag, 1, "loss"],
+      [stranger, 1, "loss"],
+    ])
+      await ctx.db.query(
+        `insert into battle_participant (battle_id, player_tag, battle_time, side, outcome, crowns, clan_tag, type, type_class)
+         values ($1, $2, $3, $4, $5, $6, $7, 'clanMate2v2', 'pvp')`,
+        [
+          id,
+          tag,
+          at,
+          side,
+          outcome,
+          outcome === "win" ? 2 : 1,
+          side === 0 || tag === c.player_tag ? CLAN : null,
+        ],
+      );
+  }
+  const { isError, body } = await call("elixir_timeline", {
+    from: "2026-09-15T12:30:00Z",
+    to: "2026-09-15T12:50:00Z",
+    kinds: ["session_standout"],
+    basis: "observed",
+    mark_read: false,
+  });
+  assert.equal(isError, false, JSON.stringify(body));
+  const item = body.timeline.find((it) => it.facts.player_tag === a.player_tag);
+  assert.ok(item, JSON.stringify(body.timeline));
+  assert.deepEqual(
+    item.facts.together,
+    [
+      { player_tag: b.player_tag, name: b.name, with: 5, against: 0 },
+      { player_tag: c.player_tag, name: c.name, with: 0, against: 5 },
+    ].sort((x, y) => x.player_tag.localeCompare(y.player_tag)),
+  );
+  assert.ok(!JSON.stringify(item).includes("Stranger Fern"));
+  assert.ok(!JSON.stringify(item.facts.together).includes(stranger));
+  assert.match(
+    item.text,
+    new RegExp(`with ${b.name} in 2v2, against ${c.name} \\(`),
+  );
+});
+
+test("2026-11-16: a challenge is told as a run, with a one-line name; a drafted deck has no label", async () => {
+  const { rows: mem } = await ctx.db.query(
+    `select cm.player_tag from clan_membership cm join player p on p.player_tag = cm.player_tag
+      where cm.clan_tag = $1 and cm.left_observed_at is null and p.name is not null
+      order by cm.player_tag offset 6 limit 1`,
+    [CLAN],
+  );
+  const tag = mem[0].player_tag;
+  // A recorded deck with a label of its own, played as a draft hands it.
+  const { rows: decks } = await ctx.db.query(
+    `select deck_hash from battle_participant where deck_hash is not null limit 1`,
+  );
+  const drafted = decks[0].deck_hash;
+  const CH = "#0Q2L8";
+  const DR = "#0YY9P";
+  await ctx.db.query(
+    `insert into game_event (event_tag, title, first_seen_at, last_seen_at)
+     values ($1, E'King of Cards\\nQuick Wit Challenge', '2026-09-16', '2026-09-17'),
+            ($2, 'C.H.A.O.S Draft', '2026-09-16', '2026-09-17')
+     on conflict do nothing`,
+    [CH, DR],
+  );
+  const base = Date.parse("2026-09-16T12:00:00Z");
+  const rows = [
+    // The challenge: five wins (the counter 0 to 5), then a loss.
+    ...[0, 1, 2, 3, 4].map((w) => [
+      CH,
+      "Challenge_AllCards_EventDeck_NoSet",
+      "eventDeck",
+      "win",
+      1,
+      w || null,
+    ]),
+    [CH, "Challenge_AllCards_EventDeck_NoSet", "eventDeck", "loss", null, 5],
+    // A drafted battle: its deck is the draft's, not the player's.
+    [DR, "Chaos_1v1_Draft", "draft", "win", null, null],
+  ];
+  for (const [i, [ev, mode, sel, outcome, change, st]] of rows.entries()) {
+    const at = new Date(base + i * 4 * 60_000).toISOString();
+    await ctx.db.query(
+      `insert into battle (battle_id, battle_time, type, type_class, created_at, event_tag, game_mode_name, deck_selection)
+       values ($1, $2, 'trail', 'pvp', '2026-09-16T12:40:00Z', $3, $4, $5)`,
+      [`ev-${i}`, at, ev, mode, sel],
+    );
+    await ctx.db.query(
+      `insert into battle_participant (battle_id, player_tag, battle_time, side, outcome, trophy_change, starting_trophies, clan_tag, type, type_class, deck_hash)
+       values ($1, $2, $3, 0, $4, $5, $6, $7, 'trail', 'pvp', $8)`,
+      [
+        `ev-${i}`,
+        tag,
+        at,
+        outcome,
+        change,
+        st,
+        CLAN,
+        sel === "draft" ? drafted : null,
+      ],
+    );
+  }
+  const { isError, body } = await call("elixir_timeline", {
+    from: "2026-09-16T12:30:00Z",
+    to: "2026-09-16T12:50:00Z",
+    kinds: ["session_standout"],
+    basis: "observed",
+    mark_read: false,
+  });
+  assert.equal(isError, false, JSON.stringify(body));
+  const item = body.timeline.find((it) => it.facts.player_tag === tag);
+  assert.ok(item, JSON.stringify(body.timeline));
+  assert.deepEqual(item.facts.events, [
+    {
+      event_tag: CH,
+      name: "King of Cards Quick Wit Challenge",
+      battles: 6,
+      won: 5,
+      lost: 1,
+      game_mode: "Challenge_AllCards_EventDeck_NoSet",
+      run_wins: 5,
+    },
+    {
+      event_tag: DR,
+      name: "C.H.A.O.S Draft",
+      battles: 1,
+      won: 1,
+      lost: 0,
+      game_mode: "Chaos_1v1_Draft",
+      drawn_decks: true,
+    },
+  ]);
+  assert.deepEqual(item.facts.decks, []);
+  assert.deepEqual(item.facts.trophy_net_by_mode, {});
+  assert.match(
+    item.text,
+    /in King of Cards Quick Wit Challenge \(5W-1L, up to 5 wins\), C\.H\.A\.O\.S Draft \(1W-0L, drafted decks\)/,
+  );
+  assert.ok(!item.text.includes("\n"));
 });

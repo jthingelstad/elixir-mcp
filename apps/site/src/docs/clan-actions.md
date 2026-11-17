@@ -247,7 +247,7 @@ member and this clan rather than anyone's:
   points, with their best week and their longest run of weeks in a row;
   their donations here week by week over the last 12 weeks, and in their
   career; from their game profile, years playing, favourite card, cards
-  at the top Mastery level, legendary badges, their best Path of Legends
+  at the top Mastery level, legendary badges, their best Ranked
   league by name in a season Elixir recorded (Ultimate Champion, the top
   league, also from the profile's own best when that season is older
   than the record) and their Clan War Wins badge; their decks over the last 28 days, each

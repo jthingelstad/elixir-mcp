@@ -56,7 +56,7 @@ function YouThisWeek({ d }) {
         />
       ) : null}
       <Tile
-        label="Path of Legends battles"
+        label="Ranked battles"
         value={n(y.this_week?.ranked_battles)}
         hint="since Monday"
       />

@@ -12,7 +12,7 @@
  * route and shape; they never rate.
  *
  * MODES ARE DIFFERENT GAMES. Every read passes one `mode`, and nothing
- * on a page pools across modes: Trophy Road and Path of Legends match
+ * on a page pools across modes: Trophy Road and Ranked match
  * by different rules, and war draws opponents from the racing clans.
  */
 import { clockAt, monthDayAt, seasonWeek, zoneShort } from "@elixir-mcp/ui";
@@ -28,7 +28,7 @@ export { STATS, STATS_PAGES } from "./paths.js";
  *  `key` is the tools' `mode` argument. */
 export const MODES = [
   { key: "ladder", label: "Trophy Road" },
-  { key: "ranked", label: "Path of Legends" },
+  { key: "ranked", label: "Ranked" },
   { key: "war", label: "War" },
   { key: "event", label: "Events" },
   { key: "casual", label: "Casual" },

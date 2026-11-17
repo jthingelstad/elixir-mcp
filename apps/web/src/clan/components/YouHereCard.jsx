@@ -14,7 +14,7 @@ export const statusChip = (status) => STATUS[status] ?? null;
 
 const MINIMUM = {
   war: ["war deck", "war decks"],
-  ranked: ["Path of Legends battle", "Path of Legends battles"],
+  ranked: ["Ranked battle", "Ranked battles"],
   donations: ["donation a week", "donations a week"],
   trophies: ["trophy", "trophies"],
 };

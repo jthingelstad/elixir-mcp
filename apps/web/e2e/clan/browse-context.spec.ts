@@ -150,7 +150,7 @@ for (const size of ["wide", "@narrow"]) {
     await expect(page).toHaveURL(/\/home\/player\/02QQPCYQQ\?tab=clan$/);
     await page.getByText("Recent battles in this clan").click();
     await expect(page.getByText(/^War · win/)).toBeVisible();
-    await expect(page.getByText(/^Path of Legends · loss/)).toBeVisible();
+    await expect(page.getByText(/^Ranked · loss/)).toBeVisible();
     await expect(page.getByText(/^New mode · draw/)).toBeVisible();
     await page.goBack();
     await expect(

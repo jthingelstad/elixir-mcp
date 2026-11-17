@@ -11,7 +11,7 @@ function questions(player) {
     const days = player.battles_7d > 0 ? 7 : 30;
     result.push({
       title: "Review your recorded battles",
-      prompt: `Summarize the recorded battles for ${tag} in the last ${days} days, mode by mode (ladder, war, Path of Legends and the rest are different games): wins, losses, and the decks I played most. ${evidence}`,
+      prompt: `Summarize the recorded battles for ${tag} in the last ${days} days, mode by mode (ladder, war, Ranked and the rest are different games): wins, losses, and the decks I played most. ${evidence}`,
     });
   } else if (player.profile_available) {
     result.push({

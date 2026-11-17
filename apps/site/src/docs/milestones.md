@@ -29,7 +29,7 @@ the player it belongs to.
 | Moment | Counts when |
 |---|---|
 | A new arena | a player reaches an arena higher than the one they left |
-| A promotion in Path of Legends | a player reaches a higher league |
+| A promotion in Ranked | a player reaches a higher league |
 | A new best | best trophies pass a multiple of 500 for the first time on record |
 | Career wins | every 1,000 wins |
 | Collection Level | every 5 levels below 100, every 50 up to 1,000, every 100 above |

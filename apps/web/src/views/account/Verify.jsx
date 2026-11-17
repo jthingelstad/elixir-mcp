@@ -466,7 +466,7 @@ function modeLabel(mode) {
     .trim();
 }
 
-/** "Win 3-1 vs Name · Path of Legends · 14:03" */
+/** "Win 3-1 vs Name · Ranked · 14:03" */
 function resultLine(b, zone) {
   if (!b) return "";
   const who = b.opponent?.name ?? b.opponent?.player_tag ?? "an opponent";

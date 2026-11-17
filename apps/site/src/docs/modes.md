@@ -1,18 +1,18 @@
 ---
 slug: modes
 title: "Modes"
-description: "Why Elixir keeps Trophy Road, Path of Legends, Clan Wars, casual, challenges, events and tournaments apart: the seven mode groups, the note a number carries when it mixes them, how events are told apart, how Clan Wars games are counted, and how to ask for one mode."
+description: "Why Elixir keeps Trophy Road, Ranked, Clan Wars, casual, challenges, events and tournaments apart: the seven mode groups, the note a number carries when it mixes them, how events are told apart, how Clan Wars games are counted, and how to ask for one mode."
 section: record
 order: 6
 navTitle: "Modes"
 icon: gamepad-2
-lede: "Trophy Road, Path of Legends and Clan Wars are different games. Elixir keeps every mode apart, and a number that mixes them says so."
+lede: "Trophy Road, Ranked and Clan Wars are different games. Elixir keeps every mode apart, and a number that mixes them says so."
 reviewed: "2026-10-01 against contract 9.17.1"
 ---
 
 # Modes
 
-The same deck plays a different game on Trophy Road, in Path of Legends
+The same deck plays a different game on Trophy Road, in Ranked
 and in a war duel: who you are matched against, the card levels on the
 other side and what is at stake all change. A win rate that adds them
 together describes none of them. So Elixir sorts every battle into a
@@ -24,7 +24,7 @@ mixed them.
 | Group | In the game |
 |---|---|
 | `ladder` | Trophy Road |
-| `ranked` | Path of Legends |
+| `ranked` | Ranked |
 | `war` | Clan Wars: river race battles, duels and boat battles |
 | `casual` | 2v2, friendly and clanmate battles |
 | `challenge` | challenges |
@@ -58,7 +58,7 @@ rate read over all of them together means little. Read one event at a
 time, by its mode name or tag ([how](/docs/battles#events-are-their-own-group)).
 The factual tools keep event battles in the `event` group and preserve the
 event tag and how each deck was selected. They do not mix them into Trophy
-Road, Path of Legends or the other mode groups.
+Road, Ranked or the other mode groups.
 
 ## Clan Wars counts games
 

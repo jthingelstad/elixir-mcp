@@ -88,7 +88,7 @@ test("mode labels say what a player calls the mode", () => {
   assert.equal(modeLabel("CW_Duel_1v1", "riverRaceDuel"), "War · Duel");
   assert.equal(modeLabel("CW_Battle_1v1", "riverRacePvP"), "War · 1v1");
   assert.equal(modeLabel("Showdown_Friendly", "trail"), "Casual");
-  assert.equal(modeLabel("ranked", ""), "Path of Legends");
+  assert.equal(modeLabel("ranked", ""), "Ranked");
   assert.equal(modeLabel("war", ""), "War");
   assert.equal(modeLabel("event", ""), "Events");
 });

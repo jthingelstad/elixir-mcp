@@ -159,7 +159,7 @@ test.describe("Stats signed in", () => {
     const modes = page.getByRole("group", { name: "Mode" });
     await expect(modes.getByRole("button")).toHaveText([
       "Trophy Road",
-      "Path of Legends",
+      "Ranked",
       "War",
       "Events",
       "Casual",
@@ -361,12 +361,12 @@ test.describe("Stats signed in", () => {
     await page.goto("/home/you/stats");
     await page
       .getByRole("group", { name: "Mode" })
-      .getByRole("button", { name: "Path of Legends" })
+      .getByRole("button", { name: "Ranked" })
       .click();
     await expect(page).toHaveURL(/\/home\/you\/stats\?mode=ranked$/);
     await expect(
       page.getByRole("heading", {
-        name: "No Path of Legends battles this season",
+        name: "No Ranked battles this season",
       }),
     ).toBeVisible();
     await expect(page.locator(".stats-tile")).toHaveCount(0);
@@ -389,7 +389,7 @@ test.describe("Stats signed in", () => {
     await expect(page.getByText("This week:")).toHaveCount(0);
   });
 
-  test("the default mode is Path of Legends when it was played more than Trophy Road", async ({
+  test("the default mode is Ranked when it was played more than Trophy Road", async ({
     page,
   }) => {
     const calls: ToolCall[] = [];
@@ -408,11 +408,11 @@ test.describe("Stats signed in", () => {
     await expect(
       page
         .getByRole("group", { name: "Mode" })
-        .getByRole("button", { name: "Path of Legends" }),
+        .getByRole("button", { name: "Ranked" }),
     ).toHaveAttribute("aria-pressed", "true");
     await expect(
       page.getByRole("heading", {
-        name: "No Path of Legends battles this season",
+        name: "No Ranked battles this season",
       }),
     ).toBeVisible();
     // The page waited for the summary: no Trophy Road read was wasted.
@@ -926,7 +926,7 @@ test.describe("Stats days and battles", () => {
     await page.goto("/home/you/stats/battles?mode=ranked");
     await expect(
       page.getByRole("heading", {
-        name: "No Path of Legends battles recorded this season yet",
+        name: "No Ranked battles recorded this season yet",
       }),
     ).toBeVisible();
     await accessible(page, "stats battles empty");

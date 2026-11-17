@@ -94,7 +94,7 @@ live lane, and `players_profile({ live: true })` fetches one the record has
 never named.
 
 **How have I moved.** `players_series` for the series itself (trophies by
-default; `metrics` picks Path of Legends, a lifetime counter or the clan
+default; `metrics` picks Ranked, a lifetime counter or the clan
 rank; one point per game day with `day`, `kind` and the stamps that wrote
 it), then `battles_performance({ group_by: "week" })` for the win rate and
 mode split behind each stretch of it (clipped weeks say `partial`), and

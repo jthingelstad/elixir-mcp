@@ -22,7 +22,7 @@ const ORDER = [
 ];
 const NAMES = {
   ladder: "Trophy Road",
-  ranked: "Path of Legends",
+  ranked: "Ranked",
   war: "War",
   event: "Event",
   challenge: "Challenge",

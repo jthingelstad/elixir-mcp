@@ -128,7 +128,7 @@ describe("actions", () => {
       key: "rests_on",
       label: "Rests on",
       value:
-        "Last recorded battle 2026-08-23 20:00 UTC, Path of Legends; joined 2026-05-15; battle count rose by 1 between 2026-05-14 20:00 UTC and 2026-08-23 20:00 UTC, not since (last read 2026-09-12 20:00 UTC)",
+        "Last recorded battle 2026-08-23 20:00 UTC, Ranked; joined 2026-05-15; battle count rose by 1 between 2026-05-14 20:00 UTC and 2026-08-23 20:00 UTC, not since (last read 2026-09-12 20:00 UTC)",
       window: "record",
       fidelity: "daily",
       last_battle: {
@@ -164,7 +164,7 @@ describe("actions", () => {
     );
     const row = screen.getByText("What this comes from").parentElement;
     expect(row.textContent).toMatch(
-      /Last recorded battle Sun Aug 23( 2026)?, 3:00 pm, Path of Legends; joined Fri May 15( 2026)?; battle count rose by 1 between Thu May 14( 2026)?, 3:00 pm and Sun Aug 23( 2026)?, 3:00 pm, not since \(last read Sat Sep 12( 2026)?, 3:00 pm\)/,
+      /Last recorded battle Sun Aug 23( 2026)?, 3:00 pm, Ranked; joined Fri May 15( 2026)?; battle count rose by 1 between Thu May 14( 2026)?, 3:00 pm and Sun Aug 23( 2026)?, 3:00 pm, not since \(last read Sat Sep 12( 2026)?, 3:00 pm\)/,
     );
     expect(row.querySelectorAll("time")).toHaveLength(5);
     expect(row.textContent).not.toContain("Ranked1v1");
@@ -1687,9 +1687,7 @@ describe("you here", () => {
     const week = screen.getByRole("group", { name: "This week so far" });
     expect(week.textContent).toMatch(/War decks8Season 136, week 1, so far/);
     // Ranked is not what this clan counts; donations are.
-    expect(week.textContent).toMatch(
-      /Path of Legends battles2Not counted here/,
-    );
+    expect(week.textContent).toMatch(/Ranked battles2Not counted here/);
     expect(week.textContent).toMatch(/Donations100Battles/);
     expect(
       screen.getByRole("img", {

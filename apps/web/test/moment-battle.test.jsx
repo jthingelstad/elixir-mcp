@@ -108,7 +108,7 @@ test("a highlight shows its words on the rule and both decks with the score betw
     subject_name: "Invented 1",
     subjects: [{ tag: "#00JQ20", kind: "player", name: "Invented 1" }],
     groups: ["friends"],
-    text: "Invented 1 highlighted a 2-1 win against Slate Owl (Path of Legends): “Held on.”",
+    text: "Invented 1 highlighted a 2-1 win against Slate Owl (Ranked): “Held on.”",
     facts: {
       words: "Held on.",
       battle: {
@@ -127,7 +127,7 @@ test("a highlight shows its words on the rule and both decks with the score betw
   });
   renderWithProviders(<HomeFeed />);
   await screen.findByText(
-    "Invented 1 highlighted a 2-1 win against Slate Owl (Path of Legends).",
+    "Invented 1 highlighted a 2-1 win against Slate Owl (Ranked).",
   );
   expect(document.querySelector(".kit-feed__words").textContent).toBe(
     "Held on.",
@@ -136,9 +136,7 @@ test("a highlight shows its words on the rule and both decks with the score betw
   expect(document.querySelector(".kit-vs__said").textContent).toBe(
     "Won 2 to 1",
   );
-  expect(document.querySelector(".kit-vs__note").textContent).toBe(
-    "Path of Legends",
-  );
+  expect(document.querySelector(".kit-vs__note").textContent).toBe("Ranked");
   expect(document.querySelectorAll(".kit-deckrow__cost")).toHaveLength(16);
   expect(screen.getByRole("link", { name: "Open battle" })).toBeTruthy();
 });
