@@ -96,9 +96,11 @@ is one feed", "The left rail stays only in Settings"]
 1. **The feed shows only people's play.** Sessions, moments and
    highlights of the players you follow and your own; the account's own
    lines go to the bell. [Jamie, 2026-11-12]
-2. **Cheers, and checked comments.** A fixed set of six cheers, one per
-   person per item, on an item about a player or clan you follow; shown
-   as counts and "You and N others", never who. A card shows its comment
+2. **Cheers, and checked comments.** A fixed set of cheers, glyphs with
+   no word beside them: six offered first, fourteen more behind More
+   (twenty since 2026-11-17, "Reactions are glyphs alone; a larger set").
+   One per person per item, on an item about a player or clan you follow;
+   shown as counts and "You and N others", never who. A card shows its comment
    count and the latest two; each comment is checked before it posts. A
    player's words on their own highlight are not comments. [Jamie,
    2026-11-11, 2026-11-12, 2026-11-16, "Reactions, not comments",

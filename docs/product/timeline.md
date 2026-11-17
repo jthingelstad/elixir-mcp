@@ -69,7 +69,8 @@ got right in one place. [Jamie, 2026-10-12]
    bell. Every item stays in the timeline an agent reads. [Jamie,
    2026-11-12, "The feed shows only people's play"]
 6. **People react, and comments are checked first.** A signed-in person
-   cheers an item with one of six; counts are shown, never who. A comment
+   cheers an item with one of twenty (six offered first, the rest behind
+   More, since 2026-11-17); counts are shown, never who. A comment
    is a few plain words, checked by a small model before it posts, on an
    item about a verified player, as that player's owner allows. Agents
    read cheers and never write them, and never read or write comments.
