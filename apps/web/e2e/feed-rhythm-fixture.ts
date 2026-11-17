@@ -311,6 +311,70 @@ const ITEMS = [
     card_id: 26000085,
     rarity: "epic",
   }),
+  // Profile moments (2026-11-17): four in a row fold into one group.
+  moment(
+    PIP,
+    302,
+    "badge_earned",
+    "Pip reached Mastery level 5 with 3 cards.",
+    {
+      badge: "MasteryHogRider",
+      badge_label: "Hog Rider Mastery",
+      level: 5,
+      badge_count: 3,
+      badges: [
+        {
+          badge: "MasteryHogRider",
+          badge_label: "Hog Rider Mastery",
+          level: 5,
+          prior_level: 4,
+        },
+        {
+          badge: "MasteryKnight",
+          badge_label: "Knight Mastery",
+          level: 5,
+          prior_level: 3,
+        },
+        {
+          badge: "MasteryElectroGiant",
+          badge_label: "Electro Giant Mastery",
+          level: 5,
+          prior_level: 4,
+        },
+      ],
+    },
+    {
+      moment_card: { id: 26000021, name: "Hog Rider" },
+      moment_cards: [
+        { id: 26000021, name: "Hog Rider" },
+        { id: 26000000, name: "Knight" },
+        { id: 26000085, name: "Electro Giant" },
+      ],
+    },
+  ),
+  moment(ASH, 304, "card_maxed", "Ash maxed Hog Rider.", {
+    card: "Hog Rider",
+    card_id: 26000021,
+    rarity: "rare",
+    level: 16,
+  }),
+  moment(
+    ROWAN,
+    306,
+    "king_tower_leveled",
+    "Rowan reached King Tower level 15.",
+    {
+      level: 15,
+      prior_level: 14,
+    },
+  ),
+  moment(BRAM, 308, "twelve_win_run", "Bram won 12 in Grand Challenge.", {
+    badge: "Grand12Wins",
+    badge_label: "Grand Challenge 12 Wins",
+    challenge: "Grand Challenge",
+    runs: 4,
+    runs_before: 3,
+  }),
   session(SAGE, 320, {
     results: "wwlwlwl",
     mode: "ranked",
@@ -328,6 +392,16 @@ const ITEMS = [
     },
   }),
   session(ROWAN, 360, { results: "wl" }),
+  moment(
+    WREN,
+    380,
+    "challenge_best_run",
+    "Wren's best challenge run is now 9 wins.",
+    {
+      best: 9,
+      best_before: 7,
+    },
+  ),
   session(LARK, 400, { results: "l" }),
   session(ASH, 430, { results: "w" }),
   moment(

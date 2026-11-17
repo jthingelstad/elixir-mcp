@@ -12,7 +12,14 @@ import {
 } from "@elixir-mcp/ui";
 import { playerHref } from "../lib/player.js";
 import { accountHref, accountOf } from "../lib/account.js";
-import { feedRows, groupSaid, modeWord, shownAt } from "./logic.js";
+import {
+  feedRows,
+  groupSaid,
+  modeWord,
+  momentSaid,
+  momentsSaid,
+  shownAt,
+} from "./logic.js";
 import { FollowButton } from "./follow.jsx";
 import {
   evidenceWord,
@@ -111,7 +118,7 @@ const BAND_WORDS = {
 };
 
 /** A moment's medal, for a moment with no art of its own. */
-const VIOLET = new Set(["card_unlocked", "card_form_unlocked"]);
+const VIOLET = new Set(["card_unlocked", "card_form_unlocked", "card_maxed"]);
 
 /** The moments that read as the day's headline (2026-11-17): a new best, a
  *  new league in Ranked, a new Arena. An Arena move down is a moment, not a
@@ -447,7 +454,32 @@ export function momentHead(it) {
       return f.card && FORM_WORD[f.form]
         ? { kicker: FORM_WORD[f.form], title: f.card }
         : null;
+    case "card_maxed":
+      return f.card ? { kicker: "Maxed", title: f.card } : null;
+    case "king_tower_leveled":
+      return typeof f.level === "number"
+        ? { kicker: "King Tower", title: `Level ${f.level}` }
+        : null;
+    case "challenge_best_run":
+      return typeof f.best === "number"
+        ? { kicker: "Best challenge run", title: `${f.best} wins` }
+        : null;
+    case "twelve_win_run":
+      return f.challenge ? { kicker: "12 wins", title: f.challenge } : null;
     case "badge_earned":
+      if (Array.isArray(f.badges) && f.badges.length > 1)
+        return {
+          kicker: "Card Mastery",
+          title: `${f.badge_count ?? f.badges.length} cards`,
+        };
+      if (f.badge === "YearsPlayed" && typeof f.level === "number")
+        return {
+          kicker: "Years played",
+          title: `${f.level} ${f.level === 1 ? "year" : "years"}`,
+        };
+      return it.moment_card?.name
+        ? { kicker: "Card Mastery", title: it.moment_card.name }
+        : null;
     case "legendary_badge_earned":
       return it.moment_card?.name
         ? { kicker: "Card Mastery", title: it.moment_card.name }
@@ -457,20 +489,34 @@ export function momentHead(it) {
   }
 }
 
+/** The card a moment names, for its art: a new or maxed card, a form, a
+ *  Mastery badge's card (moment_card); null for any other. */
+function momentCardOf(it) {
+  const f = it.facts ?? {};
+  return (it.kind === "card_unlocked" || it.kind === "card_maxed") && f.card_id
+    ? { id: f.card_id, name: f.card ?? "" }
+    : it.kind === "card_form_unlocked" && f.card_id && FORM_WORD[f.form]
+      ? { id: f.card_id, name: f.card ?? "", form: f.form }
+      : it.moment_card?.id
+        ? { id: it.moment_card.id, name: it.moment_card.name }
+        : (it.moment_cards?.[0] ?? null);
+}
+
 /** A moment's art (2026-11-17): the card's own art for a card it names
  *  (never tinted, cropped or covered: the kit's CardArt draws it whole,
- *  its form's ribbon included), a kit mark for an Arena or a league (Elixir
- *  has no Arena art, and invents none), else the medal. */
+ *  its form's ribbon included), a day's Mastery cards side by side, a kit
+ *  mark for an Arena or a league (Elixir has no Arena art, and invents
+ *  none), else the medal. */
 function MomentArt({ it }) {
-  const f = it.facts ?? {};
-  const cardOf =
-    it.kind === "card_unlocked" && f.card_id
-      ? { id: f.card_id, name: f.card ?? "" }
-      : it.kind === "card_form_unlocked" && f.card_id && FORM_WORD[f.form]
-        ? { id: f.card_id, name: f.card ?? "", form: f.form }
-        : it.moment_card?.id
-          ? { id: it.moment_card.id, name: it.moment_card.name }
-          : null;
+  if ((it.moment_cards?.length ?? 0) > 1)
+    return (
+      <span className="kit-mart kit-mart--cards">
+        {it.moment_cards.map((c) => (
+          <CardArt key={c.id} card={c} size={40} showLevel={false} />
+        ))}
+      </span>
+    );
+  const cardOf = momentCardOf(it);
   if (cardOf)
     return (
       <span className="kit-mart kit-mart--card">
@@ -579,6 +625,95 @@ function SessionLine({ it, inGroup = false }) {
   );
 }
 
+/** A small moment as one line (2026-11-17): who and when, a small mark
+ *  (the card's own art when it names one), the sentence without the name
+ *  the row already shows, and its cheers on the right. */
+function MomentLine({ it, inGroup = false }) {
+  const who = subjectOf(it);
+  const card = momentCardOf(it);
+  return (
+    <article
+      className={`kit-feed__item kit-feed__item--line kit-feed__item--moment${inGroup ? " kit-feed__item--in" : ""}`}
+    >
+      <Avatar
+        name={who?.name ?? who?.tag ?? "You"}
+        tag={who?.tag}
+        card={who?.kind === "player" ? (it.avatar_card_id ?? null) : null}
+        small
+      />
+      <div className="kit-line__main">
+        <div className="kit-line__who">
+          <Who who={who} close={isClose(it)} />
+          <When it={it} />
+        </div>
+        <p className="kit-line__go">
+          {card ? (
+            <span className="kit-line__art">
+              <CardArt card={card} size={24} showLevel={false} />
+            </span>
+          ) : (
+            <span
+              className="kit-line__art kit-line__art--mark"
+              aria-hidden="true"
+            >
+              <Icon name="star" size={14} />
+            </span>
+          )}
+          <span>
+            <TagText>{momentSaid(it, who?.name ?? null)}</TagText>
+          </span>
+        </p>
+      </div>
+      {"cheers" in it ? <Cheers it={it} compact /> : null}
+    </article>
+  );
+}
+
+/** Small moments in a row, as one row that opens in place (2026-11-17),
+ *  as short sessions fold: each moment inside keeps its own cheer. */
+function MomentGroup({ rows }) {
+  const [open, setOpen] = useState(false);
+  const bodyId = useId();
+  const items = rows.map((r) => r.it);
+  const g = momentsSaid(items);
+  const { feedWhen } = useClock();
+  const first = shownAt(items.at(-1));
+  const last = shownAt(items[0]);
+  return (
+    <div className={`kit-feed__group${open ? " kit-feed__group--open" : ""}`}>
+      <button
+        type="button"
+        className="kit-group__toggle"
+        aria-expanded={open}
+        aria-controls={bodyId}
+        onClick={() => setOpen(!open)}
+      >
+        <span className="kit-group__faces" aria-hidden="true">
+          {g.people.slice(0, 3).map((p) => (
+            <Avatar key={p.tag} name={p.name} tag={p.tag} small />
+          ))}
+        </span>
+        <span className="kit-group__said">
+          <span className="kit-group__title">
+            <TagText>{g.title}</TagText>
+          </span>
+          <span className="kit-group__record">
+            {first && last ? feedWhen(first, last) : null}
+          </span>
+        </span>
+        <Icon name={open ? "chevron-up" : "chevron-down"} size={18} />
+      </button>
+      <div id={bodyId} className="kit-group__body" hidden={!open}>
+        {open
+          ? rows.map(({ it }, i) => (
+              <MomentLine key={it.id ?? i} it={it} inGroup />
+            ))
+          : null}
+      </div>
+    </div>
+  );
+}
+
 /** Short sessions in a row, as one row that opens in place (2026-11-17).
  *  The group itself takes no cheer: each session inside keeps its own, by
  *  its own id, once the group is open. Closed, it says how many cheers its
@@ -663,6 +798,10 @@ export function FeedRows({
         <SessionGroup rows={row.rows} />
       ) : row.type === "line" ? (
         <SessionLine it={row.it} />
+      ) : row.type === "moments" ? (
+        <MomentGroup rows={row.rows} />
+      ) : row.type === "moment" ? (
+        <MomentLine it={row.it} />
       ) : (
         <FeedItem
           it={row.it}

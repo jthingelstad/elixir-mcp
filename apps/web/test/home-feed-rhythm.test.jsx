@@ -7,7 +7,13 @@
 import { test, expect, vi, afterEach } from "vitest";
 import { screen, cleanup, fireEvent, within } from "@testing-library/react";
 import { renderWithProviders } from "./helpers.jsx";
-import { feedRows, groupSaid, shortSession } from "../src/home/logic.js";
+import {
+  feedRows,
+  groupSaid,
+  momentSaid,
+  shortSession,
+  smallMoment,
+} from "../src/home/logic.js";
 import { FeedRows, momentHead } from "../src/home/FeedItem.jsx";
 
 vi.mock("../src/analytics.js", () => ({ trackEvent: () => {} }));
@@ -187,4 +193,95 @@ test("a new best reads as the day's headline; an Arena move down does not", () =
   const items = document.querySelectorAll(".kit-feed__item");
   expect(items[0].className).toMatch(/kit-feed__item--headline/);
   expect(items[1].className).not.toMatch(/kit-feed__item--headline/);
+});
+
+const small = (id, kind, tag, name, text, facts = {}, extra = {}) => ({
+  id,
+  kind,
+  at: "2026-11-17T20:00:00Z",
+  subjects: [{ kind: "player", tag, name }],
+  groups: ["friends"],
+  text,
+  facts: { player_tag: tag, name, ...facts },
+  cheers: {},
+  my_cheer: null,
+  ...extra,
+});
+
+test("2026-11-17: small moments are lines, and several in a row are one group", () => {
+  const maxed = small(
+    "m1",
+    "card_maxed",
+    "#0QPPRRC9",
+    "Pip",
+    "Pip maxed Hog Rider.",
+    {
+      card: "Hog Rider",
+      card_id: 26000021,
+    },
+  );
+  const king = small(
+    "m2",
+    "king_tower_leveled",
+    "#0YCLUPC9",
+    "Ash",
+    "Ash reached King Tower level 15.",
+    {
+      level: 15,
+    },
+  );
+  expect(smallMoment(maxed)).toBe(true);
+  // A headline keeps its card; so does a clan's item or a close friend's.
+  expect(
+    smallMoment(small("h", "best_trophies_band", "#0QPPRRC9", "Pip", "x")),
+  ).toBe(false);
+  expect(
+    smallMoment({
+      ...maxed,
+      subjects: [...maxed.subjects, { kind: "clan", tag: "#0PYLQ2" }],
+    }),
+  ).toBe(false);
+  expect(smallMoment({ ...maxed, groups: ["friends", "close"] })).toBe(false);
+  // The row already names the player.
+  expect(momentSaid(maxed, "Pip")).toBe("Maxed Hog Rider.");
+  expect(
+    momentSaid({ text: "Pip's best challenge run is now 9 wins." }, "Pip"),
+  ).toBe("Best challenge run is now 9 wins.");
+  // A run of moments is one group; a session between them ends it, and a
+  // moment never folds with a session.
+  const s = session("s", "#0QPPRRC9", "Pip");
+  expect(
+    feedRows([row(maxed), row(king), row(s), row(maxed)]).map((r) => r.type),
+  ).toEqual(["moments", "line", "moment"]);
+
+  renderWithProviders(<FeedRows rows={[row(maxed), row(king)]} />);
+  const toggle = screen.getByRole("button", {
+    name: /2 moments from Pip and Ash/,
+  });
+  fireEvent.click(toggle);
+  const body = document.getElementById(toggle.getAttribute("aria-controls"));
+  expect(within(body).getAllByRole("article")).toHaveLength(2);
+  expect(body.textContent).toMatch(/Maxed Hog Rider\./);
+  expect(body.textContent).toMatch(/Reached King Tower level 15\./);
+});
+
+test("2026-11-17: the profile moments' heads", () => {
+  expect(
+    momentHead({ kind: "card_maxed", facts: { card: "Hog Rider" } }),
+  ).toEqual({ kicker: "Maxed", title: "Hog Rider" });
+  expect(
+    momentHead({ kind: "king_tower_leveled", facts: { level: 15 } }),
+  ).toEqual({ kicker: "King Tower", title: "Level 15" });
+  expect(
+    momentHead({
+      kind: "badge_earned",
+      facts: { badge: "MasteryHogRider", badges: [{}, {}], badge_count: 4 },
+    }),
+  ).toEqual({ kicker: "Card Mastery", title: "4 cards" });
+  expect(
+    momentHead({
+      kind: "badge_earned",
+      facts: { badge: "YearsPlayed", level: 5 },
+    }),
+  ).toEqual({ kicker: "Years played", title: "5 years" });
 });

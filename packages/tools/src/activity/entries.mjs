@@ -32,7 +32,12 @@ import { battleLinks } from "@elixir-mcp/record/battle-links";
 import { daysSincePollSql } from "@elixir-mcp/record/read-facts";
 import { createHash } from "node:crypto";
 import { stampById } from "@elixir-mcp/stamps/catalog";
-import { badgeLabel } from "@elixir-mcp/record/badge-names";
+import {
+  badgeLabel,
+  isMasteryBadge,
+  TWELVE_WIN_BADGES,
+  UNTOLD_BADGES,
+} from "@elixir-mcp/record/badge-names";
 import {
   rankedLeagueName,
   ULTIMATE_CHAMPION,
@@ -57,6 +62,7 @@ import { collectionLevelStep } from "@elixir-mcp/ingest/snapshots";
 import { deckCardsWithCost, deckIdentities } from "../tools/shared.mjs";
 import { itemSchema } from "./schemas.mjs";
 import { trophiesAreStanding } from "../controls.mjs";
+import { durationOf } from "../tools/battles/common.mjs";
 import {
   summarizePlayer,
   summarizeClan,
@@ -112,6 +118,12 @@ const PLAYER_MOMENT_KINDS = [
   "card_unlocked",
   // An Evolution or Hero form newly unlocked (#110, 0192).
   "card_form_unlocked",
+  // Profile moments (0286, the owner 2026-11-17): a card at its top
+  // level, the King Tower's level, the best challenge run, a 12-win run.
+  "card_maxed",
+  "king_tower_leveled",
+  "challenge_best_run",
+  "twelve_win_run",
 ];
 const CLAN_LEDGER_KINDS = [
   "member_joined",
@@ -146,13 +158,24 @@ export const ITEM_KINDS = [
 
 /**
  * badge_earned rows are lossless in the ledger (every level-up); the
- * timeline surfaces one as an ITEM only at a rung — the badge's final
- * level, or a multiple of five — and the entry counts the rest. A
- * 47-member clan produced 14 mastery level-ups in one day, all texture
- * (the 2026-09-16 request, §5). Rows written before 3.9.0 carry no
- * max_level; for them only the multiple-of-five rung applies.
+ * timeline tells one as an ITEM only at a rung, and the entry counts the
+ * rest. Since 0286 the record writes the rung a level-up crossed in
+ * `step` (badgeRung, @elixir-mcp/record/badge-names: a Mastery badge's
+ * multiple of five or top level, crossed rather than landed on; any other
+ * tiered badge's every level, its first included), and a row with a step
+ * is told (the owner, 2026-11-17). A row with none keeps the rule it was
+ * written under, the final level or a multiple of five, so a deploy
+ * surfaces no row the old rule hid (rows before 3.9.0 carry no
+ * max_level; for them only the multiple of five applies). A badge the
+ * timeline never tells (UNTOLD_BADGES: one repeating another moment, or
+ * a ranking) and the 12-win badges (twelve_win_run tells their runs) are
+ * never items.
  */
-function badgeItemWorthy(payload) {
+function badgeItemWorthy(row) {
+  const payload = row?.payload;
+  const name = payload?.name;
+  if (UNTOLD_BADGES.has(name) || name in TWELVE_WIN_BADGES) return false;
+  if (typeof row?.step === "number") return true;
   const level = payload?.level;
   if (typeof level !== "number") return true; // a one-off badge is always a moment
   if (typeof payload.max_level === "number" && level >= payload.max_level)
@@ -512,9 +535,16 @@ export function scoresOf(spark) {
   let best = scored[0];
   for (const b of scored)
     if (b.crowns - b.against > best.crowns - best.against) best = b;
+  // A battle read since 2026-11-17 says how it was won (winOf); an older
+  // stored spark falls back to its crowns.
+  const flagged = spark.some((b) => "three" in b || "overtime" in b);
+  const overtime = spark.filter((b) => b.overtime).length;
   return {
     best_win: `${best.crowns}-${best.against}`,
-    three_crowns: scored.filter((b) => b.crowns >= 3).length,
+    three_crowns: flagged
+      ? spark.filter((b) => b.three).length
+      : scored.filter((b) => b.crowns >= 3).length,
+    ...(overtime > 0 ? { overtime_wins: overtime } : {}),
   };
 }
 
@@ -1054,6 +1084,10 @@ function sessionsOf(battles, toMs, { learned = () => true } = {}) {
         // opponents in friendly and clanmate battles. Named after, by
         // nameSessions, only when the record follows them.
         partners: new Map(),
+        // Wins that took the King Tower, and wins the tiebreaker decided
+        // at 5:00 (2026-11-17): winsOf says which.
+        three_crown_wins: 0,
+        overtime_wins: 0,
         spark: [],
         // When the record LEARNED this session (Gym #162): the latest
         // commit of a battle this window learned, the instant that
@@ -1072,10 +1106,15 @@ function sessionsOf(battles, toMs, { learned = () => true } = {}) {
     // line ("best win 3-0", "two 3-crown wins"), never MCP's facts.
     const scored =
       typeof b.crowns === "number" && typeof b.crowns_against === "number";
+    const how = winOf(b);
+    if (how.three) cur.three_crown_wins += 1;
+    if (how.overtime) cur.overtime_wins += 1;
     cur.spark.push({
       outcome: b.outcome ?? null,
       margin: scored ? b.crowns - b.crowns_against : null,
       ...(scored ? { crowns: b.crowns, against: b.crowns_against } : {}),
+      three: how.three === true,
+      overtime: how.overtime === true,
     });
     if (b.outcome === "win") {
       cur.won += 1;
@@ -1152,6 +1191,8 @@ function sessionsOf(battles, toMs, { learned = () => true } = {}) {
     trophy_net_peak: s.trophy_net_peak,
     trophy_net_by_mode: s.trophy_net_by_mode,
     won_in_a_row: s.won_in_a_row,
+    ...(s.three_crown_wins > 0 ? { three_crown_wins: s.three_crown_wins } : {}),
+    ...(s.overtime_wins > 0 ? { overtime_wins: s.overtime_wins } : {}),
     open: toMs - s.endMs < SESSION_GAP_MS,
     crossed: s.crossed,
     crossings: s.crossings,
@@ -1397,6 +1438,31 @@ export function warDeckTallyOpen({
     finishedAt !== undefined &&
     Date.parse(finishedAt) <= Math.min(toMs, nowMs);
   return !finishedBy;
+}
+
+/**
+ * How a win was won, as far as its crowns prove (2026-11-17, the owner's
+ * "interesting and already collecting"): `three` when it took the King
+ * Tower (three crowns in a battle that is one game, never a duel's summed
+ * games or a boat battle), `overtime` when the crowns were level in a
+ * head-to-head battle, so overtime ran out and the tiebreaker decided it
+ * at exactly 5:00 (durationOf). A win in overtime by a tower is not
+ * provable from the log and is never said.
+ */
+const SUMMED_OR_BOAT = /^(riverRaceDuel|boatBattle)/;
+function winOf(b) {
+  if (b.outcome !== "win" || typeof b.crowns !== "number") return {};
+  return {
+    three: b.crowns >= 3 && !SUMMED_OR_BOAT.test(String(b.type ?? "")),
+    overtime:
+      durationOf(
+        { crowns: b.crowns },
+        typeof b.crowns_against === "number"
+          ? { crowns: b.crowns_against }
+          : null,
+        b.type,
+      )?.basis === "overtime_expired",
+  };
 }
 
 /** The wire shape of a session: the bookkeeping fields stay here. */
@@ -1823,7 +1889,136 @@ const sittingOf = (tag, s) => ({
 /** A ledger row the timeline tells as a moment of its own. */
 const momentRow = (r) =>
   PLAYER_MOMENT_KINDS.includes(r.event_type) &&
-  (r.event_type !== "badge_earned" || badgeItemWorthy(r.payload));
+  (r.event_type !== "badge_earned" || badgeItemWorthy(r));
+
+/**
+ * A player's badge moments of one day, told as one story per badge and one
+ * for all their Mastery badges (the owner, 2026-11-17): a badge taken up
+ * twice in a day is told once at its latest level, and a day of Mastery
+ * rungs is one item ("Pip reached Mastery level 5 with 4 cards"), so one
+ * busy player cannot flood a feed (one Trophy Road climb gave 74 badge
+ * level-ups in a week).
+ *
+ * The day is the UTC day of the read that saw the level (a badge row is
+ * never pinned to a battle). The story is read whole, whatever the
+ * window holds of it: every told badge row of that player and day the
+ * record had learned by the window's end, so two windows over one day
+ * tell one story. Its id is its first row's, so a day of one badge keeps
+ * the id that badge always had, and its revision is how many level-ups it
+ * holds, so a story that grows is the same story at a higher revision.
+ */
+const BADGE_GROUP = Symbol("badge_group");
+const dayOf = (r) => iso(r.occurred_at ?? r.window_end).slice(0, 10);
+const badgeGroupKey = (r) =>
+  `${r.player_tag}|${dayOf(r)}|${isMasteryBadge(r.payload?.name) ? "Mastery" : r.payload?.name}`;
+
+async function tellBadges(db, rows, toMs) {
+  const badges = rows.filter((r) => r.event_type === "badge_earned");
+  if (badges.length === 0) return { rows, firstIds: new Map() };
+  const days = new Map();
+  for (const r of badges) days.set(`${r.player_tag}|${dayOf(r)}`, r);
+  const pairs = [...days.values()];
+  const { rows: raw } = await db.query(
+    `select x.* from unnest($1::text[], $2::date[]) as t(p, d)
+      cross join lateral (
+        select ${PLAYER_EVENT_COLUMNS} from player_event e
+         where e.player_tag = t.p and e.event_type = 'badge_earned'
+           and e.window_end >= t.d::timestamp at time zone 'UTC'
+           and e.window_end < (t.d + 1)::timestamp at time zone 'UTC'
+           and coalesce(e.evidence_observed_at, e.window_end) < ${ts(toMs + 1)}
+           and coalesce(e.occurred_at, e.window_end) < ${ts(toMs + 1)}
+        offset 0) x
+      order by x.event_id`,
+    [pairs.map((r) => r.player_tag), pairs.map(dayOf)],
+  );
+  const whole = (await hydratePlayerEvents(db, raw)).filter(momentRow);
+  const firstIds = await firstEventIds(db, "player_event", whole);
+  const groups = new Map();
+  for (const r of whole) {
+    const key = badgeGroupKey(r);
+    const g = groups.get(key) ?? new Map();
+    // The same level-up written twice (a later poll re-emitting it) is
+    // one: the read-time dedupe's origin.
+    const origin = firstIds.get(String(r.event_id)) ?? String(r.event_id);
+    if (!g.has(origin)) g.set(origin, r);
+    groups.set(key, g);
+  }
+  const told = new Set();
+  const out = [];
+  for (const r of rows) {
+    if (r.event_type !== "badge_earned") {
+      out.push(r);
+      continue;
+    }
+    const key = badgeGroupKey(r);
+    if (told.has(key)) continue;
+    told.add(key);
+    const members = [...(groups.get(key)?.values() ?? [r])];
+    // The story's latest row speaks for it; its member's name rides along
+    // (the clan path reads it with the row).
+    const latest = { ...members.at(-1), name: r.name };
+    latest[BADGE_GROUP] = {
+      rows: members,
+      origin:
+        firstIds.get(String(members[0].event_id)) ??
+        String(members[0].event_id),
+    };
+    out.push(latest);
+  }
+  return { rows: out, firstIds };
+}
+
+/** How many badges a told story lists at most; `badge_count` says all. */
+const BADGE_LIST_CAP = 10;
+
+/** A told badge story's facts: its latest row's, and when it holds more
+ *  than one level-up, the first level it rose from and, for more than one
+ *  badge, each badge at its latest level, highest first. */
+function badgeStoryFacts(r) {
+  const group = r[BADGE_GROUP];
+  const facts = decorate("badge_earned", r.payload, new Map());
+  if (!group || group.rows.length < 2) return facts;
+  const byBadge = new Map();
+  for (const m of group.rows) {
+    const cur = byBadge.get(m.payload.name);
+    byBadge.set(m.payload.name, {
+      badge: m.payload.name,
+      badge_label: badgeLabel(m.payload.name),
+      level: m.payload.level ?? null,
+      prior_level: cur ? cur.prior_level : (m.payload.prior_level ?? null),
+    });
+  }
+  const badges = [...byBadge.values()].sort(
+    (a, b) => (b.level ?? 0) - (a.level ?? 0) || a.badge.localeCompare(b.badge),
+  );
+  if (badges.length === 1) {
+    const [one] = badges;
+    return {
+      ...facts,
+      ...(one.prior_level !== null ? { prior_level: one.prior_level } : {}),
+    };
+  }
+  const [top] = badges;
+  return {
+    ...facts,
+    badge: top.badge,
+    badge_label: top.badge_label,
+    ...(top.level !== null ? { level: top.level } : {}),
+    badges: badges.slice(0, BADGE_LIST_CAP),
+    badge_count: badges.length,
+  };
+}
+
+/** A told badge story's id: its first row's, at the revision of how many
+ *  level-ups it holds. Any other row's, as ledgerStory says it. */
+const momentStory = (firstIds, r) => {
+  const group = r[BADGE_GROUP];
+  if (!group) return ledgerStory("player_event", firstIds, r);
+  return {
+    ...moment("player_event", group.origin),
+    ...(group.rows.length > 1 ? { revision: group.rows.length } : {}),
+  };
+};
 
 /** The arenas an entry names: the profile's at each end, and the ledger's
  *  arena moves. */
@@ -1972,8 +2167,12 @@ function sectionOfKind(kind) {
     case "collection_level_step":
     case "card_unlocked":
     case "card_form_unlocked":
+    case "card_maxed":
+    case "king_tower_leveled":
       return "collection";
     case "career_wins_step":
+    case "challenge_best_run":
+    case "twelve_win_run":
       return "battles";
     default:
       return "notables";
@@ -1990,7 +2189,20 @@ function decorate(kind, payload, arenaNames) {
     const { name, ...rest } = payload;
     return { badge: name, badge_label: badgeLabel(name), ...rest };
   }
-  if (kind === "card_unlocked" || kind === "card_form_unlocked") {
+  if (kind === "twelve_win_run") {
+    const { name, ...rest } = payload;
+    return {
+      badge: name,
+      badge_label: badgeLabel(name),
+      challenge: TWELVE_WIN_BADGES[name] ?? null,
+      ...rest,
+    };
+  }
+  if (
+    kind === "card_unlocked" ||
+    kind === "card_form_unlocked" ||
+    kind === "card_maxed"
+  ) {
     const { name, ...rest } = payload;
     return { card: name, ...rest };
   }
@@ -2331,7 +2543,12 @@ export async function buildPlayerEntry(
       [STORY]: sittingStory(tag, anchored[i], s.started_at),
       ...sessionEvidence(tag, anchored[i], s.ended_at, s.open),
     });
-  const momentRows = ledger.filter(momentRow);
+  const told =
+    prefetched?.told ??
+    (await timed(perf, "player.badges", () =>
+      tellBadges(db, ledger.filter(momentRow), toMs),
+    ));
+  const momentRows = told.rows;
   const firstIds =
     prefetched?.firstIds ??
     (await timed(perf, "player.story_ids", () =>
@@ -2346,8 +2563,13 @@ export async function buildPlayerEntry(
       observed_at: iso(r.evidence_observed_at ?? r.window_end),
       kind: r.event_type,
       section: sectionOfKind(r.event_type),
-      facts: { ...self, ...decorate(r.event_type, r.payload, arenaNames) },
-      [STORY]: ledgerStory("player_event", firstIds, r),
+      facts: {
+        ...self,
+        ...(r[BADGE_GROUP]
+          ? badgeStoryFacts(r)
+          : decorate(r.event_type, r.payload, arenaNames)),
+      },
+      [STORY]: momentStory(firstIds, r),
       ...crossingEvidence(r, firstIds.get(String(r.event_id))),
     });
   for (const c of clanChanges) {
@@ -3428,8 +3650,14 @@ export async function buildClanEntry(
   const clanLedgerRows = ledger.filter((e) =>
     CLAN_LEDGER_KINDS.includes(e.event_type),
   );
-  const memberRows = moments.filter(
-    (m) => m.event_type !== "badge_earned" || badgeItemWorthy(m.payload),
+  const { rows: memberRows } = await timed(perf, "clan.badges", () =>
+    tellBadges(
+      db,
+      moments.filter(
+        (m) => m.event_type !== "badge_earned" || badgeItemWorthy(m),
+      ),
+      toMs,
+    ),
   );
   const clanFirstIds = await timed(perf, "clan.story_ids", () =>
     firstEventIds(db, "clan_event", clanLedgerRows),
@@ -3499,9 +3727,11 @@ export async function buildClanEntry(
     facts: {
       player_tag: m.player_tag,
       name: m.name,
-      ...decorate(m.event_type, m.payload, arenaNames),
+      ...(m[BADGE_GROUP]
+        ? badgeStoryFacts(m)
+        : decorate(m.event_type, m.payload, arenaNames)),
     },
-    [STORY]: ledgerStory("player_event", memberFirstIds, m),
+    [STORY]: momentStory(memberFirstIds, m),
     ...crossingEvidence(m, memberFirstIds.get(String(m.event_id))),
   }));
   // Newest first before the cap (Jamie, 2026-09-23: the timeline is a

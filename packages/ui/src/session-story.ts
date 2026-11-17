@@ -47,7 +47,11 @@ type Together = {
   with?: number;
   against?: number;
 };
-type Scores = { three_crowns?: number; best_win?: string } | null;
+type Scores = {
+  three_crowns?: number;
+  overtime_wins?: number;
+  best_win?: string;
+} | null;
 export type Chip = { key: string; text: string };
 
 /** The two kinds a sitting is told as. */
@@ -129,16 +133,29 @@ export const signedCount = (n: number) =>
 export const compactSitting = (f: Facts = {}) => (f.battles ?? 0) <= 2;
 
 /** The facts worth a chip (2026-11-16): the wins that took all three
- *  crowns, the widest win. Facts, never a verdict; nothing when none
- *  holds. */
+ *  crowns, the wins the tiebreaker decided at the end of overtime
+ *  (2026-11-17), the widest win. Facts, never a verdict; nothing when
+ *  none holds. The headline stays the result (sessionHeadline). */
 export function sessionChips(f: Facts = {}, scores: Scores = null): Chip[] {
   // The run of wins is in the headline (sessionHeadline).
   const chips: Chip[] = [];
-  const three = scores?.three_crowns ?? 0;
+  const three =
+    scores?.three_crowns ??
+    (typeof f.three_crown_wins === "number" ? f.three_crown_wins : 0);
   if (three >= 1 && (f.battles ?? 0) > 1)
     chips.push({
       key: "three",
       text: `${three} three-crown ${noun(three, "win")}`,
+    });
+  // A sitting's own facts say these since 2026-11-17 (MCP's
+  // three_crown_wins, overtime_wins); the feed's scores say them too.
+  const overtime =
+    scores?.overtime_wins ??
+    (typeof f.overtime_wins === "number" ? f.overtime_wins : 0);
+  if (overtime >= 1)
+    chips.push({
+      key: "overtime",
+      text: `${overtime} overtime ${noun(overtime, "win")}`,
     });
   if (scores?.best_win && (f.battles ?? 0) > 1)
     chips.push({ key: "best", text: `Best win ${scores.best_win}` });

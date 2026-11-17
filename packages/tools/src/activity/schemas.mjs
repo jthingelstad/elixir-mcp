@@ -35,7 +35,14 @@ const SITTING = [
 /** A sitting's facts present only when the record holds them: `ranked`
  *  when it held a Ranked battle, `together` when it met a player the
  *  record follows (2026-11-16). */
-const SITTING_OPTIONAL = ["ranked", "together"];
+const SITTING_OPTIONAL = [
+  "ranked",
+  "together",
+  // 2026-11-17: the wins that took the King Tower, and the wins the
+  // tiebreaker decided at the end of overtime; present when at least one.
+  "three_crown_wins",
+  "overtime_wins",
+];
 const ROSTER = ["roster_size_before", "roster_size_after"];
 
 export const TIMELINE_KIND_SCHEMAS = {
@@ -44,8 +51,9 @@ export const TIMELINE_KIND_SCHEMAS = {
     // 4 (2026-11-16): ranked (leagues, climbs, Ultimate Champion's
     // rating), together (followed players met), events[] with their
     // record, rules and run counter; Ranked's unrated +30s leave
-    // trophy_net_by_mode.
-    version: 4,
+    // trophy_net_by_mode. 5 (2026-11-17): three_crown_wins,
+    // overtime_wins.
+    version: 5,
     at: "the sitting's first battle; sort_at is its last",
     facts: SITTING,
     optional: SITTING_OPTIONAL,
@@ -54,8 +62,8 @@ export const TIMELINE_KIND_SCHEMAS = {
     // 3 (2026-10-11): crossings[] name their battle_id; teammate and
     // best_win say how the sitting went. 4 (2026-11-03):
     // trophy_net_by_mode, each trophy mode's own net. 5 (2026-11-16):
-    // as battle_session/4.
-    version: 5,
+    // as battle_session/4. 6 (2026-11-17): as battle_session/5.
+    version: 6,
     at: "the battle that crossed the first new rung this window learned (every rung's is crossings[].at); sort_at is the sitting's last battle",
     facts: [...SITTING, "crossed", "newly", "crossings"],
     optional: [...SITTING_OPTIONAL, "teammate", "best_win"],
@@ -70,10 +78,13 @@ export const TIMELINE_KIND_SCHEMAS = {
     optional: ["share_url"],
   },
   badge_earned: {
-    version: 2,
-    at: "the profile read that saw the level",
+    // 3 (2026-11-17): one story per badge and one per player's Mastery
+    // badges a UTC day; badges[] and badge_count when it holds more than
+    // one badge, and level, badge and badge_label are then its highest.
+    version: 3,
+    at: "the profile read that saw the latest level the story holds",
     facts: [...MEMBER, "badge", "badge_label"],
-    optional: ["level", "max_level", "prior_level"],
+    optional: ["level", "max_level", "prior_level", "badges", "badge_count"],
   },
   legendary_badge_earned: {
     version: 2,
@@ -118,6 +129,36 @@ export const TIMELINE_KIND_SCHEMAS = {
     version: 2,
     at: "the profile read that saw the form (it happened no later)",
     facts: [...MEMBER, "card", "card_id", "rarity", "form"],
+  },
+  // Profile moments (2026-11-17): each a change between two profile
+  // reads, never a first one.
+  card_maxed: {
+    version: 1,
+    at: "the profile read that saw the card at its top level",
+    facts: [...MEMBER, "card", "card_id", "rarity", "level"],
+  },
+  king_tower_leveled: {
+    version: 1,
+    at: "the profile read that saw the level",
+    facts: [...MEMBER, "level", "prior_level"],
+  },
+  challenge_best_run: {
+    version: 1,
+    at: "the profile read that saw the new best",
+    facts: [...MEMBER, "best", "best_before"],
+  },
+  twelve_win_run: {
+    version: 1,
+    at: "the profile read that saw the run counted",
+    facts: [
+      ...MEMBER,
+      "badge",
+      "badge_label",
+      "challenge",
+      "runs",
+      "runs_before",
+    ],
+    optional: ["level", "prior_level"],
   },
   clan_joined: {
     version: 2,

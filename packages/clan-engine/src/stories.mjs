@@ -523,7 +523,25 @@ function clause(it) {
       const form = { evolution: "Evolution", hero: "Hero" }[f.form];
       return `unlocked ${form ? `${form} ${f.card ?? "a card"}` : `a new form of ${f.card ?? "a card"}`}`;
     }
+    case "card_maxed":
+      return `maxed ${f.card ?? "a card"}`;
+    case "king_tower_leveled":
+      return `reached King Tower level ${num(f.level)}`;
+    case "challenge_best_run":
+      return `set a best challenge run of ${plural(f.best ?? 0, "win")}`;
+    case "twelve_win_run":
+      return `won 12 in ${f.challenge ?? f.badge_label ?? "a challenge"}`;
     case "badge_earned": {
+      // A day of one player's Mastery badges is one story (2026-11-17).
+      if (Array.isArray(f.badges) && f.badges.length > 1) {
+        const total = f.badge_count ?? f.badges.length;
+        return total === f.badges.length &&
+          f.badges.every((b) => b.level === f.level)
+          ? `reached Mastery level ${num(f.level)} with ${plural(total, "card")}`
+          : `reached new Mastery levels with ${plural(total, "card")}, up to level ${num(f.level)}`;
+      }
+      if (f.badge === "YearsPlayed" && typeof f.level === "number")
+        return `has played Clash Royale for ${plural(f.level, "year")}`;
       const badge = f.badge_label ?? badgeLabel(f.badge ?? f.name);
       if (typeof f.level === "number" && f.level > 1)
         return typeof f.max_level === "number" && f.level >= f.max_level

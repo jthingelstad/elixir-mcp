@@ -197,3 +197,38 @@ test("Clan's Feed draws the same week with the Timeline's components", async ({
       .map((v) => v.id),
   ).toEqual([]);
 });
+
+test("small moments fold into one row that opens to a line each (2026-11-17)", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.clock.setFixedTime(new Date(FEED_NOW));
+  await mockApi(page, rhythmApi());
+  await page.goto("/timeline");
+  const group = page
+    .locator(".kit-feed__group")
+    .filter({ hasText: "4 moments from Pip, Ash and 2 others" });
+  await expect(group).toBeVisible();
+  await group.locator(".kit-group__toggle").click();
+  const lines = group.locator(".kit-feed__item--line");
+  await expect(lines).toHaveCount(4);
+  // Each line says its moment without repeating the name the row shows.
+  await expect(lines.nth(1)).toContainText("Maxed Hog Rider.");
+  await expect(lines.nth(2)).toContainText("Reached King Tower level 15.");
+  // The card a moment names keeps its own art, drawn whole.
+  await expect(lines.nth(1).locator(".kit-line__art img")).toHaveAttribute(
+    "src",
+    /cards\//,
+  );
+  // One moment alone is one line.
+  await expect(
+    page
+      .locator(".kit-feed__item--line")
+      .filter({ hasText: "Best challenge run is now 9 wins." }),
+  ).toBeVisible();
+  await group.scrollIntoViewIfNeeded();
+  if (shots) {
+    mkdirSync(shots, { recursive: true });
+    await group.screenshot({ path: path.join(shots, "moments-open-390.png") });
+  }
+});

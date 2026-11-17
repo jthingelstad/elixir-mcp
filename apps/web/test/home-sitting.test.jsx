@@ -77,6 +77,21 @@ test("chips are facts: a run of three, three-crown wins, the widest win", () => 
   ).toEqual([]);
 });
 
+test("2026-11-17: overtime wins are a chip, from the feed's scores or the sitting's own facts", () => {
+  expect(
+    sessionChips(
+      { battles: 6 },
+      { best_win: "3-0", three_crowns: 2, overtime_wins: 1 },
+    ).map((c) => c.text),
+  ).toEqual(["2 three-crown wins", "1 overtime win", "Best win 3-0"]);
+  // A digest or a session page without the feed's scores reads the facts.
+  expect(
+    sessionChips({ battles: 3, three_crown_wins: 1, overtime_wins: 2 }).map(
+      (c) => c.text,
+    ),
+  ).toEqual(["1 three-crown win", "2 overtime wins"]);
+});
+
 test("the caption names the deck played most and how many others", () => {
   expect(
     deckCaption({

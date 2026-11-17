@@ -168,3 +168,59 @@ export function badgeLabel(name) {
       .replace(/^(\d{4}) Year$/, "$1 Year Badge"),
   );
 }
+
+/* ------------------------------------------------------------------ */
+/* Which badge level-ups the timeline tells (the owner, 2026-11-17)    */
+/* ------------------------------------------------------------------ */
+
+/** A Mastery badge's rungs are its multiples of five and its top level:
+ *  Mastery is the volume (one Trophy Road climb gave 74 level-ups in a
+ *  week), and 5 and 10 are the levels a player names. */
+export const MASTERY_RUNG = 5;
+
+/** Badges whose level-ups the timeline never tells: each repeats a moment
+ *  it already has (BattleWins: career_wins_step; CollectionLevel:
+ *  collection_level_step), or is a ranking (LadderTop1000 and its
+ *  tournament twin: the facts-only rule bans rankings). */
+export const UNTOLD_BADGES = new Set([
+  "BattleWins",
+  "CollectionLevel",
+  "LadderTop1000",
+  "LadderTournamentTop1000",
+]);
+
+/** The 12-win challenge badges, by the challenge a player names. Their
+ *  progress counts completed 12-win runs (tiers at 1 and 10 runs on one
+ *  recorded profile), so a run is told by twelve_win_run, and the tier
+ *  rides on that item rather than a badge_earned of its own. */
+export const TWELVE_WIN_BADGES = {
+  Classic12Wins: "Classic Challenge",
+  Grand12Wins: "Grand Challenge",
+};
+
+export const isMasteryBadge = (name) => /^Mastery/.test(String(name ?? ""));
+
+/**
+ * The rung a badge's level-up crossed, or null when it crossed none: the
+ * one rule the record writes (badge_earned's step, 0286) and the timeline
+ * reads. A Mastery badge crosses the highest multiple of five, or its top
+ * level, in (prior, level], so a jump from 3 to 6 crosses 5; any other
+ * tiered badge's every level is a rung, its first level included; a badge
+ * the timeline never tells crosses none.
+ */
+export function badgeRung({
+  name,
+  level,
+  prior_level = null,
+  max_level = null,
+}) {
+  if (typeof level !== "number") return null;
+  if (UNTOLD_BADGES.has(name) || name in TWELVE_WIN_BADGES) return null;
+  const prior = typeof prior_level === "number" ? prior_level : 0;
+  if (level <= prior) return null;
+  if (!isMasteryBadge(name)) return level;
+  if (typeof max_level === "number" && level >= max_level && prior < max_level)
+    return max_level;
+  const rung = Math.floor(level / MASTERY_RUNG) * MASTERY_RUNG;
+  return rung > prior && rung > 0 ? rung : null;
+}

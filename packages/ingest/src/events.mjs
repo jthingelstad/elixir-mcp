@@ -38,6 +38,12 @@ const EVENT_TYPES = {
   card_leveled: { stream: "player", timing: "estimated" },
   // An Evolution or Hero form newly unlocked (#110, 0192): one per bit.
   card_form_unlocked: { stream: "player", timing: "estimated" },
+  // Profile moments (0286): a card at its top level, the King Tower's
+  // level, the best challenge run, a 12-win challenge run.
+  card_maxed: { stream: "player", timing: "estimated" },
+  king_tower_leveled: { stream: "player", timing: "estimated" },
+  challenge_best_run: { stream: "player", timing: "estimated" },
+  twelve_win_run: { stream: "player", timing: "estimated" },
 };
 
 const TABLE_BY_STREAM = {

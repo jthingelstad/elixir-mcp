@@ -7,7 +7,7 @@
  * agent's tokens either.
  */
 
-import { badgeLabel } from "@elixir-mcp/record/badge-names";
+import { badgeLabel, isMasteryBadge } from "@elixir-mcp/record/badge-names";
 
 const plural = (n, one, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
 const num = (n) => (typeof n === "number" ? n.toLocaleString("en-US") : "?");
@@ -371,7 +371,16 @@ function sitting(f) {
     f.trophy_net_peak !== f.trophy_net
       ? `${net ? "" : ", net 0"}, peak ${signed(f.trophy_net_peak)}`
       : "";
-  return `${record(f.won, f.lost, f.drawn)}${m ? `; ${m}` : ""}${net}${peak}`;
+  return `${record(f.won, f.lost, f.drawn)}${m ? `; ${m}` : ""}${net}${peak}${howWon(f)}`;
+}
+/** The wins a sitting's crowns prove something about (2026-11-17): "; 2
+ *  three-crown wins, 1 overtime win". Nothing when neither holds. */
+function howWon(f) {
+  const parts = [];
+  if (f.three_crown_wins > 0)
+    parts.push(plural(f.three_crown_wins, "three-crown win"));
+  if (f.overtime_wins > 0) parts.push(plural(f.overtime_wins, "overtime win"));
+  return parts.length ? `; ${parts.join(", ")}` : "";
 }
 /** The decks and named events a sitting was played with. An event says
  *  its own record, and a challenge the wins its counter reached; a
@@ -485,6 +494,36 @@ function bestText(who, f) {
   return `${who} passed ${num(f.band)} trophies for the first time${onBattle(b)}${f.best > after ? `, and went on to a best of ${num(f.best)}` : ""}.`;
 }
 
+/**
+ * A badge moment as a player says it (the owner, 2026-11-17). Years
+ * Played is the years themselves. A told story of several Mastery badges
+ * is one line, grouped by level, highest first ("Pip reached Mastery
+ * level 10 with 1 card and level 5 with 3 cards"); `badge_count` counts
+ * those `badges` leaves out. Otherwise a level above 1 is a level taken
+ * and the first level (or a one-off) is a badge earned.
+ */
+function badgeText(who, f) {
+  const badge = f.badge ?? f.name;
+  if (badge === "YearsPlayed" && typeof f.level === "number")
+    return `${who} has played Clash Royale for ${plural(f.level, "year")}.`;
+  const list = Array.isArray(f.badges) ? f.badges : [];
+  if (list.length > 1 && list.every((b) => isMasteryBadge(b.badge))) {
+    const byLevel = new Map();
+    for (const b of list) byLevel.set(b.level, (byLevel.get(b.level) ?? 0) + 1);
+    const shown = list.length;
+    const rest = (f.badge_count ?? shown) - shown;
+    const parts = [...byLevel.entries()]
+      .sort((a, b) => (b[0] ?? 0) - (a[0] ?? 0))
+      .map(([level, n]) => `level ${level} with ${plural(n, "card")}`);
+    const said =
+      parts.length === 1
+        ? parts[0]
+        : `${parts.slice(0, -1).join(", ")} and ${parts.at(-1)}`;
+    return `${who} reached Mastery ${said}${rest > 0 ? `, and ${plural(rest, "more card")}` : ""}.`;
+  }
+  return `${who} ${f.level > 1 ? `took ${badgeLabel(badge)} to level ${f.level}` : `earned ${badgeLabel(badge)}`}.`;
+}
+
 /** An answer's status as the answer mail names it. */
 const FEEDBACK_STATUS_WORDS = {
   seen: "read",
@@ -551,7 +590,7 @@ export function itemText(it, timeZone = "UTC") {
     // The badge as a player says it: a level above 1 is a level taken,
     // the first level (or a one-off) is a badge earned.
     case "badge_earned":
-      return `${member || subj} ${f.level > 1 ? `took ${badgeLabel(f.badge ?? f.name)} to level ${f.level}` : `earned ${badgeLabel(f.badge ?? f.name)}`}.`;
+      return badgeText(member || subj, f);
     case "legendary_badge_earned":
       return `${member || subj} earned ${badgeLabel(f.badge ?? f.name)}.`;
     case "arena_changed":
@@ -568,6 +607,17 @@ export function itemText(it, timeZone = "UTC") {
       return `${member || subj} unlocked ${f.card ?? f.name ?? `card ${f.card_id}`}.`;
     case "card_form_unlocked":
       return `${member || subj} unlocked ${formLabel(f)}.`;
+    case "card_maxed":
+      return `${member || subj} maxed ${f.card ?? f.name ?? `card ${f.card_id}`}.`;
+    case "king_tower_leveled":
+      return `${member || subj} reached King Tower level ${f.level}.`;
+    case "challenge_best_run":
+      return `${member || subj}'s best challenge run is now ${plural(f.best, "win")}.`;
+    case "twelve_win_run": {
+      const times =
+        typeof f.runs === "number" ? f.runs - (f.runs_before ?? 0) : 1;
+      return `${member || subj} won 12 in ${f.challenge ?? badgeLabel(f.badge ?? f.name)}${times > 1 ? ` ${times} times` : ""}.`;
+    }
     case "member_joined":
       return `${f.name ?? f.player_tag} joined ${subj}${f.role ? ` as ${roleWord(f.role)}` : ""}.`;
     // The roster sees only that a member went, never whether they left or

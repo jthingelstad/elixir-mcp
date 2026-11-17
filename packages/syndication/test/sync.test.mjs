@@ -242,7 +242,8 @@ test("a sitting is posted once, edited as it grows, and edited once more when it
   assert.ok(edit.revision > grown[0].revision);
   assert.match(
     edit.content,
-    /played 10 battles in one session \(7W-3L; 10 Ranked; Master II\)\./,
+    // 2026-11-17: the sitting's three-crown win is said too.
+    /played 10 battles in one session \(7W-3L; 10 Ranked; 1 three-crown win; Master II\)\./,
   );
   assert.doesNotMatch(edit.content, /still going/);
   assert.equal(closing.length, 2);

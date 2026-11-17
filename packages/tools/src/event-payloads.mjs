@@ -185,6 +185,30 @@ export async function hydratePlayerEvents(db, rows) {
       case "legendary_badge_earned":
         r.payload = { name: r.badge_name };
         break;
+      // Profile moments (0286).
+      case "card_maxed":
+        r.payload = pick({
+          card_id: r.card_id,
+          name: card?.name ?? null,
+          rarity: card?.rarity ?? null,
+          level: r.level,
+        });
+        break;
+      case "king_tower_leveled":
+        r.payload = { level: r.level, prior_level: r.prior_level };
+        break;
+      case "challenge_best_run":
+        r.payload = { best: r.value_after, best_before: r.value_before };
+        break;
+      case "twelve_win_run":
+        r.payload = pick({
+          name: r.badge_name,
+          runs: r.value_after,
+          runs_before: r.value_before,
+          ...(r.level !== null ? { level: r.level } : {}),
+          ...(r.prior_level !== null ? { prior_level: r.prior_level } : {}),
+        });
+        break;
       case "arena_changed":
         r.payload = pick({
           from: r.arena_from,

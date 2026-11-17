@@ -91,6 +91,9 @@ export function followFor(it, window) {
       return [...battle(tag, f.crossed_by), ...summary(tag)];
     case "badge_earned":
     case "legendary_badge_earned":
+    case "king_tower_leveled":
+    case "challenge_best_run":
+    case "twelve_win_run":
       return tag
         ? [{ tool: "players_profile", args: { player_tag: tag } }]
         : [];
@@ -100,6 +103,7 @@ export function followFor(it, window) {
         : [];
     case "card_unlocked":
     case "card_form_unlocked":
+    case "card_maxed":
       return tag
         ? [
             { tool: "players_collection", args: { player_tag: tag } },

@@ -48,6 +48,8 @@ export function playerEventColumns(type, p = {}) {
         card_id: int(p.card_id),
         step: CARD_FORM_BITS[p.form] ?? null,
       };
+    // The rung the level-up crossed rides in step (0286), written from
+    // that deploy on; null when it crossed none.
     case "badge_earned":
       return {
         ...out,
@@ -55,6 +57,27 @@ export function playerEventColumns(type, p = {}) {
         level: int(p.level),
         prior_level: int(p.prior_level),
         max_level: int(p.max_level),
+        step: int(p.rung),
+      };
+    case "card_maxed":
+      return { ...out, card_id: int(p.card_id), level: int(p.level) };
+    case "king_tower_leveled":
+      return { ...out, level: int(p.level), prior_level: int(p.prior_level) };
+    case "challenge_best_run":
+      return {
+        ...out,
+        value_before: int(p.best_before),
+        value_after: int(p.best),
+      };
+    // A 12-win challenge badge's progress is its count of 12-win runs.
+    case "twelve_win_run":
+      return {
+        ...out,
+        badge_name: text(p.name),
+        value_before: int(p.runs_before),
+        value_after: int(p.runs),
+        level: int(p.level),
+        prior_level: int(p.prior_level),
       };
     case "legendary_badge_earned":
       return { ...out, badge_name: text(p.name) };
