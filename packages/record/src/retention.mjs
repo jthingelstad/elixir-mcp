@@ -184,7 +184,7 @@ export const CHILDREN = Object.freeze({
   battle_participant: "goes with its battle",
   battle_participant_round: "goes with its battle",
   battle_highlight:
-    "goes with its battle (on delete cascade); frozen since 0291, its rows copied to account_post, dropped by the next contract migration",
+    "goes with its battle (on delete cascade); frozen since 0292, its rows copied to account_post, dropped by the next contract migration",
   war_attendance_day: "goes with its war week",
   war_participation: "goes with its war week",
   war_period_log: "goes with its war week",
@@ -304,7 +304,7 @@ async function deleteBatch(db, entry, limits) {
       `delete from battle_participant_round where battle_id = any($1::text[])`,
       [ids],
     );
-    // A post about the battle (account_post, 0291) goes by cascade from
+    // A post about the battle (account_post, 0292) goes by cascade from
     // its participant, as the frozen battle_highlight rows do.
     const parts = await db.query(
       `delete from battle_participant where battle_id = any($1::text[])`,

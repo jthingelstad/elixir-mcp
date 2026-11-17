@@ -12,7 +12,7 @@ import {
 /**
  * The social layer's player reads (DECISIONS "Agents read the social layer
  * and never write it"): who a player follows and who follows them, and the
- * posts about battles they wrote (the highlights they posted; since 0291 a
+ * posts about battles they wrote (the highlights they posted; since 0292 a
  * highlight is a post with a battle attached), newest first. A
  * person's own connection reads as that person; an agent reads as its
  * owner. Never a nickname, an email or a

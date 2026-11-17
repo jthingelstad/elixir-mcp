@@ -10,7 +10,7 @@
  * What it reads, all per account and all dated before launch:
  *  - the setup Stamps as the account stood at launch (settleLegacy);
  *  - Storyteller: the account's own posts about battles with words (what
- *    were highlights until 0291);
+ *    were highlights until 0292);
  *  - Played Together: recorded friendlies with a followed player, the
  *    same rule as the owner's reconciliation (earn.mjs friendlyBattles),
  *    over the year the record keeps, one local day once;

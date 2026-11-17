@@ -167,9 +167,9 @@ function localDay(at, zone) {
 
 /**
  * Storyteller from the account's own posts about battles with words (what
- * were highlights until 0291): each one the stored facts do not already
+ * were highlights until 0292): each one the stored facts do not already
  * hold (by source or by battle) is offered. Repairs a post whose hook
- * failed. A highlight counted before 0291 holds its battle, so the post
+ * failed. A highlight counted before 0292 holds its battle, so the post
  * it became is never counted again. Bounded by RECONCILE.HIGHLIGHTS and
  * the fact budget.
  */

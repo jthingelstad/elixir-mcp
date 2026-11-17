@@ -378,7 +378,7 @@ test("Storyteller: reconciliation reads battle posts with words, once per battle
       [ME],
     )
   ).rows.map((r) => r.battle_id);
-  // Posts about battles (0291): with words, with none, with words.
+  // Posts about battles (0292): with words, with none, with words.
   await db.query(
     `insert into account_post (item_id, player_tag, battle_id, account_id, body)
      values ('tl_000000000000000005a1', $1, $2, $5, 'Close one.'),
@@ -386,7 +386,7 @@ test("Storyteller: reconciliation reads battle posts with words, once per battle
             ('tl_000000000000000005a3', $1, $4, $5, 'Again!')`,
     [ME, ...battles, me],
   );
-  // The first was a highlight, counted by the hook before 0291 under its
+  // The first was a highlight, counted by the hook before 0292 under its
   // old source: reconciliation reads it as a post now, and the battle
   // qualifier keeps it from counting twice. It adds the third.
   const [{ created_at }] = (

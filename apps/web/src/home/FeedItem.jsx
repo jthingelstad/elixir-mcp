@@ -240,7 +240,7 @@ export function FeedItem({
     ? (it.subjects ?? []).find((s) => s.kind === "clan")
     : null;
   const post = it.kind === "post";
-  // A post about a battle is a post (0291); the record's own line for one
+  // A post about a battle is a post (0292); the record's own line for one
   // (kind battle_highlight) is drawn as its sentence where a page still
   // holds it (a battle's cheers), never as a moment.
   const moment = !sitting && !clan && !post && it.kind !== "battle_highlight";

@@ -79,7 +79,7 @@ async function feedItemsFor(db, { accountId, tags, subjects }) {
 
 /** The item as the person's own feed holds it now, or null. A post the
  *  person may see is one too: its own read, no feed rebuilt (posts.mjs);
- *  a post about a battle always (0291: what was a highlight), a post
+ *  a post about a battle always (0292: what was a highlight), a post
  *  about nothing in the record only while `posts` are on. */
 export async function ownFeedItem(
   db,
@@ -151,7 +151,7 @@ export async function setCheer(db, accountId, itemId, cheer, item = null) {
       // the activity mail and push find their accounts by these tags, and
       // those posts reach neither; the web bell reads their cheers by the
       // post itself. A post about a battle stamps its player, as the
-      // highlight it was did (0291), so its cheers keep reaching the mail,
+      // highlight it was did (0292), so its cheers keep reaching the mail,
       // push and the bell.
       [accountId, itemId, cheer, item ? stampedTags(item) : null],
     );

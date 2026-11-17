@@ -1,4 +1,4 @@
--- 0291: a post may carry a battle, and every highlight becomes one.
+-- 0292: a post may carry a battle, and every highlight becomes one.
 --
 -- Jamie, 2026-11-17: "now that we have added posting we should refactor
 -- highlighting a battle to really just be a post with a battle
@@ -110,7 +110,7 @@ begin
              1, 20);
     return old;
   end if;
-  raise exception 'battle_highlight moved to account_post (0291)'
+  raise exception 'battle_highlight moved to account_post (0292)'
     using errcode = 'read_only_sql_transaction';
 end $$;
 
@@ -119,16 +119,16 @@ create trigger battle_highlight_moved
   for each row execute function battle_highlight_moved();
 
 comment on column account_post.battle_id is
-  '0291: the battle the post is about, played by its player (the foreign key proves it); null for a post about nothing in the record. One per player per battle.';
+  '0292: the battle the post is about, played by its player (the foreign key proves it); null for a post about nothing in the record. One per player per battle.';
 comment on column account_post.share_id is
-  '0291: the post''s public link, /h/<share_id>, once its author shares it (a post with a battle only): 15 base32 characters, random. Null: not shared.';
+  '0292: the post''s public link, /h/<share_id>, once its author shares it (a post with a battle only): 15 base32 characters, random. Null: not shared.';
 comment on column account_post.shared_at is
-  '0291: when the author first shared the post. Null with share_id.';
+  '0292: when the author first shared the post. Null with share_id.';
 comment on column account_post.clan_discord_at is
-  '0291: when its author posted this shared battle post in its player''s clan''s Discord; null until then. Once only.';
+  '0292: when its author posted this shared battle post in its player''s clan''s Discord; null until then. Once only.';
 comment on column account_post.clan_discord_clan is
-  '0291: the clan whose Discord it was posted in, as clan_discord_at says.';
+  '0292: the clan whose Discord it was posted in, as clan_discord_at says.';
 comment on column account_post.revision is
-  '0291: how many times the words were written: 1 when posted, one more for each edit that changed them. The timeline item''s revision.';
+  '0292: how many times the words were written: 1 when posted, one more for each edit that changed them. The timeline item''s revision.';
 comment on column account_post.updated_at is
-  '0291: when the words last changed by an edit; null when never edited (created_at stands).';
+  '0292: when the words last changed by an edit; null when never edited (created_at stands).';

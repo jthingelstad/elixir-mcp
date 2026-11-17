@@ -1,6 +1,6 @@
 /**
  * A shared post about a battle posted in its player's clan's Discord
- * (social slice 9, #767; a highlight until 0291). Pinned here: only the
+ * (social slice 9, #767; a highlight until 0292). Pinned here: only the
  * post's author, only once it is shared, only while the author holds a
  * verified claim and the player is a member of a clan whose activity
  * channel is on with "Shared posts about battles" turned on by a leader
@@ -63,7 +63,7 @@ const HOSTILE_NAME = "@everyone **Boss** <@&4242>";
 const HOSTILE_WORDS =
   "gg @here <@123456789012345678> <t:1700000000:R>\n# big\n[click](https://evil.example) ||spoiler|| `code`";
 // What a post's filter lets through (no link, number or @handle: it
-// refuses each; a highlight's words from before 0291 may still carry
+// refuses each; a highlight's words from before 0292 may still carry
 // them, and the line above pins how they read).
 const POSTED_WORDS = "gg <b>all</b>\n# big\n||spoiler|| `code` **loud** <:x:1>";
 

@@ -37,7 +37,7 @@ import {
  * Markdown or tags. No images, and no links: a deck link from the game is
  * read into the deck and leaves the words.
  *
- * A post may carry a battle instead of a deck or cards (0291: what was a
+ * A post may carry a battle instead of a deck or cards (0292: what was a
  * highlight). It is written from the battle's own page (views/
  * BattlePosts.jsx), its words optional, and drawn here with the battle:
  * what happened, both decks with the score between, and Open battle.

@@ -230,7 +230,7 @@ test("with posts off, or comments off, a post about nothing in the record is ref
     assert.equal(w.statusCode, 404);
     assert.equal(data(w).error, "posts_off");
     // The lists still answer (a post about a battle is read either way,
-    // 0291), holding no post about nothing in the record.
+    // 0292), holding no post about nothing in the record.
     const r = await off(AUTHOR, "GET", "/api/me/posts", null, { mine: "1" });
     assert.equal(r.statusCode, 200, r.body);
     assert.deepEqual(data(r).posts, []);
@@ -617,7 +617,7 @@ test("the author deletes a post at once; nobody else can", async () => {
   assert.deepEqual(left, { posts: 0, cheers: 0, comments: 0 });
 });
 
-/** The record's readers of posts about battles (0291), each reading only
+/** The record's readers of posts about battles (0292), each reading only
  *  rows with a battle. */
 const BATTLE_POST_READERS = [
   "packages/stamps/src/backfill.mjs",
@@ -637,7 +637,7 @@ test("a post about nothing in the record never reaches the record's timeline, wh
   assert.equal(built.timeline.filter((it) => it.kind === "post").length, 0);
   // And no code outside the web API's own reads, the schema, the account
   // removal and the sweeps names the table, but for the readers of posts
-  // about battles (0291: what highlights were), which read only those.
+  // about battles (0292: what highlights were), which read only those.
   const root = fileURLToPath(new URL("../../../", import.meta.url));
   const files = execFileSync("git", ["grep", "-l", "account_post", "--", "."], {
     cwd: root,

@@ -1,6 +1,6 @@
 /**
  * A battle post's edit on the timeline (Codex review of #773; 0240, a
- * highlight until 0291): the record learns a post about a battle again
+ * highlight until 0292): the record learns a post about a battle again
  * when its words change, so a poller
  * reading by observation is served the correction as the same story (one
  * id, the same posting time) at a higher revision, and the news check

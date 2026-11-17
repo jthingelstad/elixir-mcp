@@ -387,7 +387,7 @@ export function drawBattle(read, f) {
     `<line x1="0" y1="578" x2="${SHARE_WIDTH}" y2="578" stroke="${C.lineSoft}"/>`,
   );
   const cut = DISCLAIMER.indexOf(". ") + 1;
-  // A shared post about a battle (#762, 0291) says whose post it is and
+  // A shared post about a battle (#762, 0292) says whose post it is and
   // their words on one line, fitted beside the disclaimer, over the
   // post's own link;
   // a battle's picture carries the battle's link alone. Each string is

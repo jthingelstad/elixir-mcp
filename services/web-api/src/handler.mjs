@@ -508,7 +508,7 @@ export function makeHandler({
     ...commentsRoutes({ resolveAccount, comments, posts: postsOn }),
     // Posts (2026-11-17): a post about nothing in the record only with
     // PostsEnabled and CommentsEnabled; a post about a battle (what was a
-    // highlight until 0291) either way, its words checked while comments
+    // highlight until 0292) either way, its words checked while comments
     // are on.
     ...postsRoutes({
       resolveAccount,

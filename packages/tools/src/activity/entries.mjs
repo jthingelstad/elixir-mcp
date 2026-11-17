@@ -4299,7 +4299,7 @@ export async function peopleItems(
 /**
  * The posts about a battle the followed players wrote in the window: since
  * 2026-11-17 a highlight is a post with a battle attached (account_post,
- * 0291), and the timeline serves each as it served a highlight, kind
+ * 0292), and the timeline serves each as it served a highlight, kind
  * `battle_highlight`, the one single-battle item, carrying the player's
  * words and the battle it names. The MCP vocabulary keeps its name; a
  * rename is a major, which is Jamie's call. It happened when it was
@@ -4308,7 +4308,7 @@ export async function peopleItems(
  * edit is the same story, at the same instant, grown to the post's
  * revision: a poller is served the correction and a cross-posted line is
  * edited in place. Its id is the post's own item id (a highlight's old
- * timeline id, kept by 0291), so cheers and comments name one item. Only
+ * timeline id, kept by 0292), so cheers and comments name one item. Only
  * a visible post by an approved person, never one by anyone in a block
  * with the reader. Its share link is the owner's alone: served only when
  * the reader is the account that posted it, or one of its agents.
@@ -4479,9 +4479,9 @@ async function highlightItems(
       facts: {
         player_tag: r.player_tag,
         name: r.name ?? null,
-        // The post's id (0291: a highlight is a post with a battle
+        // The post's id (0292: a highlight is a post with a battle
         // attached). highlight_id carries the same value, so a reader
-        // keyed on it still finds one id per highlight; before 0291 it was
+        // keyed on it still finds one id per highlight; before 0292 it was
         // the highlight's uuid.
         highlight_id: r.post_id,
         post_id: r.post_id,

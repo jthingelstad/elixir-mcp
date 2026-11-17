@@ -1,4 +1,4 @@
-/** A shared post about a battle (#762; a post since 0291): its public
+/** A shared post about a battle (#762; a post since 0292): its public
  *  page, picture and JSON, class "record" in the public-boundary test.
  *  The page is the app shell with the post's preview tags written into
  *  it, as /battle/<id> is. A deleted post is a 404 at once from here; the

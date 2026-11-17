@@ -125,7 +125,7 @@ const PLAYER_PAGE = {
   // 1500 to 900 (2026-11-14): 664 here, as on the battle page.
   // +1: the player's clan news reads (13.10.0, 2026-11-17).
   "/api/me/cheers": { statements: 27, buffers: 900 },
-  // The player's posts, those about battles with their battles (0291:
+  // The player's posts, those about battles with their battles (0292:
   // what /api/player read as highlights until then, inside its 6000).
   // 916 cold here, nearly all the battle posts' decks.
   "/api/me/posts": { statements: 12, buffers: 1500 },

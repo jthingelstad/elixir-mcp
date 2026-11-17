@@ -713,7 +713,7 @@ async function readFeed(
   // (posts.mjs); a person's feed only. A post about nothing in the record
   // only while posts are on, and never stored in the week, so nothing
   // built from it (digest, mail, push, RSS, MCP) ever holds one. A post
-  // about a battle always (0291): the week holds the record's own line
+  // about a battle always (0292): the week holds the record's own line
   // for it (kind battle_highlight, which the digest, mail, push, RSS and
   // MCP read), and a person's Home draws the post itself instead, so the
   // line is left out here: one item, not two.

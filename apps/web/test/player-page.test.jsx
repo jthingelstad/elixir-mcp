@@ -302,7 +302,7 @@ test(
     expect(screen.getByText("Verified in Discord")).toBeTruthy();
     // The counts are buttons to their tabs (canvas .statrow).
     expect(screen.getByRole("button", { name: "Following 1" })).toBeTruthy();
-    // A post about a battle is a post (0291): no Highlights count or tab.
+    // A post about a battle is a post (0292): no Highlights count or tab.
     expect(screen.queryByRole("button", { name: /^Highlights/ })).toBeNull();
     expect(screen.queryByRole("tab", { name: /Highlights/ })).toBeNull();
     expect(screen.getByText("Copper Fern won five in a row")).toBeTruthy();

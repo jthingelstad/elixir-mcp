@@ -563,7 +563,7 @@ export function itemText(it, timeZone = "UTC") {
   switch (it.kind) {
     case "battle_session":
       return `${member || subj} played ${plural(f.battles, "battle")}${f.battles > 1 ? " in one session" : ""}${togetherPart(f)} (${sitting(f)}${rankedPart(f.ranked)})${played(f)}${f.open ? ", still going" : ""}.`;
-    // A highlight is the player's post about a battle (0291: a post with
+    // A highlight is the player's post about a battle (0292: a post with
     // a battle attached): the battle, then their words as they wrote them
     // (escaped at each output that needs it, never here).
     case "battle_highlight": {

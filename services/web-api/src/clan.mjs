@@ -240,7 +240,7 @@ export function createClanRequest({
   notifyOwner = null,
   /** Posts are on (2026-11-17): the Feed holds the members' posts about
    *  nothing in the record too. Their posts about battles it holds
-   *  always (0291). */
+   *  always (0292). */
   posts = false,
   /** Comments are on: the Feed's posts carry their comments. */
   comments = false,

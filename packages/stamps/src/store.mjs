@@ -222,7 +222,7 @@ export async function grantStamps(
  *   fact = {
  *     stamp_id,   'played_together' | 'cheerleader' | 'storyteller'
  *     source,     the source event's stable server-side identity, e.g.
- *                 'cheer:<id>', 'post:<id>' (before 0291 'highlight:<uuid>'), 'battle:<id>'; hashed
+ *                 'cheer:<id>', 'post:<id>' (before 0292 'highlight:<uuid>'), 'battle:<id>'; hashed
  *     event_at,   the source row's own stored instant, never a browser's
  *     battle_id,  Storyteller only: the canonical battle posted about
  *   }

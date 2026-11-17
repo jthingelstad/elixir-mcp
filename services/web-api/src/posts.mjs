@@ -80,7 +80,7 @@ const POST_ID = /^[1-9][0-9]{0,18}$/;
  * deck link in the words, which is taken out of them: the post keeps the
  * cards, never the link. A post about a battle (`battle`, its id or link,
  * and `player_tag`, which of the author's players played it) carries the
- * battle alone, and its words may be empty (0291).
+ * battle alone, and its words may be empty (0292).
  */
 export function readPostInput(body) {
   const battle =
@@ -323,7 +323,7 @@ function carriesOf({ deck, cards, battle }) {
  * nothing in the record are on (the stack's PostsEnabled with
  * CommentsEnabled); `check` the comments config (`{ capUsd, moderate }`)
  * while comments are on, else null. A post about a battle is a
- * highlight's successor and works with either flag off (0291): its words
+ * highlight's successor and works with either flag off (0292): its words
  * pass the post check while comments are on, and with them off are kept
  * as a highlight's were, after the plain filter alone. `input` is
  * readPostInput's answer. Returns `{ ok, post }` (the post as its
@@ -643,7 +643,7 @@ const POST_JOIN = `join account a on a.account_id = p.account_id
  *  for review; never one by anyone in a block with them, either way, and
  *  never one they reported while the report is open. A post about
  *  nothing in the record only while `plain` (posts are on); a post about
- *  a battle always, as a highlight was (0291). */
+ *  a battle always, as a highlight was (0292). */
 const seen = (plain) => `(p.status = 'visible'
          or (p.status = 'hidden' and p.account_id = $1::uuid))
         and not ${blockedSql("p.account_id", "$1::uuid")}
@@ -890,7 +890,7 @@ export async function postItems(db, rows, readerId) {
           const c = catalog.get(Number(id));
           return { id: Number(id), name: c?.name ?? String(id) };
         }),
-        // A post about a battle (0291): the battle as the timeline tells
+        // A post about a battle (0292): the battle as the timeline tells
         // it, both decks, and its share link for its author.
         battle: about?.battle ?? null,
         versus: about?.versus ?? null,

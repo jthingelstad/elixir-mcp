@@ -240,7 +240,7 @@ export async function checkComment(
   { moderate, capUsd, accountId, itemId, body, about, own, post = null },
 ) {
   // A post about a battle has limits of its own (posts.mjs), so its
-  // checks are counted apart (0291).
+  // checks are counted apart (0292).
   const kind = post ? (post.battle ? "battle_post" : "post") : "comment";
   const cheap = filterComment(body, post ? { max: POST_MAX } : undefined);
   if (!cheap.ok) {

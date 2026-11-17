@@ -1,4 +1,4 @@
-/** A post about a battle (2026-11-17, 0291): what was a highlight is a
+/** A post about a battle (2026-11-17, 0292): what was a highlight is a
  *  post with a battle attached (Jamie: "refactor highlighting a battle to
  *  really just be a post with a battle attached"). posts.mjs writes,
  *  edits, deletes and reads every post; this module holds what only a

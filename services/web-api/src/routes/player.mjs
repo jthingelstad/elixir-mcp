@@ -406,7 +406,7 @@ async function readPlayerPage(db, account, tag, now = Date.now()) {
   // where the record does not know the battle.
   const proofs = (built.timeline ?? []).map(proofOf);
   const links = await battleLinks(db, proofs.filter(Boolean));
-  // A post about a battle (what was a highlight, 0291) is the page's
+  // A post about a battle (what was a highlight, 0292) is the page's
   // Posts list's, read as the post it is (GET /api/me/posts?player=), so
   // the record's own line for it is left out here: one item, not two.
   const timeline = (built.timeline ?? [])

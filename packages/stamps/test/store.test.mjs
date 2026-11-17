@@ -446,7 +446,7 @@ test("Storyteller: one battle once, however it is reposted", async () => {
       },
       { now },
     );
-  // A highlight counted before 0291, under its old source.
+  // A highlight counted before 0292, under its old source.
   assert.equal((await story("highlight:1", "battle-x")).accepted, true);
   // The post it became, or one removed and reposted: the same battle.
   assert.equal((await story("post:2", "battle-x")).reason, "same_battle");

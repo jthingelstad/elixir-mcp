@@ -104,7 +104,7 @@ export async function wakeAfterFact(db, fact, { outbox, now = Date.now() }) {
 }
 
 /** After a post about a battle is written or its words change (#762;
- *  until 0291, a highlight): wake what its player reaches, as an
+ *  until 0292, a highlight): wake what its player reaches, as an
  *  admission about that player does. A post about nothing in the record
  *  is on no synced timeline and wakes nothing; nor does a deletion: no
  *  sync takes a line back. Never fails the write it follows. */

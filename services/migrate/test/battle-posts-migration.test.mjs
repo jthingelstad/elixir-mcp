@@ -1,5 +1,5 @@
 /**
- * 0291: a highlight is a post with a battle attached (Jamie, 2026-11-17).
+ * 0292: a highlight is a post with a battle attached (Jamie, 2026-11-17).
  * Run here as the migrate runner does (one transaction around the file),
  * on a scratch database put back to the state before it, with highlights
  * in every state: words and none, edited, shared, posted in a clan's
@@ -33,8 +33,8 @@ const H = {
 
 let scratch, sql, account;
 
-/** Put the database back to 0290: undo what 0291 adds. */
-async function before0291(db) {
+/** Put the database back to 0290: undo what 0292 adds. */
+async function before0292(db) {
   await db.query(`
     drop trigger battle_highlight_moved on battle_highlight;
     drop function battle_highlight_moved();
@@ -95,10 +95,10 @@ const posts = async () =>
   );
 
 before(async () => {
-  scratch = await scratchDb("battle_posts_0291");
+  scratch = await scratchDb("battle_posts_0292");
   const db = scratch.db;
-  sql = await readFile(path.join(MIGRATIONS, "0291_battle_posts.sql"), "utf8");
-  await before0291(db);
+  sql = await readFile(path.join(MIGRATIONS, "0292_battle_posts.sql"), "utf8");
+  await before0292(db);
   for (const tag of [TAG, OTHER])
     await db.query(
       `insert into player (player_tag, name) values ($1, 'Invented')`,
@@ -108,7 +108,7 @@ before(async () => {
     rows: [{ account_id: account }],
   } = await db.query(
     `insert into account (email_hash, kind, status, role)
-     values ('battle-posts-0291', 'person', 'approved', 'member')
+     values ('battle-posts-0292', 'person', 'approved', 'member')
      returning account_id`,
   ));
   for (const id of ["b-plain", "b-shared", "b-bare", "b-later", "b-cascade"])
@@ -132,7 +132,7 @@ before(async () => {
   await h(H.bare, "b-bare", { cols: "revision", vals: "1", words: "" });
   await h(H.later, "b-later");
   await h(H.cascade, "b-cascade");
-  // A plain post written before 0291: untouched.
+  // A plain post written before 0292: untouched.
   await db.query(
     `insert into account_post (item_id, account_id, player_tag, body)
      values ('tl_00000000000000000001', $1, $2, 'just words')`,
@@ -141,7 +141,7 @@ before(async () => {
 });
 after(async () => scratch?.drop());
 
-test("0291 copies every highlight into a post under the id the timeline served", async () => {
+test("0292 copies every highlight into a post under the id the timeline served", async () => {
   await runFile();
   const got = await posts();
   const id = (h) => storyId("battle_highlight", h);
@@ -178,7 +178,7 @@ test("0291 copies every highlight into a post under the id the timeline served",
   assert.deepEqual(plain, { body: "just words", battle_id: null, revision: 1 });
 });
 
-test("after 0291 the old table refuses writes, and a delete takes the post", async () => {
+test("after 0292 the old table refuses writes, and a delete takes the post", async () => {
   const db = scratch.db;
   await assert.rejects(
     db.query(`update battle_highlight set words = 'x' where highlight_id = $1`, [
@@ -209,7 +209,7 @@ test("after 0291 the old table refuses writes, and a delete takes the post", asy
   assert.ok(left[storyId("battle_highlight", H.plain)]);
 });
 
-test("after 0291 a post's battle excludes a deck, and only a battle post may be empty", async () => {
+test("after 0292 a post's battle excludes a deck, and only a battle post may be empty", async () => {
   const db = scratch.db;
   await assert.rejects(
     db.query(
