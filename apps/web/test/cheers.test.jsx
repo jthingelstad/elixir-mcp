@@ -375,16 +375,82 @@ test("taps during a write show at once and are sent in order after it", async ()
   await waitFor(() => expect(calls).toHaveLength(1));
   // Taken back before the first write answers: shown now, held back.
   fireEvent.click(cheerButton());
-  expect(cheerButton().getAttribute("aria-pressed")).toBe("false");
+  await waitFor(() =>
+    expect(cheerButton().getAttribute("aria-pressed")).toBe("false"),
+  );
   expect(cheerButton().disabled).toBe(false);
   expect(calls).toHaveLength(1);
   answers[0]();
   await waitFor(() => expect(calls).toHaveLength(2));
   expect(calls.map((c) => c.body.cheer)).toEqual(["well_played", null]);
+  // The first answer does not redraw over the newer tap.
+  expect(cheerButton().getAttribute("aria-pressed")).toBe("false");
   answers[1]();
   await waitFor(() =>
     expect(cheerButton().getAttribute("aria-pressed")).toBe("false"),
   );
+});
+
+test("a take-back still goes when the item leaves the page before the cheer answers", async () => {
+  const answers = [];
+  global.fetch = vi.fn((path, init = {}) => {
+    const body = JSON.parse(init.body);
+    calls.push({ body });
+    const after = withMyCheer(FRESH, body.cheer);
+    return new Promise((resolve) =>
+      answers.push(() =>
+        resolve(
+          reply({
+            item_id: ITEM.id,
+            cheers: after.cheers,
+            my_cheer: after.my_cheer,
+          }),
+        ),
+      ),
+    );
+  });
+  const r = await feedWith(FRESH);
+  fireEvent.click(cheerButton());
+  await waitFor(() => expect(calls).toHaveLength(1));
+  fireEvent.click(cheerButton());
+  await waitFor(() =>
+    expect(cheerButton().getAttribute("aria-pressed")).toBe("false"),
+  );
+  // A group folded, a page left: the item is gone before the answer.
+  r.unmount();
+  answers[0]();
+  await waitFor(() => expect(calls).toHaveLength(2));
+  expect(calls.map((c) => c.body.cheer)).toEqual(["well_played", null]);
+  answers[1]();
+  await waitFor(() =>
+    expect(
+      r.queryClient.getQueryData(HOME_FEED_KEY).pages[0].timeline[0].my_cheer,
+    ).toBeNull(),
+  );
+});
+
+test("a refused take-back goes back to what the server last confirmed", async () => {
+  let n = 0;
+  global.fetch = vi.fn(async (path, init = {}) => {
+    const body = JSON.parse(init.body);
+    calls.push({ body });
+    n += 1;
+    if (n === 2)
+      return reply({ error: "rate_limited", message: "Too many" }, 429);
+    const after = withMyCheer(FRESH, body.cheer);
+    return reply({
+      item_id: ITEM.id,
+      cheers: after.cheers,
+      my_cheer: after.my_cheer,
+    });
+  });
+  await feedWith(FRESH);
+  fireEvent.click(cheerButton());
+  await waitFor(() => expect(calls).toHaveLength(1));
+  fireEvent.click(cheerButton());
+  expect(await screen.findByRole("status")).toBeTruthy();
+  expect(cheerButton().getAttribute("aria-pressed")).toBe("true");
+  expect(calls.map((c) => c.body.cheer)).toEqual(["well_played", null]);
 });
 
 test("on an agent's pages the counts show and nothing can be pressed", () => {

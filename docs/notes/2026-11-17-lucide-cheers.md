@@ -64,7 +64,11 @@ one-tap path was a count chip someone else had already used.
   cheer was not saved. Try again." (`role="status"`). Writes for an item
   are serialised: a tap during a write shows at once and is sent when the
   write answers, so the buttons never go disabled and answers never land
-  out of order. The rate limit (120 an hour) and blocked states are the
+  out of order. The queue is `useCheer`'s (`cheerWrites` in
+  `lib/queries.js`), not the component's, so a take-back still goes when
+  the item unmounts first (a group folded, a page left; Codex on #1098).
+  Only the newest tap's answer redraws the item, and a refused newest tap
+  goes back to what the server last confirmed. The rate limit (120 an hour) and blocked states are the
   server's, unchanged.
 - **Surfaces:** feed cards; one-line short sessions (compact: the glyph
   and total, and the smile, each 44 px); a closed group of short sessions

@@ -489,9 +489,22 @@ export const useRssLink = () =>
  *  before the write, the server's counts after it, and the copy from before
  *  if it was refused. Yours, never an agent's. Home's feed by default; a
  *  player page or a battle page passes its own cheers read
- *  (`usePageCheers`): `{ key, list: "items" }`. */
+ *  (`usePageCheers`): `{ key, list: "items" }`.
+ *
+ *  Writes for one item go one at a time, in the order they were tapped
+ *  (`cheerWrites`), so a quick cheer and take-back land in that order. The
+ *  queue lives here, not in the component, so it drains even when the item
+ *  unmounts (a group folded, a page left) before the first write answers.
+ *  Only the newest tap's answer redraws the item; a refusal of the newest
+ *  goes back to what the server last confirmed. */
 /** Home's feed, where most cheers are given. */
 const CHEER_FEED_KEY = HOME_FEED_KEY;
+
+/** Per item id: the tail of its write chain, the newest tap's number, how
+ *  many writes are out, the copy from before the first of them, and the
+ *  last answer the server gave. */
+const cheerWrites = new Map();
+let cheerTaps = 0;
 
 export function useCheer({ key = CHEER_FEED_KEY, list = "timeline" } = {}) {
   const queryClient = useQueryClient();
@@ -499,32 +512,55 @@ export function useCheer({ key = CHEER_FEED_KEY, list = "timeline" } = {}) {
     queryClient.setQueryData(key, (old) =>
       mapItems(old, list, (it) => (it.id === item.id ? item : it)),
     );
+  const done = (id) => {
+    const w = cheerWrites.get(id);
+    if (w && --w.out === 0) cheerWrites.delete(id);
+  };
   return useMutation({
-    mutationFn: async ({ item, next }) => {
-      const res = await api.cheer({
-        item_id: item.id,
-        cheer: next,
-        // The item's subjects, so the server rebuilds only their days to
-        // find it (feed.mjs reads the same two fields). A page's item
-        // carries the follows its cheers read came through instead.
-        subjects: item.cheer_subjects ?? [
-          ...new Set(
-            [
-              item.subject_tag,
-              ...(item.subjects ?? []).map((s) => s.tag),
-            ].filter(Boolean),
-          ),
-        ],
-      });
-      if (!res.ok) throw new Error(res.data?.message ?? "Not saved");
-      return res.data;
+    mutationFn: ({ item, next }) => {
+      const w = cheerWrites.get(item.id);
+      const send = async () => {
+        const res = await api.cheer({
+          item_id: item.id,
+          cheer: next,
+          // The item's subjects, so the server rebuilds only their days to
+          // find it (feed.mjs reads the same two fields). A page's item
+          // carries the follows its cheers read came through instead.
+          subjects: item.cheer_subjects ?? [
+            ...new Set(
+              [
+                item.subject_tag,
+                ...(item.subjects ?? []).map((s) => s.tag),
+              ].filter(Boolean),
+            ),
+          ],
+        });
+        if (!res.ok) throw new Error(res.data?.message ?? "Not saved");
+        return res.data;
+      };
+      const run = (w?.tail ?? Promise.resolve()).then(send, send);
+      if (w) w.tail = run.catch(() => {});
+      return run;
     },
-    onMutate: async ({ item, shown }) => {
-      await queryClient.cancelQueries({ queryKey: key, exact: true });
+    onMutate: ({ item, shown }) => {
+      const tap = ++cheerTaps;
+      const w = cheerWrites.get(item.id) ?? {
+        tail: null,
+        out: 0,
+        before: item,
+        confirmed: null,
+      };
+      w.out += 1;
+      w.newest = tap;
+      cheerWrites.set(item.id, w);
+      void queryClient.cancelQueries({ queryKey: key, exact: true });
       put(shown);
-      return { item };
+      return { tap };
     },
-    onSuccess: (data, { shown }) => {
+    onSuccess: (data, { shown }, context) => {
+      const w = cheerWrites.get(shown.id);
+      if (w) w.confirmed = data;
+      if (w && w.newest !== context?.tap) return;
       put({ ...shown, cheers: data.cheers, my_cheer: data.my_cheer });
       // Every other copy of the item (Home's feed, a player page's or a
       // battle page's cheers read) takes the server's counts too, so a
@@ -540,9 +576,20 @@ export function useCheer({ key = CHEER_FEED_KEY, list = "timeline" } = {}) {
         mapItems(old, "items", patch),
       );
     },
-    onError: (_err, _vars, context) => {
-      if (context?.item) put(context.item);
+    onError: (_err, { item }, context) => {
+      const w = cheerWrites.get(item.id);
+      if (!w || w.newest !== context?.tap) return;
+      put(
+        w.confirmed
+          ? {
+              ...w.before,
+              cheers: w.confirmed.cheers,
+              my_cheer: w.confirmed.my_cheer,
+            }
+          : w.before,
+      );
     },
+    onSettled: (_data, _err, { item }) => done(item.id),
   });
 }
 
