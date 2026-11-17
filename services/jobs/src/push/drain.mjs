@@ -9,12 +9,14 @@
  *
  *  Kinds, in the order one run picks them: a Clan Action that became
  *  yours (owed by Clan's morning run), an answer to your feedback, cheers
- *  on your own players' items, new followers of them. Each has its own
- *  switch (no row is on).
+ *  on your own players' items, new followers of them, then a close
+ *  friend's play (2026-11-17, close-friends.mjs). Each has its own switch
+ *  (no row is on).
  *
  *  Caps: a notice at most every MIN_GAP_MS per account and DAILY_CAP a
- *  day; cheers wait until SETTLE_MS after the latest, so a burst is one
- *  "5 cheers" rather than five pushes. Each kind starts where the last
+ *  day, close friends' play at most CLOSE_DAILY_CAP of those; cheers
+ *  wait until SETTLE_MS after the latest, so a burst is one "5 cheers"
+ *  rather than five pushes. Each kind starts where the last
  *  notice of it, the last look at the bell, the first device or a day ago
  *  left off, whichever is latest. */
 import { openJobsClient } from "../db.mjs";
@@ -23,6 +25,12 @@ import {
   readAnswers,
   readAwayActivity,
 } from "@elixir-mcp/tools/activity/bell";
+import {
+  CLOSE_DAILY_CAP,
+  CLOSE_KIND,
+  closeCandidates,
+  pickClose,
+} from "./close-friends.mjs";
 
 export const MIN_GAP_MS = 10 * 60_000;
 export const DAILY_CAP = 8;
@@ -184,8 +192,9 @@ async function send(db, outbox, accountId, notice) {
     const { rows } = await db.query(
       `insert into push_notice
          (account_id, kind, title, body, url, through, status, sent_at,
-          devices, pending)
-       values ($1, $2, $3, $4, $5, $6, 'sending', now(), $7, $8::bigint[])
+          devices, pending, told)
+       values ($1, $2, $3, $4, $5, $6, 'sending', now(), $7, $8::bigint[],
+               $9::jsonb)
        returning notice_id`,
       [
         accountId,
@@ -196,6 +205,9 @@ async function send(db, outbox, accountId, notice) {
         notice.through,
         pending.length,
         pending,
+        // Close friends only (0284): who it told and how far, so a session
+        // is told once. Never in the relay's object.
+        notice.told ? JSON.stringify(notice.told) : null,
       ],
     );
     id = rows[0].notice_id;
@@ -347,7 +359,15 @@ export async function runWebPush({
     result.resumed = back.resumed;
     result.waiting = back.waiting;
     const rows = await candidates(db, { now, accountId });
+    // Close friends' play (2026-11-17): accounts with a device and a mark
+    // whose close friends have something new, merged in after the rest.
+    const close = await closeCandidates(db, { now, accountId });
+    const listed = new Set(rows.map((r) => r.account_id));
+    for (const id of [...close.keys()].sort())
+      if (!listed.has(id)) rows.push({ account_id: id, close_only: true });
     result.candidates = rows.length;
+    // Each friend is built at most once a run, whoever starred them.
+    const built = new Map();
     for (const r of rows) {
       if (remainingMs && remainingMs() < 30_000) break;
       const history = await told(db, r.account_id, now);
@@ -374,7 +394,25 @@ export async function runWebPush({
               : 0,
           ),
         );
-      const notice = await pick(db, r, { now, on, since });
+      let notice = r.close_only ? null : await pick(db, r, { now, on, since });
+      // Last in the order: only when nothing else is told this run, the
+      // kind is on and under its own cap, and no cheers are settling (they
+      // go first once settled).
+      const cheersSettling =
+        r.last_cheer_at &&
+        on("cheers") &&
+        now.getTime() - new Date(r.last_cheer_at).getTime() < SETTLE_MS;
+      if (
+        !notice &&
+        close.has(r.account_id) &&
+        on(CLOSE_KIND) &&
+        !cheersSettling &&
+        (history.by.get(CLOSE_KIND)?.today ?? 0) < CLOSE_DAILY_CAP
+      )
+        notice = await pickClose(db, close.get(r.account_id), {
+          now,
+          cache: built,
+        });
       if (!notice) continue;
       const out = await send(db, outbox, r.account_id, notice);
       result.sent++;

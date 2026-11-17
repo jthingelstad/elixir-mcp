@@ -26,6 +26,7 @@ import {
 import {
   feedChips,
   feedShown,
+  askedShow,
   keepShow,
   keptShow,
   feedSince,
@@ -93,10 +94,14 @@ export function HomeFeed({ chipsAt = null, suggest = false } = {}) {
       "account")
     : null;
   const [picked, setPicked] = useState(null);
+  // A notice's address may ask for a chip (?show=close); read once.
+  const [asked] = useState(() =>
+    typeof window === "undefined" ? null : askedShow(window.location.search),
+  );
   const circle = useHomeCircle();
   const hasClose = (circle.data?.circle?.friends?.length ?? 0) > 0;
   const chipList = feedChips(hasClose);
-  const wanted = picked ?? keptShow(who);
+  const wanted = picked ?? asked ?? keptShow(who);
   // A kept Close friends with nobody marked any more is Everyone; while the
   // circle is still reading, the kept choice holds.
   const show =

@@ -7,7 +7,7 @@ order: 4
 navTitle: "Email"
 icon: mail
 lede: "One digest of the people you follow and your clan, weekly or daily. Besides it, only mail with something for you to do or read: clan actions waiting, cheers on your play, your collector's week, and answers to your feedback."
-reviewed: "2026-11-17 the digest tells each friend's sessions, and every session opens its own page; 2026-11-16 notifications on your phone or computer; 2026-11-16 Cheers on your play, at most once a day; 2026-11-13 the digest's clan news is its own switch; 2026-11-13 the digest is Weekly, Daily or Off; 2026-11-12 one digest: the clan report, Arena week and milestone mails folded into it; 2026-11-12 your digest, weekly or daily by your choice; 2026-10-12 the collector week is Saturday to Saturday; 2026-10-12 no email is composed by a model"
+reviewed: "2026-11-17 close friends' play, a notification when a friend you starred finishes a session; 2026-11-17 the digest tells each friend's sessions, and every session opens its own page; 2026-11-16 notifications on your phone or computer; 2026-11-16 Cheers on your play, at most once a day; 2026-11-13 the digest's clan news is its own switch; 2026-11-13 the digest is Weekly, Daily or Off; 2026-11-12 one digest: the clan report, Arena week and milestone mails folded into it; 2026-11-12 your digest, weekly or daily by your choice; 2026-10-12 the collector week is Saturday to Saturday; 2026-10-12 no email is composed by a model"
 ---
 
 # Email
@@ -170,6 +170,19 @@ something about you happens:
 - **New followers** of your players. Counted, never who.
 - **Clan Actions waiting for you**, if you can act on them.
 - **Answers to your feedback.**
+- **Close friends' play**, if you starred a close friend: one when they
+  finish a session of 3 battles or more, or a shorter one with a climb in
+  Ranked or a run of 5 wins or more in a challenge. It shows their name
+  and the session's result, like "Pip Ember" and "Won 3 of 4 on Trophy
+  Road". A new best, a new league in Ranked or a new Arena is told in the
+  Timeline's own words. It comes once the session is over (no battle for
+  30 minutes), never while they're still playing, and once per session,
+  even if they play on. Friends who finish around the same time come as
+  one, like "Pip Ember and 2 other close friends played", which opens
+  your Timeline on Close friends. At most three a day, and only about
+  play from the last two hours. Only you see who you starred: your
+  friend is never told, and it never comes if either of you blocked the
+  other.
 
 Turn them on in [Notifications](/settings/notifications) (Settings ›
 Notifications) on each device you use: tap **Turn on notifications**,
@@ -181,7 +194,8 @@ Screen**, and turn them on from there.
 Each kind has its own switch, and every device you turned on is listed
 there with a **Remove**. At most one notification every ten minutes and
 eight a day. Tap one to open what it's about. A notification you tapped
-is left out of the next Cheers on your play email.
+is left out of the next Cheers on your play email. Close friends' play
+is a notification only: it is never in an email or the digest.
 
 ## Every email, on the record
 

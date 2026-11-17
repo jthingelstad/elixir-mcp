@@ -117,7 +117,13 @@ test("push: offered with the key, a device on, listed without its endpoint, remo
     offered: true,
     public_key: vapid,
     devices: [],
-    kinds: { cheers: true, followers: true, clan_actions: true, answers: true },
+    kinds: {
+      cheers: true,
+      followers: true,
+      clan_actions: true,
+      answers: true,
+      close_friends: true,
+    },
   });
 
   const endpoint = "https://fcm.googleapis.com/fcm/send/push-routes-1";

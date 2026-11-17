@@ -36,6 +36,18 @@ export function keptShow(who) {
   }
 }
 
+/** The Show chip an address asks for (`?show=close`, the close friends
+ *  notice's, 2026-11-17), or null. It holds for the visit and is not kept:
+ *  a tap on a notice is not a choice for next time. */
+export function askedShow(search) {
+  try {
+    const v = new URLSearchParams(search ?? "").get("show");
+    return FEED_CHIPS.some((c) => c.key === v) ? v : null;
+  } catch {
+    return null;
+  }
+}
+
 /** Keep the reader's Show choice for their next visit. Never throws. */
 export function keepShow(who, show) {
   if (!who) return;
