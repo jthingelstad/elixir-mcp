@@ -6874,6 +6874,16 @@ button.kit-row {
   min-height: var(--hit);
   font-weight: 500;
 }
+.kit-home__tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-2);
+  min-width: 0;
+}
+.kit-home__tools .kit-home__mode {
+  margin-left: 0;
+}
 .kit-head--home .kit-head__side {
   justify-content: flex-end;
 }
@@ -6950,6 +6960,15 @@ button.kit-row {
   .kit-home__mode {
     flex-basis: 100%;
     margin-left: 0;
+  }
+  /* Mode and Post share one row; larger text may still wrap. The Show
+     chips keep their own row and every control stays at least 44px. */
+  .kit-home__tools {
+    flex-basis: 100%;
+    justify-content: space-between;
+  }
+  .kit-home__tools .kit-home__mode {
+    flex-basis: auto;
   }
 }
 /* Too narrow for the note beside the title (under 375px, where the note

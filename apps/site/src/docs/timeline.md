@@ -426,7 +426,9 @@ you and to your clanmates. You need a [verified player](/docs/verified-players)
 of your own, and the post goes out as that player.
 
 - **Start one** at the top of your Timeline: tap **Write a post or ask a
-  question**, or on a phone tap **Post** above the feed.
+  question**, or on a phone tap **Post** beside **Mode** above the feed.
+  The writing field takes keyboard focus. **Cancel**, or sending the post,
+  returns focus to where you started.
 - **Ask a question** marks it a **Question**. People answer it under the
   post.
 - **Add a deck:** in Clash Royale, tap **Copy deck** on any deck, then

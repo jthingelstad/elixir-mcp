@@ -103,6 +103,7 @@ export function HomeFeed({
   compose = null,
   mode = null,
   setMode = null,
+  modeInHead = false,
 } = {}) {
   // The post composer's open state (2026-11-17): the page head's Post
   // opens it on a phone, so the page may hold it; else the feed does.
@@ -185,9 +186,10 @@ export function HomeFeed({
         Nothing was lost. Try again in a moment.
       </ErrorState>
     );
-  const modePick = setMode ? (
-    <ModePick value={mode} onChange={setMode} />
-  ) : null;
+  const modePick =
+    setMode && !modeInHead ? (
+      <ModePick value={mode} onChange={setMode} />
+    ) : null;
   // With nothing to draw, the list alone stays, so a mode restored from an
   // address or this browser can still be changed (Codex on #1113).
   const modeOnly = !modePick ? null : chipsAt ? (
@@ -441,7 +443,7 @@ function Quiet({ follows, suggest }) {
  * count the chosen mode's week, and two sets of numbers in one row read as
  * one sum.
  */
-function ModePick({ value, onChange }) {
+export function ModePick({ value, onChange }) {
   const id = useId();
   return (
     <span className="kit-home__mode">
