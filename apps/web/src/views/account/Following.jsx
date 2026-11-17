@@ -18,6 +18,7 @@ import { api } from "../../api.js";
 import { ClanReadStatus } from "../../components/ClanReadStatus.jsx";
 import { ClaimNotice } from "../../components/ClaimNotice.jsx";
 import { FollowCost } from "../../home/follow.jsx";
+import { CloseToggle } from "../../home/close.jsx";
 import { HomeClanOffer } from "../../components/HomeClanOffer.jsx";
 import { VerifiedMark } from "../../components/VerifiedMark.jsx";
 import { useInvalidate, useMyClans } from "../../lib/queries.js";
@@ -82,6 +83,14 @@ function PlayerRow({ claim: c, rec, now }) {
       }
       right={
         <span className="st-row-actions">
+          {/* Close friend (2026-11-16): a friend's star, yours alone. */}
+          {!c.is_primary && c.relationship === "friend" ? (
+            <CloseToggle
+              tag={c.player_tag}
+              name={name}
+              close={c.close === true}
+            />
+          ) : null}
           {you && !verified ? (
             <Link
               className="btn btn--sm"

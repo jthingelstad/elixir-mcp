@@ -220,6 +220,15 @@ export const api = {
   homeFeedEvidence: (params) =>
     request("GET", `/api/me/home/feed?${new URLSearchParams(params)}`),
   homeNeeds: () => request("GET", "/api/me/home/needs"),
+  /** Your circle this week (2026-11-16): your close friends' week, or
+   *  players to mark while none is. */
+  homeCircle: () => request("GET", "/api/me/home/circle"),
+  /** Mark or unmark a friend you follow as a close friend: private to you. */
+  setClose: (player_tag, close) =>
+    request("POST", "/api/claims", {
+      action: close ? "close_on" : "close_off",
+      player_tag,
+    }),
   // The bell (2026-11-12): reactions to your items, new followers and your
   // feedback's answers; opening it moves your seen marker. Yours alone.
   bell: () => request("GET", "/api/me/bell"),

@@ -6885,6 +6885,13 @@ button.kit-row {
     flex-wrap: wrap;
     overflow: visible;
   }
+  /* With Close friends (2026-11-16) the Show chips no longer fit one line:
+     they and New wrap as one row of chips, so New follows the last Show
+     chip rather than taking a line of its own. The group keeps its name
+     for a screen reader. */
+  .kit-home__filters:has(.kit-chips > :nth-child(5)) .kit-chips {
+    display: contents;
+  }
   .kit-home__filters > .kit-chip {
     flex: none;
   }
@@ -7966,6 +7973,102 @@ a.kit-scard:focus-visible {
 }
 .kit-people__cost--free {
   color: var(--ok);
+}
+/* Your circle this week (2026-11-16): a strip of faces above the feed, one
+   line of fact each, that scrolls sideways inside itself so the page never
+   does. About one card tall. Card art is drawn as the kit draws it. */
+.kit-circle__strip {
+  display: flex;
+  gap: var(--s-3);
+  margin: 0;
+  padding: var(--s-1) var(--s-4) var(--s-3);
+  list-style: none;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x proximity;
+  min-width: 0;
+}
+.kit-circle__item {
+  flex: none;
+  width: 88px;
+  scroll-snap-align: start;
+}
+.kit-circle__face,
+.kit-circle__who {
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  min-width: 0;
+  text-align: center;
+  color: var(--ink);
+  text-decoration: none;
+}
+.kit-circle__name {
+  max-width: 100%;
+  overflow: hidden;
+  font-size: var(--t-caption);
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.kit-circle__fact {
+  color: var(--ink-dim);
+  font-size: var(--t-caption);
+  line-height: 1.3;
+}
+.kit-circle__face--quiet .kit-circle__fact {
+  color: var(--ink-faint);
+}
+.kit-circle__moment {
+  display: block;
+  color: var(--ink-dim);
+}
+.kit-circle__acts {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-1);
+}
+.kit-circle__acts .btn {
+  white-space: nowrap;
+}
+.kit-circle__lead {
+  margin: 0;
+  padding: 0 var(--s-4) var(--s-1);
+}
+/* The close-friend star: one tap, filled when marked. Only its owner sees
+   it. */
+.kit-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s-1);
+  min-width: var(--hit);
+  min-height: var(--hit);
+  border: 1px solid transparent;
+  border-radius: var(--r-control);
+  background: transparent;
+  color: var(--ink-dim);
+  cursor: pointer;
+}
+.kit-close:hover {
+  background: var(--hover-row);
+}
+.kit-close:focus-visible {
+  outline: 2px solid var(--accent-bright);
+  outline-offset: 2px;
+}
+.kit-close.btn {
+  background: var(--control);
+  color: var(--ink);
+}
+.kit-close[aria-pressed="true"] {
+  color: var(--gold);
+}
+.kit-close[aria-pressed="true"] svg {
+  fill: currentColor;
+}
+.kit-circle__face .kit-close {
+  min-height: 32px;
 }
 /* From your battles: when you last met, its own line under how it went. */
 .kit-people__when {

@@ -114,7 +114,8 @@ export function accountRoutes({
       if (r.error)
         return json(409, {
           error: r.error,
-          message: "Only a player you follow as a friend can be a close friend.",
+          message:
+            "Only a player you follow as a friend can be a close friend.",
         });
       return json(200, r);
     }

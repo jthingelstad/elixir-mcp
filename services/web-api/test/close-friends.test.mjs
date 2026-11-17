@@ -175,9 +175,7 @@ test("a linked account's players never disagree about the mark", async () => {
 test("the mark is the reader's alone: never on another reader's page or the owner's", async () => {
   const mine = data(await call(READER, "GET", "/api/me"));
   assert.equal(mine.claims.find((c) => c.player_tag === V).close, true);
-  const page = data(
-    await call(READER, "GET", "/api/player", null, { tag: V }),
-  );
+  const page = data(await call(READER, "GET", "/api/player", null, { tag: V }));
   assert.equal(page.you?.close, true);
   // The marked player's own account reads its page, its account page, its
   // bell and its activity: not a word of the mark.

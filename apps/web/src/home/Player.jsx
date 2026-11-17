@@ -47,6 +47,7 @@ import {
   sessionLink,
 } from "./Session.jsx";
 import { FollowAll, FollowButton } from "./follow.jsx";
+import { CloseToggle } from "./close.jsx";
 import { PlayerRecord } from "./PlayerRecord.jsx";
 import { useAskOnOpen } from "../lib/own-refresh.js";
 import { RefreshPlayer } from "./RefreshPlayer.jsx";
@@ -228,6 +229,10 @@ export function PlayerView({ page, initialTab = "timeline" }) {
           ) : (
             <FollowButton tag={p.tag} name={p.name} />
           )}
+          {/* Close friend (2026-11-16): a star by Following, yours alone. */}
+          {you.following && !you.own ? (
+            <CloseToggle tag={p.tag} name={p.name} close={you.close === true} />
+          ) : null}
           {you.own && !self ? (
             <Link
               to={statsHref("season", { player: p.tag })}
