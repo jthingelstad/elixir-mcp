@@ -35,7 +35,7 @@ export const cheerable = (it) => Boolean(it?.id) && it.section !== "account";
  *  `{ cheers: { well_played: 2, … }, my_cheer }`, only for items that have
  *  any or that the reader cheered. One read for the whole page. Cheers by
  *  anyone in a block with the reader, either way, are not counted in what
- *  the reader sees (0281). */
+ *  the reader sees (0282). */
 export async function cheersFor(db, itemIds, accountId) {
   const ids = [...new Set(itemIds.filter((id) => ITEM_ID_RE.test(id)))];
   const out = new Map();
