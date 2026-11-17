@@ -60,25 +60,17 @@ export function Cheers({ it, where, compact = false }) {
   const scope = useScope();
   const cheer = useCheer(where);
   const [open, setOpen] = useState(false);
-  // What a tap made while an earlier write is still out: shown at once,
-  // sent when that write answers, so answers never land out of order.
-  const [held, setHeld] = useState(null);
-  const queued = useRef(undefined);
-  const inFlight = useRef(false);
   const [pop, setPop] = useState(0);
   const press = useRef(null);
   const mainRef = useRef(null);
   const moreRef = useRef(null);
   const kindsRef = useRef(null);
-  // The item as the cache last drew it, for a queued write's base.
-  const latest = useRef(it);
-  useEffect(() => {
-    latest.current = it;
-  }, [it]);
   const pickId = useId();
   const wordsId = useId();
 
-  const shown = held ?? it;
+  // The cache is the item as you left it: `useCheer` writes each tap
+  // there at once, and sends the taps for an item one at a time.
+  const shown = it;
   const mine = shown.my_cheer ?? null;
   const counts = cheerCounts(shown.cheers);
   const total = counts.reduce((n, c) => n + c.count, 0);
@@ -101,37 +93,9 @@ export function Cheers({ it, where, compact = false }) {
       </p>
     ) : null;
 
-  const send = (next) => {
-    const base = latest.current;
-    if ((base.my_cheer ?? null) === next) {
-      setHeld(null);
-      return;
-    }
-    inFlight.current = true;
-    cheer.mutate(
-      { item: base, next, shown: withMyCheer(base, next) },
-      {
-        onError: () => {
-          queued.current = undefined;
-        },
-        onSettled: () => {
-          inFlight.current = false;
-          const q = queued.current;
-          queued.current = undefined;
-          if (q === undefined) setHeld(null);
-          else send(q);
-        },
-      },
-    );
-  };
   const set = (next) => {
     if (next) setPop((n) => n + 1);
-    if (inFlight.current) {
-      queued.current = next;
-      setHeld(withMyCheer(shown, next));
-      return;
-    }
-    send(next);
+    cheer.mutate({ item: it, next, shown: withMyCheer(it, next) });
   };
 
   const cancelPress = () => {
