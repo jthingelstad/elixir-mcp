@@ -8,9 +8,10 @@ import { sparkWords } from "./logic.js";
  * crown margin, one to three. A draw is a flat tick on the line, and a
  * battle whose crowns the record lacks is a short, faint bar: its direction
  * is known, its margin is not. The whole is one image whose name says the
- * same facts in words.
+ * same facts in words. `slim` is the session card's strip (2026-11-16):
+ * half the height, beside the figures.
  */
-export function Sparkline({ spark }) {
+export function Sparkline({ spark, slim = false }) {
   if (!Array.isArray(spark) || spark.length === 0) return null;
   // A long sitting closes the gaps so its bars keep their width.
   const density =
@@ -21,7 +22,7 @@ export function Sparkline({ spark }) {
         : "";
   return (
     <div
-      className={`kit-spark${density}`}
+      className={`kit-spark${density}${slim ? " kit-spark--slim" : ""}`}
       role="img"
       aria-label={sparkWords(spark)}
     >

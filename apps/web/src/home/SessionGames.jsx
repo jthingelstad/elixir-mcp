@@ -162,7 +162,20 @@ function Who({ p }) {
   );
 }
 
-function Game({ b, at, title, showMode }) {
+/** One game's row. A session's page (2026-11-16) adds the opponent's deck
+ *  (`theirs`), the facts it marked (`marks`), the deck it was played with
+ *  when the sitting saw several (`mine`) and, for the reader's own verified
+ *  player, a way to highlight it (`highlightTo`). */
+export function Game({
+  b,
+  at,
+  title,
+  showMode,
+  theirs = null,
+  mine = null,
+  marks = [],
+  highlightTo = null,
+}) {
   const outcome = RESULT[b.outcome] ? b.outcome : "unknown";
   const score = gameScore(b);
   const trophies = trophyWord(b);
@@ -224,6 +237,28 @@ function Game({ b, at, title, showMode }) {
             </>
           ) : null}
         </span>
+        {mine?.label ? (
+          <span className="kit-sgame__mine">
+            with <TagText>{mine.label}</TagText>
+          </span>
+        ) : null}
+        {marks.length ? (
+          <ul className="kit-sgame__marks" aria-label="Marked">
+            {marks.map((m) => (
+              <li key={m} className="chip chip--ok">
+                {m}
+              </li>
+            ))}
+          </ul>
+        ) : null}
+        {theirs?.cards?.length ? (
+          <div className="kit-sgame__theirs">
+            <DeckRow
+              cards={theirs.cards}
+              label={`Their deck${theirs.label ? `, ${theirs.label}` : ""}`}
+            />
+          </div>
+        ) : null}
         {duel ? (
           <ol className="kit-sgame__games" aria-label="The duel's games">
             {b.games.map((g) => (
@@ -262,6 +297,11 @@ function Game({ b, at, title, showMode }) {
         {url ? (
           <Link to={url} className="kit-sgame__go">
             Battle<span className="sr-only"> at {at}</span>
+          </Link>
+        ) : null}
+        {url && highlightTo ? (
+          <Link to={highlightTo} className="kit-sgame__go">
+            Highlight<span className="sr-only"> the battle at {at}</span>
           </Link>
         ) : null}
       </span>

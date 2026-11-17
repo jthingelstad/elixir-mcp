@@ -129,6 +129,51 @@ beforeEach(() => {
     const p = String(path);
     if (p === "/api/me") return reply(ME);
     if (p.startsWith("/api/player?")) return reply(page);
+    if (p.startsWith("/api/player/session?")) {
+      posted.push([p, null]);
+      const item = page.timeline[0];
+      return reply({
+        player: { tag: "#0VJ2QV", name: "Copper Fern" },
+        you: { own: false, can_highlight: false },
+        item,
+        games: {
+          item_id: item.id,
+          kind: "session",
+          version: "ev_1",
+          count: 2,
+          completeness: "recorded_sitting",
+          open: false,
+          order: "newest_first",
+          decks: [],
+          offset: 0,
+          limit: 25,
+          next_offset: null,
+          battles: [
+            {
+              battle_id: "b2",
+              at: "2026-11-10T14:40:00.000Z",
+              mode_group: "ladder",
+              outcome: "loss",
+              crowns: 0,
+              trophy_change: -26,
+              opponents: [{ player_tag: "#00L0", name: "Umber", crowns: 1 }],
+              url: "https://elixir.example/battle/aaaaaaaaaaa2",
+            },
+            {
+              battle_id: "b1",
+              at: "2026-11-10T14:00:00.000Z",
+              mode_group: "ladder",
+              outcome: "win",
+              crowns: 3,
+              trophy_change: 30,
+              opponents: [{ player_tag: "#00L0", name: "Umber", crowns: 0 }],
+              url: "https://elixir.example/battle/aaaaaaaaaaa1",
+            },
+          ],
+        },
+        marks: [],
+      });
+    }
     if (p.startsWith("/api/player/evidence?")) {
       posted.push([p, null]);
       return reply({
@@ -285,7 +330,7 @@ test(
 );
 
 test(
-  "a sitting draws as Home draws it: sparkline, numbers, and its games in place",
+  "a sitting draws as Home draws it, and its card opens the session's own page",
   { timeout: 20000 },
   async () => {
     page = {
@@ -302,7 +347,8 @@ test(
             lost: 1,
             trophy_net: 4,
             by_mode: { ladder: 2 },
-            decks: [{ label: "Hog Rider cycle" }],
+            decks: [{ label: "Hog Rider cycle", battles: 2 }],
+            started_at: "2026-11-10T14:00:00.000Z",
             ended_at: "2026-11-10T14:40:00.000Z",
           },
           spark: [
@@ -315,34 +361,44 @@ test(
     };
     window.history.pushState({}, "", "/home/player/0VJ2QV");
     render(<App />);
-    await screen.findByText("Copper Fern played two battles");
-    // The sitting's figures, as the canvas's .sfacts: each label beside its
-    // number.
-    const figures = Object.fromEntries(
-      [...document.querySelectorAll(".kit-sfacts dt")].map((dt) => [
-        dt.textContent,
-        dt.nextElementSibling?.textContent,
-      ]),
-    );
-    expect(figures).toEqual({
-      Battles: "2",
-      Won: "1",
-      Lost: "1",
-      Trophies: "+4",
+    // The card's headline is its facts; the timeline's sentence is not
+    // repeated on it.
+    const card = await screen.findByRole("link", {
+      name: "Open session: Won 1 of 2 on Trophy Road, lost 1, +4 trophies",
     });
-    expect(
-      screen.getByRole("img", { name: /won|lost|win|loss/i }),
-    ).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "Open session" }));
-    await screen.findByText("2 battles");
-    expect(posted[0][0]).toMatch(
-      /^\/api\/player\/evidence\?tag=%230VJ2QV&evidence_item_id=s1&expected_evidence_version=ev_1&evidence_offset=0$/,
+    expect(screen.queryByText("Copper Fern played two battles")).toBeNull();
+    expect(card.getAttribute("href")).toBe(
+      "/home/player/0VJ2QV/session/s1?at=2026-11-10T14%3A00%3A00.000Z",
     );
+    // Two battles is the compact card: the result and its trophies on one
+    // line, no figures and no strip.
+    expect(card.querySelector(".kit-sfacts, .kit-spark")).toBeNull();
+    expect(card.textContent).toContain("Won 1 of 2 on Trophy Road +4 trophies");
+    expect(screen.queryByRole("button", { name: "Open session" })).toBeNull();
+
+    fireEvent.click(card);
+    await screen.findByRole("heading", {
+      level: 1,
+      name: "Won 1 of 2 on Trophy Road",
+    });
+    expect(posted[0][0]).toBe(
+      "/api/player/session?tag=%230VJ2QV&id=s1&at=2026-11-10T14%3A00%3A00.000Z",
+    );
+    // Each game: its result, score, opponent's page, and its battle page.
+    const rows = document.querySelectorAll(".kit-sgame");
+    expect(rows).toHaveLength(2);
+    expect(rows[1].textContent).toContain("Three crowns");
     expect(
-      screen
-        .getByRole("button", { name: "Close session" })
-        .getAttribute("aria-expanded"),
-    ).toBe("true");
+      within(rows[0]).getByRole("link", { name: "Umber" }).getAttribute("href"),
+    ).toBe("/home/player/00L0");
+    expect(
+      within(rows[0])
+        .getByRole("link", { name: /^Battle/ })
+        .getAttribute("href"),
+    ).toBe("/battle/aaaaaaaaaaa2");
+    // Not the reader's own player: no Highlight.
+    expect(screen.queryByRole("link", { name: /^Highlight/ })).toBeNull();
+    expect(document.title).toBe("Session - Home - Elixir");
   },
 );
 

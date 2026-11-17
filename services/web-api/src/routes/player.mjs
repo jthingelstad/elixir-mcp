@@ -23,11 +23,13 @@ import {
   NEWS_SOURCES,
   playerHighlights,
   readTimelineEvidence,
+  sessionDeck,
+  sessionSpark,
   shownAt,
 } from "@elixir-mcp/tools/activity/entries";
 
 import { battleLinks } from "@elixir-mcp/record/battle-links";
-import { proofOf, sparkOf } from "../feed.mjs";
+import { proofOf, scoresOf, sparkOf } from "../feed.mjs";
 import { claimantsOf } from "../account-page.mjs";
 import { json } from "../http.mjs";
 import { homeClan } from "./clans.mjs";
@@ -125,16 +127,26 @@ async function readerSide(db, accountId, tag, clanTag) {
 /** The kinds that are a sitting: Home's session row draws them. */
 const SITTINGS = new Set(["battle_session", "session_standout"]);
 
-/** A sitting's numbers, as Home's session row says them, and nothing else
- *  of its facts: battles, won, lost, the trophies it moved, its modes, its
- *  most-played deck's label, and when it ended (the games' read says so). */
+/** A sitting's numbers, as Home's session card says them, and nothing else
+ *  of its facts: battles, won, lost, drawn, the trophies it moved, its
+ *  longest run of wins, its modes, its decks' labels and how many battles
+ *  each, its events' names, and when it started and ended (the card links
+ *  its page by the start; 2026-11-16). */
 const sittingFacts = (f = {}) => ({
   battles: f.battles ?? null,
   won: f.won ?? null,
   lost: f.lost ?? null,
+  drawn: f.drawn ?? null,
   trophy_net: f.trophy_net ?? null,
+  won_in_a_row: f.won_in_a_row ?? null,
   by_mode: f.by_mode ?? {},
-  decks: f.decks?.[0]?.label ? [{ label: f.decks[0].label }] : [],
+  decks: (f.decks ?? [])
+    .filter((d) => d?.label)
+    .map((d) => ({ label: d.label, battles: d.battles ?? null })),
+  events: (f.events ?? [])
+    .filter((e) => e?.name)
+    .map((e) => ({ name: e.name, battles: e.battles ?? null })),
+  started_at: f.started_at ?? null,
   ended_at: f.ended_at ?? null,
 });
 
@@ -144,6 +156,8 @@ const sittingFacts = (f = {}) => ({
  *  facts whole: the page needs none of the rest. */
 const pageItem = (it) => {
   const spark = SITTINGS.has(it.kind) ? sparkOf(it) : null;
+  const scores = SITTINGS.has(it.kind) ? scoresOf(sessionSpark(it)) : null;
+  const deck = SITTINGS.has(it.kind) ? sessionDeck(it) : null;
   return {
     id: it.id ?? null,
     kind: it.kind,
@@ -159,6 +173,8 @@ const pageItem = (it) => {
       ? {
           facts: sittingFacts(it.facts),
           ...(spark ? { spark } : {}),
+          ...(scores ? { scores } : {}),
+          ...(deck ? { deck } : {}),
           ...(it.evidence?.kind === "session" ? { evidence: it.evidence } : {}),
         }
       : {}),
@@ -168,15 +184,15 @@ const pageItem = (it) => {
 /** The page's timeline as the record has it now: the player's public items
  *  in the page's window. The page and its games' read build the same one,
  *  so an item's id and evidence version agree between them. */
-const pageTimeline = (db, tag, timezone, now) =>
+const pageTimeline = (db, tag, timezone, now, window = null) =>
   buildTimeline(
     db,
     // The reader's own nickname for this player never reaches the page, and
     // nobody else's does either: the subject goes in with no nickname.
     [{ kind: "player", tag, relationship: null, nickname: null }],
     {
-      fromMs: now - PAGE_DAYS * 86_400_000,
-      toMs: now,
+      fromMs: window?.fromMs ?? now - PAGE_DAYS * 86_400_000,
+      toMs: window?.toMs ?? now,
       timezone,
       // No account: none of the reader's own items, and no attested fact,
       // which has its own reader rules. The page is the public record.
@@ -187,6 +203,120 @@ const pageTimeline = (db, tag, timezone, now) =>
       filter: (it) => ["public", "member"].includes(itemVisibility(it)),
     },
   );
+
+/** The window a session's page reads, from the start its card names: an
+ *  hour before it to a day after, so one sitting is read whole and never
+ *  falls past the timeline's cap. A start the page cannot read, or one
+ *  older than the page's 30 days, reads the page's own window. */
+export function sessionWindow(at, now) {
+  const start = Date.parse(String(at ?? ""));
+  if (!Number.isFinite(start)) return null;
+  if (start > now || start < now - PAGE_DAYS * 86_400_000) return null;
+  return {
+    fromMs: start - 3_600_000,
+    toMs: Math.min(now, start + 86_400_000),
+  };
+}
+
+/** A moment a game in the sitting proved, as a word on that game's row:
+ *  the fact the moment names, never a judgement of the game. Null for a
+ *  kind with no short word. */
+export function markOf(it) {
+  const f = it.facts ?? {};
+  const n = (v) =>
+    typeof v === "number" ? v.toLocaleString("en-US") : String(v);
+  switch (it.kind) {
+    case "best_trophies_band": {
+      const to = f.to ?? f.best ?? f.value;
+      return to === undefined || to === null
+        ? "New best"
+        : `New best: ${n(to)} trophies`;
+    }
+    case "arena_changed":
+      return f.to_name ? `Reached ${f.to_name}` : null;
+    case "ranked_promotion":
+      return f.to_name ? `Promoted to ${f.to_name}` : null;
+    default:
+      return null;
+  }
+}
+
+/** One sitting on its own page (2026-11-16): the item as the card draws
+ *  it, a page of its games newest first with both sides' decks, the
+ *  moments its games proved, and whether the reader may highlight them.
+ *  The player page's public timeline, read in the sitting's window, so
+ *  the item's id and evidence version are the ones every card carries.
+ *  Null when the record has no such sitting for this player. */
+export async function readSessionPage(
+  db,
+  account,
+  tag,
+  { id, at, offset = 0, expectedVersion } = {},
+  now = Date.now(),
+) {
+  const { rows } = await db.query(
+    "select player_tag, name from player where player_tag = $1",
+    [tag],
+  );
+  if (!rows[0]) return null;
+  const built = await pageTimeline(
+    db,
+    tag,
+    account.timezone ?? "UTC",
+    now,
+    sessionWindow(at, now),
+  );
+  const timeline = built.timeline ?? [];
+  const item = timeline.find((it) => it.id === id && SITTINGS.has(it.kind));
+  if (!item) return null;
+  const games = await readTimelineEvidence(db, item, {
+    offset,
+    limit: 25,
+    expectedVersion,
+    detail: true,
+  });
+  if (games.error) return { error: games.error };
+  // The moments this sitting's games proved, each on its game's row. One
+  // statement: the proofs that are this player's battles in the sitting.
+  const proved = timeline
+    .map((it) => [proofOf(it), markOf(it)])
+    .filter(([battle, label]) => battle && label);
+  let marks = [];
+  if (proved.length) {
+    const { rows: inside } = await db.query(
+      `select battle_id from battle_participant
+        where player_tag = $1 and battle_id = any($2::text[])
+          and battle_time >= $3::timestamptz and battle_time <= $4::timestamptz`,
+      [tag, proved.map(([b]) => b), item.evidence.from, item.evidence.through],
+    );
+    const ids = new Set(inside.map((r) => r.battle_id));
+    marks = proved
+      .filter(([b]) => ids.has(b))
+      .map(([battle_id, label]) => ({ battle_id, label }));
+  }
+  const { rows: claims } = await db.query(
+    `select status, is_primary, relationship from claim
+      where account_id = $1 and player_tag = $2`,
+    [account.accountId, tag],
+  );
+  const claim = claims[0] ?? null;
+  return {
+    player: { tag: rows[0].player_tag, name: rows[0].name ?? null },
+    you: {
+      // As readerSide says it: a primary or an alt is the reader's own.
+      own: Boolean(
+        claim &&
+        (claim.is_primary || ["primary", "alt"].includes(claim.relationship)),
+      ),
+      // A verified player's games can be highlighted from their battle
+      // page (highlight.mjs eligiblePlayers asks the same).
+      can_highlight: claim?.status === "verified",
+    },
+    item: pageItem(item),
+    games,
+    marks,
+  };
+}
 
 /** The whole page, for one signed-in reader. */
 async function readPlayerPage(db, account, tag, now = Date.now()) {
@@ -561,6 +691,41 @@ export function playerRoutes({ resolveAccount, live = null }) {
           : 200,
         evidence,
       );
+    },
+
+    // One sitting's own page (2026-11-16): the item, a page of its games
+    // with both sides' decks, the moments they proved. One charge, as the
+    // page's; `at` is the sitting's start, which the card links by.
+    "GET /api/player/session": async (db, event) => {
+      const account = await resolveAccount(db, event);
+      if (!account) return json(401, { error: "unauthenticated" });
+      const q = event.queryStringParameters ?? {};
+      const tag = tagOf(q.tag);
+      if (!tag) return json(400, { error: "invalid_tag" });
+      if (!q.id) return json(400, { error: "invalid_item" });
+      if (!(await rate(db, account)))
+        return json(429, { error: "rate_limited" });
+      const page = await readSessionPage(db, account, tag, {
+        id: String(q.id),
+        at: q.at,
+        offset: q.offset === undefined ? 0 : Number(q.offset),
+        expectedVersion: q.expected_evidence_version,
+      });
+      if (!page)
+        return json(404, {
+          error: "not_found",
+          message: "Elixir has no record of that session.",
+        });
+      if (page.error)
+        return json(
+          page.error === "evidence_changed"
+            ? 409
+            : page.error === "evidence_unavailable"
+              ? 404
+              : 400,
+          page,
+        );
+      return json(200, page);
     },
 
     // What following several players would cost, said before the tap: a

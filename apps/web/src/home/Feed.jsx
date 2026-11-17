@@ -38,7 +38,13 @@ import {
   timelineDays,
 } from "./logic.js";
 import { FollowButton } from "./follow.jsx";
-import { evidenceWord, Sitting, SITTINGS } from "./Session.jsx";
+import {
+  evidenceWord,
+  Sitting,
+  SITTINGS,
+  sessionLink,
+  sittingCard,
+} from "./Session.jsx";
 import { SessionGames } from "./SessionGames.jsx";
 import { Cheers } from "./Cheers.jsx";
 import { RacePlace } from "./RacePlace.jsx";
@@ -502,6 +508,10 @@ function FeedItem({ it, open, onToggle }) {
     : null;
   const moment = !sitting && !clan && it.kind !== "battle_highlight";
   const band = BAND_WORDS[it.kind];
+  const card = sittingCard(it);
+  const sessionTo = card
+    ? sessionLink(it, who?.kind === "player" ? who.tag : null)
+    : null;
   const text = (
     <p className="kit-feed__text">
       <TagText>{it.text}</TagText>
@@ -525,7 +535,10 @@ function FeedItem({ it, open, onToggle }) {
           Open their account
         </Link>
       ) : null}
-      {it.evidence ? (
+      {/* A sitting opens its own page (2026-11-16): the card is the
+          link. A moment's crossing, and a sitting with no page to open,
+          still open in place. */}
+      {it.evidence && !sessionTo ? (
         <button
           type="button"
           className="btn btn--sm"
@@ -577,11 +590,16 @@ function FeedItem({ it, open, onToggle }) {
           </span>
           {text}
         </div>
+      ) : card ? (
+        <Sitting
+          it={it}
+          href={sessionTo}
+          who={who?.kind === "player" ? (who.name ?? who.tag) : null}
+        />
       ) : (
         text
       )}
       {it.kind === "week_resolved" ? <RacePlace rank={it.facts?.rank} /> : null}
-      {sitting ? <Sitting it={it} /> : null}
       {moment && it.battle_url ? <MomentBattle it={it} /> : null}
       <footer className="kit-feed__foot">
         {"cheers" in it ? <Cheers it={it} /> : null}

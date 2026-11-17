@@ -643,8 +643,9 @@ async function evidenceOpponents(db, records) {
  *  the record lacks is left out: no deck when no deck row was kept, no
  *  game's result when its crowns were level (the tiebreak is the tower
  *  hitpoints, which the battle page reads). Game names only, never a
- *  nickname. `decks` is the page's distinct decks; a battle names its own
- *  by index. */
+ *  nickname. `decks` is the page's distinct decks, the player's first; a
+ *  battle names its own by index (`deck`), and its one opponent's
+ *  (`opponent_deck`, 2026-11-16: the session page draws both). */
 async function sessionGameDetail(db, playerTag, records) {
   const byBattle = new Map();
   const decks = [];
@@ -658,6 +659,12 @@ async function sessionGameDetail(db, playerTag, records) {
                left join player tp on tp.player_tag = t.player_tag
               where t.battle_id = bp.battle_id and t.side = bp.side
                 and t.player_tag <> bp.player_tag) as teammates,
+            -- The other side's deck, when one player was on it (a 2v2's
+            -- two decks are not one opponent's).
+            (select case when count(*) = 1 then min(o.deck_hash) end
+               from battle_participant o
+              where o.battle_id = bp.battle_id and o.side <> bp.side)
+              as opponent_deck_hash,
             (select coalesce(jsonb_agg(jsonb_build_object(
                       'round', r.round, 'crowns', r.crowns, 'against', o.crowns)
                       order by r.round), '[]'::jsonb)
@@ -676,27 +683,36 @@ async function sessionGameDetail(db, playerTag, records) {
       where bp.battle_id = any($1::text[]) and bp.player_tag = $2`,
     [records.map((r) => r.battle_id), playerTag],
   );
-  const ids = await deckIdentities(
-    db,
-    rows.map((r) => r.deck_hash),
-  );
+  const ids = await deckIdentities(db, [
+    ...rows.map((r) => r.deck_hash),
+    ...rows.map((r) => r.opponent_deck_hash).filter(Boolean),
+  ]);
   const deckIndex = new Map();
+  // A deck's index in the page's `decks`, added on first sight; null when
+  // the record kept no cards for it.
+  const indexOf = (hash) => {
+    const identity = hash ? ids.get(hash) : null;
+    const cards = identity ? deckCardsWithCost(identity) : null;
+    if (!cards?.length) return null;
+    if (!deckIndex.has(hash)) {
+      const a = identity.archetype;
+      deckIndex.set(hash, decks.length);
+      decks.push({
+        // A deck with no attested shape keeps its cards and no label.
+        label: a?.label && a.family !== "unclassified" ? a.label : null,
+        cards,
+      });
+    }
+    return deckIndex.get(hash);
+  };
+  // The player's own decks first, so a page's first decks are theirs.
+  for (const r of rows) indexOf(r.deck_hash);
   for (const r of rows) {
     const out = {};
-    const identity = r.deck_hash ? ids.get(r.deck_hash) : null;
-    const cards = identity ? deckCardsWithCost(identity) : null;
-    if (cards?.length) {
-      if (!deckIndex.has(r.deck_hash)) {
-        const a = identity.archetype;
-        deckIndex.set(r.deck_hash, decks.length);
-        decks.push({
-          // A deck with no attested shape keeps its cards and no label.
-          label: a?.label && a.family !== "unclassified" ? a.label : null,
-          cards,
-        });
-      }
-      out.deck = deckIndex.get(r.deck_hash);
-    }
+    const own = indexOf(r.deck_hash);
+    if (own !== null) out.deck = own;
+    const theirs = indexOf(r.opponent_deck_hash);
+    if (theirs !== null) out.opponent_deck = theirs;
     if (r.teammates.length) out.teammates = r.teammates;
     if (r.rounds.length)
       out.games = r.rounds.map((g) => ({

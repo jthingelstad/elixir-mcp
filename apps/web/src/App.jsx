@@ -61,7 +61,7 @@ import {
   statsTitle,
 } from "./stats/stats.js";
 import { HOME, SIGN_IN, movedTo } from "./lib/moved.js";
-import { FOLLOW_ME, isPlayerPath } from "./lib/player.js";
+import { FOLLOW_ME, isPlayerPath, isSessionPath } from "./lib/player.js";
 import { PASSPORT, isPassportPath } from "./lib/passport.js";
 import { ACCOUNT, accountIdOf, isAccountPath } from "./lib/account.js";
 import { normTag } from "./lib/tag-url.js";
@@ -215,6 +215,12 @@ const POST_PATH = /^\/h\/[a-z2-7]{15}$/;
 export function barArea(path, me = null) {
   const clean = path.replace(/(.)\/$/, "$1");
   if (ownPlayerPath(clean, me)) return "you";
+  // A session's page (2026-11-16) is the feed's: one of your own players'
+  // is You's, anyone else's Home's, where its card sat.
+  if (isSessionPath(path))
+    return ownPlayerPath(clean.replace(/\/session\/[^/]+$/, ""), me)
+      ? "you"
+      : "home";
   if (clean === FIND || isPlayerPath(path)) return "find";
   // Your passport is You's; another member's is Find's, like their page.
   if (clean === PASSPORT) return "you";
@@ -268,6 +274,7 @@ const HOME_PATHS = new Set([HOME, FIND, YOU]);
 const isHome = (path) =>
   HOME_PATHS.has(path.replace(/(.)\/$/, "$1")) ||
   isPlayerPath(path) ||
+  isSessionPath(path) ||
   isPassportPath(path) ||
   isAccountPath(path);
 
@@ -328,6 +335,7 @@ export function titleFor(path) {
     if (tab === "passport" || isPassportPath(path))
       return `Passport - Home - ${SITE}`;
     if (tab === "account") return `Account - Home - ${SITE}`;
+    if (isSessionPath(path)) return `Session - Home - ${SITE}`;
     const name =
       tab === "player" ? "Player" : tab === "follow" ? "Follow" : null;
     return name ? `${name} - Home - ${SITE}` : `Home - ${SITE}`;
@@ -759,6 +767,16 @@ const playerRoute = createRoute({
   ),
 });
 
+/** A session's own page (2026-11-16): every session card opens it. */
+const sessionRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/home/player/$tag/session/$id",
+  component: lazyRouteComponent(
+    () => import("./home/SessionPage.jsx"),
+    "SessionPage",
+  ),
+});
+
 /** A passport (#1015): yours, and anyone's by its id. */
 const passportRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -813,6 +831,7 @@ export const routeTree = rootRoute.addChildren([
   findRoute,
   youRoute,
   playerRoute,
+  sessionRoute,
   followMeRoute,
   passportRoute,
   passportViewRoute,

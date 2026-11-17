@@ -147,7 +147,7 @@ for (const [label, width] of [
       });
       await page.goto("/home");
       const feed = page.locator(".kit-feed");
-      await expect(feed.getByText("Won 3 of 5 in Trophy Road.")).toBeVisible();
+      await expect(feed.getByText("Won 3 of 5 on Trophy Road")).toBeVisible();
       release();
 
       const panel = page.locator(".panel").filter({

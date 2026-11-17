@@ -54,7 +54,8 @@ for (const [label, width] of [
       // The three tabs are gone.
       await expect(page.getByRole("tab", { name: "Timeline" })).toHaveCount(0);
       const feed = page.locator(".kit-feed");
-      await expect(feed.getByText("Won 3 of 5 in Trophy Road.")).toBeVisible();
+      // A sitting's card says it from its facts, not the timeline's line.
+      await expect(feed.getByText("Won 3 of 5 on Trophy Road")).toBeVisible();
       await expect(
         feed.getByText("Ada's Clan finished 2nd in the river race."),
       ).toBeVisible();
@@ -62,7 +63,10 @@ for (const [label, width] of [
       // A sitting's sparkline, and its figures beside their labels.
       await expect(feed.getByRole("img", { name: SPARK_WORDS })).toBeVisible();
       await expect(feed.locator(".kit-sfacts")).toHaveText(
-        "Battles5Won3Lost2Trophies+28",
+        "Won3Lost2Trophies+28",
+      );
+      await expect(feed.locator(".kit-scard__caption")).toHaveText(
+        "Giant beatdown · 4 of 5 battles · +1 more deck: Hog Rider cycle (1)",
       );
       // A clan's line retains its identifying class; a moment links its battle.
       await expect(page.locator(".kit-feed__item--clan")).toHaveCount(1);
@@ -115,7 +119,8 @@ for (const [label, width] of [
       ).toBeVisible();
       await chips.getByRole("button", { name: /^You/ }).click();
       await expect(feed.locator(".kit-feed__item")).toHaveCount(1);
-      await expect(feed.getByText("Won 3 of 5 in Trophy Road.")).toBeVisible();
+      // A sitting's card says it from its facts, not the timeline's line.
+      await expect(feed.getByText("Won 3 of 5 on Trophy Road")).toBeVisible();
       await expect(chips.getByRole("button", { name: /^You/ })).toHaveAttribute(
         "aria-pressed",
         "true",
@@ -146,12 +151,35 @@ for (const [label, width] of [
       await expect(
         page.getByText(/the 3 newest are shown, and 46 more/),
       ).toBeVisible();
-      await page.getByRole("button", { name: "Open session" }).click();
-      const games = page.locator(".kit-sgames");
-      await expect(games.getByText("1 battle", { exact: true })).toBeVisible();
+      // The card opens the session's own page, and Back returns.
+      await page
+        .getByRole("link", { name: /^Open King Thing’s session:/ })
+        .click();
+      await expect(page).toHaveURL(
+        /\/home\/player\/20JJJ2CCRU\/session\/n1\?at=/,
+      );
+      await expect(
+        page.getByRole("heading", {
+          level: 1,
+          name: "Won 3 of 5 on Trophy Road",
+        }),
+      ).toBeVisible();
+      const games = page.locator(".kit-session__games");
       await expect(games.locator(".kit-sgame--win")).toContainText("vs Rowan");
       await expect(games.locator(".kit-sgame--win")).toContainText("+30");
+      await expect(games.locator(".kit-sgame--win")).toContainText(
+        "Three crowns",
+      );
+      // The reader's own verified player: a highlight is one tap away.
+      await expect(
+        games.getByRole("link", { name: /^Highlight/ }),
+      ).toHaveAttribute("href", "/battle/b1#highlight");
       await noSideways(page);
+      await page.goBack();
+      await expect(page).toHaveURL(/\/home$/);
+      await expect(
+        page.getByRole("link", { name: /^Open King Thing’s session:/ }),
+      ).toBeVisible();
     });
 
     test("the bell: lit while something needs you, and the sheet lists it", async ({
@@ -197,7 +225,7 @@ for (const [label, width] of [
       await expect(
         page.getByText("Your week could not be read just now"),
       ).toBeVisible();
-      await expect(page.getByText("Won 3 of 5 in Trophy Road.")).toBeVisible();
+      await expect(page.getByText("Won 3 of 5 on Trophy Road")).toBeVisible();
       await noSideways(page);
     });
 
@@ -241,7 +269,7 @@ for (const [label, width] of [
       await expect(
         page.locator(".kit-head").getByRole("group", { name: "Show" }),
       ).toBeVisible();
-      await expect(page.getByText("Won 3 of 5 in Trophy Road.")).toBeVisible();
+      await expect(page.getByText("Won 3 of 5 on Trophy Road")).toBeVisible();
       await expect(
         page.locator('.kit-home__side [aria-busy="true"]'),
       ).toHaveCount(2);

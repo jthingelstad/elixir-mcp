@@ -12,7 +12,13 @@ import { scratchDb } from "../../../packages/ingest/test/helpers.mjs";
 import { emitEvent } from "../../../packages/ingest/src/events.mjs";
 import { createSession } from "@elixir-mcp/auth";
 import { makeHandler } from "../src/handler.mjs";
-import { followAllRefusal, followPlan, tagsOf } from "../src/routes/player.mjs";
+import {
+  followAllRefusal,
+  followPlan,
+  markOf,
+  sessionWindow,
+  tagsOf,
+} from "../src/routes/player.mjs";
 
 // Made-up tags: this repository is public.
 const A = "#0JR2U89V"; // verified by X
@@ -503,10 +509,14 @@ test("a sitting carries Home's session row: sparkline, numbers, and its games by
     "battles",
     "by_mode",
     "decks",
+    "drawn",
     "ended_at",
+    "events",
     "lost",
+    "started_at",
     "trophy_net",
     "won",
+    "won_in_a_row",
   ]);
   assert.equal(sitting.facts.battles, 3);
   assert.equal(sitting.evidence.kind, "session");
@@ -550,4 +560,92 @@ test("a sitting carries Home's session row: sparkline, numbers, and its games by
     ).statusCode,
     401,
   );
+});
+
+test("a session's own page: the item, its games newest first, the reader's side, and refusals", async () => {
+  const page = data(
+    await call(X, "GET", `/api/player?tag=${encodeURIComponent(A)}`),
+  );
+  const sitting = page.timeline.find((it) => it.kind === "battle_session");
+  assert.ok(sitting?.facts.started_at, JSON.stringify(sitting));
+  const ask = (who, q) =>
+    call(who, "GET", `/api/player/session?${new URLSearchParams(q)}`);
+
+  // The owner, by the card's link (its start), reads the sitting whole.
+  const own = await ask(X, {
+    tag: A,
+    id: sitting.id,
+    at: sitting.facts.started_at,
+  });
+  assert.equal(own.statusCode, 200, own.body);
+  const body = data(own);
+  assert.equal(body.player.name, "Alder");
+  assert.deepEqual(body.you, { own: true, can_highlight: true });
+  assert.equal(body.item.id, sitting.id);
+  assert.equal(body.item.evidence.version, sitting.evidence.version);
+  assert.equal(body.games.order, "newest_first");
+  assert.deepEqual(
+    body.games.battles.map((b) => b.outcome),
+    ["win", "loss", "win"],
+  );
+  assert.deepEqual(body.marks, []);
+  assert.ok(!own.body.includes(NICK));
+
+  // Another reader sees the same public games, and may not highlight.
+  const other = data(await ask(R, { tag: A, id: sitting.id }));
+  assert.deepEqual(other.you, { own: false, can_highlight: false });
+  assert.equal(other.games.battles.length, 3);
+  // Y follows A (a friend claim): not theirs either.
+  assert.deepEqual(data(await ask(Y, { tag: A, id: sitting.id })).you, {
+    own: false,
+    can_highlight: false,
+  });
+
+  assert.equal(
+    (
+      await ask(R, {
+        tag: A,
+        id: sitting.id,
+        offset: "0",
+        expected_evidence_version: "ev_stale",
+      })
+    ).statusCode,
+    409,
+  );
+  assert.equal((await ask(R, { tag: A, id: "tl_nothing" })).statusCode, 404);
+  assert.equal((await ask(R, { tag: "nope", id: "x" })).statusCode, 400);
+  assert.equal((await ask(R, { tag: A })).statusCode, 400);
+  assert.equal((await ask(null, { tag: A, id: sitting.id })).statusCode, 401);
+});
+
+test("a session's window: an hour before its start to a day after, else the page's", () => {
+  const now = Date.parse("2026-11-16T12:00:00Z");
+  assert.deepEqual(sessionWindow("2026-11-15T10:00:00Z", now), {
+    fromMs: Date.parse("2026-11-15T09:00:00Z"),
+    toMs: Date.parse("2026-11-16T10:00:00Z"),
+  });
+  assert.deepEqual(sessionWindow("2026-11-16T11:00:00Z", now), {
+    fromMs: Date.parse("2026-11-16T10:00:00Z"),
+    toMs: now,
+  });
+  assert.equal(sessionWindow("nonsense", now), null);
+  assert.equal(sessionWindow(undefined, now), null);
+  assert.equal(sessionWindow("2026-12-01T00:00:00Z", now), null);
+  assert.equal(sessionWindow("2026-09-01T00:00:00Z", now), null);
+});
+
+test("a game's mark says the moment's fact, and nothing for a kind without one", () => {
+  assert.equal(
+    markOf({ kind: "best_trophies_band", facts: { to: 9000 } }),
+    "New best: 9,000 trophies",
+  );
+  assert.equal(
+    markOf({ kind: "arena_changed", facts: { to_name: "Legendary Arena" } }),
+    "Reached Legendary Arena",
+  );
+  assert.equal(
+    markOf({ kind: "ranked_promotion", facts: { to_name: "Champion" } }),
+    "Promoted to Champion",
+  );
+  assert.equal(markOf({ kind: "badge_earned", facts: {} }), null);
 });

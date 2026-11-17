@@ -310,9 +310,9 @@ for (const [summaryCount, evidenceCount] of [
       }),
     );
     await page.goto("/home");
-    const row = page.locator(".kit-feed__item", {
-      hasText: "Example Player 12",
-    });
+    // These sittings name no player, so they have no page of their own
+    // and still read their games in place (2026-11-16).
+    const row = page.locator(".kit-feed__item").nth(12);
     await expect(row).toBeVisible();
     expect(
       await page.evaluate(

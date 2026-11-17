@@ -1,4 +1,4 @@
-import { useId, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { useWrite } from "../client/index.ts";
 import { ConfirmAction, Icon, WriteError, useFlash } from "@elixir-mcp/ui";
 import { api } from "../api.js";
@@ -20,6 +20,12 @@ const count = (s) => [...s].length;
 export function BattleHighlight({ battle, sides }) {
   const query = useMyHighlights(battle.id);
   const data = query.data;
+  // A session page's Highlight lands here (#highlight, 2026-11-16): once
+  // the panel has drawn, it scrolls into view.
+  useEffect(() => {
+    if (!data || window.location.hash !== "#highlight") return;
+    document.getElementById("highlight")?.scrollIntoView?.({ block: "start" });
+  }, [data]);
   if (!data) return null;
   const { can_highlight_as: players = [], highlights = [] } = data;
   const posted = new Set(highlights.map((h) => h.player_tag));
@@ -30,7 +36,11 @@ export function BattleHighlight({ battle, sides }) {
     tag;
   const invalidate = [keys.highlights(battle.id), FEED, HOME_FEED_KEY];
   return (
-    <section className="panel" aria-label="Highlight this battle">
+    <section
+      id="highlight"
+      className="panel"
+      aria-label="Highlight this battle"
+    >
       <div className="panel__head">Highlight this battle</div>
       <div className="panel__body">
         {highlights.map((h) => (

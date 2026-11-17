@@ -32,6 +32,11 @@ const CARDS_B = [
   26000004, 26000003, 26000017, 26000012, 26000018, 26000000, 28000008,
   27000002,
 ].map((c, i) => ({ id: c, name: `Card B${i}` }));
+// The opponent's deck (2026-11-16: the session page draws it).
+const CARDS_C = [
+  26000009, 26000048, 26000015, 26000035, 26000039, 28000012, 28000007,
+  28000015,
+].map((c, i) => ({ id: c, name: `Card C${i}` }));
 
 let scratch, db, owner;
 const GAMES = 26; // past one page of 25
@@ -85,6 +90,7 @@ before(async () => {
   );
   const hashA = await seedDeck(db, { battle_time: at(0), cards: CARDS_A });
   const hashB = await seedDeck(db, { battle_time: at(0), cards: CARDS_B });
+  const hashC = await seedDeck(db, { battle_time: at(0), cards: CARDS_C });
   // 1v1s: the first 20 with deck A, then deck B.
   for (let n = 1; n <= GAMES - 2; n++) {
     const b = id(n);
@@ -105,7 +111,10 @@ before(async () => {
       player_tag: ME,
       cards: n <= 20 ? CARDS_A : CARDS_B,
     });
-    await participant(b, FOE, 1, n, { crowns: win ? 1 : 2 });
+    await participant(b, FOE, 1, n, {
+      crowns: win ? 1 : 2,
+      deck_hash: hashC,
+    });
   }
   // A 2v2: a teammate beside, two on the other side.
   const two = id(GAMES - 1);
@@ -210,8 +219,17 @@ test("the website's page is newest first, with decks, a teammate and a duel's ga
     two.opponents.map((o) => o.player_tag).sort(),
     [FOE, FOE2].sort(),
   );
-  assert.equal(page.decks.length, 2);
+  // The player's two decks first, then the opponent's.
+  assert.equal(page.decks.length, 3);
+  assert.deepEqual([last.deck, page.battles.at(-1).deck].sort(), [0, 1]);
   assert.equal(page.decks[last.deck].cards.length, 8);
+  assert.deepEqual(
+    page.decks[last.opponent_deck].cards.map((c) => c.id).sort(),
+    CARDS_C.map((c) => c.id).sort(),
+  );
+  // A 2v2's other side is two decks, never one opponent's.
+  assert.equal(two.opponent_deck, undefined);
+  assert.equal(duel.opponent_deck, undefined);
   const ids = (d) => d.cards.map((c) => c.id).sort();
   assert.deepEqual(ids(page.decks[last.deck]), CARDS_B.map((c) => c.id).sort());
   assert.deepEqual(

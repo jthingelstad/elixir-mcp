@@ -7690,6 +7690,149 @@ a.kit-mbattle:hover {
   font-weight: 600;
 }
 
+/* A session's card (2026-11-16): a headline of its facts, its figures
+   with a slim strip beside them, chips for the facts that stand out, and
+   the deck played most. The whole card is one link to the session's page;
+   one battle is a lighter card, never a taller one. */
+.kit-scard {
+  display: grid;
+  gap: var(--s-2);
+  margin-top: var(--s-1);
+  color: inherit;
+  text-decoration: none;
+  min-width: 0;
+}
+a.kit-scard:hover .kit-scard__title,
+a.kit-scard:focus-visible .kit-scard__title {
+  color: var(--ink-link-hover);
+}
+a.kit-scard:focus-visible {
+  outline: 2px solid var(--accent-bright);
+  outline-offset: 4px;
+  border-radius: var(--r-control);
+}
+.kit-scard__title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: 0.3em;
+  margin: 0;
+  color: var(--ink);
+  font-size: var(--t-body);
+  font-weight: 700;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+.kit-scard__go {
+  display: inline-flex;
+  margin-left: auto;
+  color: var(--ink-faint);
+  flex: 0 0 auto;
+}
+.kit-scard__net {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-dim);
+}
+.kit-scard__net--up {
+  color: var(--ok);
+}
+.kit-scard__net--down {
+  color: var(--bad);
+}
+.kit-scard__figs {
+  display: grid;
+  grid-template-columns: auto minmax(0, 220px);
+  justify-content: start;
+  gap: var(--s-2) var(--s-5);
+  align-items: center;
+}
+.kit-scard__figs .kit-spark {
+  width: 100%;
+}
+.kit-scard__chips,
+.kit-sgame__marks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.kit-scard__chips > .chip {
+  background: var(--panel-raised);
+  color: var(--ink-dim);
+}
+.kit-scard__deck .kit-deckrow {
+  max-width: 420px;
+}
+.kit-scard__deck--one .kit-deckrow {
+  max-width: 260px;
+  gap: 3px;
+}
+.kit-scard__more {
+  color: var(--ink-faint);
+}
+/* The card's strip: half the height, beside the figures. */
+.kit-spark.kit-spark--slim {
+  height: 30px;
+}
+
+/* A session's page (2026-11-16): the summary, the decks with their art,
+   then every game. */
+.kit-session {
+  display: grid;
+  gap: var(--s-5);
+  min-width: 0;
+}
+.kit-session__summary,
+.kit-session__decks,
+.kit-session__games {
+  display: grid;
+  gap: var(--s-3);
+  min-width: 0;
+}
+.kit-session__h {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-1) var(--s-2);
+  margin: 0;
+  color: var(--ink);
+  font-size: var(--t-body);
+  font-weight: 700;
+}
+.kit-session__hnote {
+  color: var(--ink-faint);
+  font-weight: 400;
+  font-size: var(--t-body-sm);
+}
+.kit-session__deck {
+  display: grid;
+  gap: 6px;
+}
+.kit-session__honest {
+  display: grid;
+  gap: 2px;
+}
+.kit-sgame__mine {
+  color: var(--ink-faint);
+  font-size: var(--t-caption);
+  overflow-wrap: anywhere;
+}
+.kit-sgame__marks {
+  margin-top: 2px;
+}
+/* The other side's deck, small: the art at the row's width, never
+   resized as a file. */
+.kit-sgame__theirs {
+  margin-top: 4px;
+}
+.kit-sgame__theirs .kit-deckrow {
+  max-width: 240px;
+  gap: 2px;
+}
+
 .kit-cheers {
   display: grid;
   gap: 6px;

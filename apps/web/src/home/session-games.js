@@ -62,3 +62,50 @@ export function sameCards(a, b) {
 
 /** A player as a row names them: the in-game name, else the public tag. */
 export const nameOf = (p) => p?.name ?? p?.player_tag ?? "Unknown";
+
+/** An English ordinal: 1st, 2nd, 3rd, 4th, 11th, 21st. */
+export function ordinal(n) {
+  const tens = n % 100;
+  if (tens >= 11 && tens <= 13) return `${n}th`;
+  return `${n}${{ 1: "st", 2: "nd", 3: "rd" }[n % 10] ?? "th"}`;
+}
+
+/**
+ * The games that mattered on a session's page (2026-11-16), as plain facts
+ * on their rows: a win that took all three crowns, the win that ended a run
+ * of three or more, and the moments the server says a game proved ("New
+ * best: 7,512 trophies"). The run needs the sitting's battles in played
+ * order (`spark`) to line up with the page: it is said only when the strip
+ * holds every recorded game. A Map of battle id to its words.
+ */
+export function gameMarks(
+  battles = [],
+  { spark = null, count = 0, offset = 0, marks = [] } = {},
+) {
+  const out = new Map();
+  const add = (id, word) => {
+    if (!id || !word) return;
+    const list = out.get(id) ?? [];
+    if (!list.includes(word)) list.push(word);
+    out.set(id, list);
+  };
+  for (const m of marks) add(m.battle_id, m.label);
+  const runs =
+    Array.isArray(spark) && spark.length === count && count > 0
+      ? spark.reduce((acc, b, i) => {
+          acc.push(b.r === "w" ? (i ? acc[i - 1] : 0) + 1 : 0);
+          return acc;
+        }, [])
+      : null;
+  battles.forEach((b, j) => {
+    if (b.outcome === "win" && b.crowns === 3) add(b.battle_id, "Three crowns");
+    if (!runs) return;
+    // The page is newest first; the strip is in played order.
+    const i = count - 1 - (offset + j);
+    if (i < 0 || i >= count) return;
+    const ends = i === count - 1 || spark[i + 1].r !== "w";
+    if (spark[i].r === "w" && runs[i] >= 3 && ends && b.outcome === "win")
+      add(b.battle_id, `${ordinal(runs[i])} win in a row`);
+  });
+  return out;
+}
