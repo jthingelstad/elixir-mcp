@@ -4,11 +4,12 @@ The kinds and delivery behavior are documented publicly at `/docs/email`;
 this file is the design, not the description (AGENTS.md). Composition is
 structured from recorded facts, without model generation.
 
-Four product kinds are active (`ACTIVE_PRODUCT_EMAIL_KINDS` in
+Five product kinds are active (`ACTIVE_PRODUCT_EMAIL_KINDS` in
 `packages/contracts/src/queue.ts`): two scheduled (`tracking_report`,
 the one digest, weekly or daily by the reader's choice, and
-`collector_activity` weekly, only for collector operators) and two that
-come when something happens (`clan_actions_waiting`, `feedback_answer`).
+`collector_activity` weekly, only for collector operators) and three that
+come when something happens (`clan_actions_waiting`, `feedback_answer`,
+and since 2026-11-16 `activity_today`, the activity mail).
 The collector upgrade notice is part of `collector_activity`. The digest
 is the one scheduled mail to members; `collector_activity` (to the
 people running a collector) and `clan_actions_waiting` (to leaders with
@@ -353,6 +354,24 @@ drain. Facts: the `account_feedback_responded` item (`answerItem`,
 Issue key `feedback-answer/<id>/<responded_at>`. Fixture:
 `feedbackFixture` (`services/jobs/test/digest-fixture.mjs`).
 
+**The activity mail** (`activity_today`, "Cheers on your play",
+2026-11-16; `docs/notes/2026-11-16-reach-you.md`): `runActivityMail` in
+`services/jobs/src/email/activity-today.mjs`, on its own hourly rule
+(`ActivityMailRule`, `{"activity_mail": true}`, minute 7; the stack
+parameter `ActivityMail=off` disables it). Each run mails the accounts
+whose local hour (`account.timezone`, UTC when unset or unknown) is
+`ACTIVITY_HOUR` (18). Candidates: person accounts with the switch on
+whose own verified players had another person's cheer
+(`timeline_cheer.subject_tags`, 0280) or a person's friend claim in the
+last day. Facts: the bell's own read, `readAwayActivity`
+(`packages/tools/src/activity/bell.mjs`), with `since` the latest of
+`bell_seen`, the account's last activity mail and a day ago; counts per
+item and per own player, never who. Nothing new, nothing sent. Issue:
+period key the local date, subject key the account, so one a day. The
+switch's default is `ACTIVITY_MAIL_DEFAULT_ON` in contracts
+(`emailKindDefault`), read by the candidates' query and
+`GET /api/me/email`.
+
 `collector_release_note` stores the GitHub notes and URL from the
 verifying naming script, plus an optional maintainer `--reason=`. It
 describes the release's purpose, never a host's installation mechanism.
@@ -475,12 +494,14 @@ no tool returns is left out, not estimated.
 Settings › Emails (`apps/web/src/views/account/EmailPage.jsx`):
 the two scheduled kinds (the digest with its cadence, and collector
 activity) as rows showing the day each arrives in the account's zone,
-the two event kinds below them, the last
+the three event kinds below them, the last
 four sends beside them, and an Every email switch at the top. The page
 computes no schedule of its own: `GET /api/me/email` returns, per active
 kind, `product` (`MAIL_SOURCE`), `sends` (`{weekday, time, zone}` from
 `mailSendTime`, the footer's function; null for the event kinds),
-`last_send_id` and `applies`. Every email is on only when all four are,
+`last_send_id` and `applies` (the activity mail applies with a verified
+own player). An absent row is the kind's default (`emailKindDefault`).
+Every email is on only when all five are,
 and writes `"all"`.
 
 ## Not built

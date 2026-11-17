@@ -110,6 +110,7 @@ export const PRODUCT_EMAIL_KINDS = [
   "milestone",
   "clan_actions_waiting",
   "feedback_answer",
+  "activity_today",
 ] as const;
 export type ProductEmailKind = (typeof PRODUCT_EMAIL_KINDS)[number];
 /** Kinds Elixir no longer sends: `clan_report`, `arena_week` and
@@ -124,6 +125,15 @@ export const RETIRED_EMAIL_KINDS: readonly ProductEmailKind[] = [
 ];
 export function isRetiredEmailKind(kind: string): boolean {
   return (RETIRED_EMAIL_KINDS as readonly string[]).includes(kind);
+}
+/** Whether the activity mail (`activity_today`, 2026-11-16: cheers and
+ *  new followers you have not seen, at most one a day) is on for a person
+ *  who never touched its switch. The one place its default lives: flip it
+ *  here and every reader (the recipients' query, Settings › Emails) follows. */
+export const ACTIVITY_MAIL_DEFAULT_ON = true;
+/** A kind's switch for a person with no stored row for it. */
+export function emailKindDefault(kind: string): boolean {
+  return kind === "activity_today" ? ACTIVITY_MAIL_DEFAULT_ON : true;
 }
 /** Historical kinds stay valid for sent records and old unsubscribe links. */
 export const ACTIVE_PRODUCT_EMAIL_KINDS = PRODUCT_EMAIL_KINDS.filter(
@@ -221,6 +231,7 @@ export const EMAIL_KIND_CLASS: Record<
   milestone: "bulk",
   clan_actions_waiting: "bulk",
   feedback_answer: "bulk",
+  activity_today: "bulk",
 };
 
 export function isProductEmailKind(kind: unknown): kind is ProductEmailKind {

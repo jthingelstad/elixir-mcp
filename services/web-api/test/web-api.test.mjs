@@ -1450,6 +1450,7 @@ test("emails sent to me: the list, one record with its archived body (pixel stri
   for (const k of ["milestone", "arena_week", "clan_report"])
     assert.equal(kind(k), undefined, k);
   assert.deepEqual(prefs.kinds.map((x) => x.kind).sort(), [
+    "activity_today",
     "clan_actions_waiting",
     "collector_activity",
     "feedback_answer",
@@ -1462,6 +1463,11 @@ test("emails sent to me: the list, one record with its archived body (pixel stri
   assert.equal(kind("collector_activity").cadence, null);
   assert.match(kind("tracking_report").sends.time, /^\d{1,2}:00 (am|pm)$/);
   assert.equal(kind("clan_actions_waiting").sends, null);
+  // The activity mail (2026-11-16): event mail, on by default
+  // (ACTIVITY_MAIL_DEFAULT_ON), from Home.
+  assert.equal(kind("activity_today").sends, null);
+  assert.equal(kind("activity_today").enabled, true);
+  assert.equal(kind("activity_today").product, "Home");
   assert.deepEqual(Object.keys(kind("collector_activity").sends).sort(), [
     "time",
     "weekday",

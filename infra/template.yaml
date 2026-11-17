@@ -110,6 +110,14 @@ Parameters:
       Elixir sign-in widget's secret); until then the relay records every
       sign-in mail's Turnstile check as unconfigured and sends it
       (docs/SECRETS.md).
+  ActivityMail:
+    Type: String
+    Default: "on"
+    AllowedValues: ["on", "off"]
+    Description: >-
+      The activity mail's hourly rule (activity_today, 2026-11-16 - cheers
+      and new followers a person has not seen, at most one a day). off
+      disables the rule without a code change; a deploy never resets it.
   DiscordClientId:
     Type: String
     Default: ""
@@ -150,6 +158,7 @@ Conditions:
   HasSessionSecretPrevious: !Equals [!Ref SessionSecretPreviousInSecret, "true"]
   HasUnsubscribeKey: !Equals [!Ref UnsubscribeKeyInSecret, "true"]
   HasTurnstileKey: !Equals [!Ref TurnstileKeyInSecret, "true"]
+  ActivityMailOn: !Equals [!Ref ActivityMail, "on"]
   HasDiscordLogin: !And
     - !Equals [!Ref DiscordSecretInSecret, "true"]
     - !Not [!Equals [!Ref DiscordClientId, ""]]
@@ -1993,6 +2002,27 @@ Resources:
       Action: lambda:InvokeFunction
       Principal: events.amazonaws.com
       SourceArn: !GetAtt EmailCollectorActivityRule.Arn
+  # The activity mail (activity_today, 2026-11-16): each hour it mails the
+  # people whose local evening hour it is, when their own players had
+  # cheers or new followers they have not seen. At most one a day each
+  # (the ledger's issue is their local day). ActivityMail=off disables it.
+  ActivityMailRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: elixir-mcp-activity-mail
+      ScheduleExpression: cron(7 * * * ? *)
+      State: !If [ActivityMailOn, ENABLED, DISABLED]
+      Targets:
+        - Arn: !GetAtt JobsFunction.Arn
+          Id: activity-mail
+          Input: '{"activity_mail": true}'
+  ActivityMailPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref JobsFunction
+      Action: lambda:InvokeFunction
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt ActivityMailRule.Arn
   # The minute's mail drains: collector upgrades, and (0204) an answer to
   # a person's feedback, once it has settled ten minutes unread. One event
   # runs both, collector upgrades first.

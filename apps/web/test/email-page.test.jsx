@@ -47,6 +47,7 @@ const KINDS = [
   ["collector_activity", "Collector activity", "Collectors", at("Sunday")],
   ["clan_actions_waiting", "Clan actions waiting", "Clan", null],
   ["feedback_answer", "Answers to your feedback", "Account", null],
+  ["activity_today", "Cheers on your play", "Home", null],
 ].map(([kind, label, product, sends]) => ({
   kind,
   label,
@@ -185,7 +186,7 @@ test(
     // many are on.
     const all = screen.getByRole("switch", { name: "Every email" });
     expect(all.getAttribute("aria-checked")).toBe("false");
-    expect(screen.getByText("3 of 4 on")).toBeTruthy();
+    expect(screen.getByText("4 of 5 on")).toBeTruthy();
     fireEvent.click(all);
     await waitFor(() => expect(puts.length).toBe(2));
     expect(puts[1]).toEqual({ kind: "all", enabled: true });

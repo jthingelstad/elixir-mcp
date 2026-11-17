@@ -92,6 +92,7 @@ export const EMAILS = {
     ["collector_activity", "Collector activity", "Collectors", "Sunday"],
     ["clan_actions_waiting", "Clan actions waiting", "Clan", null],
     ["feedback_answer", "Answers to your feedback", "Account", null],
+    ["activity_today", "Cheers on your play", "Home", null],
   ].map(([kind, label, product, weekday]) => ({
     kind,
     label,

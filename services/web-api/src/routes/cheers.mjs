@@ -130,6 +130,7 @@ export function cheersRoutes({ resolveAccount }) {
         account.accountId,
         asked.itemId,
         asked.cheer,
+        shown,
       );
       // Cheerleader (#1015), after the cheer is stored: one local day,
       // from the cheer's first stored instant. The item is its source, so

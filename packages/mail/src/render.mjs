@@ -33,6 +33,7 @@ export const KIND_LABELS = {
   milestone: "Milestones",
   clan_actions_waiting: "Clan actions waiting",
   feedback_answer: "Answers to your feedback",
+  activity_today: "Cheers on your play",
 };
 
 /** The family's apps: a family app's own mail links back to it, and
@@ -689,11 +690,86 @@ function feedbackAnswer(f, c) {
   };
 }
 
+/**
+ * activity_today (2026-11-16; Jamie: "would we send something operational
+ * about engagement on their posts today"): cheers on your own players'
+ * items and new followers that you have not seen in Elixir. Counts only,
+ * never who (DECISIONS "Reactions, not comments"). Each line links to its
+ * item: the battle when it has one, else the player. Item text is the
+ * timeline's own line (game names, never a nickname), escaped.
+ */
+function activityToday(f, c) {
+  const cheers = Array.isArray(f.cheers) ? f.cheers : [];
+  const followers = Array.isArray(f.followers) ? f.followers : [];
+  const cheerTotal =
+    cheers.reduce((s, i) => s + Number(i.fresh ?? 0), 0) +
+    Number(f.more_cheers ?? 0);
+  const followTotal = followers.reduce((s, p) => s + Number(p.count ?? 0), 0);
+  const plural = (k, one, many = `${one}s`) =>
+    `${n(k)} ${k === 1 ? one : many}`;
+  const subjectParts = [
+    cheerTotal ? plural(cheerTotal, "cheer") : null,
+    followTotal ? plural(followTotal, "new follower") : null,
+  ].filter(Boolean);
+  const subject = `${subjectParts.join(" and ")} on your play`;
+  // A battle's page on Elixir's own origin, else the player's page.
+  const battleOn = (url) => {
+    try {
+      const u = new URL(String(url), SITE);
+      return u.origin === new URL(SITE).origin ? u.toString() : null;
+    } catch {
+      return null;
+    }
+  };
+  const itemUrl = (i) =>
+    (i.battle_url && battleOn(i.battle_url)) ||
+    (i.subject_tag ? playerUrl(i.subject_tag) : `${SITE}/home`);
+  const cheerRows = cheers.map((i) => ({
+    title: c.link(
+      itemUrl(i),
+      esc(plural(Number(i.fresh), "cheer")),
+      "font-weight:600;",
+    ),
+    text: `${esc(String(i.text ?? ""))}${
+      Number(i.total) > Number(i.fresh)
+        ? ` · ${esc(plural(Number(i.total), "cheer"))} in all`
+        : ""
+    }`,
+  }));
+  const followRows = followers.map((p) => ({
+    title: c.link(
+      playerUrl(p.tag),
+      esc(plural(Number(p.count), "new follower")),
+      "font-weight:600;",
+    ),
+    text: `on ${esc(p.name ?? p.tag)}${c.verifiedMark(p.tag)}`,
+  }));
+  const body = `${cheerRows.length ? `${c.h2("Cheers")}${c.rows(cheerRows)}` : ""}
+    ${followRows.length ? `${c.h2("New followers")}${c.rows(followRows)}` : ""}
+    ${c.button("Open Elixir", `${SITE}/home`)}
+    ${c.cov("Counts only: Elixir never tells anyone who cheered.")}`;
+  const preheader = subjectParts.join(" and ");
+  return {
+    subject: subject.charAt(0).toUpperCase() + subject.slice(1),
+    preheader,
+    html: (links) =>
+      c.shell({
+        kind: "activity_today",
+        title: "Cheers on your play",
+        subtitle: esc(preheader),
+        preheader,
+        body,
+        links,
+      }),
+  };
+}
+
 const RENDERERS = {
   tracking_report: digest,
   collector_activity: collector,
   clan_actions_waiting: clanActions,
   feedback_answer: feedbackAnswer,
+  activity_today: activityToday,
 };
 
 /** {subject, preheader, html} for a kind's facts. `links.unsubscribe`
