@@ -798,7 +798,7 @@ test("Home's week, built, never counts late captures", async () => {
   );
 });
 
-test("Home's N new pill is one statement on the account's stored row, and reads no record table", async () => {
+test("Home's N new pill uses bounded stored-week and live-post counts, and reads no game record table", async () => {
   // A stored week to count, as Home's first read leaves it.
   await request(handler, seed.cookie, "/api/me/home/feed", {});
   const since = new Date(Date.now() - 86_400_000).toISOString();
@@ -806,13 +806,18 @@ test("Home's N new pill is one statement on the account's stored row, and reads 
     "/api/me/home/feed/new",
     "/api/me/home/feed/new",
     { query: { since } },
-    // The session's two statements, then the count (31 buffers on this
-    // record, most of them the stored week's items).
-    { statements: 3, buffers: 80 },
+    // Two session statements, one stored-week count and one live-post count.
+    // Keep the same buffer ceiling and forbid game-record scans below.
+    { statements: 4, buffers: 80 },
   );
   assert.equal(typeof probe.body.new, "number");
   const own = probe.seen.filter((s) => /home_feed/.test(s.text));
   assert.equal(own.length, 1, "one statement on home_feed");
+  assert.equal(
+    probe.seen.filter((s) => /from account_post p/.test(s.text)).length,
+    1,
+    "one canonical live-post count",
+  );
   for (const p of probe.planned)
     for (const sc of p.scans)
       assert.ok(

@@ -63,7 +63,7 @@ export function mailPreviewCases() {
         to: "2026-11-17T11:00:00.000Z",
       },
       cadence: "daily",
-      account_posts: true,
+      account_follow_posts: true,
       following: 0,
       clans: [],
       you: null,

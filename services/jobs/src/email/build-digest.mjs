@@ -597,7 +597,7 @@ export async function buildDigest({
       tags.map((tag) => [tag, identities.has(tag)]),
     ),
     cadence,
-    ...(accountPosts ? { account_posts: true } : {}),
+    ...(accountPosts ? { account_follow_posts: true } : {}),
     window: {
       from: new Date(window.fromMs).toISOString(),
       to: new Date(window.toMs).toISOString(),

@@ -513,7 +513,7 @@ function digest(f, c) {
     ),
   );
   const from = people.length
-    ? `${c.h2("From people you follow", `${n(people.length + (f.more_people ?? 0))}${f.account_posts ? "" : ` of ${n(f.following ?? 0)}`} had something this ${span}`)}${digestPeople(people, c)}${
+    ? `${c.h2("From people you follow", `${n(people.length + (f.more_people ?? 0))}${f.account_follow_posts ? "" : ` of ${n(f.following ?? 0)}`} had something this ${span}`)}${digestPeople(people, c)}${
         f.more_people
           ? c.small(
               `${n(f.more_people)} more ${f.more_people === 1 ? "person" : "people"} you follow had something; ${c.link(`${SITE}/timeline`, "your Timeline")} has them all.`,
