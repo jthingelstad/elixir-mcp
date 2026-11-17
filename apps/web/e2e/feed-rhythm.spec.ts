@@ -3,6 +3,7 @@ import AxeBuilder from "@axe-core/playwright";
 import { mkdirSync } from "node:fs";
 import path from "node:path";
 import { mockApi } from "./fixtures.ts";
+import { PNG } from "./test-art.ts";
 import { mockApi as clanApi, signedIn as clanIn } from "./clan/fixtures.ts";
 import {
   FEED_NOW,
@@ -203,6 +204,10 @@ test("small moments fold into one row that opens to a line each (2026-11-17)", a
 }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.clock.setFixedTime(new Date(FEED_NOW));
+  // CI has no mirrored art: the card's file answers here.
+  await page.route("**/assets/cards/**", (route) =>
+    route.fulfill({ status: 200, contentType: "image/png", body: PNG }),
+  );
   await mockApi(page, rhythmApi());
   await page.goto("/timeline");
   const group = page
