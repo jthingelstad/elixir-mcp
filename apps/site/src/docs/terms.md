@@ -35,6 +35,12 @@ comments on it, and an admin can remove any comment or stop an account
 from commenting. You can block anyone; a block works both ways and
 isn't announced.
 
+**Posts.** The rules for comments hold for posts too. Don't ask anyone
+for personal details or give out your own, don't buy, sell or trade
+accounts, and don't invite people to talk on another app or meet up. A
+check reads every post before it goes up and can say no, and an admin
+can remove any post or stop an account from posting.
+
 **One API budget.** The whole service shares one modest slice of the
 game's API. Please don't try to get around it.
 
