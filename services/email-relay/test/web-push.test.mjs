@@ -76,10 +76,18 @@ function device() {
   const ua = createECDH("prime256v1");
   ua.generateKeys();
   return {
-    uaPrivate: ua.getPrivateKey().toString("base64url"),
+    uaPrivate: scalar32(ua.getPrivateKey()).toString("base64url"),
     p256dh: ua.getPublicKey().toString("base64url"),
     auth: Buffer.alloc(16, 7).toString("base64url"),
   };
+}
+
+/** A P-256 private key as its fixed 32 bytes. Node hands back the scalar
+ *  without its leading zero bytes, so about one generated key in 256 is 31
+ *  bytes long and the signer rightly refuses its shape (the flake on main,
+ *  2026-11-17). */
+function scalar32(k) {
+  return Buffer.concat([Buffer.alloc(32 - k.length), k]);
 }
 
 function vapidPair() {
@@ -87,7 +95,7 @@ function vapidPair() {
   e.generateKeys();
   return {
     vapid_public_key: e.getPublicKey().toString("base64url"),
-    vapid_private_key: e.getPrivateKey().toString("base64url"),
+    vapid_private_key: scalar32(e.getPrivateKey()).toString("base64url"),
   };
 }
 
