@@ -178,22 +178,27 @@ export function Cheers({ it, where, compact = false }) {
 
   // The popover stays on screen: sideways inside the viewport, and above
   // the row when there is no room under it. Decided again at each level
-  // from the popover's own height, so the grid of all twenty goes up when
-  // the row of six fitted below but the grid would not (Codex on #1108).
+  // from the popover's own height and whenever the viewport changes, so
+  // the open picker stays inside it without moving keyboard focus.
   useLayoutEffect(() => {
     const el = popRef.current;
     if (!el) return;
-    keepInside(el, 0);
-    const h = el.getBoundingClientRect().height;
-    const row = rowRef.current?.getBoundingClientRect();
-    setUp(
-      Boolean(row) &&
-        row.bottom + GAP + h > window.innerHeight - EDGE &&
-        row.top - GAP - h >= EDGE,
-    );
+    const position = () => {
+      keepInside(el, 0);
+      const h = el.getBoundingClientRect().height;
+      const row = rowRef.current?.getBoundingClientRect();
+      setUp(
+        Boolean(row) &&
+          row.bottom + GAP + h > window.innerHeight - EDGE &&
+          row.top - GAP - h >= EDGE,
+      );
+    };
+    position();
+    window.addEventListener("resize", position);
     const at = focusAt.current;
     focusAt.current = null;
     if (at != null) el.querySelectorAll("button")[at]?.focus();
+    return () => window.removeEventListener("resize", position);
   }, [level]);
 
   // A name over the glyph it names, inside the viewport.

@@ -472,8 +472,16 @@ export const useHomeFeedEvidence = (params) =>
     enabled: Boolean(params),
   });
 
-/** Each item of a cached list, changed by `fn`: a plain read's `list`, or
- *  every page's of a paged one (Home's feed). */
+/** A container's item or array of items, changed through the same cache
+ * mapping: lists, paged reads and answered envelopes keep their shape. */
+const mapItemValue = (value, fn) =>
+  Array.isArray(value)
+    ? value.map(fn)
+    : value && typeof value === "object"
+      ? fn(value)
+      : value;
+
+/** Each item at `list`, including a singular member post's `item`. */
 const mapItems = (old, list, fn) =>
   !old
     ? old
@@ -481,14 +489,17 @@ const mapItems = (old, list, fn) =>
       ? {
           ...old,
           pages: old.pages.map((p) =>
-            p?.[list] ? { ...p, [list]: p[list].map(fn) } : p,
+            p?.[list] ? { ...p, [list]: mapItemValue(p[list], fn) } : p,
           ),
         }
       : old[list]
-        ? { ...old, [list]: old[list].map(fn) }
+        ? { ...old, [list]: mapItemValue(old[list], fn) }
         : old.data?.[list]
           ? // An envelope Clan keeps whole (`answered`): `{ ok, data }`.
-            { ...old, data: { ...old.data, [list]: old.data[list].map(fn) } }
+            {
+              ...old,
+              data: { ...old.data, [list]: mapItemValue(old.data[list], fn) },
+            }
           : old;
 
 /** Your timeline's RSS link (#765): on or off, and since when. */
@@ -538,10 +549,10 @@ export function useCheer({ key = CHEER_FEED_KEY, list = "timeline" } = {}) {
     queryClient.setQueriesData({ queryKey: ["me", "cheers"] }, (old) =>
       mapItems(old, "items", patch),
     );
-    // A post's other copies: a player's or an account's post list, and
-    // Clan's Feed.
+    // A post's other copies: player/account lists, its member destination,
+    // and Clan's Feed. Singular and listed copies share this mutator.
     queryClient.setQueriesData({ queryKey: ["me", "posts"] }, (old) =>
-      mapItems(old, "posts", patch),
+      mapItems(mapItems(old, "posts", patch), "item", patch),
     );
     queryClient.setQueriesData(
       {
@@ -671,6 +682,16 @@ export const usePosts = (ask, enabled = true) =>
     enabled,
     staleTime: 30_000,
     retry: false,
+  });
+
+/** One member post retains the answered envelope, so an unavailable or
+ * forbidden item remains an answer rather than a fabricated empty post. */
+export const memberPostKey = (id) => ["me", "posts", "item", id];
+export const useMemberPost = (id) =>
+  useQuery({
+    queryKey: memberPostKey(id),
+    queryFn: answered(() => api.memberPost(id)),
+    enabled: Boolean(id),
   });
 
 /** After a post is written, deleted or reported: Home's feed and every
