@@ -3,7 +3,6 @@ import {
   Avatar,
   CardArt,
   DeckRow,
-  DeckVersus,
   Icon,
   Link,
   PlayerName,
