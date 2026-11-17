@@ -171,6 +171,13 @@ test("Notifications: permission is asked only on the tap, then this device is sa
       .getByRole("switch", { name: "New followers" })
       .getAttribute("aria-checked"),
   ).toBe("false");
+  // The fifth kind (2026-11-17) is on until it is moved, here before the
+  // account's kinds name it.
+  expect(
+    screen
+      .getByRole("switch", { name: "Close friends' play" })
+      .getAttribute("aria-checked"),
+  ).toBe("true");
   await waitFor(() => expect(on.disabled).toBe(false));
   fireEvent.click(on);
   await screen.findByText(/On for this device/);

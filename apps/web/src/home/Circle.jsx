@@ -141,8 +141,8 @@ function CircleOffer({ offer }) {
   return (
     <Panel title="Your circle" titleAs="h2" className="kit-circle">
       <p className="kit-tiny kit-circle__lead">
-        Star a few close friends to see their week here. Only you see who you
-        star.
+        Star a few close friends to see their week here. With notifications on,
+        you hear when they finish a session. Only you see who you star.
       </p>
       <ul className="kit-circle__strip" aria-label="Players you follow">
         {offer.map((s) => (

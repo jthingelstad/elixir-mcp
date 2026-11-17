@@ -30,6 +30,11 @@ export const PUSH_KIND_WORDS = [
     "Answers to your feedback",
     "A few minutes after they're written.",
   ],
+  [
+    "close_friends",
+    "Close friends' play",
+    "When a friend you starred finishes a session. At most three a day.",
+  ],
 ];
 
 function Switch({ on, label, disabled = false, onFlip }) {
@@ -266,9 +271,11 @@ export function NotificationsPage({ env = globalThis }) {
         </section>
       ) : null}
       <p className="st-foot">
-        A notice says how many, never who. At most one every ten minutes and
-        eight a day. Tap one to open what it's about. Removing a device stops it
-        here; your browser may still list Elixir until you clear it there.
+        Cheers and followers say how many, never who. Close friends' play names
+        the friend you starred, and only you get it. At most one every ten
+        minutes and eight a day. Tap one to open what it's about. Removing a
+        device stops it here; your browser may still list Elixir until you clear
+        it there.
       </p>
     </div>
   );

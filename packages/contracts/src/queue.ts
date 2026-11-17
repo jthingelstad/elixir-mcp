@@ -137,12 +137,15 @@ export function emailKindDefault(kind: string): boolean {
 }
 /** Web push (2026-11-16, docs/notes/2026-11-16-web-push.md): the kinds a
  *  person can switch per account on Settings › Notifications. Each is on
- *  until switched off (account_push_pref holds only a moved switch). */
+ *  until switched off (account_push_pref holds only a moved switch).
+ *  `close_friends` (2026-11-17, 0284): a starred friend's session or
+ *  headline moment, told only to the account that starred them. */
 export const PUSH_KINDS = [
   "cheers",
   "followers",
   "clan_actions",
   "answers",
+  "close_friends",
 ] as const;
 export type PushKind = (typeof PUSH_KINDS)[number];
 export function isPushKind(kind: string): kind is PushKind {

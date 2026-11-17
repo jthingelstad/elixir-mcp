@@ -383,4 +383,23 @@ for (const [label, width] of [
     // The place moves as it does under any chip: once per window shown.
     expect(seen.length).toBeGreaterThanOrEqual(1);
   });
+
+  test(`${label}: the close friends notice's address opens on the chip, not kept`, async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await mockApi(
+      page,
+      circleApi({ ok: true, from: WEEK.from, friends: FRIENDS }),
+    );
+    await page.goto("/timeline?show=close");
+    await expect(
+      page.getByRole("button", { name: /^Close friends/ }),
+    ).toHaveAttribute("aria-pressed", "true");
+    await expect(page.locator(".kit-feed")).not.toContainText("Ash Wren");
+    await page.goto("/timeline");
+    await expect(
+      page.getByRole("button", { name: /^Close friends/ }),
+    ).toHaveAttribute("aria-pressed", "false");
+  });
 }

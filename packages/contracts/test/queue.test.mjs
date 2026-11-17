@@ -214,6 +214,7 @@ test("web push (2026-11-16): a known push service over https, and four kinds", (
     "followers",
     "clan_actions",
     "answers",
+    "close_friends",
   ]);
   assert.equal(isPushKind("who"), false);
   assert.ok(OUTBOX_LANES.includes("web-push"));

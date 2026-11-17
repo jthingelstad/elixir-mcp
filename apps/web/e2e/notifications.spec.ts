@@ -32,7 +32,13 @@ const PUSH = {
       last_success_at: null,
     },
   ],
-  kinds: { cheers: true, followers: true, clan_actions: false, answers: true },
+  kinds: {
+    cheers: true,
+    followers: true,
+    clan_actions: false,
+    answers: true,
+    close_friends: true,
+  },
 };
 
 async function accessible(page: Page, name: string) {
@@ -99,6 +105,9 @@ test.describe("390px", () => {
     await expect(
       page.getByRole("switch", { name: "Clan Actions waiting for you" }),
     ).toHaveAttribute("aria-checked", "false");
+    await expect(
+      page.getByRole("switch", { name: "Close friends' play" }),
+    ).toHaveAttribute("aria-checked", "true");
     await expect(
       page.getByRole("button", { name: "Remove Chrome on Mac" }),
     ).toBeVisible();

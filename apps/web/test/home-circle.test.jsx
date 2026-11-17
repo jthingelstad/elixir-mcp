@@ -18,6 +18,7 @@ import {
   circleDetail,
   circleLine,
   circleWhy,
+  askedShow,
   feedChips,
   keepShow,
   keptShow,
@@ -136,6 +137,16 @@ test("the Show choice is kept per account, and anything odd is Everyone", () => 
   // No account, nothing kept.
   keepShow(null, "close");
   expect(keptShow(null)).toBe("everyone");
+});
+
+test("an address may ask for a chip (the close friends notice's ?show=close); anything else asks nothing", () => {
+  expect(askedShow("?show=close")).toBe("close");
+  expect(askedShow("?show=clan&x=1")).toBe("clan");
+  expect(askedShow("?show=nonsense")).toBeNull();
+  expect(askedShow("")).toBeNull();
+  expect(askedShow(undefined)).toBeNull();
+  // Asked is not kept: the next visit is what the reader chose.
+  expect(keptShow("acct-asked")).toBe("everyone");
 });
 
 test("blocked storage never breaks the feed's choice", () => {
