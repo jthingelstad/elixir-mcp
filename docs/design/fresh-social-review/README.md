@@ -10,7 +10,7 @@ The walkthrough covers Timeline, Find and its tabs, Clan Feed and Members, Profi
 | 390px | [Before](before/timeline-390.png) | [After](after/timeline-390.png) |
 | 1280px | [Before](before/timeline-1280.png) | [After](after/timeline-1280.png) |
 
-Mode and Post share a phone row, recovering 48px above the first story. Show and New stay visible. The desktop’s quiet composer remains in place. The [quiet 320px feed](after/quiet-320.png) keeps both controls; the [390px composer](after/composer-390.png) gives focus to the words.
+Mode and Post share a phone row, recovering more than one 44px row above the first story. Show and New stay visible. The desktop’s quiet composer remains in place. The [quiet 320px feed](after/quiet-320.png) keeps both controls; the [390px composer](after/composer-390.png) gives focus to the words.
 
 Other review evidence: [new account](before/new-account-390.png), [Find](before/find-390.png), [shared battle post](before/shared-post-320.png). Find’s hostile sample name is escaped text. Older fixture-only identity mismatches, missing auxiliary reads and historical season clocks are not presented as production defects.
 

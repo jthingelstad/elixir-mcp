@@ -4,7 +4,7 @@ The fresh product walkthrough is [#1125](https://github.com/jthingelstad/elixir-
 
 ## Defaults taken
 
-- **How much should controls take from the first story?** VISION makes friends’ play the reason to open Elixir. Mode and Post share one phone row, recovering 48px in the reviewed complete-setup fixture. Show and New stay visible above it. Larger text can wrap the row rather than overlap its controls.
+- **How much should controls take from the first story?** VISION makes friends’ play the reason to open Elixir. Mode and Post share one phone row, recovering more than one 44px row in the reviewed complete-setup fixture. Show and New stay visible above it. Larger text can wrap the row rather than overlap its controls.
 - **What happens when the feed is quiet or cannot load?** The page head owns Mode, beside Post, so neither depends on a successful populated feed. Standalone feeds keep their own mode picker. There is one picker, not two.
 - **Where should the keyboard go after writing?** The writing field receives focus on opening. Cancel and a successful local send restore the same visible entry point. The desktop start button is recreated when the form closes, so the composer restores its new node after commit. No focus is restored on leaving the page.
 
@@ -17,3 +17,5 @@ The new browser regressions fail on the baseline: phone Mode and Post occupy dif
 The rendered pass includes normal and quiet feeds, composer states and 200% root text on the two phone widths. Screenshots were inspected and the focus implementation refined after the first pass exposed that the old desktop opener was already disconnected before the field mounted. There are no live verification writes.
 
 The consistency trace follows the Web and public-doc facets: HomePage, HomeFeed, the post composer, shared CSS, timeline docs, the decision and these regressions. No other surface owns this phone control row or composer. Native SSR/hydration remains under the full e2e gate. Production natural posting is left unverified because exercising it would write live data.
+
+CI also checked the existing suggested-people first-screen guard at 375px without posts. Separating Mode from the Show chips initially inherited the page head’s 8px row gap instead of the filters’ 4px gap, leaving the third person just under the tabs on Linux. The phone’s Show and action rows share a 4px gap inside their own group, with freshness spacing preserved; the existing guards stay unchanged.
