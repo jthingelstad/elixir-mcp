@@ -59,7 +59,7 @@ for (const viewport of [
         for (const action of await memberActions.all()) {
           await expect(action).toHaveAttribute(
             "href",
-            /\/home\/post\/[0-9]+\?/,
+            /^https:\/\/elixir\.poapkings\.com\/home\/post\/[0-9]+(?:\?|$)/,
           );
           expect((await action.boundingBox())?.height).toBeGreaterThanOrEqual(
             44,
