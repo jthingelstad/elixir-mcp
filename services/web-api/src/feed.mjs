@@ -146,6 +146,8 @@ export const KIND_MODES = {
   card_unlocked: NO_MODE,
   card_form_unlocked: NO_MODE,
   card_maxed: NO_MODE,
+  // A first win is the card's news, wherever it was won (13.9.0).
+  card_first_win: NO_MODE,
   king_tower_leveled: NO_MODE,
   clan_joined: NO_MODE,
   clan_left: NO_MODE,
