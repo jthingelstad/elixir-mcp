@@ -63,7 +63,12 @@ as the fourth phone tab).
   avatar with the player's name. The avatar's menu is You on a wide screen.
   [engineering, 2026-11-12] Play Drop left the bar on 2026-11-12 for the menu
   and the footer (Jamie, 2026-11-12: "Approved: build the remaining canvas pieces (bell, cheers on battle and player pages, Home side panel, Find, You with Stats, Clan Members follow-all and map, signed-out shell, Settings slots)").
-- **Phone bottom tabs:** Home, Find, Clan, You, the bell.
+- **Phone bottom tabs:** Home, Find, Clan, You, the bell. *2026-11-17: now
+  Timeline, Find, Clan and Profile; the bell left the tabs for the top bar,
+  next to the avatar at every width (Jamie: "I think the bell should move
+  off the bottom and become a notification drop down next to your profile
+  icon in the upper right"; DECISIONS "Notifications is a dropdown by your
+  avatar").*
 - **Ladder** leaves the tabs: it is reached from You and from each player's
   page. [engineering, 2026-11-12] Since 2026-11-12 it is **Stats**, You's
   last tab (below).

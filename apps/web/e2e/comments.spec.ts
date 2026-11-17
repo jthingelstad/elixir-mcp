@@ -291,8 +291,8 @@ for (const width of [320, 390]) {
       );
       await page.goto("/home");
       await page
-        .getByRole("navigation", { name: "Main, phone" })
-        .getByRole("button", { name: /Bell/ })
+        .locator(".kit-top")
+        .getByRole("button", { name: /^Notifications/ })
         .click();
       const sheet = page.getByRole("dialog", { name: "Notifications" });
       const fresh = sheet.getByRole("region", { name: "New" });

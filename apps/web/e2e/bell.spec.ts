@@ -11,8 +11,9 @@ import {
 } from "./bell-fixture.ts";
 
 /**
- * The bell as an inbox (#1009): a popover under the bar's bell on a wide
- * screen, a sheet from the foot on a phone; Needs you, then New and
+ * The bell as an inbox (#1009): a dropdown under the bar's bell, beside the
+ * avatar, at every width (2026-11-17): a box under the bell on a wide
+ * screen, the screen's width less a margin on a phone; Needs you, then New and
  * Earlier, every row one target of 44px or more; Escape and a tap outside
  * close it and give focus back to the bell; the arrows walk the rows; back
  * from a row it opens as you left it. Every state at 320, 390 and 1280,
@@ -51,6 +52,12 @@ async function settled(page: Page) {
     .evaluate((el) =>
       Promise.all(el.getAnimations().map((a) => a.finished)).then(() => {}),
     );
+}
+
+/** The bar with the bell closed, for the screenshots. */
+async function captureClosed(page: Page, name: string, width: number) {
+  if (!shots) return;
+  await page.screenshot({ path: `${shots}/bell-closed-${name}-${width}.png` });
 }
 
 async function capture(page: Page, name: string, width: number) {
@@ -112,14 +119,9 @@ function bellRead() {
 
 for (const width of [320, 390, 1280]) {
   const phone = width <= 760;
+  // In the bar beside the avatar at every width; never a phone tab.
   const trigger = (page: Page) =>
-    phone
-      ? page
-          .getByRole("navigation", { name: "Main, phone" })
-          .getByRole("button", { name: /Bell/ })
-      : page
-          .locator(".kit-top")
-          .getByRole("button", { name: /^Notifications/ });
+    page.locator(".kit-top").getByRole("button", { name: /^Notifications/ });
 
   test.describe(`${width}px`, () => {
     test.beforeEach(async ({ page }) => {
@@ -140,12 +142,24 @@ for (const width of [320, 390, 1280]) {
       );
       await page.goto("/home");
       const button = trigger(page);
-      // The badge carries the number on the bar and the phone's tab alike.
+      // The badge carries the number, the name says it in words.
       await expect(button.locator(".kit-bell__dot--count")).toHaveText("6");
-      if (!phone)
-        await expect(button).toHaveAccessibleName(
-          "Notifications, 2 need you, 4 new",
-        );
+      await expect(button).toHaveAccessibleName(
+        "Notifications, 2 need you, 4 new",
+      );
+      // Next to the avatar, at the bar's right; no tab of its own.
+      const avatar = page.locator(".kit-top__avatar");
+      const [bb, ab] = [
+        (await button.boundingBox())!,
+        (await avatar.boundingBox())!,
+      ];
+      expect(bb.x + bb.width).toBeLessThanOrEqual(ab.x + 1);
+      expect(ab.x - (bb.x + bb.width)).toBeLessThan(24);
+      expect(bb.width).toBeGreaterThanOrEqual(44);
+      expect(bb.height).toBeGreaterThanOrEqual(44);
+      await expect(page.locator(".kit-bottom .kit-bell")).toHaveCount(0);
+      await expect(button).toHaveAttribute("aria-expanded", "false");
+      await captureClosed(page, "unread", width);
       await button.click();
       const sheet = page.getByRole("dialog", { name: "Notifications" });
       await expect(sheet).toBeVisible();
@@ -172,18 +186,23 @@ for (const width of [320, 390, 1280]) {
         .locator("a.kit-bell__hit")
         .evaluateAll((els) => els.map((e) => e.getBoundingClientRect().height));
       expect(Math.min(...heights)).toBeGreaterThanOrEqual(44);
-      // Where it sits: a sheet on the foot of a phone, a popover under the
-      // bar's bell on a wide screen.
+      // In place: the address stays, the bell says it is open.
+      await expect(page).toHaveURL(/\/timeline$/);
+      await expect(button).toHaveAttribute("aria-expanded", "true");
+      await expect(button).toHaveAttribute("aria-controls", "bell-sheet");
+      // Where it sits: under the bar's bell at every width; on a phone the
+      // screen's width less an 8px margin, ending above the tabs.
       await settled(page);
       const box = (await sheet.boundingBox())!;
+      const b = (await button.boundingBox())!;
+      expect(box.y).toBeGreaterThan(b.y + b.height);
       if (phone) {
-        expect(Math.round(box.x)).toBe(0);
-        expect(Math.round(box.width)).toBe(width);
-        expect(Math.round(box.y + box.height)).toBe(844);
+        expect(Math.round(box.x)).toBe(8);
+        expect(Math.round(box.width)).toBe(width - 16);
+        const tabs = (await page.locator(".kit-bottom").boundingBox())!;
+        expect(box.y + box.height).toBeLessThanOrEqual(tabs.y);
       } else {
-        const b = (await button.boundingBox())!;
         expect(box.width).toBeLessThanOrEqual(400);
-        expect(box.y).toBeGreaterThan(b.y + b.height);
         expect(box.height).toBeLessThan(844 - box.y);
         expect(Math.abs(box.x + box.width - (b.x + b.width))).toBeLessThan(16);
       }
@@ -201,6 +220,7 @@ for (const width of [320, 390, 1280]) {
       await expect(sheet).toHaveCount(0);
       // Focus goes back to the bell, never the page's body.
       await expect(button).toBeFocused();
+      await expect(button).toHaveAttribute("aria-expanded", "false");
     });
 
     test("back from a row: opens where you left it, the row you opened no longer new", async ({
@@ -308,9 +328,20 @@ for (const width of [320, 390, 1280]) {
       );
       await page.goto("/home");
       await expect(trigger(page).locator(".kit-bell__dot")).toHaveCount(0);
+      await captureClosed(page, "empty", width);
+      // Opening it moves nothing on the page: the bar and the feed stay put.
+      const still = () =>
+        page.evaluate(() =>
+          [".kit-top__avatar", ".kit-top button.kit-bell", "main"].map((q) => {
+            const r = document.querySelector(q)!.getBoundingClientRect();
+            return [r.x, r.y, r.width];
+          }),
+        );
+      const before = await still();
       await trigger(page).click();
       const sheet = page.getByRole("dialog", { name: "Notifications" });
       await expect(sheet).toContainText("All quiet");
+      expect(await still()).toEqual(before);
       await expect(sheet.getByRole("region")).toHaveCount(0);
       await accessible(page, `the empty bell at ${width}`);
       await capture(page, "empty", width);
@@ -423,6 +454,19 @@ for (const width of [320, 390, 1280]) {
       const box = (await sheet.boundingBox())!;
       expect(box.y).toBeGreaterThanOrEqual(0);
       expect(box.y + box.height).toBeLessThanOrEqual(844);
+      // On a phone the page behind holds still while the list scrolls.
+      if (phone) {
+        const before = await page.evaluate(() => window.scrollY);
+        await page.mouse.move(width / 2, 830);
+        await page.mouse.wheel(0, 600);
+        await page.waitForTimeout(150);
+        expect(await page.evaluate(() => window.scrollY)).toBe(before);
+        expect(
+          await page.evaluate(
+            () => getComputedStyle(document.documentElement).overflowY,
+          ),
+        ).toBe("hidden");
+      }
       await noSideways(page);
       await accessible(page, `the long bell at ${width}`);
       await capture(page, "long", width);
@@ -430,28 +474,31 @@ for (const width of [320, 390, 1280]) {
   });
 }
 
-test("a tap outside the popover closes it and gives focus back", async ({
-  page,
-}) => {
-  await page.setViewportSize({ width: 1280, height: 844 });
-  await mockApi(
+for (const width of [390, 1280])
+  test(`${width}px: a tap outside the dropdown closes it and gives focus back`, async ({
     page,
-    homeApi({
-      "GET /api/me": [200, BELL_ME],
-      "GET /api/me/bell": [200, MIXED_BELL],
-    }),
-  );
-  await page.goto("/home");
-  const button = page
-    .locator(".kit-top")
-    .getByRole("button", { name: /^Notifications/ });
-  await button.click();
-  const sheet = page.getByRole("dialog", { name: "Notifications" });
-  await expect(sheet).toBeVisible();
-  await page.mouse.click(40, 600);
-  await expect(sheet).toHaveCount(0);
-  await expect(button).toBeFocused();
-});
+  }) => {
+    await page.setViewportSize({ width, height: 844 });
+    await mockApi(
+      page,
+      homeApi({
+        "GET /api/me": [200, BELL_ME],
+        "GET /api/me/bell": [200, MIXED_BELL],
+      }),
+    );
+    await page.goto("/home");
+    const button = page
+      .locator(".kit-top")
+      .getByRole("button", { name: /^Notifications/ });
+    await button.click();
+    const sheet = page.getByRole("dialog", { name: "Notifications" });
+    await expect(sheet).toBeVisible();
+    // Under the phone's dropdown, above its tabs; beside the wide one.
+    await page.mouse.click(40, width < 760 ? 844 - 61 - 3 : 600);
+    await expect(sheet).toHaveCount(0);
+    await expect(button).toBeFocused();
+    await expect(button).toHaveAttribute("aria-expanded", "false");
+  });
 
 test("reduced motion: the sheet appears without moving", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
@@ -465,8 +512,8 @@ test("reduced motion: the sheet appears without moving", async ({ page }) => {
   );
   await page.goto("/home");
   await page
-    .getByRole("navigation", { name: "Main, phone" })
-    .getByRole("button", { name: /Bell/ })
+    .locator(".kit-top")
+    .getByRole("button", { name: /^Notifications/ })
     .click();
   const sheet = page.getByRole("dialog", { name: "Notifications" });
   await expect(sheet).toBeVisible();

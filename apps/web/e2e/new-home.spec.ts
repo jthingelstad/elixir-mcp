@@ -187,14 +187,10 @@ for (const [label, width] of [
     }) => {
       await mockApi(page, homeApi());
       await page.goto("/home");
-      const bell =
-        width === 390
-          ? page
-              .getByRole("navigation", { name: "Main, phone" })
-              .getByRole("button", { name: /Bell/ })
-          : page.getByRole("button", {
-              name: /^Notifications, 2 need you$/,
-            });
+      // In the bar beside the avatar at every width (2026-11-17).
+      const bell = page.getByRole("button", {
+        name: /^Notifications, 2 need you$/,
+      });
       await expect(bell.locator(".kit-bell__dot")).toBeVisible();
       await bell.click();
       const sheet = page.getByRole("dialog", { name: "Notifications" });
@@ -458,14 +454,21 @@ for (const [label, width] of [
       await accessible(page, "Connections, RSS link");
     });
 
-    test("the tabs: Home, Find, Clan, You and the bell", async ({ page }) => {
+    test("the tabs: Timeline, Find, Clan and Profile; the bell is in the bar", async ({
+      page,
+    }) => {
       await mockApi(page, homeApi());
       await page.goto("/home");
       if (width === 390) {
         const tabs = page.getByRole("navigation", { name: "Main, phone" });
         for (const name of ["Timeline", "Find", "Clan", "Profile"])
           await expect(tabs.getByRole("link", { name })).toBeVisible();
-        await expect(tabs.getByRole("button", { name: /Bell/ })).toBeVisible();
+        await expect(tabs.locator("a, button")).toHaveCount(4);
+        await expect(
+          page
+            .locator(".kit-top")
+            .getByRole("button", { name: /^Notifications/ }),
+        ).toBeVisible();
         await tabs.getByRole("link", { name: "Find" }).click();
         await expect(page).toHaveURL(/\/home\/find$/);
         await expect(tabs.getByRole("link", { name: "Find" })).toHaveAttribute(

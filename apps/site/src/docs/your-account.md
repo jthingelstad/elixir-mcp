@@ -7,7 +7,7 @@ order: 3
 navTitle: "Your account"
 icon: user-round
 lede: "One account, opened by verifying your email, signed in with an email and no password. It holds your players, your time zone and your limits, and it shows nobody your address."
-reviewed: "2026-11-15 for one place shown everywhere, with no choice of who sees it; 2026-11-14 for a place staying with its owner; 2026-11-14 for the player map and Near you; 2026-11-14 for Your place on Profile; 2026-11-12 against contract 11.21.0 for What members see's Location and follow slots; 2026-10-13 against contract 11.12.0"
+reviewed: "2026-11-17 Notifications drops down from the bell next to your account; 2026-11-15 for one place shown everywhere, with no choice of who sees it; 2026-11-14 for a place staying with its owner; 2026-11-14 for the player map and Near you; 2026-11-14 for Your place on Profile; 2026-11-12 against contract 11.21.0 for What members see's Location and follow slots; 2026-10-13 against contract 11.12.0"
 callout: ["Open it at Settings › Profile", "/settings/profile", "Open Profile"]
 ---
 
@@ -148,12 +148,14 @@ account menu).
 
 ## Notifications
 
-Notifications, the bell on the top bar (a tab on a phone), holds what is about
-you, not your friends. How you are told, on a phone or computer, is set in
-Settings › Notifications. On a wide screen it opens as a small box under the bell; on a
-phone it slides up from the foot. Every line is one tap: it opens where the
-line points. Escape, **Close** or a tap outside puts it away and returns you
-to the bell.
+Notifications, the bell at the top right next to your account, holds what
+is about you, not your friends. How you are told, on a phone or computer, is
+set in Settings › Notifications. Tap the bell and the list drops down under
+it, right where you are: a small box on a wide screen, nearly the screen's
+width on a phone. A long list scrolls inside the box, and the page behind
+stays put. Every line is one tap: it opens where the line points and puts
+the list away. Escape, **Close** or a tap outside puts it away and returns
+you to the bell.
 
 It has up to three parts, each shown only when it has something:
 
@@ -202,8 +204,8 @@ to verify one. Nothing in the bell is mailed or posted to Discord.
 ## Elixir on your phone
 
 Elixir installs on a phone's home screen and opens like an app: full
-screen, with its own icon, and **Timeline**, **Find**, **Clan**, **Profile**
-and the bell as tabs at the foot.
+screen, with its own icon, **Timeline**, **Find**, **Clan** and **Profile**
+as tabs at the foot, and the bell at the top next to your account.
 
 - **iPhone or iPad:** open [elixir.poapkings.com](/timeline) in Safari, tap
   **Share**, then **Add to Home Screen**.

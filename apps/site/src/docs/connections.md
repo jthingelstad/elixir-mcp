@@ -7,7 +7,7 @@ order: 1
 navTitle: "Connect an agent"
 icon: plug
 lede: "Clients that act as you: OAuth grants, capabilities and disconnecting."
-reviewed: "2026-11-14 one MCP endpoint for you, one for a clan's agent; 2026-11-13 against contract 13.0.0 and JSON API 5.0.0"
+reviewed: "2026-11-17 Notifications next to your account at every width; 2026-11-14 one MCP endpoint for you, one for a clan's agent; 2026-11-13 against contract 13.0.0 and JSON API 5.0.0"
 callout: ["Open it at Settings › Connections & agents", "/settings/connections", "Open Connections & agents"]
 ---
 
@@ -131,10 +131,11 @@ refused rather than quietly answering about the wrong subject.
 
 ## Where things are
 
-The top bar holds **Timeline**, **Find** and **Clan**, with search, Help and
-**Notifications** (the bell) beside them. A phone has **Timeline**, **Find**,
-**Clan**, **Profile** and the bell as tabs at its foot; on a wide screen the
-account menu is Profile. **Profile**
+The top bar holds **Timeline**, **Find** and **Clan**, with search, Help,
+**Notifications** (the bell) and your account at its right. The bell sits
+next to your account on every screen, a phone's too. A phone has
+**Timeline**, **Find**, **Clan** and **Profile** as tabs at its foot; on a
+wide screen the account menu is Profile. **Profile**
 is your own account page, with **Your stats** (your season, read back). **Settings**, in the
 account menu, holds what we
 record for you and who can call on your behalf, and each agent you own has a

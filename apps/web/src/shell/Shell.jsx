@@ -44,8 +44,9 @@ const PLACES = {
 
 /** The places a signed-in reader moves between (slice 7, #765; renamed
  *  2026-11-17): Timeline, Find, Clan and Profile, from the manifest. The
- *  phone draws all four and the bell; the top bar all but Profile, which is
- *  its avatar. */
+ *  phone draws all four; the top bar all but Profile, which is its avatar.
+ *  The bell is in the top bar at every width, beside the avatar (Jamie,
+ *  2026-11-17), never a tab. */
 const TABS = SHELL_TABS;
 
 const DROP =
@@ -112,7 +113,8 @@ export function barAccount(me, signOut) {
         href: PLACES.settings,
       },
       // Play Drop's place on a wide screen too since 2026-11-12: the bar
-      // has Timeline, Find, Clan, search, help, the bell and your Profile.
+      // has Timeline, Find, Clan, search, help, Notifications and your
+      // Profile.
       {
         key: "drop",
         icon: "droplet",
@@ -221,7 +223,7 @@ function Avatar({ me }) {
 
 /** The top bar. `me` is the session, null while it has not answered and for
  *  an address nobody has signed in to see. */
-function TopBar({ me, area, open, bell }) {
+function TopBar({ me, area, open, bell, bellOpen }) {
   const signedIn = me?.authenticated === true;
   // Not answered yet, or no answer: the bar claims neither state.
   if (me === null || me === undefined)
@@ -290,7 +292,11 @@ function TopBar({ me, area, open, bell }) {
         >
           <Icon name={SHELL_PLACES.help.icon} size={18} />
         </button>
-        <BellButton bell={bell} onOpen={(from) => open("bell", from)} />
+        <BellButton
+          bell={bell}
+          expanded={bellOpen}
+          onOpen={(from) => open("bell", from)}
+        />
         {/* Play Drop is in the avatar's menu and the footer, not the bar
             (Structure "Proposed", 2026-11-12). */}
         <Avatar me={me} />
@@ -322,7 +328,7 @@ const tabName = (tab, me) =>
   homeNews(tab, me) ? `${tab.label}, new items` : undefined;
 
 /** The phone's tabs, under the page. Signed in only. */
-function BottomTabs({ me, area, open, bell }) {
+function BottomTabs({ me, area }) {
   return (
     <nav className="kit-bottom" aria-label="Main, phone">
       {TABS.map((t) => (
@@ -336,7 +342,6 @@ function BottomTabs({ me, area, open, bell }) {
           <span>{t.label}</span>
         </Link>
       ))}
-      <BellButton bell={bell} onOpen={(from) => open("bell", from)} phone />
     </nav>
   );
 }
@@ -396,12 +401,16 @@ export function ShellFrame({ me, unreachable = false, area, children }) {
   return (
     <SheetContext.Provider value={signedIn ? open : () => {}}>
       <div className={`kit-shell${signedIn ? " kit-shell--in" : ""}`}>
-        <TopBar me={me} area={area} open={open} bell={bell} />
+        <TopBar
+          me={me}
+          area={area}
+          open={open}
+          bell={bell}
+          bellOpen={signedIn && sheet === "bell"}
+        />
         {children}
         <SiteFoot />
-        {signedIn ? (
-          <BottomTabs me={me} area={area} open={open} bell={bell} />
-        ) : null}
+        {signedIn ? <BottomTabs me={me} area={area} /> : null}
         {signedIn && sheet === "search" ? (
           <SearchSheet me={me} onClose={close} />
         ) : null}

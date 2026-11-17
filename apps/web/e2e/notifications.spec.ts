@@ -128,8 +128,8 @@ test.describe("390px", () => {
     await mockApi(page, signedIn({ "GET /api/me/push": [200, PUSH] }));
     await page.goto("/home");
     await page
-      .getByRole("navigation", { name: "Main, phone" })
-      .getByRole("button", { name: /Bell/ })
+      .locator(".kit-top")
+      .getByRole("button", { name: /^Notifications/ })
       .click();
     const line = page.getByText("Get notified when people cheer your play.");
     await expect(line).toBeVisible();

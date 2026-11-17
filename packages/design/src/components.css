@@ -6773,7 +6773,8 @@ button.kit-row {
   border: 0;
   border-radius: var(--r-control);
 }
-.kit-top__icon:hover {
+.kit-top__icon:hover,
+.kit-top__icon[aria-expanded="true"] {
   background: var(--panel-raised);
   color: var(--ink);
 }
@@ -8904,20 +8905,18 @@ a.kit-scard:focus-visible {
   line-height: 16px;
   text-align: center;
 }
+/* The Timeline tab's news dot, on the phone's tab icon. */
 .kit-bottom .kit-bell__dot {
   top: 3px;
   right: 13px;
 }
-.kit-bottom .kit-bell__dot--count {
-  top: -6px;
-  right: -12px;
-}
 
 /* ==================================================================
-   The bell (#1009, 2026-11-14): an inbox. On a wide screen a popover
-   under the bar's bell; on a phone, where the bell is a tab, a sheet from
-   the foot of the screen. Needs you on its own tone first, then New and
-   Earlier; every row one target. Tokens only.
+   The bell (#1009, 2026-11-14): an inbox. A dropdown under the top bar's
+   bell, beside the avatar, at every width (Jamie, 2026-11-17): a box
+   under the bell on a wide screen, the screen's width less a margin on a
+   phone. Needs you on its own tone first, then New and Earlier; every row
+   one target. Tokens only.
    ================================================================== */
 .kit-bell__sheet {
   position: fixed;
@@ -9142,33 +9141,23 @@ a.kit-bell__hit:focus-visible::after {
   margin: var(--s-4);
 }
 @media (max-width: 760px) {
-  /* The phone's sheet: the bell is a tab at the foot, so the sheet rises
-     from there, over the tabs, clear of the home indicator. */
+  /* The phone's dropdown (2026-11-17): under the bar's bell, the screen's
+     width less a margin, ending above the tabs. It scrolls inside; the page
+     behind is dimmed and holds still while it is open. */
   .kit-bell__sheet {
-    inset: auto 0 0 0;
-    width: 100%;
-    max-height: 85dvh;
-    border-width: 1px 0 0;
-    border-radius: 16px 16px 0 0;
-  }
-  .kit-bell__sheet[open] {
-    animation-name: kit-bell-up;
-    animation-duration: var(--dur-base);
+    inset: var(--bell-top, 62px) max(var(--s-2), env(safe-area-inset-right))
+      auto max(var(--s-2), env(safe-area-inset-left));
+    width: auto;
+    max-height: calc(
+      100dvh - var(--bell-top, 62px) - 61px - env(safe-area-inset-bottom) -
+        var(--s-2)
+    );
   }
   .kit-bell__sheet::backdrop {
     background: var(--scrim);
   }
-  .kit-bell__head {
-    padding-top: var(--s-2);
-  }
-  .kit-bell__scroll {
-    padding-bottom: calc(var(--s-3) + env(safe-area-inset-bottom));
-  }
-}
-@keyframes kit-bell-up {
-  from {
-    transform: translateY(24px);
-    opacity: 0.6;
+  html:has(.kit-bell__sheet[open]) {
+    overflow: hidden;
   }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -9852,7 +9841,7 @@ a.kit-bell__hit:focus-visible::after {
     left: 0;
     z-index: 25;
     display: grid;
-    grid-template-columns: repeat(5, 1fr);
+    grid-template-columns: repeat(4, 1fr);
     background: var(--ground-chrome);
     box-shadow: 0 -1px 0 var(--line-soft);
     padding: 0 env(safe-area-inset-right) env(safe-area-inset-bottom)
@@ -9902,10 +9891,6 @@ a.kit-bell__hit:focus-visible::after {
   .kit-bottom button:focus-visible svg {
     outline: 2px solid var(--accent-bright);
     outline-offset: 1px;
-  }
-  /* The phone's bell is a tab; the bar's would be a second one. */
-  .kit-top .kit-bell {
-    display: none;
   }
 }
 

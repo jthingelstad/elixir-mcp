@@ -61,7 +61,6 @@
   ],
   "bell": {
     "label": "Notifications",
-    "tab": "Bell",
     "staticPath": "/timeline?bell",
     "icon": "bell"
   },

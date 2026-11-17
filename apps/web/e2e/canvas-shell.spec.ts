@@ -302,12 +302,8 @@ for (const [label, width] of [
         }),
       );
       await page.goto("/home");
-      const bell =
-        width === 390
-          ? page
-              .getByRole("navigation", { name: "Main, phone" })
-              .getByRole("button", { name: /Bell/ })
-          : page.getByRole("button", { name: /^Notifications, / });
+      // In the bar beside the avatar at every width (2026-11-17).
+      const bell = page.getByRole("button", { name: /^Notifications, / });
       await expect(bell.locator(".kit-bell__dot")).toBeVisible();
       await bell.click();
       const sheet = page.getByRole("dialog", { name: "Notifications" });
