@@ -1496,9 +1496,10 @@ test("web push (2026-11-16): one stack switch, the relay alone reads the one sec
     /Input: !If\n\s+- WebPushOn\n\s+- '\{"collector_upgrades": true, "feedback_answers": true, "web_push": true\}'/,
   );
   assert.match(template, /WebPushOn: !Equals \[!Ref WebPush, "on"\]/);
-  // GetSecretValue appears once, on the one secret, in the relay's role.
+  // GetSecretValue appears twice, both in the relay's role: this secret
+  // and the moderation key's (below).
   const reads = [...template.matchAll(/secretsmanager:GetSecretValue/g)];
-  assert.equal(reads.length, 1);
+  assert.equal(reads.length, 2);
   const relay = resource(template, "EmailRelayRole", "SenderConfigurationSet");
   assert.match(relay, /secretsmanager:GetSecretValue/);
   assert.match(
@@ -1514,6 +1515,29 @@ test("web push (2026-11-16): one stack switch, the relay alone reads the one sec
   );
   assert.match(template, /Value: web-push\/ \}/);
   assert.match(template, /Value: push-receipt\/ \}/);
+});
+
+test("comments' moderation key (2026-11-17): its own secret, read by the relay at runtime, never an environment variable", async () => {
+  const template = await readFile(templateUrl, "utf8");
+  // No environment variable carries the key or a reference to it.
+  assert.doesNotMatch(template, /MODERATION_API_KEY/);
+  assert.doesNotMatch(template, /moderation_api_key\}\}/);
+  assert.doesNotMatch(template, /SecretString:moderation_api_key/);
+  // The relay gets the secret's name, only while comments are on.
+  const fn = resource(template, "EmailRelayFunction", "EmailEventSource");
+  assert.match(
+    fn,
+    /MODERATION_SECRET_ID:\n\s+!If \[HasComments, elixir-mcp\/moderation, !Ref AWS::NoValue\]/,
+  );
+  // Its role reads that one secret, under the same switch.
+  const relay = resource(template, "EmailRelayRole", "SenderConfigurationSet");
+  assert.match(
+    relay,
+    /- !If\n\s+- HasComments\n\s+- Effect: Allow\n\s+Action: secretsmanager:GetSecretValue\n\s+Resource: !Sub arn:aws:secretsmanager:\$\{AWS::Region\}:\$\{AWS::AccountId\}:secret:elixir-mcp\/moderation-\?\?\?\?\?\?\n\s+- !Ref AWS::NoValue/,
+  );
+  // No other function is granted it.
+  const grants = [...template.matchAll(/secret:elixir-mcp\/moderation-/g)];
+  assert.equal(grants.length, 1);
 });
 
 test("a site miss fails over to the site's 404 page, on the site behaviour alone", async () => {

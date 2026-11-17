@@ -40,6 +40,7 @@ import {
   pushReceiptKey,
   vapidFromSecret,
 } from "./web-push.mjs";
+import { moderationKeyFromSecret } from "./moderation-key.mjs";
 
 /** Buttondown answers 400 for both "you already have this address" and
  *  "this request is wrong". Treating the whole status as success (as we
@@ -117,9 +118,22 @@ const modelWorker =
         secret: process.env.CLAN_MODEL_SECRET,
         storage: modelStorage(process.env.OUTBOX_BUCKET, s3),
         provider: createAnthropicClient(),
-        // Comments' check (2026-11-16): Elixir's own key, present only
-        // when the stack's CommentsEnabled is true.
-        moderationKey: process.env.MODERATION_API_KEY || null,
+        // Comments' check: Elixir's own key, read from its own secret at
+        // runtime and kept in memory (2026-11-17), never an environment
+        // variable. The stack names the secret only while CommentsEnabled
+        // is true; no secret named, every check answers moderation_off.
+        moderationKey: process.env.MODERATION_SECRET_ID
+          ? moderationKeyFromSecret(async () => {
+              const { SecretsManagerClient, GetSecretValueCommand } =
+                await import("@aws-sdk/client-secrets-manager");
+              const out = await new SecretsManagerClient({}).send(
+                new GetSecretValueCommand({
+                  SecretId: process.env.MODERATION_SECRET_ID,
+                }),
+              );
+              return out.SecretString;
+            })
+          : null,
       })
     : null;
 
