@@ -425,6 +425,8 @@ plain words.
 
 ## Schema and migrations
 
+- Follower Notifications, mail and push use the time the person began following. Deploy these readers before converting Watching so the conversion can preserve silent follows. [engineering, 2026-11-17; Jamie approved the relationship conversion, 2026-11-17]
+
 - **The migrate Lambda is the only applier** — at deploy, never at handler start or by hand; only `{}` migrates, and an unknown op key is refused (`unknown_op`). [Jamie, 2026-09-25; engineering: the only applier, at deploy, 2026-09-21]
 - **Expand-and-contract** — drop a column or table only after no deployed reader uses it. [engineering, 2026-09-21]
 - **Migrations never rewrite a large table** — add the column, fill it with a keyset-batched op, index it in its own migration; never re-key a large table or change a column type in place. [engineering, 2026-09-15, 2026-09-17, 2026-09-19]
