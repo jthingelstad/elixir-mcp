@@ -4,6 +4,8 @@ import { scratchDb } from "../../ingest/test/helpers.mjs";
 import { postFixture, AUTHOR_TAG } from "../../posts/test/fixture.mjs";
 import { makeRegistry } from "../src/tools.mjs";
 import { makeInvoker } from "../src/invoker.mjs";
+import { validateArgs } from "../src/validate.mjs";
+import { OUTPUT_SCHEMAS } from "../src/output-schemas.mjs";
 
 const T = Date.now() - 3_600_000;
 const iso = (ms) => new Date(ms).toISOString();
@@ -66,6 +68,31 @@ test("a person's Timeline reads authored posts and questions without private or 
   );
   const result = await read();
   const item = result.timeline[0];
+  assert.equal(validateArgs(OUTPUT_SCHEMAS.elixir_timeline, result), null);
+  for (const key of ["comments", "can_edit", "share_url"]) {
+    const invalid = structuredClone(result);
+    invalid.timeline[0].facts[key] = "must not reach a post consumer";
+    assert.notEqual(
+      validateArgs(OUTPUT_SCHEMAS.elixir_timeline, invalid),
+      null,
+      `${key} must be rejected by the registry validator`,
+    );
+  }
+  const publishable = structuredClone(result);
+  publishable.timeline[0].publishable = true;
+  assert.notEqual(
+    validateArgs(OUTPUT_SCHEMAS.elixir_timeline, publishable),
+    null,
+  );
+  for (const key of ["post", "nickname", "can_edit", "comments", "share_url"]) {
+    const invalid = structuredClone(result);
+    invalid.timeline[0][key] = "private web-only field";
+    assert.notEqual(
+      validateArgs(OUTPUT_SCHEMAS.elixir_timeline, invalid),
+      null,
+      `${key} must be rejected on a post item`,
+    );
+  }
   assert.equal(item.id, p.item_id);
   assert.equal(item.schema, "post/1");
   assert.equal(item.revision, 1);
