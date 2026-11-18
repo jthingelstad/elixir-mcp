@@ -491,7 +491,7 @@ test("My conversations reads only on selection and resumes the first unread repl
   const ref = {
     source: "game",
     item_id: "tl_0123456789abcdef0099",
-    kind: "card_mastery_step",
+    kind: "badge_earned",
     at: "2026-11-18T10:00:00Z",
     subject: { kind: "player", tag: "#0PGQ2UYL" },
   };
