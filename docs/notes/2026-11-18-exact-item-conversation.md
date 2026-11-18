@@ -35,6 +35,6 @@ capability; keep the unavailable state deliberately free of private details;
 retain first-unread reply anchors across sign-in. No new notification,
 recipient, game read, schema or standing capacity is introduced here.
 
-MCP 13.14.0 and JSON API 5.1.0 are unchanged; this is an internal web and mail
+MCP 14.0.0 and JSON API 6.0.0 are unchanged; this is an internal web and mail
 change. Production verification is read-only; local source and browser
 fixtures exercise the successful writes and denied audiences.

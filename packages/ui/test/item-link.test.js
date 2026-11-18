@@ -65,3 +65,21 @@ test("the exact read tuple survives a reply link", () => {
     afterId: "42",
   });
 });
+test("router search parsing never rounds bigint reply cursor IDs", () => {
+  const reply = "9007199254740993";
+  const afterId = "9007199254740995";
+  const path = memberItemPath(ref, { commentId: reply, afterId });
+  const parsed = Object.fromEntries(
+    [...new URL(path, "https://elixir.test").searchParams].map(
+      ([key, value]) => {
+        try {
+          return [key, JSON.parse(value)];
+        } catch {
+          return [key, value];
+        }
+      },
+    ),
+  );
+  expect(readMemberItemPath(ID, parsed).entry.reply).toBe(reply);
+  expect(readMemberItemPath(ID, parsed).entry.afterId).toBe(afterId);
+});

@@ -743,6 +743,8 @@ export function usePostsChanged() {
   const queryClient = useQueryClient();
   return useCallback(() => {
     queryClient.invalidateQueries({ queryKey: ["me", "posts"] });
+    queryClient.invalidateQueries({ queryKey: ["me", "timeline-item"] });
+    queryClient.invalidateQueries({ queryKey: ["me", "comments"] });
     queryClient.invalidateQueries({
       queryKey: ["me", "clan", "record"],
       predicate: (q) => q.queryKey[4] === "feed",

@@ -6,6 +6,22 @@ export const MEMBER_ITEM_PATH = /^\/home\/item\/tl_[a-f0-9]{20}$/;
 const COMMENT_ID = /^[1-9][0-9]{0,18}$/;
 const PAGE_ID = /^[a-z0-9]{12}$/i;
 const TAG = /^#[0289PYLQGRJCUV]{3,15}$/;
+const commentIdOf = (value) => {
+  if (typeof value === "number")
+    return Number.isSafeInteger(value) && COMMENT_ID.test(String(value))
+      ? String(value)
+      : null;
+  if (typeof value !== "string") return null;
+  if (COMMENT_ID.test(value)) return value;
+  try {
+    const decoded = JSON.parse(value);
+    return typeof decoded === "string" && COMMENT_ID.test(decoded)
+      ? decoded
+      : null;
+  } catch {
+    return null;
+  }
+};
 
 export function timelineItemRef(it) {
   if (!it?.id || it.section === "account") return null;
@@ -75,8 +91,12 @@ export function memberItemPath(
   const ref = locator(itemRef);
   if (!ref) return null;
   const query = new URLSearchParams({ ref: JSON.stringify(ref) });
-  if (COMMENT_ID.test(String(commentId))) query.set("reply", String(commentId));
-  if (COMMENT_ID.test(String(afterId))) query.set("after_id", String(afterId));
+  const reply = commentIdOf(commentId);
+  const cursor = commentIdOf(afterId);
+  // The router parses JSON search values. Quoted IDs stay strings beyond
+  // Number's safe range; an unsafe legacy numeric value fails closed.
+  if (reply) query.set("reply", JSON.stringify(reply));
+  if (cursor) query.set("after_id", JSON.stringify(cursor));
   if (
     after === "all" ||
     (typeof after === "string" && Number.isFinite(Date.parse(after)))
@@ -95,12 +115,10 @@ export function readMemberItemPath(id, search) {
     return {
       ref,
       entry: {
-        ...(COMMENT_ID.test(String(search.after_id))
-          ? { afterId: String(search.after_id) }
+        ...(commentIdOf(search.after_id)
+          ? { afterId: commentIdOf(search.after_id) }
           : {}),
-        reply: COMMENT_ID.test(String(search.reply))
-          ? String(search.reply)
-          : null,
+        reply: commentIdOf(search.reply),
         after:
           search.after === "all" ||
           (typeof search.after === "string" &&

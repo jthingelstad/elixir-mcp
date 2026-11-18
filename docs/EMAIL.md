@@ -292,9 +292,12 @@ that player to the game-record subjects. The digest does not infer Clan
 membership as a new mail audience.
 
 Stored post facts contain id, words, question and canonical cards/deck,
-never comments, permissions or public-share tokens. The renderer links
-`memberPostUrl(id)`, `/home/post/<id>`, an authenticated destination whose
-read rechecks the current audience. No public capability is created.
+never comments, permissions or public-share tokens. New post and game
+update facts retain `member_path`, built by the shared item-link helper:
+an authenticated exact item destination whose read rechecks its current
+audience. Every such item shows its original local day and time. Stored
+facts lacking that path keep their existing post/battle link. No public
+capability is created.
 Deleted/hidden/reported/blocked posts are omitted at composition time.
 As for existing mail, rendering, archive and outbox persist a snapshot;
 queued or delivered HTML cannot be retracted by later moderation or

@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
-import { memberItemPath } from "@elixir-mcp/ui/item-link";
+import { memberItemPath, readMemberItemPath } from "@elixir-mcp/ui/item-link";
 import { ME, SIGNED_OUT, mockApi, signedIn } from "./fixtures.ts";
 
 const ID = "tl_0123456789abcdef0041";
@@ -186,7 +186,10 @@ test("a shared destination survives code sign-in and access denial reveals no it
   await page.getByRole("button", { name: "Sign in", exact: true }).click();
   await expect(page).toHaveURL(new RegExp(`/home/item/${ID}\\?`));
   expect(JSON.parse(new URL(page.url()).searchParams.get("ref")!)).toEqual(REF);
-  expect(new URL(page.url()).searchParams.get("reply")).toBe("42");
+  expect(
+    readMemberItemPath(ID, Object.fromEntries(new URL(page.url()).searchParams))
+      ?.entry.reply,
+  ).toBe("42");
   await expect(
     page.getByRole("heading", { name: "This item isn't available to you" }),
   ).toBeVisible();
@@ -198,4 +201,67 @@ test("a shared destination survives code sign-in and access denial reveals no it
     0,
   );
   expect(reads).toBe(1);
+});
+test("deleting a post on its exact destination refreshes the item and removes its stale controls", async ({
+  page,
+}) => {
+  const ref = {
+    item_id: ID,
+    source: "post",
+    kind: "post",
+    post_id: "41",
+    at: REF.at,
+  };
+  let visible = true;
+  let reads = 0;
+  const item = {
+    ...ITEM,
+    kind: "post",
+    section: "posts",
+    item_ref: ref,
+    post: {
+      id: "41",
+      text: "My post to remove",
+      question: false,
+      cards: [],
+      deck: null,
+      mine: true,
+      can_delete: true,
+      author: { player_tag: "#0RJ29CVY", name: "Invented Reader" },
+    },
+  };
+  await mockApi(
+    page,
+    signedIn({
+      "GET /api/me": [200, ON_ME],
+      [`GET /api/me/timeline-items/${ID}`]: () => {
+        reads++;
+        return visible ? [200, { item }] : [404, { error: "not_found" }];
+      },
+      "DELETE /api/me/posts/41": () => {
+        visible = false;
+        return [200, { ok: true }];
+      },
+      "GET /api/me/comments": [200, { comments: [], open: true }],
+    }),
+  );
+  await page.goto(memberItemPath(ref)!);
+  await expect(
+    page.getByText("My post to remove", { exact: true }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Delete", exact: true }).click();
+  await page
+    .getByRole("dialog")
+    .getByRole("button", { name: "Delete", exact: true })
+    .click();
+  await expect(
+    page.getByRole("heading", { name: "This item isn't available to you" }),
+  ).toBeVisible();
+  await expect(
+    page.getByText("My post to remove", { exact: true }),
+  ).toHaveCount(0);
+  await expect(page.getByRole("textbox", { name: "Your comment" })).toHaveCount(
+    0,
+  );
+  expect(reads).toBeGreaterThanOrEqual(2);
 });
