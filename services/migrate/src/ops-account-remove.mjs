@@ -201,11 +201,6 @@ async function removeAccount(db, { hash, accountId, dryRun }) {
       `account_clan_declined where account_id = any($1::uuid[])`,
     ],
     ["player_nickname", `player_nickname where account_id = any($1::uuid[])`],
-    // A highlight is the person's post: its words go with them, and its
-    // share link with it (#762). The battle stays. Frozen since 0292,
-    // its rows copied to account_post (below); until the contract
-    // migration drops it, a delete here takes the post too.
-    ["battle_highlight", `battle_highlight where account_id = any($1::uuid[])`],
     // Their cheers leave the counts with them, and their RSS link stops
     // (0243, #765).
     ["timeline_cheer", `timeline_cheer where account_id = any($1::uuid[])`],
