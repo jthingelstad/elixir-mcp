@@ -144,6 +144,14 @@ node acceptance/run.mjs --only gym/304.1 # one Gym case, named with its suite
 node acceptance/run.mjs --json           # the report as JSON
 ```
 
+Catalogue notes and docs audits are phase 2: they inspect the responses
+phase 1 collected. Selecting `catalogue/elixir_timeline#docs` alone makes
+no door calls and proves no field support. Use
+`node acceptance/run.mjs --only catalogue/` to keep phase 1 and the
+shared evidence from every tool. A single tool's subset can lack fields
+that the full catalogue witnesses through another tool; that is not a
+reason to allow those fields.
+
 One call at a time, so the budget rule's timings are honest, and paced
 (2026-11-13): after each call that reaches the door the run rests twice
 that call's time, 250 ms to 10 s (`PACE` in `run.mjs`), so the database's
