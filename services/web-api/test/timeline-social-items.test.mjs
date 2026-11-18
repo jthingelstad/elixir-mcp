@@ -15,6 +15,7 @@ import { ownFeedItem, stampedTags, withCheers } from "../src/cheers.mjs";
 import { makeHandler } from "../src/handler.mjs";
 import { readClanFeed } from "../src/clan-feed.mjs";
 import { recoverMemberItemRef } from "../src/timeline-items.mjs";
+import { readConversations } from "../src/conversations.mjs";
 import { makeHandler as makeGameConsumer } from "../../timeline-sync/src/handler.mjs";
 
 const PLAYER = "#0PGQ2UYL";
@@ -1268,6 +1269,92 @@ test("historical conversation recovery is exact, named and subject to current au
     await ctx.db.query(
       "delete from account_block where account_id=$1 and blocked_account_id=$2",
       [author, stranger],
+    );
+  }
+});
+
+test("conversation pages bound current-source work across distinct recorded players", async () => {
+  const tags = Array.from(
+    { length: 21 },
+    (_, i) =>
+      `#0P${i.toString(2).replaceAll("0", "P").replaceAll("1", "Y").padStart(7, "P")}`,
+  );
+  for (const [i, tag] of tags.entries()) {
+    await ctx.db.query("insert into player(player_tag,name) values($1,$2)", [
+      tag,
+      `Invented conversation player ${i}`,
+    ]);
+    await emitEvent(ctx.db, "badge_earned", {
+      tag,
+      payload: {
+        name: "MasteryKnight",
+        level: 10,
+        prior_level: 9,
+        max_level: 10,
+        rung: 10,
+      },
+      windowStart: at(now - DAY - 60000),
+      windowEnd: at(now - DAY),
+    });
+  }
+  const built = await buildTimeline(
+    ctx.db,
+    tags.map((tag) => ({ kind: "player", tag })),
+    {
+      accountId: reader,
+      interactive: true,
+      fromMs: now - 2 * DAY,
+      toMs: now,
+      basis: "occurred",
+      accountLines: false,
+      lateCounts: false,
+    },
+  );
+  const badgeItems = built.timeline.filter(
+    (it) => it.kind === "badge_earned" && tags.includes(it.subject_tag),
+  );
+  assert.equal(badgeItems.length, 21);
+  try {
+    for (const it of badgeItems) {
+      await ctx.db.query(
+        "insert into timeline_comment(item_id,account_id,subject_tag,body) values($1,$2,$3,'A fixture contribution')",
+        [it.id, reader, it.subject_tag],
+      );
+      await ctx.db.query(
+        "update comment_conversation set item_ref=$3::jsonb where account_id=$1 and item_id=$2",
+        [reader, it.id, JSON.stringify(refOf(it))],
+      );
+    }
+    let statements = 0;
+    const tracked = {
+      query: (...args) => {
+        statements++;
+        return ctx.db.query(...args);
+      },
+    };
+    const start = performance.now();
+    const page = await readConversations(tracked, reader, { posts: true });
+    console.log(
+      JSON.stringify({
+        benchmark: "conversation-current-sources",
+        candidates: tags.length,
+        shown: page.items.length,
+        statements,
+        ms: Math.round(performance.now() - start),
+      }),
+    );
+    assert.equal(page.items.length, 8);
+    assert.ok(page.next, "remaining candidates have a continuation");
+    assert.ok(page.items.every((it) => tags.includes(it.item_ref.subject.tag)));
+    assert.ok(statements <= 180, `${statements} statements`);
+  } finally {
+    await ctx.db.query(
+      "delete from timeline_comment where account_id=$1 and subject_tag=any($2::text[])",
+      [reader, tags],
+    );
+    await ctx.db.query(
+      "delete from comment_conversation where account_id=$1 and legacy_subject_tag=any($2::text[])",
+      [reader, tags],
     );
   }
 });

@@ -325,6 +325,20 @@ test("a latest page beyond an unread gap marks only its served replies read", as
   let row = (await list()).items[0];
   assert.equal(row.unread, 1, "the unserved first reply remains unread");
   assert.equal(row.first_unread_comment_id, replies[0]);
+  const receipts = async () =>
+    Number(
+      (
+        await ctx.db.query(
+          "select count(*)::int as n from comment_conversation_read where account_id=$1 and item_id=$2",
+          [people.reader, post.item_id],
+        )
+      ).rows[0].n,
+    );
+  assert.equal(
+    await receipts(),
+    100,
+    "read exceptions survive an earlier unread gap",
+  );
   latest = body(
     await call("reader", "GET", "/api/me/comments", null, {
       item: post.item_id,
@@ -347,6 +361,11 @@ test("a latest page beyond an unread gap marks only its served replies read", as
     replies.at(-1),
     "the contiguous cursor can now cross the previously served page",
   );
+  assert.equal(
+    await receipts(),
+    0,
+    "the contiguous cursor replaces covered receipts without losing read state",
+  );
 });
 
 test("conversation pagination preserves timestamp ties and clips only the list excerpt", async () => {
@@ -363,25 +382,27 @@ test("conversation pagination preserves timestamp ties and clips only the list e
     );
   }
   const first = body(await call("reader", "GET", "/api/me/conversations"));
-  assert.equal(first.items.length, 20);
+  assert.equal(first.items.length, 8);
   assert.ok(first.next_before);
-  const second = body(
-    await call("reader", "GET", "/api/me/conversations", null, {
-      before: first.next_before,
-    }),
-  );
-  assert.equal(second.items.length, 1);
-  assert.equal(second.next_before, null);
-  assert.equal(
-    new Set([...first.items, ...second.items].map((it) => it.item_id)).size,
-    21,
-  );
+  const all = [...first.items];
+  let cursor = first.next_before;
+  while (cursor) {
+    const next = body(
+      await call("reader", "GET", "/api/me/conversations", null, {
+        before: cursor,
+      }),
+    );
+    assert.ok(next.items.length <= 8);
+    all.push(...next.items);
+    cursor = next.next_before;
+  }
+  assert.equal(new Set(all.map((it) => it.item_id)).size, 21);
   assert.deepEqual(
-    [...first.items, ...second.items].map((it) => it.item_id),
+    all.map((it) => it.item_id),
     ids.toReversed(),
   );
-  assert.equal(Array.from(second.items[0].title).length, 160);
-  assert.ok(second.items[0].title.endsWith("…"));
+  assert.equal(Array.from(all.at(-1).title).length, 160);
+  assert.ok(all.at(-1).title.endsWith("…"));
   assert.equal(
     (
       await ctx.db.query("select body from account_post where item_id=$1", [
@@ -398,5 +419,54 @@ test("conversation pagination preserves timestamp ties and clips only the list e
       )
     ).rows.every((row) => row.item_ref !== null),
     "authorized recovered locators are normalized without moving read history",
+  );
+});
+
+test("an entirely inaccessible page still reaches later visible threads without exposing its cursor metadata", async () => {
+  let visible;
+  const hidden = [];
+  for (let i = 0; i < 9; i++) {
+    const post = await people.post({ text: `Joined fixture thread ${i}` });
+    if (i === 0) visible = post.item_id;
+    else hidden.push(post.item_id);
+    await ctx.db.query(
+      `insert into timeline_comment(item_id,account_id,owner_account_id,subject_tag,body,created_at)
+      values($1,$2,$3,$4,'A previous contribution','2026-11-18T10:00:00Z'::timestamptz+$5*interval '1 microsecond')`,
+      [post.item_id, people.reader, people.author, AUTHOR_TAG, i],
+    );
+    if (i)
+      await ctx.db.query(
+        "update account_post set status='hidden' where post_id=$1",
+        [post.id],
+      );
+  }
+  const first = body(await call("reader", "GET", "/api/me/conversations"));
+  assert.deepEqual(first.items, []);
+  assert.ok(first.next_before, "a fully filtered page retains continuation");
+  assert.equal(
+    first.next,
+    undefined,
+    "the source sort tuple never reaches the member transport",
+  );
+  const envelope = Buffer.from(first.next_before, "base64url").toString();
+  for (const id of hidden) assert.ok(!envelope.includes(id));
+  assert.ok(!envelope.includes("2026-11-18T10:00:00"));
+  const second = body(
+    await call("reader", "GET", "/api/me/conversations", null, {
+      before: first.next_before,
+    }),
+  );
+  assert.deepEqual(
+    second.items.map((it) => it.item_id),
+    [visible],
+  );
+  assert.equal(
+    (
+      await call("stranger", "GET", "/api/me/conversations", null, {
+        before: first.next_before,
+      })
+    ).statusCode,
+    400,
+    "cursor is bound to its owning account",
   );
 });

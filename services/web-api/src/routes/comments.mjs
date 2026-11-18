@@ -48,7 +48,7 @@ import {
 } from "../comments.mjs";
 import { postQueue } from "../posts.mjs";
 import { json } from "../http.mjs";
-import { readConversations, conversationCursor } from "../conversations.mjs";
+import { readConversations, conversationCursors } from "../conversations.mjs";
 
 /** Item reads one person may make in an hour: each rebuilds a slice of
  *  their feed, as a page's cheers read does. */
@@ -91,8 +91,10 @@ export function commentsRoutes({
   resolveAccount,
   comments = null,
   posts = false,
+  secret = null,
 }) {
   const enabled = comments?.enabled === true;
+  const cursors = secret ? conversationCursors(secret) : null;
   const person = async (db, event, write) => {
     const account = await resolveAccount(db, event, {
       requireContractHeader: write,
@@ -127,6 +129,7 @@ export function commentsRoutes({
       const { account, refused } = await person(db, event, false);
       if (refused) return refused;
       if (!enabled) return off();
+      if (!cursors) return json(503, { error: "unavailable" });
       if (
         !(await checkRateLimit(db, {
           bucket: `conversations#${account.accountId}`,
@@ -135,12 +138,18 @@ export function commentsRoutes({
       )
         return limited();
       const raw = event.queryStringParameters?.before;
-      const before = raw ? conversationCursor(raw) : null;
+      const before = raw ? cursors.read(account.accountId, raw) : null;
       if (raw && !before) return json(400, { error: "invalid_cursor" });
-      return json(
-        200,
-        await readConversations(db, account.accountId, { posts, before }),
-      );
+      const page = await readConversations(db, account.accountId, {
+        posts,
+        before,
+      });
+      return json(200, {
+        items: page.items,
+        next_before: page.next
+          ? cursors.write(account.accountId, page.next)
+          : null,
+      });
     },
     "GET /api/me/comments": async (db, event) => {
       const { account, refused } = await person(db, event, false);

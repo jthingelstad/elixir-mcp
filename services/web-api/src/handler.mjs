@@ -509,7 +509,7 @@ export function makeHandler({
     ...cheersRoutes({ resolveAccount, posts: postsOn }),
     // Comments, blocks and reports (2026-11-16), off unless the stack's
     // CommentsEnabled is true.
-    ...commentsRoutes({ resolveAccount, comments, posts: postsOn }),
+    ...commentsRoutes({ resolveAccount, comments, posts: postsOn, secret }),
     // Posts (2026-11-17): a post about nothing in the record only with
     // PostsEnabled and CommentsEnabled; a post about a battle (what was a
     // highlight until 0292) either way, its words checked while comments

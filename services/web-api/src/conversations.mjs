@@ -6,20 +6,44 @@ import { commentSeenSql } from "./comment-visibility.mjs";
 import { ownFeedItem } from "./cheers.mjs";
 import { timelineItemRef } from "./timeline-item-ref.mjs";
 import { recoverMemberItemRef } from "./timeline-items.mjs";
+import { createBox } from "@elixir-mcp/clan/sealed.mjs";
+import { sessionSecrets } from "@elixir-mcp/auth";
 
-export const CONVERSATION_PAGE = 20;
-export function conversationCursor(raw) {
-  if (typeof raw !== "string" || raw.length > 300) return null;
-  try {
-    const c = JSON.parse(Buffer.from(raw, "base64url").toString());
-    return typeof c.at === "string" &&
-      Number.isFinite(Date.parse(c.at)) &&
-      /^tl_[0-9a-f]{20}$/.test(c.id)
-      ? c
-      : null;
-  } catch {
-    return null;
-  }
+// Each game item is re-admitted from its source. Keep this compact
+// Notifications read bounded; a cursor retains every remaining candidate.
+export const CONVERSATION_PAGE = 8;
+/** A filtered candidate can be a currently inaccessible private item.
+ * Its sort tuple must not be readable from the continuation token. The
+ * existing runtime secret supplies a separately derived purpose key. */
+export function conversationCursors(secret) {
+  const boxes = sessionSecrets(secret).map((key) =>
+    createBox(key, "elixir-my-conversations-cursor-v1"),
+  );
+  if (!boxes.length) return null;
+  return {
+    write(accountId, cursor) {
+      return Buffer.from(
+        JSON.stringify(boxes[0].seal(JSON.stringify(cursor), accountId)),
+      ).toString("base64url");
+    },
+    read(accountId, raw) {
+      if (typeof raw !== "string" || raw.length > 600) return null;
+      try {
+        const envelope = JSON.parse(Buffer.from(raw, "base64url").toString());
+        const plain = boxes
+          .map((box) => box.open(envelope, accountId))
+          .find(Boolean);
+        const c = JSON.parse(plain);
+        return typeof c?.at === "string" &&
+          Number.isFinite(Date.parse(c.at)) &&
+          /^tl_[0-9a-f]{20}$/.test(c.id)
+          ? c
+          : null;
+      } catch {
+        return null;
+      }
+    },
+  };
 }
 
 export async function readConversations(
@@ -96,11 +120,9 @@ export async function readConversations(
   const last = page.at(-1);
   return {
     items,
-    next_before:
+    next:
       rows.length > CONVERSATION_PAGE && last
-        ? Buffer.from(
-            JSON.stringify({ at: last.cursor_at, id: last.item_id }),
-          ).toString("base64url")
+        ? { at: last.cursor_at, id: last.item_id }
         : null,
   };
 }
