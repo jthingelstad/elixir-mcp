@@ -44,6 +44,7 @@ export {
   blockedWith,
   listBlocks,
   unblockAccount,
+  visibleFriendSql,
 } from "./blocks.mjs";
 
 /**

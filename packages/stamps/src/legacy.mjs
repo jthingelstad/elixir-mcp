@@ -29,6 +29,7 @@
  * Reads only the account's own rows, per account; the place is read from
  * Clan's store as its save instant, never as a place.
  */
+import { visibleFriendSql } from "@elixir-mcp/claims";
 import { readOwnedPlaces } from "@elixir-mcp/auth/clan-context";
 import {
   ACTIVE_WINDOW_DAYS,
@@ -142,8 +143,7 @@ export async function readLaunchSnapshot(db, accountId, at) {
                                       - make_interval(days => $3::int))
               as last_battle_at
        from claim c
-      where c.account_id = $1::uuid and c.relationship = 'friend'
-        and not c.is_primary and c.created_at < $2::timestamptz`,
+      where c.account_id = $1::uuid and ${visibleFriendSql("c")} and c.created_at < $2::timestamptz`,
     [accountId, at, ACTIVE_WINDOW_DAYS],
   );
   const {
@@ -157,14 +157,13 @@ export async function readLaunchSnapshot(db, accountId, at) {
         and (v.is_primary or v.relationship in ('primary', 'alt'))
        join account va on va.account_id = v.account_id
         and coalesce(va.kind, 'person') = 'person'
-      where mine.account_id = $1::uuid and mine.relationship = 'friend'
-        and not mine.is_primary and mine.created_at < $2::timestamptz
+      where mine.account_id = $1::uuid and ${visibleFriendSql("mine")} and mine.created_at < $2::timestamptz
         and v.account_id <> $1::uuid
         and exists (
           select 1 from claim back
             join claim mine2 on mine2.player_tag = back.player_tag
            where back.account_id = v.account_id
-             and back.relationship = 'friend' and not back.is_primary
+             and ${visibleFriendSql("back")}
              and back.created_at < $2::timestamptz
              and mine2.account_id = $1::uuid and mine2.status = 'verified'
              and coalesce(mine2.verified_at, mine2.created_at) < $2::timestamptz

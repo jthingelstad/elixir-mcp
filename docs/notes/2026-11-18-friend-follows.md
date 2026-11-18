@@ -61,3 +61,14 @@ Stats, identity, slot pricing, linked follows and close-friend boundaries.
 The repository shipping, tool-change, migration and consistency skills
 guide this change. Browser plugin is unavailable; visual checks use the
 repository's Playwright fixture harness bound to loopback port 4392.
+
+The final consistency trace found another derived reader: Stamps counted
+raw friend claims, assuming a block had removed each one. Old watched
+recordings could survive a block and become friend claims during conversion.
+A single visible-friend predicate now serves public follows and Stamps'
+current and launch snapshots and new Played Together facts. Two-way blocks
+exclude those retained associations; ordinary unblocked follows join the
+usual eligibility on reconciliation. Earned Stamps remain append-only and
+are not revoked. Mixed historical watched/friend fixtures cover both block
+directions, ordinary mutual eligibility, recorded play and earned-row
+preservation. No new Stamp kind, event, mail or push was introduced.
