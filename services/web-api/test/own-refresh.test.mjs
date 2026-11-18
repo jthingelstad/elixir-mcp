@@ -42,6 +42,7 @@ const STRANGER = "#0PQ2VY";
 const UNKNOWN = "#0CU8LG";
 
 let db;
+const clientsEnded = [];
 let gatewayId;
 let person;
 const wakes = [];
@@ -85,6 +86,9 @@ const openJobs = async () =>
 before(async () => {
   await createScratch(name);
   db = new pg.Pool({ connectionString: databaseUrl, max: 2 });
+  db.on("connect", (client) => {
+    clientsEnded.push(new Promise((resolve) => client.once("end", resolve)));
+  });
   const {
     rows: [a],
   } = await db.query(
@@ -131,6 +135,10 @@ before(async () => {
 
 after(async () => {
   await db?.end();
+  // Pool.end resolves when clients leave the pool, before their sockets
+  // necessarily close. Let PostgreSQL finish disconnecting before FORCE
+  // drops the scratch database, so it cannot terminate a retiring client.
+  await Promise.all(clientsEnded);
   await dropScratch(name);
 });
 

@@ -38,7 +38,12 @@ export async function seedSignedIn(
   const t0 = Date.now();
   const step = (what) =>
     process.env.SEED_LOG && console.log(`seed ${what} ${Date.now() - t0} ms`);
-  const base = await seedClanLanding(name, { weeks: 1, others: 0 });
+  const gameNow = Date.now();
+  const base = await seedClanLanding(name, {
+    weeks: 1,
+    others: 0,
+    now: gameNow,
+  });
   const { db, clanTag, leaderTag, accountId } = base;
   step("base week");
 
@@ -274,5 +279,5 @@ export async function seedSignedIn(
   // The budget tests measure plans and buffers: the map must be whole.
   await vacuumWhole(db);
   step("done");
-  return { ...base, follows };
+  return { ...base, follows, gameNow };
 }

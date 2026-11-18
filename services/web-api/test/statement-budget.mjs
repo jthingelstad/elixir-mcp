@@ -88,6 +88,7 @@ function scans(plan) {
         node: n["Node Type"],
         table: n["Relation Name"],
         index: n["Index Name"] ?? null,
+        heap_fetches: n["Heap Fetches"] ?? null,
         loops: n["Actual Loops"] ?? 1,
         read:
           ((n["Actual Rows"] ?? 0) + (n["Rows Removed by Filter"] ?? 0)) *
