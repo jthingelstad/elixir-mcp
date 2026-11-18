@@ -147,13 +147,14 @@ test("docs audit distinguishes conditional output vocabulary from unserved field
   await assert.rejects(() => audit.run(ctx), /invented_missing_field/);
 });
 
-test("Timeline attester metadata may be absent in a quiet run without allowing unserved or other-tool fields", async () => {
+test("quiet Timeline windows admit documented attestation and Drop fields only for this tool", async () => {
   const body = {
     docs: "timeline-tool",
     timeline: [],
     notes: ["An authorized attested fact carries `attested_by`."],
   };
-  let markdown = "An authorized attested fact carries `attested_by`.";
+  const conditional = "A `drop_game` carries its `game_id` and `attested_by`.";
+  let markdown = conditional;
   const ctx = {
     tools: new Map(
       ["elixir_timeline", "example_tool"].map((tool) => [
@@ -200,10 +201,13 @@ test("Timeline attester metadata may be absent in a quiet run without allowing u
     () => run("elixir_timeline#notes"),
     /notes name invented_missing_attestation/,
   );
-  markdown = "An authorized attested fact carries `attested_by`.";
+  markdown = conditional;
   body.notes = [];
   await run("example_tool#0");
-  await assert.rejects(() => run("example_tool#docs"), /documents attested_by/);
+  await assert.rejects(
+    () => run("example_tool#docs"),
+    /documents drop_game, game_id, attested_by/,
+  );
 });
 
 test("docs and notes audits hold on any day: an optional field a bite carried passes, one served nowhere fails", async () => {
