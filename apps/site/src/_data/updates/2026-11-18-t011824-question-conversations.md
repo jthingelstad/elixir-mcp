@@ -9,4 +9,4 @@ Replies to a post now share one notification, with the latest reply and
 new reply count. Open it to go straight to that post. Reply words stay in
 Elixir.
 
-No MCP or JSON API version change.
+MCP 13.13.0 and JSON API 5.1.0 unchanged.

@@ -1,6 +1,7 @@
 -- 0297: an author can mark a question answered, reversibly (Jamie and
--- Codex, 2026-11-17). This nullable metadata changes no post chronology,
--- words or revision, and leaves replies open. Null means unanswered.
+-- Codex, 2026-11-17). Null means unanswered; replies stay open. The
+-- writer treats state changes as edits (revision/updated_at), while
+-- preserving words, creation time and display order.
 -- account_post: 1 page, estimated 8 live rows, 8 KiB heap in the production
 -- read-only tables preflight (2026-11-18). The nullable column is catalog-only.
 -- timeline_comment: 4 estimated rows, 8 KiB heap. Correct only owner stamps

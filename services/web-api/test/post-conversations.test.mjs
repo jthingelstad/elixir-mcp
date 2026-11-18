@@ -130,10 +130,10 @@ test("Unanswered skips resolved questions before the clan cap and counts the per
   });
 });
 
-test("only the author marks a visible question, idempotently, without changing chronology or new-post count", async () => {
+test("answer-state edits keep creation order but advance the current-state observed revision; repeats, new counts and digest stay quiet", async () => {
   const db = scratch.db;
   const since = Date.now() - 120000;
-  const before = await countNewPosts(db, owner, since, opts);
+  const fresh = await countNewPosts(db, owner, since, opts);
   assert.equal(
     (
       await setQuestionAnswered(
@@ -168,29 +168,49 @@ test("only the author marks a visible question, idempotently, without changing c
       .error,
     "posts_off",
   );
-  const set = await setQuestionAnswered(
+  const from = Date.now() - 1;
+  const marked = await setQuestionAnswered(
     db,
     { accountId: owner },
     question.id,
     true,
     opts,
   );
-  assert.equal(set.post.post.answered, true);
-  const delivered = await readPostTimeline(db, owner, {
-    subjects: [],
-    fromMs: question.created_at.getTime() - 1000,
-    toMs: question.created_at.getTime() + 1000,
-    basis: "occurred",
-    timezone: "UTC",
-  });
+  const markTo = Date.now();
+  const poll = async (fromMs, toMs) =>
+    (
+      await readPostTimeline(db, owner, {
+        subjects: [],
+        fromMs,
+        toMs,
+        basis: "observed",
+        timezone: "UTC",
+      })
+    ).items.filter((it) => it.facts.post_id === question.id);
+  const seen = await poll(from, markTo);
+  assert.equal(seen.length, 1);
+  assert.equal(seen[0].facts.answered, true);
+  assert.equal(seen[0].revision, Number(question.revision) + 1);
+  assert.equal(seen[0].id, question.item_id);
+  assert.equal(seen[0].at, question.created_at.toISOString());
+  assert.equal(seen[0].sort_at, question.created_at.toISOString());
+  assert.equal("comments" in seen[0], false);
+  assert.equal("post" in seen[0], false);
+  const row = async () =>
+    (
+      await db.query(
+        "select created_at,updated_at,revision from account_post where post_id=$1",
+        [question.id],
+      )
+    ).rows[0];
+  const edited = await row();
   assert.equal(
-    delivered.items.find((it) => it.facts.post_id === question.id).facts
-      .answered,
-    true,
+    edited.created_at.toISOString(),
+    question.created_at.toISOString(),
   );
-  assert.equal("comments" in delivered.items[0], false);
-  assert.equal("post" in delivered.items[0], false);
-  assert.equal(set.changed, true);
+  assert.ok(edited.updated_at);
+  assert.equal(edited.revision, Number(question.revision) + 1);
+  assert.equal(marked.post.post.edited, true);
   assert.equal(
     (
       await setQuestionAnswered(
@@ -203,18 +223,26 @@ test("only the author marks a visible question, idempotently, without changing c
     ).changed,
     false,
   );
-  const row = (
-    await db.query(
-      `select created_at,updated_at,revision from account_post where post_id=$1`,
-      [question.id],
-    )
-  ).rows[0];
-  assert.deepEqual(row, {
-    created_at: question.created_at,
-    updated_at: question.updated_at,
-    revision: question.revision,
-  });
-  assert.equal(await countNewPosts(db, owner, since, opts), before);
+  assert.deepEqual(await row(), edited);
+  assert.deepEqual(await poll(markTo, Date.now()), []);
+  // Separate real query windows; this is a current-state poll, not a toggle log.
+  await db.query("select pg_sleep(0.002)");
+  const reopened = await setQuestionAnswered(
+    db,
+    { accountId: owner },
+    question.id,
+    false,
+    opts,
+  );
+  const reopenTo = Date.now();
+  const after = await poll(markTo, reopenTo);
+  assert.equal(after.length, 1);
+  assert.equal(after[0].facts.answered, false);
+  assert.equal(after[0].revision, Number(question.revision) + 2);
+  assert.equal(after[0].id, seen[0].id);
+  assert.equal(after[0].sort_at, seen[0].sort_at);
+  assert.equal(reopened.changed, true);
+  const openRow = await row();
   assert.equal(
     (
       await setQuestionAnswered(
@@ -224,11 +252,33 @@ test("only the author marks a visible question, idempotently, without changing c
         false,
         opts,
       )
-    ).post.post.answered,
+    ).changed,
+    false,
+  );
+  assert.deepEqual(await row(), openRow);
+  assert.deepEqual(await poll(reopenTo, Date.now()), []);
+  assert.equal(await countNewPosts(db, owner, since, opts), fresh);
+  const digest = await readVisiblePosts(db, owner, {
+    subjects: [],
+    fromMs: from,
+    toMs: Date.now(),
+    plain: true,
+    visibleOnly: true,
+    plainOnly: true,
+    createdOnly: true,
+  });
+  assert.equal(
+    digest.some((it) => it.post.id === question.id),
     false,
   );
 });
 test("post replies coalesce with unread counts, distinguish answers and preserve game comment behavior", async () => {
+  const postBefore = (
+    await scratch.db.query(
+      "select revision,updated_at from account_post where post_id=$1",
+      [question.id],
+    )
+  ).rows[0];
   await comment(question, "Earlier answer", 20);
   await comment(question, "Latest answer", 1);
   await comment(question, "Own answer", 0, owner);
@@ -239,6 +289,15 @@ test("post replies coalesce with unread counts, distinguish answers and preserve
   await scratch.db.query(
     `insert into bell_seen(account_id,seen_at) values($1,now()-interval '10 minutes')`,
     [owner],
+  );
+  assert.deepEqual(
+    (
+      await scratch.db.query(
+        "select revision,updated_at from account_post where post_id=$1",
+        [question.id],
+      )
+    ).rows[0],
+    postBefore,
   );
   const bell = await readBell(scratch.db, owner, {
     comments: true,

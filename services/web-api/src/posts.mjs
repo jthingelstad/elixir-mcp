@@ -477,7 +477,8 @@ export async function editPost(db, account, id, text, cfg) {
 }
 
 /** An author marks their visible question answered, without changing its
- * words, chronology or revision. Answers stay open in either state. */
+ * words or creation chronology. Like a word edit, a state change updates
+ * its revision and observed time; answers stay open in either state. */
 export async function setQuestionAnswered(db, account, id, answered, cfg) {
   if (typeof answered !== "boolean") return { error: "bad_request" };
   const row = await postRow(db, id);
@@ -490,7 +491,8 @@ export async function setQuestionAnswered(db, account, id, answered, cfg) {
     return { error: "not_found" };
   if (!cfg?.plain) return { error: "posts_off" };
   const { rowCount } = await db.query(
-    `update account_post set answered_at = case when $2 then now() else null end
+    `update account_post set answered_at = case when $2 then now() else null end,
+            revision = revision + 1, updated_at = now()
        where post_id = $1::bigint and question and status = 'visible'
          and account_id = $3::uuid and (answered_at is not null) <> $2`,
     [row.post_id, answered, account.accountId],

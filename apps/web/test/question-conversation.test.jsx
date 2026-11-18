@@ -3,6 +3,7 @@ import { cleanup, fireEvent, screen } from "@testing-library/react";
 import { renderWithProviders } from "./helpers.jsx";
 import { Comments } from "../src/home/Comments.jsx";
 import { PostActions, PostBody } from "../src/home/Post.jsx";
+import { timelineDays, feedSince } from "../src/home/logic.js";
 import { api } from "../src/api.js";
 
 const question = {
@@ -198,4 +199,32 @@ test("replying from an anchored notification returns to latest so the new answer
   });
   fireEvent.click(screen.getByRole("button", { name: "Post", exact: true }));
   expect(await screen.findByText("My new answer")).toBeTruthy();
+});
+
+test("editing a question's answer state stays out of New markers and fallback watermark", () => {
+  const made = "2026-11-17T12:00:00Z",
+    edited = "2026-11-17T13:00:00Z";
+  const post = {
+    ...question,
+    at: made,
+    sort_at: made,
+    observed_at: edited,
+    revision: 2,
+  };
+  const game = {
+    id: "late-game",
+    kind: "badge_earned",
+    at: made,
+    observed_at: edited,
+  };
+  const days = timelineDays([post, game], {
+    day: (at) => at.slice(0, 10),
+    openedMs: Date.parse("2026-11-17T12:30:00Z"),
+  });
+  expect(days[0].rows.map((r) => r.isNew)).toEqual([false, true]);
+  expect(days[0].rows.map((r) => r.newLine)).toEqual([false, true]);
+  expect(feedSince({ timeline: [post] })).toBe(new Date(made).toISOString());
+  expect(feedSince({ timeline: [post, game] })).toBe(
+    new Date(edited).toISOString(),
+  );
 });
