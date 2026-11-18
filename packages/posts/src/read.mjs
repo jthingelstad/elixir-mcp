@@ -37,7 +37,7 @@ export async function catalogRows(db, ids) {
 
 const POST_COLS = `p.post_id::text as post_id, p.item_id, p.account_id,
        p.player_tag, p.body, p.question, p.deck, p.cards, p.status,
-       p.battle_id, ts.share_id, p.revision, p.created_at,
+       p.battle_id, ts.share_id, p.revision, p.created_at, p.updated_at,
        pl.name as player_name, ap.passport_id as author_page`;
 const POST_JOIN = `left join timeline_share ts on ts.item_id = p.item_id
                      and ts.created_at >= now() - interval '1 year'
@@ -117,6 +117,42 @@ export async function readVisiblePosts(
     { plain, visibleOnly, limit },
   );
   return postItems(db, rows, readerId);
+}
+
+/** Plain posts for a delivery reader, using the same audience and moderation
+ * predicate as the member Timeline. The window is (from, to] at the
+ * millisecond precision served in JSON. Read one row beyond the page so
+ * the caller can continue at the newest omitted instant; total includes
+ * every matching post, without hydrating attachments beyond the page.
+ */
+export async function readVisiblePostPage(
+  db,
+  readerId,
+  { subjects, fromMs, toMs, basis = "observed", playerTag = null, limit = 150 },
+) {
+  const size = Math.max(1, Math.min(200, Math.trunc(limit) || 150));
+  const tags = subjects.filter((s) => s.kind === "player").map((s) => s.tag);
+  const instant =
+    basis === "occurred"
+      ? "p.created_at"
+      : "coalesce(p.updated_at, p.created_at)";
+  const { rows } = await db.query(
+    `select ${POST_COLS}, count(*) over()::int as total,
+            ${instant} as page_at
+       from account_post p ${POST_JOIN}
+      where ${seen(true, true)} and ${audience()}
+        and p.battle_id is null
+        and ${instant} >= $3 and ${instant} < $4
+        and ($5::text is null or p.player_tag = $5)
+      order by ${instant} desc, p.post_id desc
+      limit ${size + 1}`,
+    [readerId, tags, new Date(fromMs + 1), new Date(toMs + 1), playerTag],
+  );
+  return {
+    items: await postItems(db, rows.slice(0, size), readerId),
+    more: Math.max(0, (rows[0]?.total ?? 0) - size),
+    more_at: rows[size]?.page_at?.toISOString() ?? null,
+  };
 }
 
 /** The live posts the Home read could show that were CREATED after its
@@ -356,10 +392,11 @@ export async function postItems(db, rows, readerId) {
     const about = r.battle_id ? (battles.get(r.item_id) ?? null) : null;
     return {
       id: r.item_id,
+      revision: Math.max(1, Number(r.revision) || 1),
       kind: "post",
       at,
       sort_at: at,
-      observed_at: at,
+      observed_at: new Date(r.updated_at ?? r.created_at).toISOString(),
       subject_tag: r.player_tag,
       subjects: [
         { kind: "player", tag: r.player_tag, name: r.player_name ?? null },

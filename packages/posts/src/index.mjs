@@ -1,6 +1,7 @@
 export {
   catalogRows,
   readVisiblePosts,
+  readVisiblePostPage,
   countNewPosts,
   readVisiblePost,
   readPublishedPost,
