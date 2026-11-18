@@ -556,6 +556,9 @@ export function useCheer({
     queryClient.setQueriesData({ queryKey: CHEER_FEED_KEY }, (old) =>
       mapItems(old, "timeline", patch),
     );
+    queryClient.setQueriesData({ queryKey: ["me", "followed-moment"] }, (old) =>
+      mapItems(old, "item", patch),
+    );
     queryClient.setQueriesData({ queryKey: ["me", "cheers"] }, (old) =>
       mapItems(old, "items", patch),
     );
@@ -742,6 +745,7 @@ export const useMemberPost = (id) =>
 export function usePostsChanged() {
   const queryClient = useQueryClient();
   return useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: ["me", "followed-moment"] });
     queryClient.invalidateQueries({ queryKey: ["me", "posts"] });
     queryClient.invalidateQueries({ queryKey: ["me", "timeline-item"] });
     queryClient.invalidateQueries({ queryKey: ["me", "comments"] });
@@ -782,6 +786,7 @@ export function useCommentsChanged() {
         "player-session",
         "cheers",
         "timeline-item",
+        "followed-moment",
       ])
         queryClient.invalidateQueries({ queryKey: ["me", surface] });
       queryClient.invalidateQueries({ queryKey: ["me", "posts"] });
@@ -827,6 +832,16 @@ export const usePeople = (which, enabled = true) =>
     queryFn: payload(() => api.people(which)),
     enabled,
     staleTime: 60_000,
+  });
+
+export const followedMomentKey = (tags) => ["me", "followed-moment", ...tags];
+export const useFollowedMoment = (tags) =>
+  useQuery({
+    queryKey: followedMomentKey(tags),
+    queryFn: payload(() => api.followedMoment(tags)),
+    enabled: tags.length > 0,
+    refetchOnWindowFocus: false,
+    retry: false,
   });
 
 /** A first-day primary's collector progress. The server decides both the

@@ -70,9 +70,11 @@ export function HomePanels({ first, player, feed, mode = null }) {
   const offered = offersStarter(first);
   const starter = usePeople("starter", offered);
   // A read kept from before the fifth follow is not an offer any more.
+  const [justFollowed, setJustFollowed] = useState(false);
   const starterShown =
-    offered && Boolean(starter.data?.ok && starter.data.offer);
-  const starterListed = starterShown && starter.data.people?.length > 0;
+    justFollowed ||
+    (offered && Boolean(starter.data?.ok && starter.data.offer));
+  const starterListed = starterShown && starter.data?.people?.length > 0;
   // A quiet week (#1016): People to follow moves under the feed's quiet
   // line, in the main column, so a phone reaches it first. The feed's own
   // read, shared, never a second request.
@@ -91,7 +93,12 @@ export function HomePanels({ first, player, feed, mode = null }) {
       {unlock ? <Unlock player={player} /> : null}
       <div className="kit-home__two">
         <div className="kit-home__main">
-          {starterShown ? <StarterSet query={starter} /> : null}
+          {starterShown ? (
+            <StarterSet
+              query={starter}
+              onFollowed={() => setJustFollowed(true)}
+            />
+          ) : null}
           <ProfileList first={first} player={player} />
           {/* Your circle this week (2026-11-16): above the feed, compact. */}
           {typeof feed === "function" ? <Circle /> : null}

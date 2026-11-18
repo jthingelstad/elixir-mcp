@@ -564,7 +564,11 @@ export function makeHandler({
       comments: comments?.enabled === true,
       posts: postsOn,
     }),
-    ...peopleRoutes({ resolveAccount, blocks: comments?.enabled === true }),
+    ...peopleRoutes({
+      resolveAccount,
+      blocks: comments?.enabled === true,
+      posts: postsOn,
+    }),
     ...onboardingPeopleRoutes({ resolveAccount, live: liveRead }),
     ...passportRoutes({ resolveAccount }),
     ...accountsRoutes({ resolveAccount, blocks: comments?.enabled === true }),

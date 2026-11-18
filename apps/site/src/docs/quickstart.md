@@ -68,7 +68,8 @@ there:
 Until you follow five, your Timeline opens with **People you know**: your
 clanmates, the players you played a friendly battle with and your 2v2
 teammates, all ticked. Untick anyone you'd rather not follow and tap
-**Follow these** ([People you know](/docs/timeline#people-you-know)).
+**Follow these** ([People you know](/docs/timeline#people-you-know)). You can
+cheer a recent item from those players right there or open your Timeline.
 After that, your Timeline's **People to follow** suggests a few more, and says why
 each one is there ([Find](/docs/follow-a-friend#find)).
 

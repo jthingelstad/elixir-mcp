@@ -348,6 +348,11 @@ back. When there is nobody to suggest, it is one line pointing to
 Follow me link. Nobody is ranked, and names are game names, never a
 nickname.
 
+Once you confirm, you can cheer the most recent eligible Timeline item from
+the players you just followed. Elixir looks back seven days. **Open Timeline**
+is available straight away, even while the item loads or when those players
+have no recent activity.
+
 After you confirm, **Your follows are ready** stays beside any remaining
 choices. **Open Timeline** starts reading; it follows nobody else.
 
