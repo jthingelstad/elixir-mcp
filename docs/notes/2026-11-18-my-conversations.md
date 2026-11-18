@@ -29,4 +29,4 @@ member, an agent, MCP, RSS or a public share. No new mail or push is sent.
 No legal wording changes are included. Parent release coordination owns
 deployment and production readback.
 
-MCP 13.14.0 and JSON API 5.1.0 are unchanged by this member-only feature.
+MCP 14.0.0 and JSON API 6.0.0 are unchanged by this member-only feature.

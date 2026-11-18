@@ -102,6 +102,15 @@ test("My conversations is private and only includes threads actually joined", as
   assert.equal(list.items.length, 1);
   assert.equal(list.items[0].item_ref.item_id, post.item_id);
   assert.equal(list.items[0].unread, 0);
+  await reply(post, { at: "2026-11-17T08:00:00Z" });
+  const afterOldReply = body(
+    await call("reader", "GET", "/api/me/conversations"),
+  );
+  assert.ok(
+    Date.parse(afterOldReply.items[0].at) >=
+      Date.parse(body(joined).comment.at),
+    "old replies do not date a newly joined conversation before participation",
+  );
   assert.deepEqual(
     body(await call("stranger", "GET", "/api/me/conversations")).items,
     [],

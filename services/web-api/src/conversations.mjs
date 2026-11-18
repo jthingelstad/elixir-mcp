@@ -29,19 +29,19 @@ export async function readConversations(
 ) {
   const { rows } = await db.query(
     `with joined as (
-       select c.*, coalesce(r.latest_at,c.joined_at) as activity_at,
+       select c.*, greatest(r.latest_at,c.joined_at) as activity_at,
               coalesce(r.unread,0)::int as unread,r.first_unread
          from comment_conversation c
          left join lateral (
            select max(tc.created_at) as latest_at,
-                  count(*) filter(where (tc.created_at,tc.comment_id) > (c.read_at,c.read_comment_id)
+                  count(*) filter(where tc.account_id<>$1 and (tc.created_at,tc.comment_id) > (c.read_at,c.read_comment_id)
                     and not exists(select 1 from comment_conversation_read cr where cr.account_id=$1 and cr.comment_id=tc.comment_id))::int as unread,
                   (array_agg(tc.comment_id::text order by tc.created_at,tc.comment_id)
-                    filter(where (tc.created_at,tc.comment_id) > (c.read_at,c.read_comment_id)
+                    filter(where tc.account_id<>$1 and (tc.created_at,tc.comment_id) > (c.read_at,c.read_comment_id)
                       and not exists(select 1 from comment_conversation_read cr where cr.account_id=$1 and cr.comment_id=tc.comment_id)))[1] as first_unread
              from timeline_comment tc
              join account a on a.account_id=tc.account_id and a.kind='person' and a.status='approved'
-            where tc.item_id=c.item_id and tc.account_id<>$1 and tc.status='visible'
+            where tc.item_id=c.item_id and tc.status='visible'
               and ${commentSeenSql("$1::uuid")}
          ) r on true
         where c.account_id=$1)

@@ -7,4 +7,4 @@ straight to the first one you have not read.
 Your list is private. The same access, blocks and moderation apply, and
 this adds no email or push notifications.
 
-MCP 13.14.0 · JSON API 5.1.0.
+MCP 14.0.0 · JSON API 6.0.0.
