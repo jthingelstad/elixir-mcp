@@ -6,7 +6,7 @@ import { api } from "../api.js";
 
 /** Sharing never creates a post. Only the server's canonical URL enters
  * the outbound message; the signed-in item's names may be private aliases. */
-export function ItemShare({ it, battle, onReady }) {
+export function ItemShare({ it, battle, onReady, compact = false }) {
   if (!battle && !shareableItem(it)) return null;
   return (
     <ShareAction
@@ -14,12 +14,13 @@ export function ItemShare({ it, battle, onReady }) {
       it={it}
       battle={battle}
       onReady={onReady}
+      compact={compact}
     />
   );
 }
 
 /** A target owns its cached capability and every pending side effect. */
-function ShareAction({ it, battle, onReady }) {
+function ShareAction({ it, battle, onReady, compact }) {
   const [state, setState] = useState("idle");
   const [url, setUrl] = useState(null);
   const busy = useRef(false);
@@ -103,8 +104,10 @@ function ShareAction({ it, battle, onReady }) {
       <button
         type="button"
         className="btn btn--quiet btn--sm kit-item-share__action"
-        aria-label={feedback ? undefined : "Share"}
-        title={feedback ? undefined : "Share"}
+        aria-label={
+          compact ? (feedback ?? "Share") : feedback ? undefined : "Share"
+        }
+        title={feedback ?? "Share"}
         disabled={state === "pending"}
         onClick={run}
       >
@@ -112,35 +115,41 @@ function ShareAction({ it, battle, onReady }) {
           name={state === "copied" || state === "shared" ? "check" : "share-2"}
           size={20}
         />
-        {feedback}
+        {compact ? <span className="sr-only">{feedback}</span> : feedback}
       </button>
-      {state === "error" ? (
-        <span role="status" className="kit-tiny">
-          Couldn't get a link. Try again.
-        </span>
-      ) : null}
-      {url && state !== "pending" ? (
-        <>
-          {state === "link" ? (
-            <label className="kit-share-link">
-              Share link
-              <input readOnly value={url} onFocus={(e) => e.target.select()} />
-            </label>
-          ) : null}
-          <a href={`${url}.png`} className="btn btn--quiet btn--sm" download>
-            Share image
-          </a>
-          <CopyButton
-            label="Copy for a post"
-            text={`<a href="${url}"><img src="${url}.png" alt="A Timeline item shared on Elixir" width="1200" height="630"></a>`}
-          />
-        </>
-      ) : null}
-      {state === "copied" || state === "shared" ? (
-        <span role="status" className="sr-only">
-          Share link ready
-        </span>
-      ) : null}
+      <span className="kit-item-share__details">
+        {state === "error" ? (
+          <span role="status" className="kit-tiny">
+            Couldn't get a link. Try again.
+          </span>
+        ) : null}
+        {url && state !== "pending" ? (
+          <>
+            {state === "link" ? (
+              <label className="kit-share-link">
+                Share link
+                <input
+                  readOnly
+                  value={url}
+                  onFocus={(e) => e.target.select()}
+                />
+              </label>
+            ) : null}
+            <a href={`${url}.png`} className="btn btn--quiet btn--sm" download>
+              Share image
+            </a>
+            <CopyButton
+              label="Copy for a post"
+              text={`<a href="${url}"><img src="${url}.png" alt="A Timeline item shared on Elixir" width="1200" height="630"></a>`}
+            />
+          </>
+        ) : null}
+        {state === "copied" || state === "shared" ? (
+          <span role="status" className="sr-only">
+            Share link ready
+          </span>
+        ) : null}
+      </span>
     </span>
   );
 }

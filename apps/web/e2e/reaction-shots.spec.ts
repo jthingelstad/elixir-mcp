@@ -90,7 +90,7 @@ for (const width of [320, 390, 1280]) {
       els.findIndex(
         (el) =>
           el.querySelector(".kit-cheer:not(.kit-cheer--mine)") &&
-          el.querySelector(".kit-cheers__count"),
+          el.querySelector(".kit-cheers__count, .kit-cheers__rest"),
       ),
     );
     const plain = cards.nth(at);

@@ -311,6 +311,8 @@ plain words.
 
 ## Web
 
+- **One Timeline action row** — cheers and picker, comment/answer glyph and count, then Share; latest replies and the inline thread stay below. All FeedItem variants use one wrapper. Main cheer counts and +N other cheers keep the row compact; full counts remain accessible. Eligibility and public-share boundaries stay at the existing source. [engineering, 2026-11-18; Jamie requested the layout cleanup]
+
 - **A shared item offers a Follow after sign-in**. A post names its author and a game item names its player subjects. The member chooses through the usual priced Follow flow. [Jamie, 2026-11-17; engineering: omit players already on the account, no referral identity]
 
 - **People arrive before setup finishes** — after adding a primary, the existing priced and confirmed starter set is available while its first battles arrive; other welcome steps stay under Finish your setup. A confirmed follow stays in place, preserves unticked choices and offers Open Timeline. During a primary claim's first day, its actively followed clan's missing roster may get one collector live mint per account per UTC day, within the existing global budget, for three minutes after the later of claim/profile; the first roster job freezes that window and progress falls back to minute reads afterward. No clan follow, slot or declined choice is overridden. An already-admitted profile also permits the missing first battle-log request through every existing add door. [Jamie, 2026-11-17: approved immediate social value and realtime reads for suggestions; engineering, 2026-11-17: the bounds, layout and continued choices; `docs/notes/2026-11-17-immediate-people.md`]

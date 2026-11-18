@@ -166,7 +166,9 @@ test("signed-in share viewers remain on the one-item page with an explicit way t
     page.getByRole("link", { name: "Open your Timeline" }),
   ).toHaveAttribute("href", "/timeline");
   await expect(page.getByRole("region", { name: "Comments" })).toHaveCount(0);
-  await expect(page.locator(".kit-feed__foot, .kit-verified")).toHaveCount(0);
+  await expect(
+    page.locator(".kit-feed__foot, .kit-item-actions, .kit-verified"),
+  ).toHaveCount(0);
 });
 
 test("signing in returns to the same opaque item, without opening member history", async ({
@@ -250,7 +252,9 @@ for (const width of [320, 390, 1280]) {
     await expect(page.getByText("Two pushes at the end.")).toBeVisible();
     await expect(page.locator(".kit-vs .kit-deckrow")).toHaveCount(2);
     await expect(
-      page.locator(".kit-feed__foot, .kit-player-name, .kit-verified"),
+      page.locator(
+        ".kit-feed__foot, .kit-item-actions, .kit-player-name, .kit-verified",
+      ),
     ).toHaveCount(0);
     await expect(
       page.locator(

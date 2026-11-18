@@ -243,7 +243,7 @@ test("a post draws its words as plain text, its Question label, deck and Copy de
   expect(screen.getByRole("button", { name: /Copy deck/ })).toBeTruthy();
   expect(screen.getByRole("button", { name: "Report" })).toBeTruthy();
   // A question takes answers.
-  expect(await screen.findByRole("button", { name: "Answer" })).toBeTruthy();
+  expect(await screen.findByRole("button", { name: "0 answers" })).toBeTruthy();
 });
 
 test("a cheer on a page's post list shows at once, and a second tap takes it back", async () => {

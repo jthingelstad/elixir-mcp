@@ -383,7 +383,7 @@ for (const width of [320, 390, 1280]) {
         cheer: "well_played",
       });
       const quietReply = quiet.getByRole("button", {
-        name: "Comment",
+        name: "See 1 comment",
         exact: true,
       });
       await target(quietReply);

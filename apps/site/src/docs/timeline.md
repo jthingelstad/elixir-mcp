@@ -158,9 +158,8 @@ the other decks the session switched to. Decks follow the same
 
 Short sessions step back so the big ones stand out. A session of one or
 two battles is one line: who, when, the result and its
-trophies, and on the right its cheer button with how many gave that
-cheer, a "+" count of every other cheer, and the smile that opens the
-rest. Tap the line to open the
+trophies. Its actions stay together below: cheers, the comment count and
+Share when the item can be shared. Tap the line to open the
 session's page. Two or more short sessions in a row, whoever played them,
 fold into one row, such as "4 short sessions from Pip, Ash and 2 others",
 with their battles, wins and losses, when, and how many cheers they have
@@ -397,12 +396,15 @@ Once you have cheered, the button turns violet and shows your cheer's
 glyph. If a cheer could not be saved, it goes back to how it was and the
 item says so.
 
-An item shows its cheers as glyphs with their numbers: your cheer (or the
-thumbs up) on the button with its count, then the next most given kinds
-beside it, up to three, with anything more added up as one number, such as
-**+4**. Never who. Every member whose feed shows the item sees the same
-counts. Your account's own items (a sign-in, a feedback answer) take no
-cheers.
+On the Timeline, every item keeps its actions in one row: your cheer
+(or the thumbs up) and its count, a **+** count for the other cheers,
+the smile, the comment or answer count, and Share at the end when available.
+The speech bubble opens the conversation below the row. When you can
+reply, the writing field takes focus. A question counts answers,
+including zero. Names and counts are also available to a screen reader.
+Never who cheered. Other detail pages can show the counts by kind beside
+the main button. Your account's own items (a sign-in, a feedback answer)
+take no cheers.
 
 The six that open first, then the rest in the order More shows them:
 

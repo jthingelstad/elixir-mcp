@@ -31,11 +31,9 @@ import {
   trophyNet,
 } from "./Session.jsx";
 import { signedCount } from "@elixir-mcp/ui/session-story";
-import { Cheers } from "./Cheers.jsx";
 import { cheerCounts } from "./cheer-set.js";
-import { Comments } from "./Comments.jsx";
 import { PostActions, PostBody } from "./Post.jsx";
-import { ItemShare } from "./ItemShare.jsx";
+import { ItemActions } from "./ItemActions.jsx";
 import { RacePlace } from "./RacePlace.jsx";
 
 /**
@@ -349,16 +347,14 @@ export function FeedItem({
       {moment && it.battle_url && !publicView ? <MomentBattle it={it} /> : null}
       {post && !publicView ? <PostActions it={it} /> : null}
       {!publicView ? (
-        <footer className="kit-feed__foot">
-          {"cheers" in it ? <Cheers it={it} where={cheerWhere} /> : null}
-          <span className="kit-feed__links">
-            {links}
-            <ItemShare it={it} />
-          </span>
-        </footer>
-      ) : null}
-      {!publicView && "comments" in it ? (
-        <Comments it={it} entry={commentEntry} />
+        <>
+          <div className="kit-feed__links">{links}</div>
+          <ItemActions
+            it={it}
+            cheerWhere={cheerWhere}
+            commentEntry={commentEntry}
+          />
+        </>
       ) : null}
     </article>
   );
@@ -609,7 +605,7 @@ function MomentBody({ it, text }) {
 /** A short session as one line (2026-11-17): who and when, what happened
  *  with its trophies, and its cheers on the right. The line opens the
  *  session's page, as the card did; no deck art. */
-function SessionLine({ it, inGroup = false, cheerWhere }) {
+function SessionLine({ it, inGroup = false, cheerWhere, commentEntry }) {
   const who = subjectOf(it);
   const f = it.facts ?? {};
   const name = who?.kind === "player" ? (who.name ?? who.tag) : null;
@@ -655,9 +651,11 @@ function SessionLine({ it, inGroup = false, cheerWhere }) {
           <p className="kit-line__go">{said}</p>
         )}
       </div>
-      {"cheers" in it ? <Cheers it={it} where={cheerWhere} compact /> : null}
-      {"comments" in it ? <Comments it={it} /> : null}
-      <ItemShare it={it} />
+      <ItemActions
+        it={it}
+        cheerWhere={cheerWhere}
+        commentEntry={commentEntry}
+      />
     </article>
   );
 }
@@ -665,7 +663,7 @@ function SessionLine({ it, inGroup = false, cheerWhere }) {
 /** A small moment as one line (2026-11-17): who and when, a small mark
  *  (the card's own art when it names one), the sentence without the name
  *  the row already shows, and its cheers on the right. */
-function MomentLine({ it, inGroup = false, cheerWhere }) {
+function MomentLine({ it, inGroup = false, cheerWhere, commentEntry }) {
   const who = subjectOf(it);
   const card = momentCardOf(it);
   return (
@@ -706,17 +704,21 @@ function MomentLine({ it, inGroup = false, cheerWhere }) {
           </span>
         </p>
       </div>
-      {"cheers" in it ? <Cheers it={it} where={cheerWhere} compact /> : null}
-      {"comments" in it ? <Comments it={it} /> : null}
-      <ItemShare it={it} />
+      <ItemActions
+        it={it}
+        cheerWhere={cheerWhere}
+        commentEntry={commentEntry}
+      />
     </article>
   );
 }
 
 /** Small moments in a row, as one row that opens in place (2026-11-17),
  *  as short sessions fold: each moment inside keeps its own cheer. */
-function MomentGroup({ rows, cheerWhere }) {
-  const [open, setOpen] = useState(false);
+function MomentGroup({ rows, cheerWhere, commentEntry }) {
+  const [open, setOpen] = useState(() =>
+    rows.some(({ it }) => entryFor(commentEntry, it)),
+  );
   const bodyId = useId();
   const items = rows.map((r) => r.it);
   const g = momentsSaid(items);
@@ -755,6 +757,7 @@ function MomentGroup({ rows, cheerWhere }) {
                 it={it}
                 inGroup
                 cheerWhere={cheerWhere}
+                commentEntry={entryFor(commentEntry, it)}
               />
             ))
           : null}
@@ -767,8 +770,10 @@ function MomentGroup({ rows, cheerWhere }) {
  *  The group itself takes no cheer: each session inside keeps its own, by
  *  its own id, once the group is open. Closed, it says how many cheers its
  *  sessions have between them, counts only. */
-function SessionGroup({ rows, cheerWhere }) {
-  const [open, setOpen] = useState(false);
+function SessionGroup({ rows, cheerWhere, commentEntry }) {
+  const [open, setOpen] = useState(() =>
+    rows.some(({ it }) => entryFor(commentEntry, it)),
+  );
   const bodyId = useId();
   const items = rows.map((r) => r.it);
   const g = groupSaid(items);
@@ -815,6 +820,7 @@ function SessionGroup({ rows, cheerWhere }) {
                 it={it}
                 inGroup
                 cheerWhere={cheerWhere}
+                commentEntry={entryFor(commentEntry, it)}
               />
             ))
           : null}
@@ -845,23 +851,41 @@ export function FeedRows({
   onToggle = null,
   below = null,
   cheerWhere = undefined,
+  commentEntry = null,
 }) {
   return feedRows(rows).map((row, i) => (
     <div key={row.it.id ?? i}>
       {row.type === "group" ? (
-        <SessionGroup rows={row.rows} cheerWhere={cheerWhere} />
+        <SessionGroup
+          rows={row.rows}
+          cheerWhere={cheerWhere}
+          commentEntry={commentEntry}
+        />
       ) : row.type === "line" ? (
-        <SessionLine it={row.it} cheerWhere={cheerWhere} />
+        <SessionLine
+          it={row.it}
+          cheerWhere={cheerWhere}
+          commentEntry={entryFor(commentEntry, row.it)}
+        />
       ) : row.type === "moments" ? (
-        <MomentGroup rows={row.rows} cheerWhere={cheerWhere} />
+        <MomentGroup
+          rows={row.rows}
+          cheerWhere={cheerWhere}
+          commentEntry={commentEntry}
+        />
       ) : row.type === "moment" ? (
-        <MomentLine it={row.it} cheerWhere={cheerWhere} />
+        <MomentLine
+          it={row.it}
+          cheerWhere={cheerWhere}
+          commentEntry={entryFor(commentEntry, row.it)}
+        />
       ) : (
         <FeedItem
           it={row.it}
           open={openId === row.it.id}
           onToggle={onToggle ? () => onToggle(row.it.id) : null}
           cheerWhere={cheerWhere}
+          commentEntry={entryFor(commentEntry, row.it)}
         />
       )}
       {row.type === "item" && openId === row.it.id && below
@@ -871,3 +895,6 @@ export function FeedRows({
     </div>
   ));
 }
+
+const entryFor = (entry, it) =>
+  entry && (!entry.itemId || entry.itemId === it.id) ? entry : null;

@@ -48,7 +48,9 @@ test("a shared post is one item with writing and two decks, with no member actio
   expect(container.querySelectorAll(".kit-vs .kit-deckrow")).toHaveLength(2);
   expect(container.querySelector("img[src='x']")).toBeNull();
   expect(
-    container.querySelector(".kit-player-name, .kit-verified, .kit-feed__foot"),
+    container.querySelector(
+      ".kit-player-name, .kit-verified, .kit-feed__foot, .kit-item-actions",
+    ),
   ).toBeNull();
   expect(
     container.querySelector('a[href^="/battle/"], a[href^="/home/player/"]'),
