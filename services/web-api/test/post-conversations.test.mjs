@@ -3,6 +3,7 @@
 import { before, after, test } from "node:test";
 import assert from "node:assert/strict";
 import { scratchDb } from "../../../packages/ingest/test/helpers.mjs";
+import { readPostTimeline } from "../../../packages/tools/src/activity/posts.mjs";
 import { readBell } from "../src/bell.mjs";
 import { readFile } from "node:fs/promises";
 import {
@@ -175,6 +176,20 @@ test("only the author marks a visible question, idempotently, without changing c
     opts,
   );
   assert.equal(set.post.post.answered, true);
+  const delivered = await readPostTimeline(db, owner, {
+    subjects: [],
+    fromMs: question.created_at.getTime() - 1000,
+    toMs: question.created_at.getTime() + 1000,
+    basis: "occurred",
+    timezone: "UTC",
+  });
+  assert.equal(
+    delivered.items.find((it) => it.facts.post_id === question.id).facts
+      .answered,
+    true,
+  );
+  assert.equal("comments" in delivered.items[0], false);
+  assert.equal("post" in delivered.items[0], false);
   assert.equal(set.changed, true);
   assert.equal(
     (
