@@ -7395,6 +7395,11 @@ button.kit-row {
 .kit-people__row.kit-starter__row {
   padding-block: 8px;
 }
+@media (max-width: 600px) {
+  .kit-people__row.kit-starter__row {
+    padding-block: var(--s-1);
+  }
+}
 .kit-starter__row .kit-people__cost::before {
   content: " \00b7  ";
   color: var(--ink-faint);
