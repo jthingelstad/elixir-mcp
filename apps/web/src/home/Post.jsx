@@ -487,6 +487,7 @@ function PostDeck({ deck }) {
 /** What the reader may do about a post: edit or delete their own (and
  *  copy a shared battle post's link), report or block someone else's. */
 export function PostActions({ it }) {
+  const questionsOn = usePostsOn();
   const p = it.post ?? {};
   const changed = usePostsChanged();
   const [reporting, setReporting] = useState(false);
@@ -503,7 +504,7 @@ export function PostActions({ it }) {
     );
   return (
     <div className="kit-written__acts">
-      {p.can_edit && p.mine && p.question && !p.status ? (
+      {questionsOn && p.can_edit && p.mine && p.question && !p.status ? (
         <button
           type="button"
           className="btn btn--quiet btn--sm"

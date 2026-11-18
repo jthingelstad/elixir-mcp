@@ -19,7 +19,10 @@ question remains unanswered until its author marks it Answered. The shared posts
 filters SQL before its caps, after the same audience, moderation and block
 checks. Questions cursors, polling counts and query keys are distinct. Its new-item
 poll counts only question creation, filtering before the live-post cap;
-ordinary posts and game items cannot leave a stuck Questions notice. Clan skips game
+ordinary posts and game items cannot leave a stuck Questions notice. An
+empty Questions view keeps the New pill so the first question can arrive
+without navigating away. Mark and reopen controls use the same Posts and
+Comments switches as their API, including readable older battle questions. Clan skips game
 synthesis for Questions; membership and all private Clan permissions stay
 at the existing boundary. All activity remains the default.
 
