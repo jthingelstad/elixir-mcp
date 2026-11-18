@@ -165,7 +165,7 @@ export async function readFollowers(db, accountId, own, seen) {
   if (own.length === 0) return empty;
   const { rows } = await db.query(
     `select f.player_tag as followed, v.player_tag as tag, p.name, v.verified,
-            ($3::timestamptz is null or f.created_at > $3) as fresh,
+            ($3::timestamptz is null or f.followed_at > $3) as fresh,
             exists (select 1 from claim mine
                      where mine.account_id = $2
                        and mine.player_tag = v.player_tag) as claimed
@@ -187,8 +187,8 @@ export async function readFollowers(db, accountId, own, seen) {
         and coalesce(a.kind, 'person') = 'person'
         and f.account_id <> $2
         and not ${blockedSql("f.account_id", "$2::uuid")}
-        and f.created_at > now() - make_interval(days => $4)
-      order by f.created_at desc, v.player_tag`,
+        and f.followed_at > now() - make_interval(days => $4)
+      order by f.followed_at desc, v.player_tag`,
     [own.map((p) => p.tag), accountId, seen, BELL_DAYS],
   );
   const names = new Map(own.map((p) => [p.tag, p.name]));

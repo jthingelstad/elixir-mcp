@@ -120,7 +120,7 @@ async function candidates(db, { now, accountId }) {
                    and o.account_id <> f.account_id
          join account fa on fa.account_id = f.account_id
         where f.relationship = 'friend'
-          and f.created_at > $1::timestamptz - interval '1 hour'
+          and f.followed_at > $1::timestamptz - interval '1 hour'
           and coalesce(fa.kind, 'person') = 'person'
        union all
        select account_id, null from feedback

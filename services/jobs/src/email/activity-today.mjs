@@ -76,7 +76,7 @@ async function candidates(db, { from, accountId }) {
          join own o on o.player_tag = f.player_tag
                    and o.account_id <> f.account_id
          join account fa on fa.account_id = f.account_id
-        where f.relationship = 'friend' and f.created_at > $1
+        where f.relationship = 'friend' and f.followed_at > $1
           and coalesce(fa.kind, 'person') = 'person'
      )
      select a.account_id, a.email, a.timezone,
