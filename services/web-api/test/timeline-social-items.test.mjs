@@ -357,7 +357,6 @@ test("My conversations retains every source kind and rechecks private Clan roles
       [leader, joined.map((it) => it.id)],
     );
   }
-
 });
 
 test("unfollowed recorded player and clan items resolve by actual source beyond Home's week", async () => {

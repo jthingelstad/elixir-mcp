@@ -255,7 +255,7 @@ test("a Notifications conversation opens its exact item at the first unread repl
             subject_tag: ref.subject.tag,
             subjects: [{ ...ref.subject, name: "Birch Lantern" }],
             facts: { badge: "MasteryKnight", level: 10 },
-            text: rows[0].title,
+            text: rows[0]!.title,
             item_ref: ref,
             cheers: {},
             my_cheer: null,
