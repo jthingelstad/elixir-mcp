@@ -114,10 +114,6 @@ export function HomeFeed({
     <PostComposer open={writing.open} setOpen={writing.setOpen} />
   );
   const { day, feedDayHeading: dayHeading } = useClock();
-  const query = useHomeFeed(mode);
-  const pages = query.data?.pages ?? [];
-  const timeline = pages[0] ?? null;
-  const { openedMs } = useTimelinePlace(timeline);
   // The Show chip, as this account left it here (2026-11-16).
   const { me } = useMe();
   // Kept per account: its page id, else its main player, else this browser.
@@ -129,12 +125,23 @@ export function HomeFeed({
   );
   const circle = useHomeCircle();
   const hasClose = (circle.data?.circle?.friends?.length ?? 0) > 0;
-  const chipList = feedChips(hasClose);
+  const questionsOn =
+    me?.features?.posts === true && me?.features?.comments === true;
+  const chipList = feedChips(hasClose, questionsOn);
   const wanted = picked ?? asked ?? keptShow(who);
   // A kept Close friends with nobody marked any more is Everyone; while the
   // circle is still reading, the kept choice holds.
   const show =
-    wanted === "close" && circle.isSuccess && !hasClose ? "everyone" : wanted;
+    (wanted === "close" && circle.isSuccess && !hasClose) ||
+    (wanted === "questions" && !questionsOn)
+      ? "everyone"
+      : wanted;
+  const questionsOnly = show === "questions";
+  const query = useHomeFeed(mode, questionsOnly);
+  const pages = query.data?.pages ?? [];
+  const timeline = pages[0] ?? null;
+  const { openedMs } = useTimelinePlace(timeline);
+
   const setShow = (v) => {
     setPicked(v);
     keepShow(who, v);
@@ -154,7 +161,7 @@ export function HomeFeed({
   // Under a mode, a quiet week is one the whole week is quiet in: an empty
   // mode in a busy week says so instead (week_total).
   const weekTotal = timeline?.week_total ?? items.length;
-  const quiet = query.isSuccess && weekTotal === 0;
+  const quiet = query.isSuccess && weekTotal === 0 && !questionsOnly;
   const passport = useMyPassport(quiet);
   const shown = feedShown(items, show).filter((it) => !newOnly || isNew(it));
   const more = timeline?.timeline_more ?? 0;
@@ -162,7 +169,12 @@ export function HomeFeed({
   const top = useRef(null);
   const pill =
     fresh.data > 0 && !query.isFetching ? (
-      <NewPill count={fresh.data} top={top} mode={mode} />
+      <NewPill
+        count={fresh.data}
+        top={top}
+        mode={mode}
+        questionsOnly={questionsOnly}
+      />
     ) : null;
   if (query.isPending)
     return (
@@ -198,6 +210,29 @@ export function HomeFeed({
   ) : (
     <FeedFilters>{modePick}</FeedFilters>
   );
+  if (items.length === 0 && questionsOnly)
+    return (
+      <div ref={top} tabIndex={-1} className="kit-feed__top">
+        {composer}
+        {modeOnly}
+        <Empty
+          title="No questions in the last seven days"
+          titleAs="h2"
+          action={
+            <button
+              type="button"
+              className="btn btn--sm"
+              onClick={() => setShow("everyone")}
+            >
+              Show everyone
+            </button>
+          }
+        >
+          Questions from the people you follow and your own questions appear
+          here.
+        </Empty>
+      </div>
+    );
   if (items.length === 0 && mode && weekTotal > 0)
     return (
       <div ref={top} tabIndex={-1} className="kit-feed kit-feed__top">
@@ -260,7 +295,11 @@ export function HomeFeed({
     <FeedFilters>
       <Chips
         label="Show"
-        options={chipList.map((c) => ({ ...c, count: counts[c.key] }))}
+        options={chipList.map((c) => ({
+          ...c,
+          count:
+            c.key === "questions" && !questionsOnly ? undefined : counts[c.key],
+        }))}
         value={show}
         onChange={setShow}
       />
@@ -376,7 +415,7 @@ export function HomeFeed({
  * The tap reads the first page again (the pages past it are let go) and
  * brings the feed's top into view, its focus there for a keyboard.
  */
-function NewPill({ count, top, mode }) {
+function NewPill({ count, top, mode, questionsOnly = false }) {
   const queryClient = useQueryClient();
   const [busy, setBusy] = useState(false);
   const label = `${count.toLocaleString("en-US")} new`;
@@ -391,7 +430,7 @@ function NewPill({ count, top, mode }) {
         onClick={async () => {
           setBusy(true);
           try {
-            await reloadHomeFeed(queryClient, mode);
+            await reloadHomeFeed(queryClient, mode, questionsOnly);
           } finally {
             setBusy(false);
           }

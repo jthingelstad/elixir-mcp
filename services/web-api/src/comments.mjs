@@ -30,10 +30,11 @@
  * player the item is about (removed, kept for admins 30 days), an admin.
  * Two reports from different accounts hide it until an admin decides.
  */
-import { blockedSql, blockedWith, verifierOf } from "@elixir-mcp/claims";
+import { blockedSql, blockedWith } from "@elixir-mcp/claims";
 import { ITEM_ID_RE } from "@elixir-mcp/tools/activity/cheers";
 import { checkComment, REFUSAL_WORDS } from "./comment-check.mjs";
 import { tidyComment } from "./comment-filter.mjs";
+import { ID_RE } from "./http.mjs";
 
 /** The latest comments a feed card shows. */
 export const CARD_LATEST = 2;
@@ -199,6 +200,30 @@ async function ownersOf(db, tags) {
   return new Map(rows.map((r) => [r.player_tag, r.account_id]));
 }
 
+/** A post and its answers belong to its author, even after its player
+ * claim changes. Game items keep the player's current verified owner. */
+async function ownersForItems(db, items) {
+  const game = items.filter((it) => it?.kind !== "post");
+  const players = await ownersOf(db, game.map(itemPlayer));
+  const owners = new Map(
+    game
+      .filter((it) => it?.id)
+      .map((it) => [it.id, players.get(itemPlayer(it))]),
+  );
+  const posts = items
+    .filter((it) => it?.kind === "post" && it.id)
+    .map((it) => it.id);
+  if (posts.length) {
+    const { rows } = await db.query(
+      `select item_id,account_id from account_post
+      where item_id=any($1::text[]) and status <> 'removed'`,
+      [posts],
+    );
+    for (const row of rows) owners.set(row.item_id, row.account_id);
+  }
+  return owners;
+}
+
 const COMMENT_COLS = `tc.comment_id::text as comment_id, tc.item_id, tc.body,
        tc.created_at, tc.account_id, tc.owner_account_id, tc.status,
        ap.passport_id as author_page, pc.player_tag as author_tag,
@@ -212,7 +237,7 @@ const AUTHOR_JOIN = `join account a on a.account_id = tc.account_id
  *  review (a report never reaches the reported person), never anyone's
  *  in a block with the reader, and never one the reader reported while
  *  the report is open. `r` is the reader's SQL parameter. */
-const SEEN = (r) => `(tc.status = 'visible'
+export const commentSeenSql = (r) => `(tc.status = 'visible'
          or (tc.status = 'hidden' and tc.account_id = ${r}))
         and not ${blockedSql("tc.account_id", r)}
         and not exists (select 1 from comment_report cr
@@ -250,10 +275,9 @@ function shape(row, { readerId, isAdmin = false }) {
  */
 export async function withComments(db, items, readerId, { enabled = false }) {
   if (!enabled || !readerId) return items;
-  const tags = items.map((it) => (it?.id ? itemPlayer(it) : null));
-  const owners = await ownersOf(db, tags);
+  const owners = await ownersForItems(db, items);
   const ids = items
-    .filter((it, i) => it?.id && ITEM_ID_RE.test(it.id) && owners.get(tags[i]))
+    .filter((it) => it?.id && ITEM_ID_RE.test(it.id) && owners.get(it.id))
     .map((it) => it.id);
   const found = new Map();
   if (ids.length) {
@@ -265,7 +289,7 @@ export async function withComments(db, items, readerId, { enabled = false }) {
                 count(*) over (partition by tc.item_id)::int as n
            from timeline_comment tc
            ${AUTHOR_JOIN}
-          where tc.item_id = any($1::text[]) and ${SEEN("$2::uuid")})
+          where tc.item_id = any($1::text[]) and ${commentSeenSql("$2::uuid")})
        select * from seen where rn <= $3
         order by item_id, created_at, comment_id`,
       [ids, readerId, CARD_LATEST],
@@ -277,9 +301,9 @@ export async function withComments(db, items, readerId, { enabled = false }) {
     }
   }
   const open = await openOwners(db, readerId, [...owners.values()]);
-  return items.map((it, i) => {
+  return items.map((it) => {
     if (!it?.id || it.section === "account") return it;
-    const owner = owners.get(tags[i]);
+    const owner = owners.get(it.id);
     if (!owner) return { ...it, comments: null };
     const got = found.get(it.id);
     return {
@@ -295,27 +319,80 @@ export async function withComments(db, items, readerId, { enabled = false }) {
 
 /** One item's comments for a reader, oldest first: `{ comments, count,
  *  open }`. The caller has checked the item is in the reader's feed. */
-export async function commentsOnItem(db, readerId, item) {
+export async function commentsOnItem(
+  db,
+  readerId,
+  item,
+  { before = null, around = null } = {},
+) {
   const tag = itemPlayer(item);
-  const owner = tag ? await verifierOf(db, tag) : null;
-  if (!owner) return { item_id: item.id, comments: [], count: 0, open: false };
+  const owner = (await ownersForItems(db, [item])).get(item.id) ?? null;
+  if (!owner)
+    return {
+      item_id: item.id,
+      comments: [],
+      count: 0,
+      open: false,
+      next_before: null,
+    };
+  let anchor = null;
+  if (around && !before) {
+    anchor =
+      (
+        await db.query(
+          `select tc.created_at::text as at, tc.comment_id::text as id
+      from timeline_comment tc ${AUTHOR_JOIN}
+      where tc.item_id=$1 and ${commentSeenSql("$2::uuid")} and tc.comment_id=$3::bigint`,
+          [item.id, readerId, around],
+        )
+      ).rows[0] ?? null;
+  }
+  const edge = before ?? anchor;
   const { rows } = await db.query(
-    `select ${COMMENT_COLS}
-       from timeline_comment tc
-       ${AUTHOR_JOIN}
-      where tc.item_id = $1 and ${SEEN("$2::uuid")}
-      order by tc.created_at desc, tc.comment_id desc
-      limit $3`,
-    [item.id, readerId, ITEM_MAX],
+    `select ${COMMENT_COLS}, to_char(tc.created_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') as cursor_at
+       from timeline_comment tc ${AUTHOR_JOIN}
+      where tc.item_id = $1 and ${commentSeenSql("$2::uuid")}
+      ${edge ? `and (tc.created_at,tc.comment_id) ${before ? "<" : "<="} ($3::timestamptz,$4::bigint)` : ""}
+      order by tc.created_at desc, tc.comment_id desc limit ${ITEM_MAX + 1}`,
+    edge ? [item.id, readerId, edge.at, edge.id] : [item.id, readerId],
   );
+  const page = rows.slice(0, ITEM_MAX);
+  const last = page.at(-1);
+  const next =
+    rows.length > ITEM_MAX && last
+      ? Buffer.from(
+          JSON.stringify({ at: last.cursor_at, id: last.comment_id }),
+        ).toString("base64url")
+      : null;
   const open = await openOwners(db, readerId, [owner]);
-  const comments = rows.reverse().map((r) => shape(r, { readerId }));
+  const comments = page.reverse().map((r) => shape(r, { readerId }));
   return {
     item_id: item.id,
     comments,
     count: comments.length,
     open: open.get(owner) === true,
+    next_before: next,
+    anchored: Boolean(anchor),
   };
+}
+
+/** An opaque backwards page, preserving PostgreSQL timestamp precision. */
+export const validCommentId = (id) => ID_RE.test(String(id)) && BigInt(id) > 0n;
+
+export function readCommentCursor(raw) {
+  try {
+    const c = JSON.parse(Buffer.from(String(raw), "base64url").toString());
+    return typeof c.at === "string" &&
+      /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{6}Z$/.test(c.at) &&
+      c.at.slice(0, 4) !== "0000" &&
+      new Date(c.at).toISOString().slice(0, 19) === c.at.slice(0, 19) &&
+      typeof c.id === "string" &&
+      validCommentId(c.id)
+      ? { at: c.at, id: c.id }
+      : null;
+  } catch {
+    return null;
+  }
 }
 
 /** Why the account may not start a check now, or null: the per-minute and
@@ -367,7 +444,7 @@ export async function postComment(db, account, item, raw, comments) {
   if (!comments?.enabled) return { error: "comments_off" };
   const readerId = account.accountId;
   const tag = itemPlayer(item);
-  const owner = tag ? await verifierOf(db, tag) : null;
+  const owner = (await ownersForItems(db, [item])).get(item.id) ?? null;
   if (!owner)
     return {
       error: "not_open",

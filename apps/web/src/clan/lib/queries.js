@@ -37,7 +37,7 @@ export const keys = {
     "record",
     tag,
     "feed",
-    ...(view === "news" ? ["news"] : []),
+    ...(view !== "all" ? [view] : []),
   ],
   race: (tag) => ["me", "clan", "record", tag, "race"],
   run: (tag) => ["me", "clan", "record", tag, "run"],

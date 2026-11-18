@@ -8,6 +8,7 @@ export {
   visiblePost,
   postsBy,
   clanPosts,
+  clanQuestionCounts,
   ownPostsOn,
   postQueue,
 } from "./read.mjs";

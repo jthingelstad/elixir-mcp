@@ -20,11 +20,15 @@ export const FEED_CHIPS = [
   { key: "friends", label: "Friends" },
   { key: "clan", label: "Clan" },
   { key: "you", label: "You" },
+  { key: "questions", label: "Questions" },
 ];
 
 /** The Show chips this reader gets: Close friends only once one is marked. */
-export const feedChips = (hasClose) =>
-  FEED_CHIPS.filter((c) => c.key !== "close" || hasClose);
+export const feedChips = (hasClose, questionsOn = false) =>
+  FEED_CHIPS.filter(
+    (c) =>
+      (c.key !== "close" || hasClose) && (c.key !== "questions" || questionsOn),
+  );
 
 /** Whose choices this browser keeps for the feed: the account's page id,
  *  else its main player, else this browser's one account; nobody signed
@@ -180,7 +184,11 @@ export function circleWhy(s) {
 export const feedShown = (items, show) =>
   show === "everyone" || !FEED_CHIPS.some((c) => c.key === show)
     ? items
-    : items.filter((it) => (it.groups ?? []).includes(show));
+    : items.filter((it) =>
+        show === "questions"
+          ? it.kind === "post" && it.post?.question
+          : (it.groups ?? []).includes(show),
+      );
 
 /** What a sparkline says to somebody who cannot see it: the wins and the
  *  losses, then each battle in order with its crown margin, the same facts

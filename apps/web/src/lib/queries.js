@@ -412,12 +412,15 @@ export const HOME_FEED_KEY = ["me", "home", "feed"];
 /** One mode's feed (2026-11-17) is its own read under the feed's key, so
  *  its pages are cut in that mode; All modes is the key itself. Every
  *  write that patches the feed patches each mode's copy (setQueriesData). */
-export const homeFeedKey = (mode = null) =>
-  mode ? [...HOME_FEED_KEY, mode] : HOME_FEED_KEY;
-export const useHomeFeed = (mode = null) =>
+export const homeFeedKey = (mode = null, questionsOnly = false) => {
+  const key = mode ? [...HOME_FEED_KEY, mode] : HOME_FEED_KEY;
+  return questionsOnly ? [...key, "questions"] : key;
+};
+export const useHomeFeed = (mode = null, questionsOnly = false) =>
   useInfiniteQuery({
-    queryKey: homeFeedKey(mode),
-    queryFn: ({ pageParam }) => api.homeFeed(pageParam, mode).then(unwrap),
+    queryKey: homeFeedKey(mode, questionsOnly),
+    queryFn: ({ pageParam }) =>
+      api.homeFeed(pageParam, mode, questionsOnly).then(unwrap),
     initialPageParam: null,
     getNextPageParam: (last) => last?.next ?? undefined,
     retry: false,
@@ -453,8 +456,12 @@ export const useHomeFeedNew = (since) =>
 
 /** Read Home's feed again from its first page, as the pill's tap asks:
  *  the pages past the first are let go, so the read is one page. */
-export async function reloadHomeFeed(queryClient, mode = null) {
-  const queryKey = homeFeedKey(mode);
+export async function reloadHomeFeed(
+  queryClient,
+  mode = null,
+  questionsOnly = false,
+) {
+  const queryKey = homeFeedKey(mode, questionsOnly);
   queryClient.setQueryData(queryKey, (old) =>
     old?.pages?.length > 1
       ? { pages: old.pages.slice(0, 1), pageParams: old.pageParams.slice(0, 1) }
@@ -557,7 +564,7 @@ export function useCheer({ key = CHEER_FEED_KEY, list = "timeline" } = {}) {
     queryClient.setQueriesData(
       {
         queryKey: ["me", "clan", "record"],
-        predicate: (q) => q.queryKey.at(-1) === "feed",
+        predicate: (q) => q.queryKey[4] === "feed",
       },
       (old) => mapItems(old, "items", patch),
     );
@@ -656,16 +663,38 @@ export const usePageCheers = (ask, enabled = true) =>
 /** One item's comments (2026-11-16), read when its thread opens: the item's
  *  id and the subject tags that find it in your feed. */
 export const commentsKey = (itemId) => ["me", "comments", "item", itemId];
-export const useItemComments = (it, enabled = true) =>
-  useQuery({
-    queryKey: commentsKey(it?.id ?? ""),
-    queryFn: payload(() =>
-      api.comments({ item_id: it.id, subjects: itemSubjects(it) }),
-    ),
+export const useItemComments = (it, enabled = true, around = null) => {
+  const query = useInfiniteQuery({
+    queryKey: around ? [...commentsKey(it?.id), around] : commentsKey(it?.id),
+    queryFn: ({ pageParam }) =>
+      api
+        .comments({
+          item_id: it.id,
+          subjects: itemSubjects(it),
+          before: pageParam,
+          around: pageParam ? null : around,
+        })
+        .then(unwrap),
+    initialPageParam: null,
+    getNextPageParam: (last) => last.next_before ?? undefined,
     enabled: enabled && Boolean(it?.id),
-    staleTime: 15_000,
+    staleTime: 15000,
     retry: false,
   });
+  const pages = query.data?.pages;
+  return {
+    ...query,
+    data: pages
+      ? {
+          ...pages[0],
+          comments: pages
+            .slice()
+            .reverse()
+            .flatMap((p) => p.comments),
+        }
+      : undefined,
+  };
+};
 
 /** One player's or account's posts (2026-11-17), as the reader may see
  *  them: a player page's and an account page's list. */
@@ -700,6 +729,10 @@ export function usePostsChanged() {
   const queryClient = useQueryClient();
   return useCallback(() => {
     queryClient.invalidateQueries({ queryKey: ["me", "posts"] });
+    queryClient.invalidateQueries({
+      queryKey: ["me", "clan", "record"],
+      predicate: (q) => q.queryKey[4] === "feed",
+    });
     return queryClient.invalidateQueries({ queryKey: HOME_FEED_KEY });
   }, [queryClient]);
 }
@@ -730,7 +763,7 @@ export function useCommentsChanged() {
       queryClient.invalidateQueries({ queryKey: ["me", "posts"] });
       queryClient.invalidateQueries({
         queryKey: ["me", "clan", "record"],
-        predicate: (q) => q.queryKey.at(-1) === "feed",
+        predicate: (q) => q.queryKey[4] === "feed",
       });
       return queryClient.invalidateQueries({ queryKey: HOME_FEED_KEY });
     },

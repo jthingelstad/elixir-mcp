@@ -30,6 +30,7 @@ import {
   deletePost,
   dismissPostReports,
   editPost,
+  setQuestionAnswered,
   ownPostsOn,
   postsBy,
   readPostInput,
@@ -205,6 +206,20 @@ export function postsRoutes({
     "PUT /api/me/posts/*": async (db, event, body) => {
       const { account, refused } = await person(db, event, true);
       if (refused) return refused;
+      if (Object.hasOwn(body ?? {}, "answered")) {
+        if (Object.keys(body).some((key) => key !== "answered"))
+          return json(400, { error: "bad_request" });
+        const out = await setQuestionAnswered(
+          db,
+          account,
+          event.pathParam,
+          body.answered,
+          posts,
+        );
+        return out.ok
+          ? json(200, { post: out.post, changed: out.changed })
+          : json(postStatus(out.error), out);
+      }
       const out = await editPost(
         db,
         account,

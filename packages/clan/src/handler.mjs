@@ -477,7 +477,12 @@ export function createHandler({
       // The Feed: the clan's timeline as this member reads it.
       if (feed && method === "GET" && rest === "/feed") {
         const view = event.queryStringParameters?.view ?? "all";
-        if (view !== "all" && view !== "news")
+        if (
+          view !== "all" &&
+          view !== "news" &&
+          view !== "questions" &&
+          view !== "unanswered"
+        )
           return json(400, { error: "bad_view" });
         return json(200, await feed(tag, { view }));
       }

@@ -248,13 +248,21 @@ export function followerRows(followers) {
  *  bell is the one place a comment reaches you. */
 export const commentRows = (comments) =>
   (comments?.items ?? []).map((c) => ({
-    key: `comment-${c.comment_id}`,
+    key: c.post_id ? `post-comments-${c.post_id}` : `comment-${c.comment_id}`,
     icon: "message-circle",
     who: c.author?.name ?? c.author?.player_tag ?? "A player",
     tag: c.author?.player_tag ?? null,
     text: c.text,
+    question: c.question === true,
+    post: Boolean(c.post_id),
+    count: c.count ?? 1,
+    unread: c.unread_count ?? 0,
     at: c.at ?? null,
-    to: c.subject_tag ? playerHref(c.subject_tag) : null,
+    to: c.post_id
+      ? `/home/post/${c.post_id}?${new URLSearchParams({ answers: "1", reply: c.comment_id, ...(c.new ? { after: c.unread_since ?? "all" } : {}) })}`
+      : c.subject_tag
+        ? playerHref(c.subject_tag)
+        : null,
     new: c.new === true,
   }));
 

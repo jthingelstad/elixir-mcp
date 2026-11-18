@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useParams } from "@tanstack/react-router";
+import { useParams, useSearch } from "@tanstack/react-router";
 import { Link, PageHead, Panel, useClock } from "@elixir-mcp/ui";
 import { api } from "../api.js";
 import { answered } from "../client/index.ts";
@@ -145,6 +145,19 @@ export function SharedItem({
 }
 
 export function MemberPostPage() {
+  const search = useSearch({ strict: false });
+  const entry =
+    search.answers === "1" || search.answers === 1
+      ? {
+          reply: /^[1-9][0-9]{0,18}$/.test(String(search.reply))
+            ? String(search.reply)
+            : null,
+          after:
+            search.after === "all" || Number.isFinite(Date.parse(search.after))
+              ? search.after
+              : null,
+        }
+      : null;
   const { id } = useParams({ strict: false });
   const query = useMemberPost(id);
   const item = query.data?.ok ? query.data.data?.item : null;
@@ -162,7 +175,9 @@ export function MemberPostPage() {
         </Panel>
       ) : item ? (
         <FeedItem
+          key={`${id}:${entry?.reply ?? ""}`}
           it={item}
+          commentEntry={entry}
           cheerWhere={{ key: memberPostKey(id), list: "item" }}
         />
       ) : (

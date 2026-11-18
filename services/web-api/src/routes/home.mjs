@@ -640,7 +640,14 @@ async function buildFeed(db, account, { fromMs, toMs }) {
  *  a post or fact written or removed between pages, which the read
  *  serves live, never repeats or skips one (Codex on #818). A cursor from
  *  before carries no item and reads by offset. Opaque to the page. */
-const feedCursor = (fromMs, toMs, offset, last, mode = null) =>
+const feedCursor = (
+  fromMs,
+  toMs,
+  offset,
+  last,
+  mode = null,
+  questionsOnly = false,
+) =>
   Buffer.from(
     JSON.stringify({
       f: fromMs,
@@ -649,6 +656,7 @@ const feedCursor = (fromMs, toMs, offset, last, mode = null) =>
       a: Date.parse(shownAt(last)),
       i: last.id,
       ...(mode ? { m: mode } : {}),
+      ...(questionsOnly ? { q: true } : {}),
     }),
   ).toString("base64url");
 function readCursor(raw) {
@@ -669,7 +677,8 @@ function readCursor(raw) {
           typeof c.i === "string" &&
           c.i.length > 0 &&
           c.i.length <= 128)) &&
-      (c.m === undefined || TIMELINE_MODES.includes(c.m));
+      (c.m === undefined || TIMELINE_MODES.includes(c.m)) &&
+      (c.q === undefined || c.q === true);
     return ok
       ? {
           fromMs: c.f,
@@ -677,6 +686,7 @@ function readCursor(raw) {
           offset: c.o,
           last: keyed ? { at: c.a, id: c.i } : null,
           mode: c.m ?? null,
+          questionsOnly: c.q === true,
         }
       : null;
   } catch {
@@ -698,6 +708,7 @@ async function readFeed(
   comments = false,
   posts = false,
   mode = null,
+  questionsOnly = false,
 ) {
   const started = Date.now();
   const { timezone, seenTo: seen_to } = await homeAccount(
@@ -726,12 +737,15 @@ async function readFeed(
         fromMs: week.fromMs,
         toMs: Math.max(Date.now(), week.toMs),
         plain: posts,
+        questionsOnly,
       })
     : [];
   const whole = [
-    ...(person
-      ? week.items.filter((it) => it.kind !== "battle_highlight")
-      : week.items),
+    ...(questionsOnly
+      ? []
+      : person
+        ? week.items.filter((it) => it.kind !== "battle_highlight")
+        : week.items),
     ...own,
   ].sort(feedOrder);
   // A mode filter (2026-11-17) chooses the week's items before the pages
@@ -773,10 +787,18 @@ async function readFeed(
     next:
       next === null
         ? null
-        : feedCursor(week.fromMs, week.toMs, next, page[page.length - 1], mode),
+        : feedCursor(
+            week.fromMs,
+            week.toMs,
+            next,
+            page[page.length - 1],
+            mode,
+            questionsOnly,
+          ),
     // The items a busy week left out are of every mode; a mode's page
     // cannot say how many were its own, so it says none.
-    timeline_more: mode ? 0 : week.more,
+    timeline_more: mode || questionsOnly ? 0 : week.more,
+    questions_only: questionsOnly,
     mode,
     // Under a mode, how many items the whole week holds, so the page can
     // tell an empty mode from a quiet week.
@@ -789,6 +811,8 @@ async function readFeed(
       friends: 0,
       clan: 0,
       close: 0,
+      questions: all.filter((it) => it.kind === "post" && it.post?.question)
+        .length,
     };
     const seenMs = seen_to ? Date.parse(seen_to) : null;
     let fresh = 0;
@@ -1058,11 +1082,28 @@ export function homeRoutes({
       const mode = q.mode ?? null;
       if (mode !== null && !TIMELINE_MODES.includes(mode))
         return json(400, { error: "invalid_mode" });
-      if (cursor && cursor.mode !== mode)
+      if (q.questions !== undefined && q.questions !== "1")
+        return json(400, { error: "invalid_filter" });
+      const questionsOnly = q.questions === "1";
+      if (questionsOnly && (!posts || !comments || account.kind !== "person"))
+        return json(404, { error: "posts_off" });
+      if (
+        cursor &&
+        (cursor.mode !== mode || cursor.questionsOnly !== questionsOnly)
+      )
         return json(400, { error: "invalid_cursor" });
       return json(
         200,
-        await readFeed(db, account, cursor, wake, comments, posts, mode),
+        await readFeed(
+          db,
+          account,
+          cursor,
+          wake,
+          comments,
+          posts,
+          mode,
+          questionsOnly,
+        ),
       );
     },
 

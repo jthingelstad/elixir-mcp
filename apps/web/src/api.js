@@ -225,9 +225,10 @@ export const api = {
   // Thirty items a page; `cursor` reads on in the same week (G1).
   // `mode` (2026-11-17) is the mode filter, one of the four, or none for
   // All modes; a next page names the mode its cursor was cut in.
-  homeFeed: (cursor, mode = null) => {
+  homeFeed: (cursor, mode = null, questionsOnly = false) => {
     const q = new URLSearchParams({
       ...(mode ? { mode } : {}),
+      ...(questionsOnly ? { questions: "1" } : {}),
       ...(cursor ? { cursor } : {}),
     }).toString();
     return request("GET", q ? `/api/me/home/feed?${q}` : "/api/me/home/feed");
@@ -387,11 +388,13 @@ export const api = {
   // server rebuilds to find it in your feed; a post goes through the
   // check first. Yours alone, never an agent's pages; every one answers
   // 404 comments_off while comments are off.
-  comments: ({ item_id, subjects }) =>
+  comments: ({ item_id, subjects, before = null, around = null }) =>
     request(
       "GET",
       `/api/me/comments?${new URLSearchParams({
         item: item_id,
+        ...(before ? { before } : {}),
+        ...(around ? { around } : {}),
         subjects: (subjects ?? []).join(","),
       })}`,
     ),
@@ -429,6 +432,8 @@ export const api = {
     request("GET", `/api/me/posts?battle=${encodeURIComponent(battle)}`),
   writeBattlePost: ({ battle, player_tag, text }) =>
     request("POST", "/api/me/posts", { battle, player_tag, text }),
+  setQuestionAnswered: (id, answered) =>
+    request("PUT", `/api/me/posts/${id}`, { answered }),
   editPost: (id, text) =>
     request("PUT", `/api/me/posts/${encodeURIComponent(id)}`, { text }),
   // A post about a battle gets its public link, /h/<id>.
