@@ -3,6 +3,9 @@
 import { before, after, test } from "node:test";
 import assert from "node:assert/strict";
 import { scratchDb } from "../../../packages/ingest/test/helpers.mjs";
+import { ownFeedItem } from "../src/cheers.mjs";
+import { battlePostRows } from "../../../packages/posts/src/battle.mjs";
+import { buildTimeline } from "../../../packages/tools/src/activity/entries.mjs";
 import { readPostTimeline } from "../../../packages/tools/src/activity/posts.mjs";
 import { readBell } from "../src/bell.mjs";
 import { readFile } from "node:fs/promises";
@@ -588,4 +591,109 @@ test("the historical repair changes only a proven post owner stamp, keeping word
       "alter table timeline_comment enable trigger timeline_comment_post_owner",
     );
   }
+});
+
+test("a denied battle post cannot reopen its thread through an older game projection", async () => {
+  const db = scratch.db;
+  await db.query(`insert into battle(battle_id,battle_time,type,type_class,created_at)
+    values('conversation-battle',now()-interval '1 minute','PvP','pvp',now())`);
+  await db.query(
+    `insert into battle_participant(battle_id,player_tag,battle_time,side,type,type_class,crowns,outcome)
+    values('conversation-battle',$1,now()-interval '1 minute',0,'PvP','pvp',3,'win')`,
+    [TAG],
+  );
+  const post = (
+    await db.query(
+      `insert into account_post(item_id,account_id,player_tag,battle_id,body,created_at)
+    values('tl_66666666666666666666',$1,$2,'conversation-battle','A battle conversation',now()-interval '1 minute') returning post_id::text as id,item_id`,
+      [owner, TAG],
+    )
+  ).rows[0];
+  const subjects = [{ kind: "player", tag: TAG }];
+  const ask = {
+    accountId: other,
+    itemId: post.item_id,
+    tags: [TAG],
+    subjects,
+    posts: true,
+  };
+  assert.equal((await ownFeedItem(db, ask)).kind, "post");
+  const cached = await battlePostRows(
+    db,
+    "p.item_id=$2",
+    [post.item_id],
+    other,
+  );
+  assert.equal(cached.length, 1);
+  // Replay only the older game projection. The canonical member-post read
+  // still queries current visibility and is never replaced by this snapshot.
+  const stale = {
+    query: (sql, args) =>
+      String(sql).includes("from account_post p") &&
+      String(sql).includes("join account au")
+        ? Promise.resolve({ rows: cached, rowCount: cached.length })
+        : db.query(sql, args),
+  };
+  await db.query(
+    `insert into post_report(post_id,account_id,reason) values($1,$2,'other')`,
+    [post.id, other],
+  );
+  assert.equal(
+    await ownFeedItem(stale, ask),
+    null,
+    "a reported post stays denied",
+  );
+  await db.query("delete from post_report where post_id=$1", [post.id]);
+  for (const status of ["hidden", "removed"]) {
+    await db.query(
+      `update account_post set status=$2,removed_at=case when $2='removed' then now() else null end where post_id=$1`,
+      [post.id, status],
+    );
+    assert.equal(await ownFeedItem(stale, ask), null, `${status} stays denied`);
+  }
+  await db.query(
+    `update account_post set status='visible',removed_at=null where post_id=$1`,
+    [post.id],
+  );
+  await db.query(
+    "insert into account_block(account_id,blocked_account_id) values($1,$2)",
+    [other, owner],
+  );
+  assert.equal(
+    await ownFeedItem(stale, ask),
+    null,
+    "a blocked post stays denied",
+  );
+  await db.query(
+    "delete from account_block where account_id=$1 and blocked_account_id=$2",
+    [other, owner],
+  );
+  await db.query(
+    `insert into clan_event(clan_tag,event_type,timing,occurred_at,window_start,window_end,player_tag,role_after)
+    values($1,'member_joined','exact',now(),now(),now(),$2,'member')`,
+    [CLAN, TAG],
+  );
+  const clanSubjects = [{ kind: "clan", tag: CLAN, scope: "comprehensive" }];
+  const built = await buildTimeline(db, clanSubjects, {
+    fromMs: Date.now() - 3600000,
+    toMs: Date.now() + 1000,
+    accountId: other,
+    interactive: true,
+    accountLines: false,
+    lateCounts: false,
+  });
+  const game = built.timeline.find((it) => it.kind === "member_joined");
+  assert.ok(game);
+  assert.equal(
+    (
+      await ownFeedItem(db, {
+        accountId: other,
+        itemId: game.id,
+        tags: [CLAN],
+        subjects: clanSubjects,
+        posts: true,
+      })
+    ).kind,
+    "member_joined",
+  );
 });

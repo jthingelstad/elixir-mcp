@@ -90,7 +90,16 @@ export async function ownFeedItem(
   });
   if (post) return post;
   const { items } = await feedItemsFor(db, { accountId, tags, subjects });
-  return items.find((it) => it.id === itemId) ?? null;
+  // A battle post's older game projection has the same id. It cannot
+  // override a denied canonical post read, including an open report.
+  return (
+    items.find(
+      (it) =>
+        it.id === itemId &&
+        it.kind !== "post" &&
+        it.kind !== "battle_highlight",
+    ) ?? null
+  );
 }
 
 /** Whether an item is about someone else: none of the players it names
