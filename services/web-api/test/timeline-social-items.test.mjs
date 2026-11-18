@@ -290,6 +290,75 @@ test("the starter preview returns one recent item from a current named friend on
   assert.equal((await preview(follower, "bad!")).statusCode, 400);
 });
 
+test("My conversations retains every source kind and rechecks private Clan roles", async () => {
+  const kinds = [
+    "badge_earned",
+    "member_joined",
+    "player_verified",
+    "stamp_earned",
+    "clan_message",
+    "member_away",
+  ];
+  const joined = items.filter((it) => kinds.includes(it.kind));
+  assert.equal(new Set(joined.map((it) => it.kind)).size, kinds.length);
+  const ids = [];
+  try {
+    for (const it of joined) {
+      assert.ok(await resolve(leader, it));
+      const row = (
+        await ctx.db.query(
+          `insert into timeline_comment(item_id,account_id,owner_account_id,subject_tag,body)
+        values($1,$2,$2,$3,'A joined conversation') returning comment_id::text`,
+          [
+            it.id,
+            leader,
+            it.subjects.find((s) => s.kind === "player")?.tag ?? null,
+          ],
+        )
+      ).rows[0];
+      ids.push(row.comment_id);
+      await ctx.db.query(
+        "update comment_conversation set item_ref=$3::jsonb where account_id=$1 and item_id=$2",
+        [leader, it.id, JSON.stringify(refOf(it))],
+      );
+    }
+    const read = () => call(leader, "GET", "/api/me/conversations");
+    let list = await read();
+    assert.equal(list.statusCode, 200, list.body);
+    for (const it of joined)
+      assert.ok(
+        list.data.items.some((row) => row.item_id === it.id),
+        it.kind,
+      );
+    await ctx.db.query(
+      "update clan_membership set role='member' where player_tag=$1",
+      [LEADER],
+    );
+    list = await read();
+    assert.ok(
+      !list.data.items.some((row) => row.item_ref.kind === "member_away"),
+      "private source access is current, not membership at join time",
+    );
+    assert.ok(
+      list.data.items.some((row) => row.item_ref.kind === "clan_message"),
+    );
+  } finally {
+    await ctx.db.query(
+      "update clan_membership set role='leader' where player_tag=$1",
+      [LEADER],
+    );
+    await ctx.db.query(
+      "delete from timeline_comment where comment_id=any($1::bigint[])",
+      [ids],
+    );
+    await ctx.db.query(
+      "delete from comment_conversation where account_id=$1 and item_id=any($2::text[])",
+      [leader, joined.map((it) => it.id)],
+    );
+  }
+
+});
+
 test("unfollowed recorded player and clan items resolve by actual source beyond Home's week", async () => {
   const badges = items.filter((it) => it.kind === "badge_earned");
   assert.equal(badges.length, 2);

@@ -32,7 +32,7 @@
  * kept for admins 30 days), an admin.
  * Two reports from different accounts hide it until an admin decides.
  */
-import { blockedSql, blockedWith } from "@elixir-mcp/claims";
+import { blockedWith } from "@elixir-mcp/claims";
 import { ITEM_ID_RE } from "@elixir-mcp/tools/activity/cheers";
 import { itemVisibility } from "@elixir-mcp/tools/activity/entries";
 import {
@@ -42,6 +42,10 @@ import {
 import { checkComment, REFUSAL_WORDS } from "./comment-check.mjs";
 import { tidyComment } from "./comment-filter.mjs";
 import { ID_RE } from "./http.mjs";
+import { timelineItemRef } from "./timeline-item-ref.mjs";
+import { readConversationThrough } from "./conversation-state.mjs";
+import { commentSeenSql } from "./comment-visibility.mjs";
+export { commentSeenSql } from "./comment-visibility.mjs";
 
 /** The latest comments a feed card shows. */
 export const CARD_LATEST = 2;
@@ -315,6 +319,7 @@ async function openTargets(db, readerId, targets) {
 
 const COMMENT_COLS = `tc.comment_id::text as comment_id, tc.item_id, tc.body,
        tc.created_at, tc.account_id, tc.owner_account_id, tc.status,
+       to_char(tc.created_at at time zone 'UTC','YYYY-MM-DD"T"HH24:MI:SS.US"Z"') as comment_at,
        ap.passport_id as author_page, pc.player_tag as author_tag,
        pp.name as author_name, pc.status = 'verified' as author_verified`;
 const AUTHOR_JOIN = `join account a on a.account_id = tc.account_id
@@ -326,20 +331,13 @@ const AUTHOR_JOIN = `join account a on a.account_id = tc.account_id
  *  review (a report never reaches the reported person), never anyone's
  *  in a block with the reader, and never one the reader reported while
  *  the report is open. `r` is the reader's SQL parameter. */
-export const commentSeenSql = (r) => `(tc.status = 'visible'
-         or (tc.status = 'hidden' and tc.account_id = ${r}))
-        and not ${blockedSql("tc.account_id", r)}
-        and not exists (select 1 from comment_report cr
-                         where cr.comment_id = tc.comment_id
-                           and cr.account_id = ${r} and cr.resolved_at is null)`;
-
 function shape(row, { readerId, ownerId = null, isAdmin = false }) {
   const mine = row.account_id === readerId;
   return {
     id: row.comment_id,
     item_id: row.item_id,
     text: String(row.body ?? ""),
-    at: row.created_at ? new Date(row.created_at).toISOString() : null,
+    at: row.comment_at,
     author: {
       account_id: row.author_page ?? null,
       player_tag: row.author_tag ?? null,
@@ -347,6 +345,7 @@ function shape(row, { readerId, ownerId = null, isAdmin = false }) {
       verified: row.author_verified === true,
     },
     mine,
+    unread: row.unread ?? null,
     can_delete: mine || ownerId === readerId || isAdmin,
     can_report: !mine,
     can_block: !mine,
@@ -437,8 +436,12 @@ export async function commentsOnItem(
   }
   const edge = before ?? anchor;
   const { rows } = await db.query(
-    `select ${COMMENT_COLS}, to_char(tc.created_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') as cursor_at
+    `select ${COMMENT_COLS}, to_char(tc.created_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') as cursor_at,
+       case when cc.account_id is null then null else tc.account_id<>$2 and
+         (tc.created_at,tc.comment_id)>(cc.read_at,cc.read_comment_id) and cr.comment_id is null end as unread
        from timeline_comment tc ${AUTHOR_JOIN}
+       left join comment_conversation cc on cc.account_id=$2 and cc.item_id=tc.item_id
+       left join comment_conversation_read cr on cr.account_id=$2 and cr.comment_id=tc.comment_id
       where tc.item_id = $1 and ${commentSeenSql("$2::uuid")}
       ${edge ? `and (tc.created_at,tc.comment_id) ${before ? "<" : "<="} ($3::timestamptz,$4::bigint)` : ""}
       order by tc.created_at desc, tc.comment_id desc limit ${ITEM_MAX + 1}`,
@@ -456,6 +459,13 @@ export async function commentsOnItem(
   const comments = page
     .reverse()
     .map((r) => shape(r, { readerId, ownerId: target.owner }));
+  await readConversationThrough(
+    db,
+    readerId,
+    item,
+    comments.map((c) => c.id),
+    timelineItemRef(item),
+  );
   return {
     item_id: item.id,
     comments,
@@ -616,10 +626,15 @@ async function postChecked(db, readerId, item, raw, comments, target) {
   if (!target || !(await openTargets(db, readerId, current)).get(item.id))
     return { error: "not_open", message: "You can't comment on this one." };
   const { rows } = await db.query(
-    `insert into timeline_comment
+    `with posted as (insert into timeline_comment
        (item_id, account_id, subject_tag, owner_account_id, body, owner_is_account, receipt_allowed)
      values ($1, $2, $3, $4, $5, $6, $7)
-     returning comment_id`,
+     returning comment_id,created_at), joined as (
+       insert into comment_conversation(account_id,item_id,item_ref,legacy_subject_tag,joined_at,read_at,read_comment_id)
+       select $2,$1,$8::jsonb,$3,created_at,created_at,comment_id from posted
+       on conflict(account_id,item_id) do update set item_ref=excluded.item_ref
+       returning item_id)
+     select comment_id from posted,joined`,
     [
       item.id,
       readerId,
@@ -628,6 +643,7 @@ async function postChecked(db, readerId, item, raw, comments, target) {
       body,
       target.account,
       target.receipt,
+      JSON.stringify(timelineItemRef(item)),
     ],
   );
   const { rows: back } = await db.query(

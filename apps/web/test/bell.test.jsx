@@ -485,3 +485,58 @@ test("a failed refresh over an empty cached read is never All quiet", async () =
   );
   expect(screen.queryByText("All quiet")).toBeNull();
 });
+
+test("My conversations reads only on selection and resumes the first unread reply without marking it read", async () => {
+  const ref = {
+    source: "game",
+    item_id: "tl_0123456789abcdef0099",
+    kind: "card_mastery_step",
+    at: "2026-11-18T10:00:00Z",
+    subject: { kind: "player", tag: "#0PGQ2UYL" },
+  };
+  const calls = [];
+  const base = global.fetch;
+  global.fetch = vi.fn(async (path, init) => {
+    calls.push([init?.method ?? "GET", String(path)]);
+    if (String(path) === "/api/me/conversations")
+      return reply({
+        items: [
+          {
+            item_id: ref.item_id,
+            item_ref: ref,
+            title: "<b>Writer</b> reached Knight Mastery",
+            at: ref.at,
+            unread: 2,
+            first_unread_comment_id: "42",
+            read_at: "2026-11-18T09:00:00Z",
+          },
+        ],
+        next_before: null,
+      });
+    return base(path, init);
+  });
+  const close = vi.fn();
+  renderWithProviders(
+    <BellSheet me={{ features: { comments: true } }} onClose={close} />,
+  );
+  expect(calls.some(([, path]) => path.includes("conversations"))).toBe(false);
+  fireEvent.click(
+    screen.getByRole("button", { name: "My conversations", hidden: true }),
+  );
+  const thread = await screen.findByRole("link", {
+    name: /Writer.*Knight Mastery.*2 new replies/,
+    hidden: true,
+  });
+  expect(thread.textContent).toContain("<b>Writer</b>");
+  expect(thread.querySelector("b")).toBeNull();
+  const url = new URL(thread.getAttribute("href"), "https://example.test");
+  expect(url.pathname).toBe(`/home/item/${ref.item_id}`);
+  expect(url.searchParams.get("reply")).toBe("42");
+  expect(JSON.parse(url.searchParams.get("ref"))).toEqual(ref);
+  expect(
+    calls.filter(
+      ([method, path]) => method !== "GET" && path.includes("conversation"),
+    ),
+  ).toEqual([]);
+  fireEvent.click(screen.getByRole("button", { name: "Close", hidden: true }));
+});

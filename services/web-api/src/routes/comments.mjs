@@ -48,6 +48,7 @@ import {
 } from "../comments.mjs";
 import { postQueue } from "../posts.mjs";
 import { json } from "../http.mjs";
+import { readConversations, conversationCursor } from "../conversations.mjs";
 
 /** Item reads one person may make in an hour: each rebuilds a slice of
  *  their feed, as a page's cheers read does. */
@@ -122,6 +123,25 @@ export function commentsRoutes({
       : null;
 
   return {
+    "GET /api/me/conversations": async (db, event) => {
+      const { account, refused } = await person(db, event, false);
+      if (refused) return refused;
+      if (!enabled) return off();
+      if (
+        !(await checkRateLimit(db, {
+          bucket: `conversations#${account.accountId}`,
+          max: COMMENT_READS_PER_HOUR,
+        }))
+      )
+        return limited();
+      const raw = event.queryStringParameters?.before;
+      const before = raw ? conversationCursor(raw) : null;
+      if (raw && !before) return json(400, { error: "invalid_cursor" });
+      return json(
+        200,
+        await readConversations(db, account.accountId, { posts, before }),
+      );
+    },
     "GET /api/me/comments": async (db, event) => {
       const { account, refused } = await person(db, event, false);
       if (refused) return refused;

@@ -8,7 +8,9 @@ import {
   Link,
   TagText,
   useClock,
+  Chips,
 } from "@elixir-mcp/ui";
+import { memberItemPath } from "@elixir-mcp/ui/item-link";
 import { CheerGlyph } from "../home/CheerGlyph.jsx";
 import { foldCounts } from "../home/cheer-set.js";
 import { FollowButton } from "../home/follow.jsx";
@@ -18,6 +20,7 @@ import {
   useBellNeeds,
   useBellSeen,
   useHomeClan,
+  useConversations,
 } from "../lib/queries.js";
 import { SETTINGS } from "../lib/settings.js";
 import { PushPrompt } from "./PushPrompt.jsx";
@@ -171,6 +174,68 @@ function Group({ id, title, children, tone }) {
   );
 }
 
+function Conversations({ onLeave }) {
+  const read = useConversations();
+  const clock = useClock();
+  const items = read.data?.pages.flatMap((p) => p.items) ?? [];
+  const unique = [...new Map(items.map((it) => [it.item_id, it])).values()];
+  return (
+    <>
+      {read.isPending ? <p role="status">Reading your conversations…</p> : null}
+      {read.isError ? (
+        <ErrorState
+          title="Your conversations could not be read just now"
+          onRetry={() => read.refetch()}
+          busy={read.isFetching}
+        >
+          Try again in a moment.
+        </ErrorState>
+      ) : null}
+      {unique.length ? (
+        <Group id="bell-conversations" title="Threads you joined">
+          {unique.map((it) => (
+            <Item
+              key={it.item_id}
+              icon="message-circle"
+              to={memberItemPath(it.item_ref, {
+                commentId: it.first_unread_comment_id,
+                after: it.read_at,
+                afterId: it.read_comment_id,
+              })}
+              onLeave={onLeave}
+              isNew={it.unread > 0}
+              title={<TagText>{it.title}</TagText>}
+              detail={`${it.unread ? `${it.unread} new ${it.question ? (it.unread === 1 ? "answer" : "answers") : it.unread === 1 ? "reply" : "replies"}` : "No new replies"} · ${clock.when(it.at)}`}
+            />
+          ))}
+        </Group>
+      ) : !read.isPending && !read.isError ? (
+        <Empty
+          title={
+            read.hasNextPage
+              ? "No available conversations here"
+              : "No conversations yet"
+          }
+        >
+          {read.hasNextPage
+            ? "Keep reading for earlier conversations you can still open."
+            : "Comment on a Timeline item or answer a question to find that conversation here."}
+        </Empty>
+      ) : null}
+      {read.hasNextPage ? (
+        <button
+          type="button"
+          className="btn btn--quiet"
+          disabled={read.isFetchingNextPage}
+          onClick={() => read.fetchNextPage()}
+        >
+          {read.isFetchingNextPage ? "Reading…" : "Older conversations"}
+        </button>
+      ) : null}
+    </>
+  );
+}
+
 /** Cheers with the glyphs the Timeline draws them with, said as words: the
  *  top kinds by count and the rest folded into one number, as the Timeline
  *  shows a busy item (foldCounts). */
@@ -228,6 +293,7 @@ export function BellSheet({ me, onClose, returnTo = null }) {
   // marker moves once, as soon as there is something to show.
   const [shown, setShown] = useState(null);
   const [kept] = useState(() => place);
+  const [view, setView] = useState(() => place?.view ?? "activity");
   const marked = useRef(false);
   useEffect(() => {
     // A refresh that failed shows the cached rows, so it moves nothing:
@@ -297,7 +363,7 @@ export function BellSheet({ me, onClose, returnTo = null }) {
   const leave = (key) => () => {
     const keys = new Set(fresh.map((r) => r.key));
     if (key) keys.delete(key);
-    place = { keys, scroll: list.current?.scrollTop ?? 0 };
+    place = { keys, scroll: list.current?.scrollTop ?? 0, view };
     onClose();
   };
   const onKeyDown = (e) => {
@@ -502,107 +568,124 @@ export function BellSheet({ me, onClose, returnTo = null }) {
             <Icon name="x" size={18} />
           </button>
         </header>
+        {me?.features?.comments ? (
+          <Chips
+            label="Notifications view"
+            options={[
+              { key: "activity", label: "Activity" },
+              { key: "conversations", label: "My conversations" },
+            ]}
+            value={view}
+            onChange={setView}
+          />
+        ) : null}
         <div className="kit-bell__scroll" ref={list}>
-          {stale ? (
-            <div className="kit-bell__stale" role="status">
-              <p>Couldn’t refresh just now, so this may be out of date.</p>
-              <button
-                type="button"
-                className="btn btn--sm"
-                disabled={read.isFetching}
-                onClick={() => read.refetch()}
-              >
-                {read.isFetching ? "Trying…" : "Try again"}
-              </button>
-            </div>
-          ) : null}
-          <PushPrompt onLeave={leave(null)} />
-          {needShown ? (
-            <Group id="bell-needs" title="Needs you" tone="needs">
-              {needRows.map((r) => (
-                <Item
-                  key={r.key}
-                  icon={r.key === "refusals" ? "key-round" : "flag"}
-                  to={r.to}
-                  onLeave={leave(null)}
-                  title={<TagText>{r.title}</TagText>}
-                  detail={r.detail}
-                  tone="needs"
-                />
-              ))}
-              {more ? (
-                <Item
-                  key="more"
-                  icon="list"
-                  to={more.to}
-                  onLeave={leave(null)}
-                  title={more.title}
-                  tone="needs"
-                />
-              ) : null}
-              {needs?.ok === false ? (
-                <li className="kit-bell__note">
-                  <ErrorState
-                    title="Your clan’s actions could not be read just now"
-                    onRetry={() => needsRead.refetch()}
-                    busy={needsRead.isFetching}
+          {view === "conversations" && me?.features?.comments ? (
+            <Conversations onLeave={leave(null)} />
+          ) : (
+            <>
+              {stale ? (
+                <div className="kit-bell__stale" role="status">
+                  <p>Couldn’t refresh just now, so this may be out of date.</p>
+                  <button
+                    type="button"
+                    className="btn btn--sm"
+                    disabled={read.isFetching}
+                    onClick={() => read.refetch()}
                   >
-                    Try again in a moment.
-                  </ErrorState>
-                </li>
+                    {read.isFetching ? "Trying…" : "Try again"}
+                  </button>
+                </div>
               ) : null}
-            </Group>
-          ) : null}
-          {loading ? (
-            <ul
-              className="kit-bell__list"
-              aria-busy="true"
-              aria-label="Loading"
-            >
-              {[0, 1, 2].map((i) => (
-                <li key={i} className="kit-bell__ghost" />
-              ))}
-            </ul>
-          ) : null}
-          {failed ? (
-            <ErrorState
-              title="Your notifications could not be read just now"
-              onRetry={() => read.refetch()}
-              busy={read.isFetching}
-            >
-              Try again in a moment.
-            </ErrorState>
-          ) : null}
-          {noPlayer ? (
-            <ul className="kit-bell__list">
-              <Item
-                icon="shield-check"
-                to={`${SETTINGS}/players/verify`}
-                onLeave={leave(null)}
-                title="Verify your player"
-                detail="Then cheers on your play and your new followers show up here."
-              />
-            </ul>
-          ) : null}
-          {fresh.length ? (
-            <Group id="bell-new" title="New">
-              {fresh.map(eventItem)}
-            </Group>
-          ) : null}
-          {earlier.length || counted ? (
-            <Group id="bell-earlier" title="Earlier">
-              {earlier.map(eventItem)}
-              {counted ? (
-                <Item key="counted" icon="users" title={counted} />
+              <PushPrompt onLeave={leave(null)} />
+              {needShown ? (
+                <Group id="bell-needs" title="Needs you" tone="needs">
+                  {needRows.map((r) => (
+                    <Item
+                      key={r.key}
+                      icon={r.key === "refusals" ? "key-round" : "flag"}
+                      to={r.to}
+                      onLeave={leave(null)}
+                      title={<TagText>{r.title}</TagText>}
+                      detail={r.detail}
+                      tone="needs"
+                    />
+                  ))}
+                  {more ? (
+                    <Item
+                      key="more"
+                      icon="list"
+                      to={more.to}
+                      onLeave={leave(null)}
+                      title={more.title}
+                      tone="needs"
+                    />
+                  ) : null}
+                  {needs?.ok === false ? (
+                    <li className="kit-bell__note">
+                      <ErrorState
+                        title="Your clan’s actions could not be read just now"
+                        onRetry={() => needsRead.refetch()}
+                        busy={needsRead.isFetching}
+                      >
+                        Try again in a moment.
+                      </ErrorState>
+                    </li>
+                  ) : null}
+                </Group>
               ) : null}
-            </Group>
-          ) : null}
-          {nothing ? (
-            <Empty title="All quiet">
-              Cheers on your play, new followers and answers to your feedback
-              show up here.
-            </Empty>
-          ) : null}
+              {loading ? (
+                <ul
+                  className="kit-bell__list"
+                  aria-busy="true"
+                  aria-label="Loading"
+                >
+                  {[0, 1, 2].map((i) => (
+                    <li key={i} className="kit-bell__ghost" />
+                  ))}
+                </ul>
+              ) : null}
+              {failed ? (
+                <ErrorState
+                  title="Your notifications could not be read just now"
+                  onRetry={() => read.refetch()}
+                  busy={read.isFetching}
+                >
+                  Try again in a moment.
+                </ErrorState>
+              ) : null}
+              {noPlayer ? (
+                <ul className="kit-bell__list">
+                  <Item
+                    icon="shield-check"
+                    to={`${SETTINGS}/players/verify`}
+                    onLeave={leave(null)}
+                    title="Verify your player"
+                    detail="Then cheers on your play and your new followers show up here."
+                  />
+                </ul>
+              ) : null}
+              {fresh.length ? (
+                <Group id="bell-new" title="New">
+                  {fresh.map(eventItem)}
+                </Group>
+              ) : null}
+              {earlier.length || counted ? (
+                <Group id="bell-earlier" title="Earlier">
+                  {earlier.map(eventItem)}
+                  {counted ? (
+                    <Item key="counted" icon="users" title={counted} />
+                  ) : null}
+                </Group>
+              ) : null}
+              {nothing ? (
+                <Empty title="All quiet">
+                  Cheers on your play, new followers and answers to your
+                  feedback show up here.
+                </Empty>
+              ) : null}
+            </>
+          )}
         </div>
       </div>
     </dialog>
