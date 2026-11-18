@@ -4,9 +4,11 @@
  *    `?mine=1`: the posts the reader may see by one player or account,
  *    newest first. `?battle=<id or link>`: the battle page's panel, the
  *    reader's own posts about it and the players they may post it as.
- *  - `POST /api/me/posts` `{ text, question?, deck_link?, cards? }`, or
+ *  - `POST /api/me/posts` `{ text, question?, deck_link?, cards?, moment? }`, or
  *    `{ battle, player_tag?, text? }` for a post about a battle: write
- *    one, after the check (comment-check.mjs, the post policy).
+ *    one, after the check (comment-check.mjs, the post policy). A moment is
+ *    an own verified public game item locator, resolved before its snapshot
+ *    is stored; it replaces the other attachment types.
  *  - `PUT /api/me/posts/<id>` `{ text }`: the author changes the words.
  *  - `DELETE /api/me/posts/<id>`: the author's own goes at once.
  *  - `POST /api/me/post-discord` `{ id }`: a shared post about a battle,
