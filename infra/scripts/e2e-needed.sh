@@ -7,8 +7,8 @@
 # them. The app bundles the Stamp catalog (packages/stamps catalog.mjs).
 # A few specs also import code outside the tree: native-ssr bundles
 # services/web-api's app-pages.mjs with build.mjs's own options, and the
-# mail specs render with packages/mail and the relay's templates. Those
-# files are named below.
+# mail specs render with packages/mail and the relay's templates. The RSS
+# text spec imports feed-link.mjs. Those files are named below.
 # Doc pages and the updates feed are checked by verify's site build,
 # except the pages a journey opens (quickstart). Everything else in
 # services, migrations, infra and the MCP tools never reaches a journey.
@@ -35,7 +35,7 @@ reaches_journeys() {
       -e '^packages/tools/src/activity/schemas\.mjs$' \
       -e '^packages/stamps/src/catalog\.mjs$' \
       -e '^packages/posts/(src/paths\.mjs|package\.json)$' \
-      -e '^services/web-api/src/(app-pages|http|share-files)\.mjs$' \
+      -e '^services/web-api/src/(app-pages|http|share-files|feed-link)\.mjs$' \
       -e '^services/email-relay/src/templates\.mjs$' \
       -e '^infra/scripts/(build|build-site|serve-site|e2e-shard)\.mjs$' \
       -e '^package(-lock)?\.json$' \
