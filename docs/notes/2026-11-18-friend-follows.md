@@ -9,8 +9,9 @@ The migration changes watched relationships in place. It preserves claim
 creation dates, status, notify choices, private nicknames, close-friend
 marks, recording reasons and pooled slot use. It creates no account links,
 extra player follows or account events. Ordinary future person follows
-keep verified-account linking. All friends have the same Timeline filter,
-Stats eligibility and current follower-list visibility. Shared social reads
+keep verified-account linking. A person's friend follows have the same Timeline filter,
+Stats eligibility and current follower-list visibility. An agent's follows
+remain on that agent and create no social writes. Shared social reads
 keep two-way blocks in force, including watched recordings a block had left
 intact; the conversion never revives a blocked social association.
 The writer checks a block against the actual resulting relationship,
