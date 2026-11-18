@@ -55,7 +55,17 @@ test("a post-only question reaches the existing digest and links to its signed-i
     unsubscribe: "https://elixir.test/off",
     manage: "https://elixir.test/settings/emails",
   });
-  assert.match(mail.html, new RegExp(`/home/post/${post.id}(?:[?"/]|$)`));
+  assert.ok(facts.people[0].items[0].member_path.includes("/home/item/"));
+  assert.equal(
+    JSON.parse(
+      new URL(
+        facts.people[0].items[0].member_path,
+        "https://elixir.test",
+      ).searchParams.get("ref"),
+    ).post_id,
+    post.id,
+  );
+  assert.match(mail.html, /\/home\/item\/tl_[a-f0-9]{20}\?/);
   assert.match(mail.html, /&lt;img src=x&gt;/);
   assert.doesNotMatch(mail.html, /<img src=x>/);
   assert.match(mail.html, /&lt;b&gt;Writer&lt;\/b&gt;/);

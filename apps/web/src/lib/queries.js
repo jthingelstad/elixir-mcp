@@ -568,6 +568,9 @@ export function useCheer({
     queryClient.setQueriesData({ queryKey: ["me", "player-session"] }, (old) =>
       mapItems(mapItems(old, "item", patch), "marks", patch),
     );
+    queryClient.setQueriesData({ queryKey: ["me", "timeline-item"] }, (old) =>
+      mapItems(old, "item", patch),
+    );
     // A post's other copies: player/account lists, its member destination,
     // and Clan's Feed. Singular and listed copies share this mutator.
     queryClient.setQueriesData({ queryKey: ["me", "posts"] }, (old) =>
@@ -720,6 +723,13 @@ export const usePosts = (ask, enabled = true) =>
 /** One member post retains the answered envelope, so an unavailable or
  * forbidden item remains an answer rather than a fabricated empty post. */
 export const memberPostKey = (id) => ["me", "posts", "item", id];
+export const memberItemKey = (id) => ["me", "timeline-item", id];
+export const useMemberItem = (id, ref) =>
+  useQuery({
+    queryKey: [...memberItemKey(id), ref],
+    queryFn: answered(() => api.memberItem(id, ref)),
+    enabled: Boolean(id && ref),
+  });
 export const useMemberPost = (id) =>
   useQuery({
     queryKey: memberPostKey(id),
@@ -764,7 +774,13 @@ export function useCommentsChanged() {
         return queryClient.invalidateQueries({ queryKey: keys.me });
       if (itemId)
         queryClient.invalidateQueries({ queryKey: commentsKey(itemId) });
-      for (const surface of ["account", "player", "player-session", "cheers"])
+      for (const surface of [
+        "account",
+        "player",
+        "player-session",
+        "cheers",
+        "timeline-item",
+      ])
         queryClient.invalidateQueries({ queryKey: ["me", surface] });
       queryClient.invalidateQueries({ queryKey: ["me", "posts"] });
       queryClient.invalidateQueries({

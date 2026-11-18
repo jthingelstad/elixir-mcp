@@ -5,6 +5,7 @@
 import { normalizeTag } from "@elixir-mcp/contracts";
 import { storyId, subjectsFor } from "@elixir-mcp/tools/activity/entries";
 import { SITTINGS } from "@elixir-mcp/ui/session-story";
+import { memberItemPath } from "@elixir-mcp/ui/item-link";
 import { readPublishedPost, readVisiblePost } from "@elixir-mcp/posts";
 import {
   ensureShare,
@@ -153,5 +154,21 @@ export async function readSharedItem(db, id, options = {}) {
     options,
   );
   const projected = item?.id === ref.item_id ? publicItem(item) : null;
-  return projected ? { item: projected, url: shareUrl(id) } : null;
+  const memberUrl =
+    ref.source === "battle"
+      ? `/battle/${ref.battle_id}`
+      : memberItemPath({
+          item_id: ref.item_id,
+          kind: ref.item_kind,
+          source: ref.source,
+          ...(ref.subject_tag
+            ? { subject: { kind: ref.subject_kind, tag: ref.subject_tag } }
+            : {}),
+          ...(ref.account_page_id ? { account: ref.account_page_id } : {}),
+          ...(ref.post_id ? { post_id: ref.post_id } : {}),
+          at: new Date(ref.anchor_at).toISOString(),
+        });
+  return projected
+    ? { item: projected, url: shareUrl(id), member_url: memberUrl }
+    : null;
 }

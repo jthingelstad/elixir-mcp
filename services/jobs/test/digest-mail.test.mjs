@@ -21,6 +21,9 @@ import {
   digestWindow,
 } from "../src/email/build-digest.mjs";
 import { renderMail } from "../../../packages/mail/src/render.mjs";
+import { htmlToText } from "@elixir-mcp/mail";
+import { readMemberItemPath } from "@elixir-mcp/ui/item-link";
+import { whenAt } from "@elixir-mcp/ui/time";
 import { projectCardCatalog } from "../../../packages/ingest/src/cards.mjs";
 import { seedPlayedDeck } from "../../../packages/tools/test/deck-rows.mjs";
 import {
@@ -246,6 +249,38 @@ test("a leader's digest holds no attested kind, and the facts do not crowd out t
   for (const kind of ATTESTED_FACT_KINDS)
     assert.ok(!body.includes(kind), `${kind} is not in the mail`);
   assert.ok(!/private line|away from|personal best/.test(body), body);
+});
+
+test("digest posts and non-post updates show their original local time and exact member item", async () => {
+  const facts = await buildDigest({
+    db,
+    account: { accountId, timezone: "America/Chicago" },
+    cadence: "weekly",
+    window,
+  });
+  const update = facts.you.items.find((it) => it.kind === "career_wins_step");
+  const post = facts.people
+    .find((p) => p.tag === FRIEND)
+    .items.find((it) => it.kind === "battle_highlight");
+  assert.equal(update.at, "2026-09-15T12:00:00.000Z");
+  assert.equal(post.at, "2026-09-16T21:00:00.000Z");
+  const now = Date.parse("2026-11-18T12:00:00Z");
+  const rendered = renderMail("tracking_report", facts, {
+    timezone: "America/Chicago",
+    now,
+    unsubscribe: "https://elixir.example/off",
+    manage: "/settings/emails",
+  });
+  const text = htmlToText(rendered.html);
+  for (const item of [update, post]) {
+    assert.ok(text.includes(whenAt(item.at, "America/Chicago", { now })), text);
+    const url = new URL(item.member_path, "https://elixir.poapkings.com");
+    const id = url.pathname.split("/").at(-1);
+    const target = readMemberItemPath(id, Object.fromEntries(url.searchParams));
+    assert.equal(target.ref.kind, item.kind);
+    assert.ok(rendered.html.includes(`/home/item/${id}?`));
+    assert.equal(target.ref.at, item.at);
+  }
 });
 
 test("a followed friend's post about a battle comes with their words and the battle's page, never their share link", async () => {

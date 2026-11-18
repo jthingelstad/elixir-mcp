@@ -27,7 +27,10 @@ async function account(label) {
 const call = async (method, path, accountId, body) => {
   const res = await handler({
     method,
-    path,
+    path: path.split("?")[0],
+    queryStringParameters: Object.fromEntries(
+      new URL(path, "https://elixir.test").searchParams,
+    ),
     headers: {
       "x-elixir-client": "web",
       ...(accountId ? { cookie: cookies.get(accountId) } : {}),
@@ -88,6 +91,16 @@ test("sharing requires a person who can see the canonical post, including non-au
   assert.equal(pub.data.item.post.question, true);
   assert.equal(pub.data.item.post.cards[0].id, 26000021);
   assert.equal(pub.data.item.post.author.name, '<img src=x> & "Name"');
+  const destination = new URL(pub.data.member_url, "https://elixir.test");
+  const ref = destination.searchParams.get("ref");
+  assert.equal(destination.pathname, `/home/item/${ITEM}`);
+  const member = `/api/me/timeline-items/${ITEM}?${new URLSearchParams({ item_ref: ref })}`;
+  assert.equal((await call("GET", member, follower)).statusCode, 200);
+  assert.equal(
+    (await call("GET", member, stranger)).statusCode,
+    404,
+    "a public capability never grants the member post audience",
+  );
   for (const key of [
     "id",
     "mine",

@@ -14,6 +14,7 @@ import {
 import { ownFeedItem, stampedTags, withCheers } from "../src/cheers.mjs";
 import { makeHandler } from "../src/handler.mjs";
 import { readClanFeed } from "../src/clan-feed.mjs";
+import { recoverMemberItemRef } from "../src/timeline-items.mjs";
 import { makeHandler as makeGameConsumer } from "../../timeline-sync/src/handler.mjs";
 
 const PLAYER = "#0PGQ2UYL";
@@ -1079,6 +1080,92 @@ test("queued Drop games keep canonical identity and social actions inside the cu
     await ctx.db.query(
       "delete from account_follow where account_id=$1 and followed_account_id=$2",
       [leader, author],
+    );
+  }
+});
+
+test("an exact member destination reads one canonical item and thread under its current audience", async () => {
+  const old = items.find(
+    (it) => it.kind === "badge_earned" && Date.parse(it.at) < now - 7 * DAY,
+  );
+  const privateItem = items.find((it) => it.kind === "member_away");
+  const read = (account, it, ref = refOf(it)) =>
+    call(account, "GET", `/api/me/timeline-items/${it.id}`, undefined, {
+      item_ref: JSON.stringify(ref),
+    });
+  for (const it of [old, items.find((it) => it.kind === "stamp_earned")]) {
+    const response = await read(stranger, it);
+    assert.equal(response.statusCode, 200, response.body);
+    assert.equal(response.data.item.id, it.id);
+    assert.equal(response.data.item.item_ref.item_id, it.id);
+    assert.equal(response.data.item.can_cheer, true);
+    assert.ok(response.data.item.comments);
+  }
+  assert.equal((await read(leader, privateItem)).statusCode, 200);
+  assert.equal((await read(reader, privateItem)).statusCode, 404);
+  assert.equal((await read(stranger, privateItem)).statusCode, 404);
+  assert.equal((await read(null, old)).statusCode, 401);
+  assert.equal(
+    (
+      await read(stranger, old, {
+        ...refOf(old),
+        item_id: "tl_00000000000000000000",
+      })
+    ).statusCode,
+    404,
+  );
+  await ctx.db.query(
+    "insert into account_block(account_id,blocked_account_id) values($1,$2)",
+    [author, stranger],
+  );
+  try {
+    const denied = await read(stranger, old);
+    assert.equal(denied.statusCode, 404);
+    assert.equal(denied.data.item, undefined);
+  } finally {
+    await ctx.db.query(
+      "delete from account_block where account_id=$1 and blocked_account_id=$2",
+      [author, stranger],
+    );
+  }
+});
+
+test("historical conversation recovery is exact, named and subject to current audience", async () => {
+  const old = items.find(
+    (it) => it.kind === "badge_earned" && Date.parse(it.at) < now - 7 * DAY,
+  );
+  const restore = (accountId, itemId, subjectTag = PLAYER) =>
+    recoverMemberItemRef(ctx.db, {
+      accountId,
+      itemId,
+      subjectTag,
+      commentedAt: at(now),
+      posts: true,
+    });
+  assert.equal((await restore(stranger, old.id))?.item_id, old.id);
+  assert.equal(await restore(stranger, old.id, MEMBER), null);
+  assert.equal(await restore(stranger, "tl_00000000000000000000"), null);
+  const privateItem = items.find((it) => it.kind === "member_away");
+  // An old private row may have kept only the involved player, while the
+  // source is its clan. The missing locator is not permission to guess.
+  assert.equal(await restore(reader, privateItem.id, CLAN), null);
+  assert.equal(
+    (await restore(leader, privateItem.id, CLAN))?.item_id,
+    privateItem.id,
+  );
+  const post = "tl_fed00000000000000001";
+  assert.equal((await restore(follower, post))?.source, "post");
+  assert.equal(await restore(stranger, post), null);
+  await ctx.db.query(
+    "insert into account_block(account_id,blocked_account_id) values($1,$2)",
+    [author, stranger],
+  );
+  try {
+    assert.equal(await restore(stranger, old.id), null);
+  } finally {
+    await ctx.db.query(
+      "delete from account_block where account_id=$1 and blocked_account_id=$2",
+      [author, stranger],
     );
   }
 });

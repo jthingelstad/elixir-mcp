@@ -35,6 +35,11 @@ export const api = {
   publicSharedItem: (id) =>
     request("GET", `/api/public/shared-items/${encodeURIComponent(id)}`),
   memberPost: (id) => request("GET", `/api/me/post/${encodeURIComponent(id)}`),
+  memberItem: (id, ref) =>
+    request(
+      "GET",
+      `/api/me/timeline-items/${encodeURIComponent(id)}?${new URLSearchParams({ item_ref: JSON.stringify(ref) })}`,
+    ),
   me: (agent) => request("GET", home(agent)),
   // `timezone` is this browser's zone: a NEW account opens on it, an
   // existing one keeps its own (Jamie, 2026-10-08). Left out when the

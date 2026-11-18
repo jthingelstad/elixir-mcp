@@ -76,6 +76,10 @@ chooses what to say, and the timeline keeps everything.
   or a return, each with a link to the battle that did it when the record
   knows it. Cards unlocked and badge levels are a count. A clanmate you
   follow says which of your clans they are in.
+  Each post and game update shows its original day and time in your time
+  zone. **Open item and comments** opens that exact update and its thread,
+  keeping the destination through sign-in. Elixir checks its current
+  audience when you open it.
 - **Their sessions:** up to three of each friend's biggest sessions, told
   the way your feed's session card tells them, the rest counted with a
   link to their page. A session of three or more battles shows its result

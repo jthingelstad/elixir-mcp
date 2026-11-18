@@ -28,6 +28,35 @@ const item = {
     versus: { mine: HOG, theirs: HOG },
   },
 };
+test("a share opens its exact member item and sign-in preserves that destination", () => {
+  const member = "/home/item/tl_0123456789abcdef0123?ref=source&reply=42";
+  const { rerender } = renderWithProviders(
+    <SharedItem
+      read={{ item, member_url: member }}
+      me={{ authenticated: true }}
+    />,
+  );
+  expect(
+    screen
+      .getByRole("link", { name: "Open item and comments" })
+      .getAttribute("href"),
+  ).toBe(member);
+  rerender(
+    <SharedItem
+      read={{ item, member_url: member }}
+      me={{ authenticated: false }}
+    />,
+  );
+  expect(
+    screen.getByRole("link", { name: "Sign in" }).getAttribute("href"),
+  ).toBe(`/signin?return_to=${encodeURIComponent(member)}`);
+});
+test("the share waits for its source before offering a sign-in destination", () => {
+  renderWithProviders(<SharedItem pending me={{ authenticated: false }} />);
+  expect(
+    screen.queryByRole("link", { name: "Sign in", exact: true }),
+  ).toBeNull();
+});
 afterEach(() => {
   cleanup();
   vi.restoreAllMocks();

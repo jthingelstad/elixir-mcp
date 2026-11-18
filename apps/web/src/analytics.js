@@ -77,7 +77,8 @@ export function loadTinylytics() {
     settingsRecord(window.location.pathname) ||
     clanSearch ||
     window.location.pathname.startsWith("/share/") ||
-    window.location.pathname.startsWith("/home/post/")
+    window.location.pathname.startsWith("/home/post/") ||
+    window.location.pathname.startsWith("/home/item/")
   ) {
     landing();
     return listenForEvents();
@@ -219,6 +220,11 @@ export function analyticsLocation(
     return {
       path: "/home/post",
       url: new URL("/home/post", origin).toString(),
+    };
+  if (segments[0] === "home" && segments[1] === "item")
+    return {
+      path: "/home/item",
+      url: new URL("/home/item", origin).toString(),
     };
   const page = segments.length ? `/${segments.slice(0, 2).join("/")}` : "/";
   const url = new URL(page, origin);
