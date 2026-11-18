@@ -672,6 +672,17 @@ export const usePageCheers = (ask, enabled = true) =>
 /** One item's comments (2026-11-16), read when its thread opens: the item's
  *  id and the subject tags that find it in your feed. */
 export const commentsKey = (itemId) => ["me", "comments", "item", itemId];
+export const conversationsKey = ["me", "conversations"];
+export const useConversations = (enabled = true) =>
+  useInfiniteQuery({
+    queryKey: conversationsKey,
+    queryFn: ({ pageParam }) => api.conversations(pageParam).then(unwrap),
+    initialPageParam: null,
+    getNextPageParam: (last) => last.next_before ?? undefined,
+    enabled,
+    staleTime: 0,
+    retry: false,
+  });
 export const useItemComments = (it, enabled = true, around = null) => {
   const query = useInfiniteQuery({
     queryKey: around ? [...commentsKey(it?.id), around] : commentsKey(it?.id),
@@ -780,6 +791,7 @@ export function useCommentsChanged() {
         return queryClient.invalidateQueries({ queryKey: keys.me });
       if (itemId)
         queryClient.invalidateQueries({ queryKey: commentsKey(itemId) });
+      queryClient.invalidateQueries({ queryKey: conversationsKey });
       for (const surface of [
         "account",
         "player",

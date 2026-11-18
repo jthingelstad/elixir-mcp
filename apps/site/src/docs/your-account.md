@@ -148,8 +148,8 @@ account menu).
 
 ## Notifications
 
-Notifications, the bell at the top right next to your account, holds what
-is about you, not your friends. How you are told, on a phone or computer, is
+Notifications, the bell at the top right next to your account, holds your
+**Activity** and **My conversations**. How you are told, on a phone or computer, is
 set in Settings › Notifications. Tap the bell and the list drops down under
 it, right where you are: a small box on a wide screen, nearly the screen's
 width on a phone. A long list scrolls inside the box, and the page behind
@@ -157,13 +157,25 @@ stays put. Every line is one tap: it opens where the line points and puts
 the list away. Escape, **Close** or a tap outside puts it away and returns
 you to the bell.
 
-It has up to three parts, each shown only when it has something:
+Activity has up to three parts, each shown only when it has something:
 
 - **Needs you**: your clan's Actions waiting on you as a leader, and an old
   key still trying to connect. These stay until they are done.
 - **New**: what came since you last opened the bell.
 - **Earlier**: the rest of the last week or month, the same kinds of lines
   you have already seen.
+
+**My conversations** keeps the Timeline threads you joined by commenting
+or answering. It shows how many new replies from other people you can
+read. Tap a conversation to open that exact item at its first unread reply.
+Opening Notifications leaves those replies unread; opening the thread
+marks only the replies shown there read. A long thread can have more to
+read after that point.
+
+Your conversations are private. Reading or cheering does not join one.
+Deleting your comment keeps your place here. A conversation appears only
+while you can still see its item, with the same blocks and moderation as
+the thread. This adds no email or push notifications.
 
 The lines are:
 
