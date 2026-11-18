@@ -4641,13 +4641,23 @@ export async function factItems(
     inClan,
     leads,
     playerTags,
+    dropReader: who[0].seat_account,
   });
 }
 
 async function readFactItems(
   db,
   subjects,
-  { fromMs, toMs, basis = "observed", inClan, leads, playerTags },
+  {
+    fromMs,
+    toMs,
+    basis = "observed",
+    inClan,
+    leads,
+    playerTags,
+    dropReader = null,
+    onlyDrop = false,
+  },
 ) {
   const { rows } = await db.query(
     `select f.*, cl.name as clan_name, p.name as player_name,
@@ -4671,6 +4681,19 @@ async function readFactItems(
        ) dep on true
       where f.recorded_at >= ${ts(fromMs + 1)}
         and ${basis === "occurred" ? `f.occurred_at >= ${ts(fromMs + 1)} and f.occurred_at < ${ts(toMs + 1)}` : `f.recorded_at < ${ts(toMs + 1)}`}
+        and (f.fact_type <> 'drop_game' or exists (select 1 from claim owner_claim join account a using(account_id)
+          where owner_claim.player_tag=f.player_tag and owner_claim.account_id=f.attester_account_id
+            and owner_claim.status='verified' and (owner_claim.is_primary or owner_claim.relationship in ('primary','alt'))
+            and a.kind='person' and a.status='approved'))
+        and (not $7::boolean or f.fact_type = 'drop_game')
+        and (f.fact_type <> 'drop_game' or exists (
+          select 1 from claim c where c.player_tag = f.player_tag and c.account_id = $6::uuid
+          and (c.notify or (c.status='verified' and (c.is_primary or c.relationship in ('primary','alt'))))
+        ) or exists (
+          select 1 from account_follow af join claim c on c.account_id = af.followed_account_id
+          where af.account_id=$6::uuid and c.player_tag=f.player_tag and c.status='verified'
+            and (c.is_primary or c.relationship in ('primary','alt'))
+        ))
         and ((f.subject_kind = 'clan' and f.fact_type = any($4::text[])
               and f.clan_tag = any($1::text[]))
           or (f.subject_kind = 'clan' and f.fact_type = any($5::text[])
@@ -4683,6 +4706,8 @@ async function readFactItems(
       playerTags,
       FACT_KINDS_SEEN_BY("clan"),
       FACT_KINDS_SEEN_BY("leaders"),
+      dropReader,
+      onlyDrop,
     ],
   );
   const nicknames = new Map(
@@ -4761,6 +4786,7 @@ export async function buildTimeline(
     toMs,
     timezone = "UTC",
     accountId = null,
+    pageGameReader = null,
     perf = null,
     filter = null,
     memberTag = null,
@@ -4915,6 +4941,22 @@ export async function buildTimeline(
       alsoTags: highlightTags,
     })),
   );
+  if (pageGameReader) {
+    items.push(
+      ...(await readFactItems(db, subjects, {
+        fromMs,
+        toMs,
+        basis,
+        inClan: [],
+        leads: [],
+        playerTags: subjects
+          .filter((s) => s.kind === "player")
+          .map((s) => s.tag),
+        dropReader: pageGameReader,
+        onlyDrop: true,
+      })),
+    );
+  }
   items.push(
     ...(await factItems(db, subjects, {
       accountId,
@@ -5104,7 +5146,8 @@ export function itemVisibility(it) {
 const PUBLISHABLE = new Set(["public", "clan", "player"]);
 /** Whether an item may leave Elixir (cross-posting reads this, server
  *  side): usable as a buildTimeline filter, before the item is finished. */
-export const isPublishable = (it) => PUBLISHABLE.has(itemVisibility(it));
+export const isPublishable = (it) =>
+  it.kind !== "drop_game" && PUBLISHABLE.has(itemVisibility(it));
 
 /** The local reading of an instant in the reader's zone. */
 export function localOf(isoAt, timeZone) {
@@ -5155,7 +5198,7 @@ function finishItem(it, { fromMs, basis, timezone }) {
   // learned it late (it belongs to an earlier day's story).
   it.late = basis === "observed" && Date.parse(it.sort_at) <= fromMs;
   it.visibility = itemVisibility(it);
-  it.publishable = PUBLISHABLE.has(it.visibility);
+  it.publishable = isPublishable(it);
   it.schema = itemSchema(it.kind);
   it.text = itemText(it, timezone);
 }

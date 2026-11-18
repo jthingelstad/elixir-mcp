@@ -9,6 +9,8 @@
  */
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
+import { randomUUID } from "node:crypto";
+import { makeHandler as makeGameConsumer } from "../../timeline-sync/src/handler.mjs";
 import { scratchDb } from "../../../packages/ingest/test/helpers.mjs";
 import { createSession } from "@elixir-mcp/auth";
 import { playerIdentityStates } from "@elixir-mcp/auth/player-identities";
@@ -329,4 +331,79 @@ test("the timeline tool's reads serve no people item", async () => {
       .map((it) => it.kind),
     ["player_verified"],
   );
+});
+
+test("a queued Drop game reaches only its player's audience and retries never double-count it", async () => {
+  const follower = await person("drop-game-follower");
+  await claim(follower, V, "friend");
+  const queue = "arn:aws:sqs:us-east-1:000000000000:elixir-drop-games";
+  const at = new Date(Date.now() - 60000).toISOString();
+  const game = {
+    version: 1,
+    type: "drop.game.completed",
+    accountId: MAIN,
+    playerTag: V,
+    gameId: randomUUID(),
+    mode: "exact-ten",
+    startedAt: at,
+    completedAt: at,
+    score: 10,
+    answers: 1,
+    cards: [
+      { id: 26000000, name: "Knight", cost: 3, reason: "solution" },
+      { id: 26000020, name: "Giant Skeleton", cost: 6, reason: "solution" },
+      { id: 26000010, name: "Skeletons", cost: 1, reason: "solution" },
+    ],
+  };
+  const consumer = makeGameConsumer({
+    dropGamesQueueArn: queue,
+    connect: async () => ({
+      query: scratch.db.query.bind(scratch.db),
+      end: async () => {},
+    }),
+  });
+  const record = (id, payload) => ({
+    eventSourceARN: queue,
+    messageId: id,
+    body: JSON.stringify(payload),
+  });
+  const result = await consumer({
+    Records: [
+      record("first", game),
+      record("retry", game),
+      record("second", { ...game, gameId: randomUUID() }),
+      record("wrong-owner", {
+        ...game,
+        gameId: randomUUID(),
+        accountId: OTHER,
+      }),
+      record("malformed", { ...game, version: 99 }),
+    ],
+  });
+  assert.deepEqual(result, {
+    batchItemFailures: [{ itemIdentifier: "malformed" }],
+  });
+  for (const [reader, expected] of [
+    [MAIN, 2],
+    [follower, 2],
+    [OTHER, 0],
+  ]) {
+    const response = await call(
+      reader,
+      "GET",
+      `/api/accounts/${pageIds.get(MAIN)}`,
+    );
+    assert.equal(response.statusCode, 200, response.body);
+    const items = data(response).timeline.filter((i) => i.kind === "drop_game");
+    assert.equal(items.length, expected);
+    for (const item of items) {
+      assert.deepEqual(item.facts.cards, game.cards);
+      assert.match(
+        item.text,
+        /Knight \(3\).*Giant Skeleton \(6\).*Skeletons \(1\)/,
+      );
+      assert.equal(item.publishable, false);
+      assert.ok(!JSON.stringify(item).includes(MAIN));
+    }
+  }
 });

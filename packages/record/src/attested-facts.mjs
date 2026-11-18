@@ -13,8 +13,8 @@
  * Clan is part of Elixir (Jamie, 2026-11-12), so a clan fact has no door
  * of its own: /api/v1 lost its clan fact routes in JSON API 4.0.0. The
  * player facts a family app once wrote on its integration key (Elixir
- * Drop's personal records) have no writer since JSON API 5.0.0; the rows
- * stay, read as their type says.
+ * Drop's historical personal records) stay readable. Drop's game queue
+ * adds one player fact per authorized completion (recordDropGame).
  *
  * A clan fact is attested by the person's VERIFIED player in that clan,
  * with the role the record holds for it now; the type names the roles
@@ -94,7 +94,38 @@ function checkDetail(type, input) {
       }
       throw new FactError(400, "invalid_fact", `${key} cannot be null.`);
     }
-    if (f.type === "enum") {
+    if (f.type === "cards") {
+      if (
+        !Array.isArray(v) ||
+        v.length > f.max ||
+        !v.every(
+          (c) =>
+            c &&
+            Number.isSafeInteger(c.id) &&
+            c.id > 0 &&
+            typeof c.name === "string" &&
+            c.name.trim().length > 0 &&
+            c.name.length <= 80 &&
+            Number.isInteger(c.cost) &&
+            c.cost >= 0 &&
+            c.cost <= 10 &&
+            ["first-read", "recovered", "played", "solution"].includes(
+              c.reason,
+            ),
+        )
+      )
+        throw new FactError(
+          400,
+          "invalid_fact",
+          "Invalid Drop card highlights.",
+        );
+      out[key] = v.map(({ id, name, cost, reason }) => ({
+        id,
+        name,
+        cost,
+        reason,
+      }));
+    } else if (f.type === "enum") {
       if (!f.values.includes(v))
         throw new FactError(
           400,
@@ -134,6 +165,59 @@ function checkDetail(type, input) {
       "previous_player_tag",
     );
   return out;
+}
+
+/** The first-party game queue names the account that signed in. Check the
+ * current verified seat in the insert itself, including on redelivery. */
+export async function recordDropGame(db, game) {
+  const uuid = /^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/i;
+  if (
+    game?.version !== 1 ||
+    game.type !== "drop.game.completed" ||
+    !uuid.test(game.gameId) ||
+    !uuid.test(game.accountId)
+  )
+    throw new FactError(
+      400,
+      "invalid_fact",
+      "Invalid Drop game identity or version.",
+    );
+  const tag = tagOf(game.playerTag, "playerTag");
+  const at = instantOf(game.completedAt, "completedAt");
+  const detail = checkDetail("drop_game", {
+    game_id: game.gameId,
+    mode: game.mode,
+    score: game.score,
+    answers: game.answers,
+    started_at: game.startedAt,
+    cards: game.cards,
+  });
+  if (
+    detail.mode === "exact-ten" &&
+    (detail.score !== 10 ||
+      !detail.cards.length ||
+      new Set(detail.cards.map((c) => c.id)).size !== detail.cards.length ||
+      detail.cards.some((c) => c.reason !== "solution") ||
+      detail.cards.reduce((sum, c) => sum + c.cost, 0) !== 10)
+  ) {
+    throw new FactError(400, "invalid_fact", "Invalid Exact Ten solution.");
+  }
+  if (detail.started_at > at)
+    throw new FactError(
+      400,
+      "invalid_fact",
+      "Game finished before it started.",
+    );
+  const result = await db.query(
+    `insert into attested_fact(subject_kind,player_tag,fact_type,detail,visibility,source,source_ref,occurred_at,attester_account_id)
+    select 'player', c.player_tag, 'drop_game', $3::jsonb, 'player', 'elixir-drop', $4, $5::timestamptz, c.account_id
+      from claim c join account a using (account_id)
+     where c.account_id=$1 and c.player_tag=$2 and c.status='verified'
+       and (c.is_primary or c.relationship in ('primary','alt')) and a.kind='person' and a.status='approved'
+    on conflict (source, source_ref) do nothing`,
+    [game.accountId, tag, JSON.stringify(detail), `game/${game.gameId}`, at],
+  );
+  return result.rowCount;
 }
 
 function refOf(value) {

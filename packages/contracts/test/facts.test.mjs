@@ -13,6 +13,7 @@ test("attested facts: a closed registry, each with a subject, a visibility and a
     "award_granted",
     "member_away",
     "clan_message",
+    "drop_game",
     "personal_record",
     "award_standing",
   ]);
@@ -24,7 +25,9 @@ test("attested facts: a closed registry, each with a subject, a visibility and a
     assert.ok(["clan", "leaders", "player"].includes(t.visibility), kind);
     assert.equal(t.visibility === "player", t.subject === "player", kind);
     for (const [key, f] of Object.entries(t.detail)) {
-      assert.ok(["enum", "string", "integer", "instant"].includes(f.type));
+      assert.ok(
+        ["enum", "string", "integer", "instant", "cards"].includes(f.type),
+      );
       if (f.type === "enum") assert.ok(f.values?.length, `${kind}.${key}`);
       if (f.type === "string") assert.ok(f.max > 0, `${kind}.${key}`);
     }

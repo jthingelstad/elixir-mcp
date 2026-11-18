@@ -1,4 +1,5 @@
 /**
+ * Elixir Drop's separate SQS source carries one completed game per message.
  * SQS consumer Lambda (VPC): one cross-posted timeline brought up to
  * date per wake (Jamie, 2026-10-10: event driven, never polled). An
  * admission that wrote facts writes timeline-sync/<account>.<minute> to
@@ -42,6 +43,7 @@
  * web push receipts (2026-11-16) arrive on push-receipt/ the same way: a
  * device's last success, or its deletion when its push service says gone.
  */
+import { recordDropGame } from "@elixir-mcp/record/attested-facts";
 import { isCanonicalTag, outboxObjects } from "@elixir-mcp/contracts";
 
 const UUID = /^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/;
@@ -59,6 +61,7 @@ const LANES = [
 
 /**
  * @param {{
+ *   dropGamesQueueArn?: string,
  *   connect: () => Promise<import("pg").Client>,
  *   sync: (db: any, accountId: string) => Promise<object>,
  *   syncClan?: (db: any, clanTag: string, opts: { remainingMs: () => number, editor: boolean }) => Promise<object>,
@@ -71,6 +74,7 @@ const LANES = [
  * }} deps
  */
 export function makeHandler({
+  dropGamesQueueArn = process.env.DROP_GAMES_QUEUE_ARN,
   connect,
   sync,
   syncClan = null,
@@ -183,7 +187,22 @@ export function makeHandler({
       for (const record of event.Records ?? []) {
         let outcome;
         try {
-          outcome = await fromRecord(db, record.body, remainingMs);
+          if (
+            dropGamesQueueArn &&
+            record.eventSourceARN === dropGamesQueueArn
+          ) {
+            const inserted = await recordDropGame(
+              await db(),
+              JSON.parse(record.body),
+            );
+            console.log(
+              "drop_game_received",
+              inserted ? "recorded" : "already_recorded_or_unlinked",
+            );
+            outcome = "done";
+          } else {
+            outcome = await fromRecord(db, record.body, remainingMs);
+          }
         } catch (err) {
           // The kind and what broke, as the tools' invoker logs it: the
           // 596 dead letters of 2026-10-15 logged only "ReferenceError"

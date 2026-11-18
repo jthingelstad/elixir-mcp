@@ -3,7 +3,7 @@
  * a person did in a clan through Clan, a part of Elixir (a
  * leader says a departure was a kick, a promotion made, an award granted,
  * a message sent to the clan), or what Elixir Drop's own game once produced
- * for a player (a personal record). Elixir holds them
+ * for a player (a personal record), or a game Drop queued for their timeline. Elixir holds them
  * APART from the game record, which stays what collectors saw, each
  * labelled with who attested it, in which app, as what role, and when.
  * They are facts with a named source, never Elixir's judgment: nothing
@@ -38,7 +38,7 @@ export type FactSubject = "clan" | "player";
 
 /** One field of a fact's detail. */
 export interface FactField {
-  type: "enum" | "string" | "integer" | "instant";
+  type: "enum" | "string" | "integer" | "instant" | "cards";
   values?: readonly string[];
   max?: number;
   min?: number;
@@ -55,8 +55,7 @@ export interface FactType {
   /** Clan facts: the in-game roles that may attest it; `self` lets the
    *  member it is about attest it too; `app` is Elixir itself, Clan's
    *  morning run (9.6.0). Player facts were a family app's, written on an integration
-   *  key; nothing writes them since JSON API 5.0.0 and the stored ones
-   *  stay readable. */
+   *  key. Drop now attests a completed game through its own queue. */
   attesters: readonly string[];
   /** Whether the fact is about one member (`player_tag` required). */
   member: boolean;
@@ -128,6 +127,33 @@ export const ATTESTED_FACT_TYPES: Readonly<Record<string, FactType>> = {
     },
     about:
       "A message sent to the clan in the game: a Clan Leader Message (leaders and co-leaders only) or a clan chat line. The game's API carries neither.",
+  },
+  drop_game: {
+    subject: "player",
+    visibility: "player",
+    attesters: [],
+    member: false,
+    detail: {
+      game_id: { type: "string", max: 36 },
+      mode: {
+        type: "enum",
+        values: [
+          "surge",
+          "trade",
+          "practice",
+          "higher-lower",
+          "survival",
+          "rain",
+          "exact-ten",
+        ],
+      },
+      started_at: { type: "instant" },
+      score: { type: "integer", min: 0, max: 1000000000 },
+      answers: { type: "integer", min: 0, max: 100000 },
+      cards: { type: "cards", max: 5 },
+    },
+    about:
+      "One completed Elixir Drop game for its verified player, with the result and cards from the game.",
   },
   personal_record: {
     subject: "player",

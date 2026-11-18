@@ -184,7 +184,14 @@ async function placeOf(db, players) {
 
 /** The account's timeline: its players' public game record and its own
  *  people items, newest first, in the page's window. */
-async function accountTimeline(db, accountId, players, timezone, now) {
+async function accountTimeline(
+  db,
+  accountId,
+  players,
+  timezone,
+  now,
+  pageGameReader,
+) {
   return buildTimeline(
     db,
     players.map((p) => ({
@@ -197,13 +204,16 @@ async function accountTimeline(db, accountId, players, timezone, now) {
       fromMs: now - ACCOUNT_PAGE_DAYS * 86_400_000,
       toMs: now,
       timezone,
-      // No reader account: none of the reader's own lines and no attested
-      // fact. The page is the public record plus the account's own news.
+      // Account-level news belongs to the page's owner. Only Drop games use
+      // the reader's follow relationship on this page.
       accountId: null,
+      pageGameReader,
       accountLines: false,
       basis: "occurred",
       people: { accounts: [accountId], players: false },
-      filter: (it) => ["public", "member"].includes(itemVisibility(it)),
+      filter: (it) =>
+        it.kind === "drop_game" ||
+        ["public", "member"].includes(itemVisibility(it)),
     },
   );
 }
@@ -240,6 +250,7 @@ export async function readAccountPage(
     players,
     reader.timezone ?? "UTC",
     now,
+    reader.accountId,
   );
   return {
     account: {

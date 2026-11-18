@@ -193,3 +193,7 @@ seven-day retention expires.
 **Changes.** When the service changes in a way that matters to this
 page, the page changes, and the change is listed under
 [What's new](/updates).
+
+### Elixir Drop games
+
+Finishing a game in Drop with a verified player can add its result and card highlights to your Timeline. You and your followers can see it. Drop sends the Elixir account ID and player tag privately so Elixir can verify ownership. Guest and offline games stay local. Timeline items omit the account ID, individual guesses and Fair Play evidence.

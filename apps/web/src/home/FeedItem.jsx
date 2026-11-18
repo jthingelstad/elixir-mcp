@@ -473,6 +473,7 @@ export function momentHead(it) {
  *  Mastery badge's card (moment_card); null for any other. */
 function momentCardOf(it) {
   const f = it.facts ?? {};
+  if (it.kind === "drop_game") return f.cards?.[0] ?? null;
   return (it.kind === "card_unlocked" || it.kind === "card_maxed") && f.card_id
     ? { id: f.card_id, name: f.card ?? "" }
     : it.kind === "card_form_unlocked" && f.card_id && FORM_WORD[f.form]
@@ -508,7 +509,7 @@ function BadgeArt({ src, className, children }) {
  *  its form's ribbon included), a day's Mastery cards side by side, a kit
  *  mark for an Arena or a league (Elixir has no Arena art, and invents
  *  none), else the medal. */
-function MomentArt({ it }) {
+export function MomentArt({ it }) {
   if ((it.moment_cards?.length ?? 0) > 1) return <MomentArtDrawn it={it} />;
   return (
     <BadgeArt src={it.badge_art} className="kit-mart kit-mart--badge">

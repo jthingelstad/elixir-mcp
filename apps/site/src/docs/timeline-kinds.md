@@ -62,6 +62,7 @@ about a player, a member's moment on a clan's timeline included, carries
 | `award_standing` | 1 | as above | `award`, `award_id`, `season_id`, `place`, `value`, `unit`, `as_of`, [`previous_player_tag`], `player_tag`, `name`, `attested_by`, `visibility` |
 | `member_away` | 1 | as above | [`until`], `player_tag`, `name`, `attested_by`, `visibility` |
 | `clan_message` | 1 | as above | `channel`, [`title`], `body`, `attested_by`, `visibility` |
+| `drop_game` | 2 | as above | `game_id`, `mode`, `started_at`, `score`, `answers`, `cards` (card ID, name, cost and reason), `player_tag`, `name`, `attested_by`, `visibility` |
 | `personal_record` | 2 | as above | `game`, `score`, [`previous_best`], `player_tag`, `name`, `attested_by`, `visibility` |
 
 A `promoted_by`, `crossed_by` or `best_win` battle is the one shape described above
