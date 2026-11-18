@@ -8026,6 +8026,7 @@ a.kit-mbattle:hover {
   outline: 2px solid var(--accent-bright);
   outline-offset: 2px;
 }
+.kit-item-actions__row .kit-drop-play,
 .kit-item-actions__row .kit-item-share__action {
   grid-column: 4;
   grid-row: 1;
@@ -12768,6 +12769,10 @@ button.kit-written__card:focus-visible {
   align-items: center;
   gap: var(--s-1);
   max-width: 100%;
+}
+.kit-drop-play {
+  gap: var(--s-1);
+  padding-inline: var(--s-2);
 }
 .kit-item-share__action {
   min-width: var(--hit);

@@ -7,6 +7,7 @@ import {
   within,
 } from "@testing-library/react";
 import { renderWithProviders } from "./helpers.jsx";
+import { ItemList } from "../src/home/Player.jsx";
 import { FeedItem, FeedRows } from "../src/home/FeedItem.jsx";
 
 vi.mock("../src/App.jsx", () => ({
@@ -100,6 +101,7 @@ test.each([
     const { container } = renderWithProviders(<FeedRows rows={[{ it }]} />);
     const row = container.querySelector(".kit-item-actions__row");
     expect(row).not.toBeNull();
+    expect(within(row).queryByRole("link", { name: /play.*drop/i })).toBeNull();
     const buttons = within(row).getAllByRole("button");
     expect(buttons.map((b) => b.getAttribute("aria-label"))).toEqual([
       "Cheer: Well played",
@@ -171,4 +173,56 @@ test("a private item keeps source restrictions on sharing and commenting", () =>
   expect(container.querySelector(".kit-item-actions__row")).not.toBeNull();
   expect(screen.queryByRole("button", { name: "Share" })).toBeNull();
   expect(screen.queryByRole("button", { name: "Comment" })).toBeNull();
+});
+
+const dropResult = (kind, facts) =>
+  item(31, kind, {
+    section: "attested",
+    visibility: "player",
+    facts: { player_tag: tag, game_id: "private-game-id", ...facts },
+  });
+
+test.each([
+  ["surge", "/#/surge"],
+  ["trade", "/#/trade"],
+  ["practice", "/#/practice"],
+  ["higher-lower", "/#/higher-lower"],
+  ["survival", "/#/survival"],
+  ["rain", "/#/rain"],
+  ["exact-ten", "/#/exact-ten"],
+  ["//untrusted.example", "/"],
+  [undefined, "/"],
+])("a Drop result opens the game for mode %s", (mode, path) => {
+  const it = dropResult("drop_game", { mode });
+  renderWithProviders(<FeedRows rows={[{ it }]} />);
+  const row = screen.getByRole("group", { name: "Item actions" });
+  const play = within(row).getByRole("link", { name: /play.*drop/i });
+  expect(play.href).toBe("https://drop.poapkings.com" + path);
+  expect(play.target).toBe("_blank");
+  expect(play.rel.split(" ")).toContain("noreferrer");
+  expect(within(row).queryByRole("button", { name: "Share" })).toBeNull();
+});
+
+test("the player Timeline puts Play beside the existing conversation", () => {
+  const result = dropResult("drop_game", { mode: "surge" });
+  delete result.comments; // Player items load the thread on demand.
+  renderWithProviders(<ItemList items={[result]} tag={tag} />);
+  const row = screen.getByRole("group", { name: "Item actions" });
+  expect(within(row).getByRole("link", { name: /play.*drop/i }).hash).toBe(
+    "#/surge",
+  );
+  expect(within(row).getByRole("button", { name: "Comments" })).toBeTruthy();
+});
+
+test("only a personal best attributed to Drop offers Play", () => {
+  const best = (app) =>
+    dropResult("personal_record", { game: "Surge", attested_by: { app } });
+  const { rerender } = renderWithProviders(
+    <FeedRows rows={[{ it: best("another app") }]} />,
+  );
+  expect(screen.queryByRole("link", { name: /play.*drop/i })).toBeNull();
+  rerender(<FeedRows rows={[{ it: best("Elixir Drop") }]} />);
+  expect(screen.getByRole("link", { name: /play.*drop/i }).href).toBe(
+    "https://drop.poapkings.com/",
+  );
 });

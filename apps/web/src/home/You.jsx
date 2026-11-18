@@ -1,7 +1,6 @@
 import {
   Empty,
   ErrorState,
-  SHELL_PRODUCTS,
   Link,
   PageHead,
   Panel,
@@ -13,14 +12,11 @@ import {
 import { useMe } from "../App.jsx";
 import { STATS, statsPlayers } from "../stats/stats.js";
 import { ADMIN, SETTINGS } from "../lib/settings.js";
+import { DROP_HOME } from "../lib/drop.js";
 import { PASSPORT } from "../lib/passport.js";
 import { useAccountPage } from "../lib/queries.js";
 import { useSignOut } from "../shell/sign-out.js";
 import { AccountView } from "./Account.jsx";
-
-const DROP =
-  SHELL_PRODUCTS.find((p) => p.key === "drop")?.href ??
-  "https://drop.poapkings.com/";
 
 export const YOU = "/home/you";
 
@@ -129,7 +125,11 @@ function YouAccount({ me }) {
             href={`${SETTINGS}/players/verify`}
             title="Add or verify a player"
           />
-          <Row href={DROP} title="Play Drop" detail="The elixir-cost game." />
+          <Row
+            href={DROP_HOME}
+            title="Play Drop"
+            detail="The elixir-cost game."
+          />
           {me?.is_admin === true ? (
             <Row
               href={`${ADMIN}/accounts`}

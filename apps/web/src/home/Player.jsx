@@ -1,3 +1,5 @@
+import { dropPlayHref } from "../lib/drop.js";
+import { ItemActions } from "./ItemActions.jsx";
 import { MomentArt } from "./FeedItem.jsx";
 import { PlayerName } from "@elixir-mcp/ui";
 import { useState } from "react";
@@ -495,6 +497,7 @@ export function ItemList({
           {d.at ? <h2 className="kit-day__head">{dayHeading(d.at)}</h2> : null}
           {d.rows.map((it, i) => {
             const battle = battlePath(it);
+            const playHref = dropPlayHref(it);
             const withCheers = "cheers" in it ? it : cheered?.of(it);
             // A sitting draws as Home draws it (G7): its sparkline, its
             // numbers and its games, read in place.
@@ -541,10 +544,17 @@ export function ItemList({
                     ) : null}
                   </div>
                 </div>
-                {withCheers ||
-                games ||
-                battle.startsWith("/battle/") ||
-                (accountLinks && accountOf(it)) ? (
+                {playHref ? (
+                  <ItemActions
+                    it={withCheers ?? it}
+                    playHref={playHref}
+                    cheerWhere={"cheers" in it ? where : cheered?.where}
+                    showComments={Boolean(withCheers) || "comments" in it}
+                  />
+                ) : withCheers ||
+                  games ||
+                  battle.startsWith("/battle/") ||
+                  (accountLinks && accountOf(it)) ? (
                   <footer className="kit-feed__foot">
                     {withCheers ? (
                       <Cheers
@@ -579,7 +589,7 @@ export function ItemList({
                     </span>
                   </footer>
                 ) : null}
-                {withCheers ? <Comments it={withCheers} /> : null}
+                {!playHref && withCheers ? <Comments it={withCheers} /> : null}
               </article>
             );
           })}

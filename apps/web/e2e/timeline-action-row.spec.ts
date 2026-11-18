@@ -83,6 +83,21 @@ const items = [
       author: { name: "Pip", player_tag: tag },
     },
   },
+  {
+    ...common,
+    id: id(7),
+    kind: "drop_game",
+    section: "attested",
+    visibility: "player",
+    text: "Pip finished Surge in Elixir Drop with 79.451s. Recovered on P.E.K.K.A.",
+    facts: {
+      player_tag: tag,
+      mode: "surge",
+      game_id: "private-game-id",
+      score: 79451,
+      cards: [{ id: 26000004, name: "P.E.K.K.A.", reason: "recovered" }],
+    },
+  },
 ];
 const shots = process.env.ACTION_ROW_SHOTS;
 test.use({ reducedMotion: "reduce" });
@@ -144,9 +159,13 @@ for (const width of [320, 390, 1280]) {
     );
     await page.goto("/timeline");
     const cards = page.locator(".kit-feed__item");
-    await expect(cards).toHaveCount(6);
+    await expect(cards).toHaveCount(items.length);
+    const drop = cards.filter({ hasText: "finished Surge in Elixir Drop" });
     if (shots) {
       mkdirSync(shots, { recursive: true });
+      await drop.screenshot({
+        path: path.join(shots, `drop-play-${width}.png`),
+      });
       await page.screenshot({
         path: path.join(shots, `timeline-actions-${width}.png`),
         fullPage: true,
@@ -159,18 +178,49 @@ for (const width of [320, 390, 1280]) {
     for (const card of await cards.all()) {
       const row = card.locator(".kit-item-actions__row");
       await expect(row).toHaveCount(1);
-      const buttons = row.getByRole("button");
-      await expect(buttons).toHaveCount(4);
+      const controls = row.locator("button, a");
+      await expect(controls).toHaveCount(4);
       const boxes = await Promise.all(
-        (await buttons.all()).map((b) => b.boundingBox()),
+        (await controls.all()).map((b) => b.boundingBox()),
       );
       for (const box of boxes) {
         expect(box!.width).toBeGreaterThanOrEqual(44);
         expect(box!.height).toBeGreaterThanOrEqual(44);
         expect(Math.abs(box!.y - boxes[0]!.y)).toBeLessThan(2);
       }
-      await expect(buttons.last()).toHaveAccessibleName("Share");
+      if (await card.getByRole("link", { name: /play.*drop/i }).count()) {
+        await expect(card).toContainText("finished Surge in Elixir Drop");
+      } else {
+        await expect(controls.last()).toHaveAccessibleName("Share");
+      }
     }
+    const play = drop.getByRole("link", {
+      name: "Play Elixir Drop (opens in a new tab)",
+    });
+    await expect(play).toHaveAttribute(
+      "href",
+      "https://drop.poapkings.com/#/surge",
+    );
+    await drop.getByRole("button", { name: "Comment", exact: true }).focus();
+    await page.keyboard.press("Tab");
+    await expect(play).toBeFocused();
+    await page.context().route(
+      (url) => url.origin === "https://drop.poapkings.com",
+      (route) =>
+        route.fulfill({
+          contentType: "text/html",
+          body: "<title>Surge</title>",
+        }),
+    );
+    const popup = page.waitForEvent("popup");
+    await page.keyboard.press("Enter");
+    const game = await popup;
+    await expect(game).toHaveURL("https://drop.poapkings.com/#/surge");
+    expect(
+      await game.evaluate(() => [document.referrer, window.opener]),
+    ).toEqual(["", null]);
+    await game.close();
+    await expect(page).toHaveURL(/\/timeline$/);
     const first = cards.first();
     const choose = first.getByRole("button", { name: "Choose a cheer" });
     await choose.focus();
