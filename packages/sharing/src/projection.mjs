@@ -2,6 +2,7 @@
  * New/unknown kinds fail closed until their source schema is declared.
  * All attested Clan state stays signed-in, regardless of who shared it.
  */
+import { readPostMoment } from "@elixir-mcp/posts/moment";
 import { ATTESTED_FACT_TYPES } from "@elixir-mcp/contracts";
 import { TIMELINE_KIND_SCHEMAS } from "@elixir-mcp/tools/activity/schemas";
 
@@ -93,6 +94,7 @@ export function publicItem(it) {
     ]);
     // Links to a battle or another record are member destinations, never
     // an anonymous way to walk beyond this one item.
+    out.post.moment = readPostMoment(it.post.moment);
     out.post.author = pick(it.post.author, ["player_tag", "name"]);
     if (out.post.battle) delete out.post.battle.url;
   } else if (it.section === "people") {

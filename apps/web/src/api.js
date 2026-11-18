@@ -438,8 +438,14 @@ export const api = {
         player ? { player } : account ? { account } : { mine: mine ? "1" : "" },
       )}`,
     ),
-  writePost: ({ text, question, deck_link, cards }) =>
-    request("POST", "/api/me/posts", { text, question, deck_link, cards }),
+  writePost: ({ text, question, deck_link, cards, moment }) =>
+    request("POST", "/api/me/posts", {
+      text,
+      question,
+      deck_link,
+      cards,
+      moment,
+    }),
   // The battle page's panel: your posts about this battle and the
   // verified players you may post it as.
   postsOnBattle: (battle) =>

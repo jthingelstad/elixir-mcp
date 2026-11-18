@@ -473,6 +473,13 @@ of your own, and the post goes out as that player.
   art, the deck's name, its average elixir and a **Copy deck** button. The
   link itself doesn't go in the post.
 - **Or add cards:** tap **Add cards** and search by name, up to 8.
+- **Post about a milestone:** tap **Post** on a recorded achievement for a
+  player you have verified. Add your words about a Mastery level, promotion,
+  first win with a new Evo, or another supported game achievement. The post
+  keeps the original recorded sentence and time, with **Open milestone** back
+  to that update. It carries the milestone instead of a deck, cards or battle.
+  The ordinary post limits and audiences apply. You can edit your words; the
+  recorded attachment stays the same.
 
 A post is words only: up to 500 characters, with no links, photos or
 @-names. Every post is checked before it goes up. A check can say no, for

@@ -6,6 +6,7 @@ import { blockedSql } from "@elixir-mcp/claims";
 import { classifyDeck, deckLink, postUrl } from "@elixir-mcp/contracts";
 import { cachedVocabulary } from "@elixir-mcp/ingest/card-roles";
 import { battlePostFacts } from "./battle.mjs";
+import { readPostMoment } from "./moment.mjs";
 import { memberPostPath } from "./paths.mjs";
 
 const POSTS_PAGE = 30;
@@ -36,7 +37,7 @@ export async function catalogRows(db, ids) {
 }
 
 const POST_COLS = `p.post_id::text as post_id, p.item_id, p.account_id,
-       p.player_tag, p.body, p.question, p.answered_at, p.deck, p.cards, p.status,
+       p.player_tag, p.body, p.moment, p.question, p.answered_at, p.deck, p.cards, p.status,
        p.battle_id, ts.share_id, p.revision, p.created_at, p.updated_at,
        pl.name as player_name, ap.passport_id as author_page`;
 const POST_AUTHOR_JOIN = `join account a on a.account_id = p.account_id
@@ -491,6 +492,7 @@ export async function postItems(db, rows, readerId) {
         id: r.post_id,
         text: String(r.body ?? ""),
         question: r.question === true,
+        moment: readPostMoment(r.moment),
         answered: r.question === true && r.answered_at != null,
         deck: r.deck ? deckView(r.deck, catalog, roles) : null,
         cards: (r.cards ?? []).map((id) => {
@@ -548,6 +550,7 @@ export async function postQueue(db) {
     question: it.post.question,
     deck: it.post.deck,
     cards: it.post.cards,
+    moment: it.post.moment,
     author: it.post.author,
     status: rows[i].status,
     reports: rows[i].reports,

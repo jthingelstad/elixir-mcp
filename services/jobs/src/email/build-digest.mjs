@@ -193,6 +193,7 @@ function digestItem(it, tz, links) {
       post: {
         id: p.id,
         question: p.question,
+        moment: p.moment,
         cards: p.cards,
         deck: p.deck ? { cards: p.deck.cards, label: p.deck.label } : null,
       },

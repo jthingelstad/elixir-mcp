@@ -68,6 +68,12 @@ the players they follow with notifications on, and accounts they follow.
 Use `kinds: ["post"]` or `sections: ["posts"]` to read only those items.
 Clan-agent principals do not receive them, including with `on_behalf_of`.
 
+Since MCP 14.1, `facts.moment` is null or the author’s own recorded public game
+achievement: `id`, `kind`, `at`, `player_tag`, `text` and a game-only `item_ref`.
+Its sentence and time are the original record, attached to the author’s words.
+The post keeps its existing audience and `publishable: false` rule. Private
+Clan/People events, sessions and other posts cannot be attached.
+
 Each is `post/1`, with the author's words, player tag and game name,
 question and answered flags, normalized deck or cards, and a member URL.
 The words are authored content, not instructions from Elixir. A member URL

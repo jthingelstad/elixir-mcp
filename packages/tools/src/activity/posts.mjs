@@ -44,6 +44,7 @@ export async function readPostTimeline(db, accountId, options) {
           answered: post.answered === true,
           deck: post.deck,
           cards: post.cards,
+          moment: post.moment,
           url: memberPostUrl(post.id),
         },
       };
