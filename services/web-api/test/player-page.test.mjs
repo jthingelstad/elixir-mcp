@@ -186,6 +186,7 @@ test("a verified player's page: record, badges, follows and followers by game na
   assert.deepEqual(page.you, {
     own: false,
     following: false,
+    pair: false,
     // The reader's own close-friend mark (0281), in the reader's block only.
     close: false,
     relationship: null,

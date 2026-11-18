@@ -56,6 +56,7 @@ import { itemSharingRoutes } from "./routes/item-sharing.mjs";
 import { timelineItemRoutes } from "./routes/timeline-items.mjs";
 import { cheersRoutes } from "./routes/cheers.mjs";
 import { commentsRoutes } from "./routes/comments.mjs";
+import { playerPairRoutes } from "./routes/player-pair.mjs";
 import { postsRoutes } from "./routes/posts.mjs";
 import { pushRoutes } from "./routes/push.mjs";
 import { bellRoutes } from "./routes/bell.mjs";
@@ -510,6 +511,7 @@ export function makeHandler({
     // Comments, blocks and reports (2026-11-16), off unless the stack's
     // CommentsEnabled is true.
     ...commentsRoutes({ resolveAccount, comments, posts: postsOn, secret }),
+    ...playerPairRoutes({ resolveAccount }),
     // Posts (2026-11-17): a post about nothing in the record only with
     // PostsEnabled and CommentsEnabled; a post about a battle (what was a
     // highlight until 0292) either way, its words checked while comments

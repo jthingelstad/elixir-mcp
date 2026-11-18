@@ -29,6 +29,7 @@ their follows and followers. Under it:
 | Moments | the timeline's moments: a new arena, a promotion in Ranked, a badge, a clan joined or left. A moment Elixir saw happen in a battle, like a promotion won on a 3-0, has **Open the battle** |
 | Follows | who the player's account follows, and who follows it |
 | Record | the recorded profile: the last 30 days in battles, wins, losses, trophies and the deck played most, and the profile's trophies, best and lifetime counts as of its last capture |
+| Together | on a followed friend's page, your verified player's recorded games with them: **Teamed up** and **Played against**, one mode at a time |
 
 A session on the Timeline tab is the same card as on your Timeline: its headline,
 its figures and bar chart, and the deck played most. Tap it for the
@@ -41,6 +42,27 @@ You can cheer a recorded item on the Timeline or Moments tab, including an older
 with **Your stats**: [your season, read back](/docs/ladder). Each of your
 players opens its own page from there. Your players' pages offer **Your stats**, and a clanmate's page
 **Open in Clan** when your clan runs Clan.
+
+## Your games together
+
+Open **Together** on a player you follow. It reads the last 30 days for
+your verified player and that friend. If you have more than one verified
+player, choose **Your player**. Choose **Mode** to keep different games
+apart.
+
+- **Teamed up** means both players were on the same side of the recorded
+  battle.
+- **Played against** means they were on opposite sides.
+
+Each row opens that battle. **Older team battles** and **Older opponent
+battles** read further back in the same mode and window. Boat defenses
+aren't live games between the two players, so they aren't here.
+
+Only actual shared battle records count. Elixir does not infer a meeting
+from being clanmates or playing around the same time. If none are on
+record, the page says so. A battle Elixir did not read is not here.
+The same block rules apply, and this view lists no games your friend
+played with anyone else.
 
 ## Check for new battles
 
@@ -66,8 +88,7 @@ shows them for a player an account has [verified](/docs/verify), and for no
 other player, because follows belong to an account and an unverified player
 has no account to speak for.
 
-- **Following** lists the players the account follows (its friends; players
-  it only watches are not follows).
+- **Following** lists the players the account follows.
 - **Followers** names each account that follows the player by the player that
   account verified, game name and tag, with the gold check. An account that
   added a player but hasn't verified it shows as that player, marked **Not
@@ -104,8 +125,8 @@ refused whole, and says why; nobody is followed in part. One that needs no
 slot always goes ahead. Your own players are left out, and the question says
 so. The same **Follow everyone** is over the roster in [Clan ›
 Members](/docs/bring-your-clan), for every member; past your limit it stays
-shut there, with the reason beside it. A player you only watch, or one only your agent
-follows, is not one you follow yet: following them is free, since Elixir
+shut there, with the reason beside it. A player only your agent
+follows is not one you follow yet: following them is free, since Elixir
 records them for you already.
 
 ## Follow me links
