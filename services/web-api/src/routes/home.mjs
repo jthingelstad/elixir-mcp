@@ -1208,12 +1208,9 @@ export function homeRoutes({
         own_clan_tag: home?.clan_tag ?? null,
         week: { label: week.label, key: week.key },
         friends: (facts?.friends ?? []).map(person),
-        watching: (facts?.watching ?? []).map(person),
         // Nothing to say this week; who that is, and for how long. A gap is
         // unknown, so the page says "recorded", never that they did not play.
-        quiet: (facts?.quiet ?? []).filter((q) =>
-          ["friend", "watching"].includes(q.relationship),
-        ),
+        quiet: (facts?.quiet ?? []).filter((q) => q.relationship === "friend"),
       });
     },
   };

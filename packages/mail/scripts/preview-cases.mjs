@@ -71,7 +71,7 @@ export function mailPreviewCases() {
         {
           tag: "#0PGQ2UYL",
           name: "Invented Ada",
-          relationship: "watching",
+          relationship: "friend",
           sessions: 0,
           battles: 0,
           wins: 0,

@@ -107,7 +107,7 @@ export function accountRoutes({
     }
     // A close friend (0281): the reader's private mark on a friend follow,
     // kept in step across a linked account's players (close.mjs). An
-    // agent follows as watching only, so it has no friends to mark.
+    // agent cannot mark close friends.
     if (action === "close_on" || action === "close_off") {
       if (account.kind === "agent") return json(403, { error: "not_entitled" });
       const r = await setClose(db, account, {
@@ -123,24 +123,12 @@ export function accountRoutes({
         });
       return json(200, r);
     }
-    /**
-     * The writer this column never had.
-     *
-     * 0055 added claim.relationship (primary | alt | friend | watching) and
-     * describeIdentity groups the MCP identity block by it -- but NOTHING
-     * could ever set it. No console control, no API action, no MCP tool. So
-     * every non-primary player has been announced to every connected agent
-     * as "watching" since the day it shipped, and the alt/friend vocabulary
-     * in the docs described something unreachable.
-     *
-     * 'primary' is deliberately NOT settable here: exactly one claim is
-     * primary and promoting one must demote the other, which is what
-     * make_primary on add already does atomically.
-     */
+    // Primary changes use addPlayer's atomic move. This action only
+    // changes an existing non-primary between friend and alt.
     if (action === "relationship") {
-      // An agent's players are watched, never "me" or a friend of it.
+      // Agents have no self claims, so they have no relationship selector.
       if (account.kind === "agent") return json(403, { error: "not_entitled" });
-      const REL = ["alt", "friend", "watching"];
+      const REL = ["alt", "friend"];
       if (!REL.includes(body.relationship))
         return json(400, { error: "bad_relationship", allowed: REL });
       const r = await setRelationship(db, account, {
@@ -180,9 +168,9 @@ export function accountRoutes({
     // Elixir records because of you (#760): one already recorded for
     // another reason is free. The MCP door runs the same function.
     // relationship "friend" is Home's Follow: never the primary, and never
-    // with make_primary. "alt" and "watching" are the add form's Add as.
+    // with make_primary. "alt" and "friend" are the add form's Add as.
     const asked = body.relationship ?? null;
-    if (asked && !["friend", "alt", "watching"].includes(asked))
+    if (asked && !["friend", "alt"].includes(asked))
       return json(400, { error: "bad_relationship" });
     if (asked && body.make_primary === true)
       return json(400, { error: "bad_relationship" });
@@ -506,8 +494,8 @@ export function accountRoutes({
       );
       // A self claim that ended because another account verified its tag,
       // or a signup tag refused for it (#556): said where the primary is
-      // shown for as long as the account has no primary (a friend or a
-      // watched player added since does not answer it). The latest such
+      // shown for as long as the account has no primary (a friend
+      // added since does not answer it). The latest such
       // event; never names the other account. A primary is only ever left
       // unset by that event or by removing the last player (removePlayer
       // refuses it otherwise), so an account that still tracks players has

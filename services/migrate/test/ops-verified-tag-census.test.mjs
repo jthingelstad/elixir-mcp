@@ -78,7 +78,7 @@ test("counts collisions on verified tags by relationship, counts only, and write
   await claim(b, T1, "unverified", false, "alt");
   await claim(c, T1, "unverified", false, "friend");
   await claim(a, T2, "unverified", false, "alt");
-  await claim(b, T2, "unverified", false, "watching");
+  await claim(b, T2, "unverified", false, "friend");
   await claim(c, T4, "unverified", true, "primary");
   await claim(b, T4, "unverified", false, "alt");
 
@@ -92,8 +92,7 @@ test("counts collisions on verified tags by relationship, counts only, and write
     by_relationship: {
       primary: { claims: 1, tags: 1, accounts: 1 },
       alt: { claims: 2, tags: 2, accounts: 2 },
-      friend: { claims: 1, tags: 1, accounts: 1 },
-      watching: { claims: 1, tags: 1, accounts: 1 },
+      friend: { claims: 2, tags: 2, accounts: 2 },
     },
     self: { claims: 3, tags: 2, accounts: 2, accounts_whose_primary: 1 },
   });

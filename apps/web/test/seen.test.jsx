@@ -128,7 +128,7 @@ const SLOTS = {
       reason: null,
       yours: null,
       agents: [
-        { public_id: "ag_test1", name: "Scout Bot", relationship: "watching" },
+        { public_id: "ag_test1", name: "Scout Bot", relationship: "friend" },
       ],
     },
     {

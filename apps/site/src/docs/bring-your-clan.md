@@ -34,7 +34,7 @@ You need two things:
    sign-up for Clan. [Your account](/docs/your-account) has how to create
    one by verifying your email.
 2. **Your player on it.** Your primary player or an alt, under
-   **Settings › Players & following**. A friend or a player you watch does not
+   **Settings › Players & following**. A friend does not
    count: Clan goes by the players that are you.
 
 Then open [/clan](/clan). Your existing Elixir session opens it directly;
@@ -208,7 +208,7 @@ Only explicit absence in the latest admitted profiles for all your own players
 shows **No clan in your recorded profiles**, dated by those readings. This
 is not a live check: if it is still accurate, join a clan in the game;
 otherwise wait for a fresh profile and clan roster and check again. Friends
-and watched players do not decide your membership or grant roles.
+do not decide your membership or grant roles.
 
 ## Ten members
 

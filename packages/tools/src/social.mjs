@@ -1,3 +1,4 @@
+import { blockedSql } from "@elixir-mcp/claims";
 import { verifiedPlayerIdentities } from "@elixir-mcp/auth/player-identities";
 export { verifiedPlayerIdentities };
 /**
@@ -48,13 +49,19 @@ export async function verifiedAvatars(db, tags) {
 }
 
 /** Who the account follows: its friends (Home's Follow), by game name and
- *  tag. Watched players and its agents' players are not follows. */
+ *  tag. Its agents' follows belong to those agents, not to this account.
+ *  A block with a player's verified owner hides that social association. */
 export async function followsOf(db, accountId) {
   const { rows } = await db.query(
     `select c.player_tag as tag, p.name, count(*) over ()::int as total
        from claim c left join player p using (player_tag)
       where c.account_id = $1 and c.relationship = 'friend'
         and not c.is_primary
+        and not exists (
+          select 1 from claim owner
+           where owner.player_tag = c.player_tag and owner.status = 'verified'
+             and (owner.is_primary or owner.relationship in ('primary', 'alt'))
+             and ${blockedSql("c.account_id", "owner.account_id")})
       order by lower(coalesce(p.name, c.player_tag)), c.player_tag
       limit $2`,
     [accountId, FOLLOW_LIST_CAP],
@@ -93,6 +100,7 @@ export async function followersOf(db, tag, selfAccountId) {
       where f.player_tag = $1 and f.relationship = 'friend'
         and coalesce(a.kind, 'person') = 'person'
         and f.account_id is distinct from $2
+        and not ${blockedSql("f.account_id", "$2::uuid")}
       order by lower(coalesce(p.name, v.player_tag)) nulls last, v.player_tag`,
     [tag, selfAccountId],
   );

@@ -10,7 +10,7 @@ import { RECORDING_DOCS } from "./common.mjs";
 
 export const elixir_follow_player = {
   description:
-    "Follow a player: claims the tag AND starts recording (followed means recorded). It spends a player slot only when Elixir records them because of you (an agent spends its owner's); the result's slot says. relationship says who they are to you (primary = you, alt = also you, friend, watching); a first player is your primary unless named friend or watching. A tag another account verified is theirs: friend or watching only, and friend also follows that account and its verified players (linked). action remove releases the claim; notify_on / notify_off set the timeline feed.",
+    "Follow a player and record them. It spends a player slot only when Elixir records them because of you (an agent uses its owner's pool); slot says. relationship is primary (you), alt (also you), or friend (any other player). A person's first unnamed tag is primary; later tags and agent follows default to friend. A tag another account verified is friend-only. A person's friend follow also follows that account and its verified players. action remove releases the claim; notify_on / notify_off set the Timeline feed.",
   inputSchema: {
     type: "object",
     properties: {
@@ -25,9 +25,9 @@ export const elixir_follow_player = {
       },
       relationship: {
         type: "string",
-        enum: ["primary", "alt", "friend", "watching"],
+        enum: ["primary", "alt", "friend"],
         description:
-          "Who this player is TO YOU: primary is you (exactly one; setting it on another tag moves it), alt is also you, friend is someone you follow, watching is everyone else (default). All four share your player slots, and none costs one for a player Elixir already records.",
+          "Who this player is TO YOU: primary is you (exactly one; setting it on another tag moves it), alt is also you, friend is any other player you follow (the default for later additions and for agents). All three share your player slots, and none costs one for a player Elixir already records.",
       },
     },
     required: ["player_tag"],
@@ -115,15 +115,15 @@ export const elixir_follow_player = {
     if (!r.ok && r.error === "not_entitled")
       throw new ToolFailure(
         "not_entitled",
-        "An agent follows players as watching only.",
-        "A player an agent follows is never it: omit relationship, or pass watching.",
+        "An agent follows players as friends only.",
+        "A player an agent follows is never it: omit relationship, or pass friend.",
       );
     // A verified tag is its owner's (#556): the answer every door gives.
     if (!r.ok && r.error === "verified_elsewhere")
       throw new ToolFailure(
         "not_entitled",
         r.message,
-        "Following them is still open: pass relationship friend or watching.",
+        "Following them is still open: pass relationship friend.",
       );
     if (!r.ok) {
       throw new ToolFailure("not_found", "Account not found.");
@@ -145,7 +145,7 @@ export const elixir_follow_player = {
     // player another account verified follows that account and its other
     // verified players.
     // linkAfterFollow links only a person's friend claim, so an agent's
-    // watched player links nothing.
+    // followed player links nothing.
     const linked = await linkAfterFollow(ctx.db, ctx.account, tag, {
       via: "mcp",
     });
@@ -180,9 +180,7 @@ export const elixir_follow_player = {
       applied: appliedBlock({
         player_tag: tag,
         action,
-        relationship: r.isPrimary
-          ? "primary"
-          : (args.relationship ?? "watching"),
+        relationship: r.isPrimary ? "primary" : (args.relationship ?? "friend"),
       }),
       notes: notes(
         r.recordingStarted

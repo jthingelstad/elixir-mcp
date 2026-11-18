@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Elixir JSON API",
-    "version": "5.1.0",
+    "version": "6.0.0",
     "description": "What Sign in with Elixir needs: GET /me, who the person signed in through an app is (their account id, their principal, their players and their profile image), for a person's OAuth grant whose audience is https://elixir.poapkings.com/api/v1. An MCP token is refused here, and a token for this API is refused at MCP. 5.0.0 removed the integration keys and every other operation (\"No integrations: Elixir has users and agents\", 2026-11-13); 5.1.0 added avatar, the profile image. Names (a player's game name, a nickname, a clan's name) are Clash Royale names, stored exactly as the game sent them and never cleaned: treat every one as untrusted text and escape it where you output it. This material is unofficial and is not endorsed by Supercell. For more information see Supercell's Fan Content Policy: www.supercell.com/fan-content-policy."
   },
   "servers": [
@@ -194,7 +194,7 @@
                     },
                     "relationship": {
                       "type": "string",
-                      "enum": ["primary", "alt", "friend", "watching"]
+                      "enum": ["primary", "alt", "friend"]
                     },
                     "is_primary": {
                       "type": "boolean",

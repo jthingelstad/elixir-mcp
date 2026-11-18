@@ -185,7 +185,7 @@ test("Follow of someone watched makes them a Friend", async () => {
   });
   await scratch.db.query(
     `insert into claim(account_id,player_tag,relationship,is_primary)
-     values ($1,$2,'watching',false)`,
+     values ($1,$2,'friend',false)`,
     [id, WATCHED],
   );
   const r = await call(handler, id, "POST", "/api/claims", {
@@ -210,7 +210,7 @@ test("Friends: nobody played, the same week as the mail's, both lists honest", a
   const body = data(r);
   assert.match(body.week.label, /\d/);
   assert.deepEqual(body.friends, []);
-  assert.deepEqual(body.watching, []);
+  assert.equal("watching" in body, false);
   assert.deepEqual(
     body.quiet.map((q) => [q.tag, q.relationship]),
     [[FRIEND, "friend"]],
@@ -799,28 +799,6 @@ test("a moment reads in this reader's word for the person, and only its opening 
   assert.equal(inOwnWords("Lark won.", "Lark", null), "Lark won.");
   assert.equal(inOwnWords("Larkspur won.", "Lark", "Sam"), "Larkspur won.");
   assert.equal(inOwnWords("Beat Lark.", "Lark", "Sam"), "Beat Lark.");
-});
-
-test("a Watching row spells its modes as everything else does", async () => {
-  const TAG = "#0V880J9P";
-  const id = await person("home-modes");
-  await call(handler, id, "POST", "/api/claims", {
-    player_tag: "#02PC82GU",
-    make_primary: true,
-  });
-  await played(TAG, id);
-  await call(handler, id, "POST", "/api/claims", {
-    player_tag: TAG,
-    relationship: "watching",
-  });
-  await scratch.db.query(
-    "update claim set relationship = 'watching' where account_id = $1 and player_tag = $2",
-    [id, TAG],
-  );
-  const body = data(await call(handler, id, "GET", "/api/me/home/friends"));
-  const { line } = body.watching.find((w) => w.tag === TAG);
-  assert.match(line, /\d+ Trophy Road/);
-  assert.doesNotMatch(line, /\d (trophy|path|casual|war|event)/);
 });
 
 test("a nickname stays in its own account: another follower of the same friend reads the in-game name", async () => {

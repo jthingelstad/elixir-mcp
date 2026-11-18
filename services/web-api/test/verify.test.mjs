@@ -422,7 +422,7 @@ test("only the primary or an alt can be verified: a watched player is refused", 
   );
   await db.query(
     `insert into claim (account_id, player_tag, status, is_primary, relationship)
-     values ($1, '#0P2R82U9', 'unverified', false, 'watching')`,
+     values ($1, '#0P2R82U9', 'unverified', false, 'friend')`,
     [other],
   );
   const r = await routes["POST /api/me/verify"](
@@ -906,7 +906,7 @@ test("a verification ends other accounts' primary and alt on the tag, keeps a fr
   assert.equal(await claimOf(holder, VTAG), null);
   assert.deepEqual(await claimOf(holder, SPARE), {
     status: "unverified",
-    relationship: "watching",
+    relationship: "friend",
     is_primary: false,
   });
   // The holder's challenge went with the claim: polling it finds nothing.

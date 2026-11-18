@@ -43,7 +43,7 @@ const OWN_SQL = `select player_tag from claim where account_id = $1
   and (is_primary or relationship in ('primary', 'alt'))`;
 
 /** Everyone the account already has a claim on: its own, its follows, its
- *  watched players. None of them is suggested. */
+ *  followed players. None of them is suggested. */
 const CLAIMED_SQL = `select player_tag from claim where account_id = $1`;
 
 /** The players the account's own players met in the window: opponents and
@@ -178,7 +178,7 @@ async function costsOf(db, ownerId, tags) {
     costs.map((c) => [
       c.player_tag,
       {
-        // Recorded for this pool already (watched, or an agent's): free.
+        // Recorded for this pool already, including an agent's follow: free.
         free: c.free || c.following,
         reason: c.reason ?? (c.following ? "recorded_for_you" : null),
       },

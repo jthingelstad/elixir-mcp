@@ -169,7 +169,7 @@ test("an ended primary: GET /api/me says so until another is added, and the time
   await addPlayer(
     db,
     { accountId: holder },
-    { tag: "#089VLLY2", relationship: "watching", via: "test" },
+    { tag: "#089VLLY2", relationship: "friend", via: "test" },
   );
   me = data(await call(cookie, "GET", "/api/me"));
   assert.equal(me.claim_notice?.kind, "primary_ended");

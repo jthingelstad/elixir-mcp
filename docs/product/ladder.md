@@ -1,5 +1,9 @@
 # Stats
 
+> Updated direction, 2026-11-17: Watching has retired into ordinary friend
+> follows. The Watching labels and exclusions below are superseded by
+> [Watching retires](../notes/2026-11-18-friend-follows.md).
+
 *Rewritten 2026-11-13 to the social layer, from the Ladder brief Jamie
 ratified on 2026-10-12, under [`VISION.md`](../../VISION.md) and the
 rulings in [DECISIONS](../DECISIONS.md) of 2026-11-11 and 2026-11-12. Ratified by Jamie, 2026-11-13

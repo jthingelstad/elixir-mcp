@@ -1,74 +1,56 @@
 ---
 slug: watch-a-player
-title: "Watch any player"
-description: "Follow any player by tag, friend or not: adding one starts recording, what the record holds before and after, how a watched player shows in your timeline and your digest, your player slots, and how an Elixir agent follows."
+title: "Follow any player"
+description: "Follow any Clash Royale player by tag, with the same recording, Timeline and notification settings as every friend."
 section: friends
 order: 2
-navTitle: "Watch any player"
+navTitle: "Follow any player"
 icon: eye
-lede: "Any player with a tag can be followed. Adding one is recording it, from the next read on, and a watched player who played or posted is in your digest."
-reviewed: "2026-11-12 your digest; 2026-10-01 against contract 9.17.1"
+lede: "Every other player you follow is a friend. You can follow anyone by player tag."
+reviewed: "2026-11-17 Watching retires into friend follows; 2026-11-12 your digest; 2026-10-01 against contract 9.17.1"
 callout: ["Open it at Settings › Players & following", "/settings/players", "Open Players & following"]
 ---
 
-# Watch any player
+# Follow any player
 
-You do not need to know a player to follow them: a rival, a top player,
-a clanmate's alt. **Watching** is the relationship an added player
-starts with (your first player is your primary), and the only one an
-[agent](/docs/agents) can set.
+You can follow a friend, a clanmate or someone you met in a battle. Every
+other player you follow is a **friend** in Elixir. Your primary and alts
+are the players you play as.
 
 ## Adding a player
 
-**Settings › Players & following › Follow a player**: enter the tag and press
-**Follow**. Through a [connected app](/docs/connections), `elixir_follow_player`
-with the tag; with no `relationship` it watches.
+Open **Find**, choose a suggestion or search by tag, then tap **Follow**.
+Or use **Settings › Players & following › Follow a player**.
 
-Followed means recorded. Recording starts on the next read and carries on
-until you remove the player: the battle log about every 30 minutes
-while they are playing, backing off to two hours when they are not,
-and the profile daily and after a session. If someone else already
-follows the player you share the record they built, so its history can
-start before the day you added it. [What Elixir records](/docs/recording)
-has the schedule and what each read reads.
+Through a connected app, use `elixir_follow_player` with
+`relationship: "friend"`. For a person, the first unnamed player becomes
+primary. A first player explicitly named `friend` stays a friend, so
+nothing defaults to you until you name your own player. An unnamed later
+player is a friend.
 
 ## Slots
 
-Every followed player takes one of your player slots, whatever
-the relationship; **Settings › Players & following** shows how many you use. When
-they are full, adding another is refused until you remove one or your slots
-rise: lead a clan you follow, or run a collector.
-[Roles and limits](/docs/roles#upgrades) has the numbers.
+Following uses a slot only when Elixir records that player because of you.
+A player Elixir already records for another reason stays free. Your existing
+notification choices and private nicknames are yours to keep.
 
 ## What you see
 
-A watched player is a subject of your **timeline** while its
-**Notifications** switch is on: sessions, new arenas, promotions, clan
-changes, on your Timeline and through `elixir_timeline`.
-
-In **[your digest](/docs/email#your-digest)**, the players you watch
-come after your [friends](/docs/follow-a-friend), whoever has the most
-to tell first, then the busiest, shown as a friend is: their battles
-with wins and losses, their trophies, and up to three things (their
-posts about battles, a new arena or league, a clan joined or left, a return),
-twelve people in all with the rest counted. A player who neither played
-nor posted is left out.
-
-The opening a connected app reads lists the players you watch with
-their tags (or counts them, when the list is long), so you can ask about
-one by name. Every battle the record holds has
-[a public page](/docs/battles#a-battles-page), the link a connected app
-hands you for one battle.
+Elixir records their next reads, and their sessions and moments appear
+in your Timeline while their Notifications switch is on. Their player page
+opens Stats. Your digest includes friends who played or posted.
 
 ## Agents
 
-An agent you own can follow players, and it always follows them as
-watching: it can never make a player you or a friend. Its players
-spend your slots. See [Your agents](/docs/agents).
+An agent follows players as friends too, without claiming to be them. It
+spends its owner's pooled slots and keeps its own follows and Timeline
+pointer. It never has a primary or alt player.
 
 ## Stopping
 
-**Unfollow** in Settings › Players & following (**Stop watching**, for a
-player you only watch), or `elixir_follow_player` with `action: "remove"`.
-A player you follow also offers it on their page: tap **Following**, then
-**Unfollow**. What was recorded stays recorded.
+**Unfollow** ends your follow. Recorded history stays, and recording stops
+only when no account or clan still needs it.
+
+See [Follow a friend](/docs/follow-a-friend),
+[What Elixir records](/docs/recording) and
+[Linked follows](/docs/verified-players#linked-follows).

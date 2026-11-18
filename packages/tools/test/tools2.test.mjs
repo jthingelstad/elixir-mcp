@@ -2002,17 +2002,17 @@ test("#556: elixir_follow_player refuses a primary or alt on a tag another accou
     assert.equal(r.isError, true, relationship);
     assert.equal(r.body.error.code, "not_entitled");
     assert.equal(r.body.error.message, VERIFIED_ELSEWHERE.message);
-    assert.match(r.body.error.hint, /friend or watching/);
+    assert.match(r.body.error.hint, /relationship friend/);
   }
   const follow = await call("elixir_follow_player", {
     player_tag: TAG,
-    relationship: "watching",
+    relationship: "friend",
   });
   assert.equal(follow.isError, false, JSON.stringify(follow.body));
   const { rows } = await db.query(
     `select is_primary, relationship from claim where account_id = $1 and player_tag = $2`,
     [account.accountId, TAG],
   );
-  assert.deepEqual(rows, [{ is_primary: false, relationship: "watching" }]);
+  assert.deepEqual(rows, [{ is_primary: false, relationship: "friend" }]);
   await call("elixir_follow_player", { player_tag: TAG, action: "remove" });
 });

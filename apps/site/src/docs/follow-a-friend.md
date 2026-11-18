@@ -1,22 +1,21 @@
 ---
 slug: follow-a-friend
 title: "Follow a friend"
-description: "Mark a player you follow as a friend: how to add one on the website or through a connected app, what a friend gets that a watched player does not (first in your digest, a name in your connection's opening), nicknames, the notifications switch, and stopping."
+description: "Follow any player by tag: recording, the Timeline, Stats, your digest, private nicknames, notification choices and stopping."
 section: friends
 order: 1
 navTitle: "Follow a friend"
 icon: heart
-lede: "A friend is a player you follow on purpose. Elixir records them like anyone you follow, and puts them first in your digest."
+lede: "A friend is a player you follow on purpose. Elixir records them like anyone you follow, and includes their play and posts in your digest."
 reviewed: "2026-11-15 everyone with a place is on Near you and the player map; 2026-11-14 Near you and the player map; 2026-11-13 Find opens on Suggested; 2026-11-12 your digest; 2026-10-01 against contract 9.17.1"
 callout: ["Open it at Settings › Players & following", "/settings/players", "Open Players & following"]
 ---
 
 # Follow a friend
 
-Every player you follow has a relationship to you: you, an alt, a
-friend, or someone you are watching ([Your account](/docs/your-account)
-has the four). A friend is recorded exactly like any other followed
-player. What changes is how Elixir reads them back to you.
+Your own players are your primary and your alts. Every other player you
+follow is a **friend**, whether you know them already or met them in the game.
+Friends share the same player-slot limits and recording rules.
 
 ## Adding a friend
 
@@ -24,9 +23,8 @@ On the website:
 
 1. **Settings › Players & following › Follow a player**: enter the tag and press
    **Follow**. Added means recorded; recording starts on the next read.
-2. A new player starts as **watching** (your first is your primary).
-   Open the player from the Players table, and under **How you follow
-   it** set **Relationship** to **friend**.
+2. A new follow is a **Friend**. Your first unnamed player is your primary;
+   choose **Also you** when adding another player you play as.
 
 Or on **Find** (on the top bar, and a tab on a phone): under **Search**,
 **Follow by player tag** takes the tag and adds
@@ -57,44 +55,33 @@ Each person shows their game name and tag, never a nickname. The Timeline's
 ([Beside the feed](/docs/timeline#beside-the-feed), [People you
 know](/docs/timeline#people-you-know)).
 
-A first player named `friend` or `watching` stays that, and the account has no
+A first player named `friend` stays that, and the account has no
 player of its own until you name one with `relationship: "primary"`.
 Through a [connected app](/docs/connections), `elixir_follow_player` takes a `relationship`, so
 "follow #TAG as a friend" adds the player as a friend in one call. The
 relationship is set when the player is added: for a player already on
 your account, change it under Settings › Players & following. An [agent](/docs/agents) you own
-follows players as watching only.
+follows players as friends, never as itself.
 
 When adding your own player requests its first battles, an admitted
 profile already on record is enough: the missing first battle-log read
 can be requested without waiting for a new profile. The recorder's
 existing first-read limits still apply.
 
-A friend takes one of your player slots, the same as a watched
-player, unless Elixir already records them: a member of a clan recorded in
+A friend takes one of your player slots unless Elixir already records them: a member of a clan recorded in
 full, or a player another account followed first, is free. Find's Follow and
 the search sheet say which before you tap ([What a player slot
 costs](/docs/recording#what-a-player-slot-costs)).
 
-## What a friend gets
+## What following gives you
 
-| | Friend | Watching |
-|---|---|---|
-| Recording | the same | the same |
-| Your timeline | yes, while notifications are on | yes, while notifications are on |
-| [Your digest](/docs/email#your-digest) | first, when they played or posted | after your friends, when they played or posted |
-| Your connection's opening | named under "Friends you follow" | named under "You are also watching" |
+While that player's Notifications switch is on, their sessions and moments
+appear in your Timeline. Their player page opens Stats, and your connected
+app names them under **Friends you follow**.
 
-In **[your digest](/docs/email#your-digest)** (weekly on Mondays, or
-daily by your choice) each friend who played or posted is shown under
-their name and your nickname for them: their battles with the wins and
-losses, their trophies, and up to three things, their
-[posts about battles](/docs/timeline#posts-about-battles) first with their own words, then
-a big first such as a new arena or a clan joined or left, each with a
-link to its battle when the record knows it. Friends come first, then
-the players you watch, up to twelve in all with the rest counted. Anyone
-who neither played nor posted is left out.
-[Watch any player](/docs/watch-a-player) has that side.
+Your [digest](/docs/email#your-digest) includes friends who played or posted,
+up to twelve people with the rest counted. It is weekly on Mondays, or daily
+by your choice. Anyone who neither played nor posted is left out.
 
 Some things are only ever about you. A friend's
 [firsts](/docs/milestones) are told under the friend in your digest, never
@@ -115,7 +102,7 @@ Settings › Players & following, to make them a close friend. Close
 friends get [your circle this week](/docs/timeline#your-circle-this-week)
 on your Timeline and a **Close friends** chip on the feed. The star is private to
 you: the friend is never told and nobody else sees it. Unfollowing a
-friend, or switching them to watching, takes the star away. Starring a
+friend, or making them one of your own players, takes the star away. Starring a
 Verified player stars their account's other Verified players you follow
 too.
 

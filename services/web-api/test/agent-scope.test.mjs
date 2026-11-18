@@ -399,7 +399,7 @@ test("configuring the agent: a rival in the owner's slots, a watched player, a n
   );
   assert.deepEqual(
     agentMe.claims.map((c) => [c.player_tag, c.relationship, c.is_primary]),
-    [["#022YGRRL", "watching", false]],
+    [["#022YGRRL", "friend", false]],
   );
   // The events say what happened on the agent's account, and how.
   const events = parse(

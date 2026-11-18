@@ -62,8 +62,7 @@ const heavyPerson = {
   grouped: {
     primary: [{ ...players(1, "P")[0], is_primary: true }],
     alt: players(5, "A"),
-    friend: players(15, "F"),
-    watching: players(29, "W"),
+    friend: [...players(15, "F"), ...players(29, "W")],
   },
   clans: clans(10),
   // The longest clan sentence: the not-recorded clause.
@@ -136,7 +135,7 @@ test("a heavy identity is counted, a light one named", async () => {
   const heavy = await brief("person", heavyPerson);
   assert.match(
     heavy,
-    /You also follow 49 more players \(5 alts, 15 friends, 29 you watch\) and 9 more clans: elixir_my_players lists them/,
+    /You also follow 49 more players \(5 alts, 44 friends\) and 9 more clans: elixir_my_players lists them/,
   );
   assert.ok(!heavy.includes(players(5, "A")[1].player_tag));
   const agent = await brief("agent", heavyAgent);

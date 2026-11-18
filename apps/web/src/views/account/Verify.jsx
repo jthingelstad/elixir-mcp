@@ -417,7 +417,7 @@ export function Verify({ refresh, navigate, tag = null }) {
   }
 
   // The picker: only the players that are yours to prove (you and your
-  // alts). Friends and watched players are theirs; adding a player at all
+  // alts). Friends and followed players are theirs; adding a player at all
   // is Players & following's job, so this page has one.
   const players = (list?.players ?? []).filter((p) => p.eligible !== false);
   return (

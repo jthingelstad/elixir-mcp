@@ -286,7 +286,7 @@ test("a former member, a watched claim and a disabled account fail closed", asyn
   await seedClan();
   for (const sql of [
     "update clan_membership set left_observed_at=now() where player_tag='#0RC'",
-    "update claim set is_primary=false,relationship='watching' where player_tag='#0RC'",
+    "update claim set is_primary=false,relationship='friend' where player_tag='#0RC'",
     "update claim set status='unverified' where player_tag='#0RC'",
     "update account set status='disabled' where email_hash='view-me'",
   ]) {

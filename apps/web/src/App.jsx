@@ -251,7 +251,7 @@ function ownAccountPath(path, me) {
 }
 
 /** Whether a path is the player page of one of the reader's own players:
- *  a claim that is the primary or an alt (a friend or a watched player is
+ *  a claim that is the primary or an alt (a friend is
  *  someone else's page). */
 function ownPlayerPath(clean, me) {
   const m = /^\/home\/player\/([^/,]+)$/.exec(clean);

@@ -955,6 +955,10 @@ p.kit-tiny,
   font-size: var(--t-body-sm);
   padding: var(--s-2) 11px;
 }
+.input--hit,
+.select--hit {
+  min-height: var(--hit);
+}
 
 /* ==================================================================
    Code / record panels

@@ -18,7 +18,7 @@
  * that changed at lunchtime is not worth paying for on every request.
  */
 
-const RELATIONSHIP_ORDER = ["primary", "alt", "friend", "watching"];
+const RELATIONSHIP_ORDER = ["primary", "alt", "friend"];
 
 /** Compact "Name #TAG", the form every tool takes back. */
 const label = (row) =>
@@ -108,7 +108,7 @@ export async function describeIdentity(db, account) {
   // follows it so the two can never appear to disagree.
   const grouped = {};
   for (const row of players) {
-    const rel = row.is_primary ? "primary" : (row.relationship ?? "watching");
+    const rel = row.is_primary ? "primary" : (row.relationship ?? "friend");
     (grouped[rel] ??= []).push(row);
   }
   return { kind, grouped, clans, primaryClan: primaryClan ?? null };
@@ -177,16 +177,12 @@ export function identitySentences(identity, { compact = false } = {}) {
         named.push(
           rel === "alt"
             ? `Also you, under ${rows.length === 1 ? "another tag" : "other tags"}: ${names}.`
-            : rel === "friend"
-              ? `Friends you follow: ${names}.`
-              : `You are also watching: ${names}.`,
+            : `Friends you follow: ${names}.`,
         );
         counts.push(
           rel === "alt"
             ? plural(rows.length, "alt")
-            : rel === "friend"
-              ? plural(rows.length, "friend")
-              : `${rows.length} you watch`,
+            : plural(rows.length, "friend"),
         );
       }
       if (others.length > 0)

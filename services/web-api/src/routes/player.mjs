@@ -121,8 +121,7 @@ async function readerSide(db, accountId, tag, clanTag) {
   const home = await homeClan(db, accountId);
   return {
     own,
-    // Following is the reader's own Follow, a friend claim. A watched
-    // player is recorded, not followed: the page still offers Follow.
+    // Following is the reader's own Follow, a friend claim.
     following: !own && claim?.relationship === "friend",
     // A close friend (0281): the reader's own private mark, in the reader's
     // own block, never anywhere another member reads.
@@ -495,8 +494,8 @@ export async function followPlan(db, accountId, tags) {
     player_tag: c.player_tag,
     name: nameOf.get(c.player_tag) ?? null,
     following: followed.has(c.player_tag),
-    // Recorded for this pool already (watched, or an agent's): following
-    // them takes no slot.
+    // Recorded for this pool already, including an agent's follow:
+    // following them takes no slot.
     free: c.free || c.following,
     reason: c.reason ?? (c.following ? "recorded_for_you" : null),
   }));
@@ -562,7 +561,7 @@ async function followSlots(db, accountId) {
       name: nameOf.get(r.player_tag) ?? null,
       slot: r.free ? "free" : "used",
       reason: r.reason,
-      // The reader's own claim: primary, alt, friend or watching.
+      // The reader's own claim: primary, alt, friend.
       yours: mine?.relationship ?? null,
       agents: r.claims
         .filter((c) => c.kind === "agent")

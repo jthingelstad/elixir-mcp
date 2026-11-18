@@ -23,14 +23,14 @@ export interface RoleQuotas {
    * arbitrary: one comprehensive clan watch already records ~50 players, so
    * fifty individually tracked players cost the service what a single
    * comprehensive slot has always cost — and most of them are ALREADY being
-   * recorded, since a recording is shared by everyone watching it. A slot is
+   * recorded, since a recording is shared by everyone following it. A slot is
    * spent only when Elixir records the player because of you (#760,
    * 2026-11-11): a member of any clan recorded at comprehensive scope, or a
    * player another account followed first, is free. The one statement of
    * that rule is `playerCostSql` in @elixir-mcp/claims.
    *
-   * The generosity is what makes relationships worth having: primary, alt,
-   * friend and watching are only useful with room to keep friends in.
+   * The generosity is what makes relationships worth having: primary and alt
+   * claims and friend follows need room to keep friends in.
    *
    * Player slots therefore stop being a rung on the ladder. The tiers still
    * differ where the cost actually scales — clan watches, daily calls, the

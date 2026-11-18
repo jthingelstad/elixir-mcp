@@ -380,7 +380,7 @@ test("account_follow adds an alt to the account that holds the primary, once, an
         relationship: "primary",
       })
     ).error,
-    "relationship must be alt, friend or watching",
+    "relationship must be alt or friend",
   );
 });
 

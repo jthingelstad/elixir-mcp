@@ -109,7 +109,7 @@ async function logEvent(db, accountId, kind, detail) {
  * A verified tag is its owner's (Jamie, 2026-10-12, #556): "IF a player
  * has VERIFIED their player tag, we should NOT allow any other account to
  * claim it as a self or alt tag". A self claim is `primary` or `alt`;
- * `friend` and `watching` say "not me" and stay open to anyone. One
+ * `friend` says "not me" and stays open to anyone. One
  * refusal, said the same way on every door (the web app, the tool and
  * Verify itself).
  */
@@ -258,6 +258,8 @@ export async function addPlayer(
   // Home's Follow (Jamie's ruling, Q10): a Friend, beside the person's own
   // record. It never makes anyone the primary, so it asks for their own
   // player first rather than let a first add become "them".
+  if (asked && !["primary", "alt", "friend"].includes(asked))
+    return { ok: false, error: "bad_relationship" };
   const relationship = follow ? "friend" : asked;
   await db.query("begin");
   try {
@@ -271,7 +273,7 @@ export async function addPlayer(
     // 2026-09-23: "a randomly tracked account", a rival's star), but never
     // as "me": a claim's primary/alt say "this player is me", and an agent
     // acts FOR a clan, so every tool that defaults to "your tag" would
-    // start answering for a bot. Its players are watched, only.
+    // start answering for a bot. Its players are followed, only.
     const agent = acct.kind === "agent";
     if (acct.kind && acct.kind !== "person" && !agent) {
       await db.query("rollback");
@@ -279,7 +281,7 @@ export async function addPlayer(
     }
     if (
       agent &&
-      (makePrimary === true || (relationship && relationship !== "watching"))
+      (makePrimary === true || (relationship && relationship !== "friend"))
     ) {
       await db.query("rollback");
       return { ok: false, error: "not_entitled", kind: "agent" };
@@ -293,7 +295,7 @@ export async function addPlayer(
       await lockAccount(db, owner.account_id);
     await lockSubject(db, tag);
 
-    if (follow) {
+    if (follow && !agent) {
       const { rows: own } = await db.query(
         `select 1 from claim where account_id = $1
             and (is_primary or relationship in ('primary', 'alt')) limit 1`,
@@ -335,8 +337,8 @@ export async function addPlayer(
     const first = counted[0].n === 0 && !agent;
     // A tag another account has verified is theirs (#556): claiming it as
     // you is refused, which is the primary, an alt, or a first player with
-    // no relationship named (a person's first player is them). A friend or
-    // a watched player is not a claim to be them: it is added as asked and
+    // no relationship named (a person's first player is them). A friend
+    // follow is not a claim to be them: it is added as asked and
     // never made the primary.
     const self =
       !agent &&
@@ -378,7 +380,7 @@ export async function addPlayer(
     );
 
     // A first player is the person only when nothing says otherwise: a friend
-    // or a watched player named on the way in stays that (2026-11-06), and the
+    // named on the way in stays that (2026-11-06), and the
     // account has no player of its own until it names one.
     const wantPrimary =
       !agent &&
@@ -398,7 +400,7 @@ export async function addPlayer(
         // that column then refused the new one -- the exact shape of #8, one
         // migration later.
         `update claim set is_primary = false,
-                relationship = case when relationship = 'primary' then 'watching'
+                relationship = case when relationship = 'primary' then 'friend'
                                     else relationship end
          where account_id = $1 and is_primary and player_tag <> $2`,
         [account.accountId, tag],
@@ -416,7 +418,7 @@ export async function addPlayer(
         account.accountId,
         tag,
         wantPrimary,
-        wantPrimary ? "primary" : (relationship ?? "watching"),
+        wantPrimary ? "primary" : (relationship ?? "friend"),
       ],
     );
     // An explicit make_primary on a tag already claimed still switches.
@@ -426,7 +428,7 @@ export async function addPlayer(
         // goes with the friendship (0281's check).
         `update claim set is_primary = (player_tag = $2),
                 relationship = case when player_tag = $2 then 'primary'
-                                    when relationship = 'primary' then 'watching'
+                                    when relationship = 'primary' then 'friend'
                                     else relationship end,
                 close = close and player_tag <> $2 where account_id = $1`,
         [account.accountId, tag],
@@ -438,16 +440,11 @@ export async function addPlayer(
         via,
       });
     }
-    // Following someone already watched makes them a friend; a tag that is
-    // already you (primary or alt) stays what it is.
+    // An existing self claim keeps its identity when followed again.
     let current = null;
     if (follow) {
       const { rows } = await db.query(
-        `update claim set relationship = case
-                  when relationship = 'watching' and not is_primary then 'friend'
-                  else relationship end
-          where account_id = $1 and player_tag = $2
-          returning relationship`,
+        `select relationship from claim where account_id = $1 and player_tag = $2`,
         [account.accountId, tag],
       );
       current = rows[0]?.relationship ?? null;
@@ -503,19 +500,25 @@ export async function addPlayer(
 }
 
 /**
- * Say who a tracked player is to you: `alt`, `friend` or `watching`. The
+ * Say who a tracked player is to you: `alt` or `friend`. The
  * primary is never set or demoted here: exactly one claim is primary, and
  * moving it is addPlayer's make_primary, which demotes the old one in the
  * same transaction. An `alt` on a tag another account has verified is
- * refused (#556); friend and watching never are.
+ * refused (#556); a friend follow is not.
  *
  * Returns {ok:true, relationship}, {ok:false, error:"not_found_or_primary"}
  * (no claim, or it is the primary) or {ok:false, ...VERIFIED_ELSEWHERE}.
  */
 export async function setRelationship(db, account, { tag, relationship }) {
+  if (!["alt", "friend"].includes(relationship))
+    return { ok: false, error: "bad_relationship" };
   await db.query("begin");
   try {
-    await lockAccount(db, account.accountId);
+    const acct = await lockAccount(db, account.accountId);
+    if (acct?.kind === "agent" && relationship !== "friend") {
+      await db.query("rollback");
+      return { ok: false, error: "not_entitled", kind: "agent" };
+    }
     await lockSubject(db, tag);
     if (
       SELF_RELATIONSHIPS.includes(relationship) &&
@@ -525,7 +528,7 @@ export async function setRelationship(db, account, { tag, relationship }) {
       return { ok: false, ...VERIFIED_ELSEWHERE };
     }
     const { rowCount } = await db.query(
-      // A close friend made an alt or watched is no longer a friend: the
+      // A close friend made an alt is no longer a friend: the
       // mark goes with the friendship (0281's check).
       `update claim set relationship = $3, close = close and $3 = 'friend'
         where account_id = $1 and player_tag = $2 and not is_primary`,
@@ -556,7 +559,7 @@ export async function setRelationship(db, account, { tag, relationship }) {
  *
  * Ending is removing: each other account's `primary` or `alt` claim goes,
  * with an `account_event` `claim_ended` (the tag, never the account that
- * verified it) that the timeline reads; `friend` and `watching` stay. An
+ * verified it) that the timeline reads; friend follows stay. An
  * ended primary leaves that account with no primary: nothing is promoted
  * (Elixir does not choose who "you" are). Removing a claim removes its
  * open challenges (0080 cascade). The recording reconciles as for any

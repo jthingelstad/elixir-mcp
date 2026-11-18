@@ -22,7 +22,7 @@ const W = "#0UVC8J9R"; // OWNER's alt, verified
 const MINE = "#0LCVJ8YR"; // READER's own player
 const F = "#0RQYGC2L"; // a friend READER follows, claimed by nobody
 const Q = "#0GUQ28PV"; // a friend READER follows who has not played
-const WATCHED = "#0QYC9U2P"; // a player READER watches
+const OWN_ALT = "#0QYC9U2P"; // a player READER watches
 
 let scratch, handler, OWNER, READER;
 const sessions = new Map();
@@ -104,7 +104,7 @@ async function battle(tag, atMs, { type = "PvP", boat = null } = {}) {
 before(async () => {
   scratch = await scratchDb("close_friends");
   const { db } = scratch;
-  for (const tag of [V, W, MINE, F, Q, WATCHED])
+  for (const tag of [V, W, MINE, F, Q, OWN_ALT])
     await db.query("insert into player(player_tag,name) values ($1,$2)", [
       tag,
       `Name ${tag.slice(1, 4)}`,
@@ -117,7 +117,7 @@ before(async () => {
   await claim(READER, MINE, "primary", true);
   await claim(READER, F, "friend");
   await claim(READER, Q, "friend");
-  await claim(READER, WATCHED, "watching");
+  await claim(READER, OWN_ALT, "alt");
   // OWNER follows the reader back: a follow of the reader's own player.
   await claim(OWNER, MINE, "friend");
 });
@@ -142,9 +142,9 @@ test("with nobody marked, the circle offers the people you follow, follows back 
   // OWNER follows the reader back, so both its players come first.
   assert.deepEqual(tags.slice(0, 2).sort(), [V, W].sort());
   assert.ok(circle.suggestions.slice(0, 2).every((s) => s.follows_you));
-  // Friends only: never the reader's own player or one it watches.
+  // Friends only: never the reader's own player or an alt.
   assert.ok(!tags.includes(MINE));
-  assert.ok(!tags.includes(WATCHED));
+  assert.ok(!tags.includes(OWN_ALT));
   assert.ok(tags.includes(F) && tags.includes(Q));
 });
 
@@ -153,9 +153,9 @@ test("one tap marks and unmarks; only a friend follow can be marked", async () =
   assert.deepEqual(await closeOf(READER), [F]);
   assert.equal((await mark(READER, F, false)).statusCode, 200);
   assert.deepEqual(await closeOf(READER), []);
-  // Your own player and a watched one are not friends.
+  // Your own player and an alt are not friends.
   assert.equal((await mark(READER, MINE)).statusCode, 409);
-  assert.equal((await mark(READER, WATCHED)).statusCode, 409);
+  assert.equal((await mark(READER, OWN_ALT)).statusCode, 409);
   assert.equal((await mark(READER, "#0PJ8LQ2Y")).statusCode, 404);
   assert.deepEqual(await closeOf(READER), []);
 });
@@ -195,12 +195,12 @@ test("the mark is the reader's alone: never on another reader's page or the owne
   assert.equal(rows.length, 0);
 });
 
-test("a friend made a watched player loses the mark with the friendship", async () => {
+test("a friend made an alt loses the mark with the friendship", async () => {
   await mark(READER, F);
   const r = await call(READER, "POST", "/api/claims", {
     player_tag: F,
     action: "relationship",
-    relationship: "watching",
+    relationship: "alt",
   });
   assert.equal(r.statusCode, 200, r.body);
   assert.ok(!(await closeOf(READER)).includes(F));

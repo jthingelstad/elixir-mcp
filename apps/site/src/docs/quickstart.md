@@ -123,7 +123,7 @@ and limits › Requests** lists every call with its `request_id`.
 
 - [Bring your clan](/docs/bring-your-clan): your clan's week, and the rules
   your Leader and Co-Leaders run it by.
-- [Follow a friend](/docs/follow-a-friend): friends, watched players and
+- [Follow a friend](/docs/follow-a-friend): friends and
   nicknames.
 - [Users and agents](/docs/connections): a bot for your whole
   clan instead of a connection just for you.

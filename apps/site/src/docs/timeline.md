@@ -35,7 +35,7 @@ Your Timeline is one feed, newest first, in days. Chips choose
 whose items it shows: **Everyone**, **Close friends** (once you have
 starred one, below), **Friends** (the players you follow as friends),
 **Clan** (the clans you follow), or **You** (your own players), each with
-its count. Questions shows its own count when selected. A player you only watch is under Everyone. **All** or **New**
+its count. Questions shows its own count when selected. **All** or **New**
 chooses between everything and what came since your last visit. The chips
 only choose what the page draws: your place moves when you open the feed,
 whichever chip is on, so **New** means the same under every chip. Your
@@ -368,7 +368,7 @@ it. Each reads on its own, so the feed never waits for them.
   more, a friendly battle, or as a 2v2 teammate, those first: "You played
   a friendly battle this week"), players followed by the verified players
   you follow ("Ada follows them"), and your clan's members ("In your
-  clan"). Players you already follow, watch or own are never suggested.
+  clan"). Players you already follow or own are never suggested.
   Nobody is ranked by trophies, wins or any rating, and names are game
   names, never a nickname. While **People you know** is at the top of
   your Timeline, this panel steps aside. **Find more people** opens [Find](/docs/follow-a-friend#find).
