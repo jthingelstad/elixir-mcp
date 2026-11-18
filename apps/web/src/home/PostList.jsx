@@ -1,4 +1,5 @@
 import { postsKey, usePosts } from "../lib/queries.js";
+import { PostReadState } from "./PostReadState.jsx";
 import { FeedItem } from "./FeedItem.jsx";
 import { useScope } from "../lib/scope.js";
 
@@ -12,17 +13,21 @@ export function PostList({ player = null, account = null, mine = false }) {
   const ask = { player, account, mine };
   const read = usePosts(ask, on);
   const posts = read.data?.posts ?? [];
-  if (!on || posts.length === 0) return null;
+  if (!on) return null;
   return (
-    <section className="kit-post-list" aria-label="Posts">
-      <h2 className="kit-day__head">Posts</h2>
-      {posts.map((it) => (
-        <FeedItem
-          key={it.id}
-          it={it}
-          cheerWhere={{ key: postsKey(ask), list: "posts" }}
-        />
-      ))}
-    </section>
+    <PostReadState query={read}>
+      {posts.length > 0 ? (
+        <section className="kit-post-list" aria-label="Posts">
+          <h2 className="kit-day__head">Posts</h2>
+          {posts.map((it) => (
+            <FeedItem
+              key={it.id}
+              it={it}
+              cheerWhere={{ key: postsKey(ask), list: "posts" }}
+            />
+          ))}
+        </section>
+      ) : null}
+    </PostReadState>
   );
 }

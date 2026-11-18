@@ -113,3 +113,39 @@ test("a cheer confirmed from another surface updates the answered member item as
   expect(client.getQueryData(KEY).data.item.my_cheer).toBeNull();
   expect(client.getQueryData(KEY).data.item.cheers).toEqual({});
 });
+
+test.each([true, false])(
+  "a pending cheer preserves a newer post revision when accepted=%s",
+  async (accepted) => {
+    const read = vi
+      .spyOn(api, "memberPost")
+      .mockResolvedValue(ok({ item: ITEM }));
+    const response = Promise.withResolvers();
+    const write = vi.spyOn(api, "cheer").mockReturnValue(response.promise);
+    const { queryClient } = renderWithProviders(<MemberPostPage />);
+    fireEvent.click(await screen.findByRole("button", { name: /^Cheer: / }));
+    await waitFor(() => expect(write).toHaveBeenCalledOnce());
+
+    const edited = {
+      ...ITEM,
+      revision: 2,
+      post: { ...ITEM.post, text: "Updated question?" },
+    };
+    read.mockResolvedValue(ok({ item: edited }));
+    await act(() => queryClient.invalidateQueries({ queryKey: KEY }));
+    await screen.findByText("Updated question?");
+
+    response.resolve(
+      accepted
+        ? ok({ cheers: { well_played: 1 }, my_cheer: "well_played" })
+        : { ok: false, status: 429, data: {} },
+    );
+    await waitFor(() => expect(queryClient.isMutating()).toBe(0));
+    expect(screen.getByText("Updated question?")).toBeTruthy();
+    expect(queryClient.getQueryData(KEY).data.item).toMatchObject({
+      revision: 2,
+      my_cheer: accepted ? "well_played" : null,
+      cheers: accepted ? { well_played: 1 } : {},
+    });
+  },
+);

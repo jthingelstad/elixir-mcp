@@ -1,6 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import { ME, mockApi } from "./fixtures.ts";
+import { ADA as PLAYER } from "./player-fixture.ts";
 import { homeApi, TIMELINE } from "./home-fixture.ts";
 
 /**
@@ -326,4 +327,55 @@ test("no composer while posts are off", async ({ page }) => {
   await expect(
     page.getByRole("button", { name: "Post", exact: true }),
   ).toHaveCount(0);
+});
+
+test("retrying a player's posts restores the list, then blocking a post author refreshes the player header", async ({
+  page,
+}) => {
+  let available = false;
+  let blocked = false;
+  await mockApi(
+    page,
+    postsOn({
+      "GET /api/player": () => [
+        200,
+        {
+          ...PLAYER,
+          player: { ...PLAYER.player, tag: ADA.player_tag, name: ADA.name },
+          you: { ...PLAYER.you, following: !blocked, blocked },
+        },
+      ],
+      "GET /api/me/posts": () =>
+        available
+          ? [200, { posts: blocked ? [] : [CARDS_POST] }]
+          : [503, { error: "unavailable" }],
+      "POST /api/me/blocks": () => {
+        blocked = true;
+        return [200, { ok: true }];
+      },
+    }),
+  );
+  await page.goto(`/home/player/${ADA.player_tag.slice(1)}`);
+  const header = page.getByRole("navigation", {
+    name: "More about this player",
+  });
+  await expect(header.getByRole("button", { name: "Following" })).toBeVisible();
+  const retry = page
+    .getByRole("alert")
+    .filter({ hasText: "Posts could not be loaded" });
+  await expect(retry).toBeVisible();
+  available = true;
+  await retry.getByRole("button", { name: "Try again" }).click();
+  const posts = page.getByRole("region", { name: "Posts", exact: true });
+  await expect(posts.getByText(CARDS_POST.text)).toBeVisible();
+  await posts.getByRole("button", { name: "Block", exact: true }).click();
+  await page
+    .getByRole("dialog")
+    .getByRole("button", { name: "Block", exact: true })
+    .click();
+  await expect(header.getByText("Blocked", { exact: true })).toBeVisible();
+  await expect(header.getByRole("button", { name: "Following" })).toHaveCount(
+    0,
+  );
+  await expect(posts).toHaveCount(0);
 });

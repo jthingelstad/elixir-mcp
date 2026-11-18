@@ -554,6 +554,12 @@ const CHEER_FEED_KEY = HOME_FEED_KEY;
 const cheerWrites = new Map();
 let cheerTaps = 0;
 
+// A post may be edited or receive comments while its cheer is in flight.
+const patchCheer =
+  (id, { cheers, my_cheer }) =>
+  (item) =>
+    item.id === id ? { ...item, cheers, my_cheer } : item;
+
 export function useCheer({
   key = CHEER_FEED_KEY,
   list = "timeline",
@@ -561,18 +567,15 @@ export function useCheer({
 } = {}) {
   const queryClient = useQueryClient();
   // Home's feed is one copy per mode (homeFeedKey): each takes the change.
-  const put = (item) =>
+  const put = (id, data) =>
     queryClient.setQueriesData({ queryKey: key, exact }, (old) =>
-      mapItems(old, list, (it) => (it.id === item.id ? item : it)),
+      mapItems(old, list, patchCheer(id, data)),
     );
   // Every other copy of the item (Home's feed, a player page's or a battle
   // page's cheers read) takes what the server confirmed too, so a stale
   // copy never shows the old cheer or sends it again.
   const everyCopy = (id, data) => {
-    const patch = (it) =>
-      it.id === id
-        ? { ...it, cheers: data.cheers, my_cheer: data.my_cheer }
-        : it;
+    const patch = patchCheer(id, data);
     queryClient.setQueriesData({ queryKey: CHEER_FEED_KEY }, (old) =>
       mapItems(old, "timeline", patch),
     );
@@ -633,7 +636,7 @@ export function useCheer({
       const w = cheerWrites.get(item.id) ?? {
         tail: null,
         out: 0,
-        before: item,
+        before: { cheers: item.cheers, my_cheer: item.my_cheer },
         confirmed: null,
       };
       w.out += 1;
@@ -643,29 +646,21 @@ export function useCheer({
         queryKey: key,
         exact,
       });
-      put(shown);
+      put(item.id, shown);
       return { tap };
     },
-    onSuccess: (data, { shown }, context) => {
-      const w = cheerWrites.get(shown.id);
+    onSuccess: (data, { item }, context) => {
+      const w = cheerWrites.get(item.id);
       if (w) w.confirmed = data;
       if (w && w.newest !== context?.tap) return;
-      put({ ...shown, cheers: data.cheers, my_cheer: data.my_cheer });
-      everyCopy(shown.id, data);
+      put(item.id, data);
+      everyCopy(item.id, data);
     },
     onError: (_err, { item }, context) => {
       const w = cheerWrites.get(item.id);
       if (!w || w.newest !== context?.tap) return;
       if (w.confirmed) everyCopy(item.id, w.confirmed);
-      put(
-        w.confirmed
-          ? {
-              ...w.before,
-              cheers: w.confirmed.cheers,
-              my_cheer: w.confirmed.my_cheer,
-            }
-          : w.before,
-      );
+      put(item.id, w.confirmed ?? w.before);
     },
     onSettled: (_data, _err, { item }) => done(item.id),
   });

@@ -486,7 +486,8 @@ Who sees it:
 - **People who follow you** or your player, on their Timeline.
 - **Your clanmates**, in your clan's Feed.
 - **Your account page and your player's page** list your posts too, for
-  those same people. Your own posts are on your Profile.
+  those same people. Your own posts are on your Profile. If posts on a profile
+  or battle page can’t load, **Try again** reloads that section.
 - **Your existing digest** can include new posts and questions from the
   people and accounts you follow, with their deck or cards. Its weekly,
   daily or off setting stays yours. **Read and reply** opens the post in

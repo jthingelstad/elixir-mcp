@@ -1,5 +1,11 @@
 import { test, expect, vi, afterEach } from "vitest";
-import { screen, fireEvent, cleanup, waitFor } from "@testing-library/react";
+import {
+  act,
+  screen,
+  fireEvent,
+  cleanup,
+  waitFor,
+} from "@testing-library/react";
 import { api } from "../src/api.js";
 import { keys, postsKey, usePosts } from "../src/lib/queries.js";
 import { BattlePosts } from "../src/views/BattlePosts.jsx";
@@ -236,4 +242,46 @@ test("a post already in the clan's Discord says so; one the clan does not take o
   expect(
     screen.queryByRole("button", { name: "Post in your clan’s Discord" }),
   ).toBeNull();
+});
+
+test("a failed battle post read offers a retry and recovers the composer", async () => {
+  const read = vi
+    .spyOn(api, "postsOnBattle")
+    .mockResolvedValueOnce({ ok: false, status: 503, data: {} })
+    .mockResolvedValue(ok({ can_post_as: ["#0CR"], posts: [] }));
+  renderWithProviders(<BattlePosts battle={BATTLE} sides={SIDES} />);
+  fireEvent.click(await screen.findByRole("button", { name: "Try again" }));
+  expect(await screen.findByRole("button", { name: "Post" })).toBeTruthy();
+  expect(read).toHaveBeenCalledTimes(2);
+  expect(screen.queryByRole("alert")).toBeNull();
+});
+
+test("a temporary refresh error keeps battle post words, and a later unavailable battle closes the panel", async () => {
+  const read = vi
+    .spyOn(api, "postsOnBattle")
+    .mockResolvedValue(ok({ can_post_as: ["#0CR"], posts: [] }));
+  const { queryClient, container } = renderWithProviders(
+    <BattlePosts battle={BATTLE} sides={SIDES} />,
+  );
+  const words = await screen.findByLabelText("Your words (optional)");
+  fireEvent.change(words, { target: { value: "One more game" } });
+  read.mockResolvedValueOnce({
+    ok: false,
+    status: 429,
+    data: { message: "Try again later." },
+  });
+  await act(() =>
+    queryClient.invalidateQueries({ queryKey: keys.battlePosts(BATTLE.id) }),
+  );
+  expect(await screen.findByText("Try again later.")).toBeTruthy();
+  expect(screen.getByLabelText("Your words (optional)").value).toBe(
+    "One more game",
+  );
+  read.mockResolvedValueOnce({
+    ok: false,
+    status: 404,
+    data: { error: "not_found" },
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Try again" }));
+  await waitFor(() => expect(container.textContent).toBe(""));
 });
