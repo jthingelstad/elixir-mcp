@@ -1,6 +1,7 @@
 import { useEffect, useId, useState } from "react";
 import { useWrite } from "../client/index.ts";
 import { ConfirmAction, WriteError } from "@elixir-mcp/ui";
+import { PostReadState } from "../home/PostReadState.jsx";
 import { ItemShare } from "../home/ItemShare.jsx";
 import { api } from "../api.js";
 import { useBattlePosts, usePostsChanged } from "../lib/queries.js";
@@ -22,16 +23,23 @@ const count = (s) => [...s].length;
 
 export function BattlePosts({ battle, sides }) {
   const query = useBattlePosts(battle.id);
+  return (
+    <PostReadState query={query}>
+      {query.data ? (
+        <BattlePostPanel battle={battle} sides={sides} data={query.data} />
+      ) : null}
+    </PostReadState>
+  );
+}
+
+function BattlePostPanel({ battle, sides, data }) {
   const invalidate = usePostsChanged();
-  const data = query.data;
   // A session page's Post lands here (#post, 2026-11-16; #highlight from
   // a link made before): once the panel has drawn, it scrolls into view.
   useEffect(() => {
-    if (!data || !["#post", "#highlight"].includes(window.location.hash))
-      return;
+    if (!["#post", "#highlight"].includes(window.location.hash)) return;
     document.getElementById("post")?.scrollIntoView?.({ block: "start" });
   }, [data]);
-  if (!data) return null;
   const { can_post_as: players = [], posts = [] } = data;
   const posted = new Set(posts.map((p) => p.subject_tag));
   const open = players.filter((tag) => !posted.has(tag));

@@ -15,7 +15,11 @@ import { postableMoment } from "@elixir-mcp/posts/moment";
 import { memberItemPath, timelineItemRef } from "@elixir-mcp/ui/item-link";
 import { api } from "../api.js";
 import { useMe } from "../App.jsx";
-import { useCardCatalog, usePostsChanged } from "../lib/queries.js";
+import {
+  useCardCatalog,
+  useInvalidate,
+  usePostsChanged,
+} from "../lib/queries.js";
 import { useScope } from "../lib/scope.js";
 import { modeWord } from "./logic.js";
 import { ReportForm } from "./Comments.jsx";
@@ -574,6 +578,7 @@ export function PostActions({ it }) {
   const questionsOn = usePostsOn();
   const p = it.post ?? {};
   const changed = usePostsChanged();
+  const invalidate = useInvalidate();
   const [reporting, setReporting] = useState(false);
   const [reported, setReported] = useState(false);
   const [editing, setEditing] = useState(false);
@@ -653,7 +658,7 @@ export function PostActions({ it }) {
           confirm="Block"
           run={() => api.block({ post_id: p.id })}
           onDone={(out) => {
-            if (out?.ok) changed();
+            if (out?.ok) invalidate();
           }}
         />
       ) : null}
