@@ -8,6 +8,7 @@ const data = {
     {
       id: 26000042,
       name: "Electro Wizard",
+      rarity: "champion",
       art: {
         base: `${ORIGIN}/26000042.png`,
         hero: `${ORIGIN}/26000042_hero.png`,
@@ -23,6 +24,9 @@ test("the catalog's art by card id; a card without art has none", () => {
   expect(source.art(26000042)?.hero).toBe(`${ORIGIN}/26000042_hero.png`);
   expect(source.art(26000999)).toBeNull();
   expect(source.art(1)).toBeNull();
+  expect(source.rarity(26000042)).toBe("champion");
+  expect(source.rarity(26000999)).toBeNull();
+  expect(source.rarity(1)).toBeNull();
 });
 
 test("loading draws empty frames; a failed read falls back to the mirror", () => {

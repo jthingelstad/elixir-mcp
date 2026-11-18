@@ -27,12 +27,15 @@ const MEETINGS_MAX = 6;
 
 /** A crowd of costs, one read: the catalog's current elixir_cost. */
 async function costsOf(db, ids) {
-  if (ids.length === 0) return new Map();
+  if (ids.length === 0) return { costs: new Map(), rarities: new Map() };
   const { rows } = await db.query(
-    `select card_id, elixir_cost from card where card_id = any($1::int[])`,
+    `select card_id, elixir_cost, rarity from card where card_id = any($1::int[])`,
     [[...new Set(ids)]],
   );
-  return new Map(rows.map((r) => [r.card_id, r.elixir_cost]));
+  return {
+    costs: new Map(rows.map((r) => [r.card_id, r.elixir_cost])),
+    rarities: new Map(rows.map((r) => [r.card_id, r.rarity])),
+  };
 }
 
 /** The four cheapest cards: what it costs to cycle back to a card. Null
@@ -51,7 +54,7 @@ const mean = (xs) =>
     ? Math.round((xs.reduce((a, v) => a + v, 0) / xs.length) * 100) / 100
     : null;
 
-function deckOf(cards, archetype, tower, costs) {
+function deckOf(cards, archetype, tower, costs, rarities) {
   if (!Array.isArray(cards) || cards.length === 0) return null;
   const levels = cards.map((c) => c.level).filter((l) => typeof l === "number");
   return {
@@ -59,6 +62,7 @@ function deckOf(cards, archetype, tower, costs) {
       id: c.id,
       name: c.name,
       form: c.form ?? "base",
+      rarity: rarities.get(c.id) ?? null,
       level: c.level ?? null,
     })),
     tower_troop: tower
@@ -71,10 +75,10 @@ function deckOf(cards, archetype, tower, costs) {
   };
 }
 
-function playerOf(p, costs) {
+function playerOf(p, costs, rarities) {
   const d = p.deck ?? null;
   const rounds = Array.isArray(d?.rounds)
-    ? d.rounds.map((r) => deckOf(r.cards, r.archetype, null, costs))
+    ? d.rounds.map((r) => deckOf(r.cards, r.archetype, null, costs, rarities))
     : null;
   return {
     player_tag: p.player_tag,
@@ -87,7 +91,7 @@ function playerOf(p, costs) {
     elixir_leaked: p.elixir?.leaked ?? null,
     deck: rounds
       ? null
-      : deckOf(d?.cards, d?.archetype, d?.supportCards?.[0], costs),
+      : deckOf(d?.cards, d?.archetype, d?.supportCards?.[0], costs, rarities),
     rounds,
   };
 }
@@ -182,7 +186,7 @@ export async function readPublicBattle(db, ref, { around = true } = {}) {
     ...(p.deck?.cards ?? []),
     ...(p.deck?.rounds ?? []).flatMap((r) => r.cards ?? []),
   ]);
-  const costs = await costsOf(
+  const { costs, rarities } = await costsOf(
     db,
     allCards.map((c) => c.id),
   );
@@ -201,13 +205,13 @@ export async function readPublicBattle(db, ref, { around = true } = {}) {
     outcome: b.me.outcome ?? null,
     crowns: b.me.crowns ?? null,
     tower_hp: b.me.tower_hp ?? null,
-    players: leftPlayers.map((p) => playerOf(p, costs)),
+    players: leftPlayers.map((p) => playerOf(p, costs, rarities)),
   };
   const right = {
     outcome: flip(b.me.outcome ?? null),
     crowns: opp?.crowns ?? null,
     tower_hp: opp?.tower_hp ?? null,
-    players: rightPlayers.map((p) => playerOf(p, costs)),
+    players: rightPlayers.map((p) => playerOf(p, costs, rarities)),
   };
   // A duel game by game: one game per round deck either side played,
   // with each side's own result for it from rounds[] where the record

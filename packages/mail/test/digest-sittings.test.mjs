@@ -27,6 +27,38 @@ const links = {
   pixel: false,
 };
 
+test("digest deck images use Evo, Champion and Wild order without changing the facts", () => {
+  const facts = read("tracking_report");
+  const person = facts.people.find((p) => p.name === "Rapid Clear");
+  const sitting = person.sittings.find(
+    (s) => s.deck?.cards?.length && s.facts.battles > 2,
+  );
+  const cards = Array.from({ length: 8 }, (_, i) => ({
+    id: 26000000 + i,
+    name: `Card ${i}`,
+    form: i === 5 || i === 7 ? "evolution" : "base",
+    rarity: i === 3 ? "champion" : "common",
+  }));
+  sitting.deck.cards = cards;
+  person.sittings = [sitting];
+  person.items = [];
+  facts.people = [person];
+  const { html } = renderMail("tracking_report", facts, links);
+  const shown = [
+    ...html.matchAll(
+      /src="https:\/\/elixir.poapkings.com\/assets\/cards\/(\d+)(?:_evo)?\.png"/g,
+    ),
+  ].map((m) => Number(m[1]));
+  assert.deepEqual(
+    shown,
+    [5, 3, 7, 0, 1, 2, 4, 6].map((i) => cards[i].id),
+  );
+  assert.deepEqual(
+    cards.map((c) => c.id),
+    Array.from({ length: 8 }, (_, i) => 26000000 + i),
+  );
+});
+
 test("each sitting's headline links its session page, campaign-tagged", () => {
   const { html } = renderMail(
     "tracking_report",

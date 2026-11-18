@@ -257,6 +257,7 @@ export function digestSitting(it) {
               id: c.id,
               name: c.name,
               form: c.form,
+              rarity: c.rarity ?? null,
             })),
           },
         }

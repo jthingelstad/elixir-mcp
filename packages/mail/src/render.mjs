@@ -23,6 +23,7 @@ import {
 } from "./shell.mjs";
 import { monthDayAt, whenAt } from "@elixir-mcp/ui/time";
 import { cardImg } from "./cards.mjs";
+import { deckDisplayCards } from "@elixir-mcp/ui/deck-display";
 import { memberPostUrl } from "@elixir-mcp/posts/paths";
 import {
   compactSitting,
@@ -284,7 +285,7 @@ function digestItem(it, c) {
   if (it.kind === "post") {
     const url = memberPostUrl(it.post?.id);
     const cards = it.post?.deck?.cards ?? it.post?.cards ?? [];
-    return `<div style="font-family:${FONT};font-size:14px;line-height:1.5;color:${M.muted};margin-top:12px;">${esc(it.post?.question ? "Question" : "Post")}</div>${it.words ? quote(it.words) : ""}${cards.length ? deckRow(cards, { names: true }) : ""}${it.post?.deck?.label ? c.small(esc(it.post.deck.label)) : ""}${url ? `<div style="margin-top:8px;">${c.link(url, it.post?.question ? "Read and reply" : "Open post", `display:inline-block;min-height:44px;line-height:44px;font-family:${FONT};font-size:14px;font-weight:600;`)}</div>` : ""}`;
+    return `<div style="font-family:${FONT};font-size:14px;line-height:1.5;color:${M.muted};margin-top:12px;">${esc(it.post?.question ? "Question" : "Post")}</div>${it.words ? quote(it.words) : ""}${cards.length ? deckRow(cards, { names: true, slots: Boolean(it.post?.deck) }) : ""}${it.post?.deck?.label ? c.small(esc(it.post.deck.label)) : ""}${url ? `<div style="margin-top:8px;">${c.link(url, it.post?.question ? "Read and reply" : "Open post", `display:inline-block;min-height:44px;line-height:44px;font-family:${FONT};font-size:14px;font-weight:600;`)}</div>` : ""}`;
   }
   const battle = it.battle_url
     ? ` ${c.link(it.battle_url, "See the battle", "font-weight:600;")}`
@@ -304,8 +305,8 @@ const sittingUrl = (path) =>
  *  width and height scale it), equal cells so the row fits a phone.
  *  Posts add a visible name caption for clients with images blocked;
  *  sittings keep the existing named-image alternative. */
-const deckRow = (cards, { names = false } = {}) => {
-  const shown = cards.slice(0, 8);
+const deckRow = (cards, { names = false, slots = true } = {}) => {
+  const shown = (slots ? deckDisplayCards(cards) : cards).slice(0, 8);
   if (!shown.length) return "";
   const width = 100 / shown.length;
   return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:8px;max-width:${Math.min(360, shown.length * 45)}px;"><tr>${shown

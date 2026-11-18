@@ -15,8 +15,13 @@ export function cardArtSource(query, want) {
   if (query.isPending) return { status: "loading", art: () => null, want };
   if (query.isError || !Array.isArray(query.data?.cards))
     return { status: "unavailable", art: () => null, want };
-  const byId = new Map(query.data.cards.map((c) => [c.id, c.art ?? null]));
-  return { status: "ready", art: (id) => byId.get(id) ?? null, want };
+  const byId = new Map(query.data.cards.map((c) => [c.id, c]));
+  return {
+    status: "ready",
+    art: (id) => byId.get(id)?.art ?? null,
+    rarity: (id) => byId.get(id)?.rarity ?? null,
+    want,
+  };
 }
 
 export function CardArtSource({ children }) {

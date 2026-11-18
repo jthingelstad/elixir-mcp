@@ -203,6 +203,14 @@ test("a 1v1: the recorded player left, both decks, towers and the link", async (
     assert.ok(s.tower_hp === null || "king" in s.tower_hp);
   }
   assert.ok(battle.duration?.basis);
+  // Catalog rarity survives the projection: Champions use the Hero/Wild
+  // positions without being relabelled as Hero forms.
+  const golden = l.players[0].deck.cards.find((c) => c.id === 26000074);
+  const miner = r.players[0].deck.cards.find((c) => c.id === 26000065);
+  assert.equal(golden.rarity, "champion");
+  assert.equal(golden.form, "base");
+  assert.equal(miner.rarity, "champion");
+  assert.equal(miner.form, "base");
   // The sitting holds this battle, newest first.
   assert.ok(read.sitting.some((x) => x.url === battle.url));
   const times = read.sitting.map((x) => Date.parse(x.battle_time));

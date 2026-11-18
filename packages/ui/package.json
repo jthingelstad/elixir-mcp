@@ -6,6 +6,7 @@
   "exports": {
     ".": "./src/index.ts",
     "./avatar-crops": "./src/avatar-crops.ts",
+    "./deck-display": "./src/deck-display.ts",
     "./shell.json": "./src/shell.json",
     "./session-story": "./src/session-story.ts",
     "./time": "./src/time.ts",

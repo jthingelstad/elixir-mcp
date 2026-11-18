@@ -101,6 +101,39 @@ const READ = {
 
 const draw = (read, art = new Map()) => drawBattle(read, { ...metrics, art });
 
+test("battle and single-item pictures share Evo, Champion and Wild display order", () => {
+  const cards = DECK.cards.map((c, i) => ({
+    ...c,
+    form: i === 5 || i === 7 ? "evolution" : "base",
+    rarity: i === 3 ? "champion" : "common",
+  }));
+  const deck = { ...DECK, cards };
+  const art = new Map(cards.map((c) => [`${c.id}:${c.form}`, String(c.id)]));
+  const order = [5, 3, 7, 0, 1, 2, 4, 6].map((i) => String(cards[i].id));
+  const imageIds = (svg) =>
+    [...svg.matchAll(/href="data:image\/png;base64,(\d+)"/g)].map((m) => m[1]);
+  const battle = structuredClone(READ);
+  for (const side of battle.sides) for (const p of side.players) p.deck = deck;
+  assert.deepEqual(imageIds(draw(battle, art)), [...order, ...order]);
+  const svg = drawItem(
+    {
+      id: "abcdefghijklmnopqrstuvwx",
+      url: "https://elixir.poapkings.com/share/abcdefghijklmnopqrstuvwx",
+      item: {
+        kind: "post",
+        subjects: [{ kind: "player", name: "King Thing" }],
+        post: { text: "A deck", deck },
+      },
+    },
+    { ...metrics, art },
+  );
+  assert.deepEqual(imageIds(svg), order);
+  assert.deepEqual(
+    cards.map((c) => c.id),
+    DECK.cards.map((c) => c.id),
+  );
+});
+
 test("a 1v1: both names, both decks, the score, the towers, the link", () => {
   const svg = draw(READ);
   assert.match(svg, /^<svg [^>]*width="1200" height="630"/);

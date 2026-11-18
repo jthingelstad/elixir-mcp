@@ -586,6 +586,7 @@ function versusSide(d) {
     id: c.id,
     name: c.name,
     form: formName(c.form),
+    rarity: c.rarity ?? null,
     elixir_cost: c.elixir_cost ?? null,
   }));
   return cards.length ? { label: d.label ?? null, cards } : null;
@@ -4322,7 +4323,7 @@ export const VERSUS_DECK_SQL = (hash) => `(select jsonb_build_object(
                         then d.archetype_label end,
           'cards', (select coalesce(jsonb_agg(jsonb_build_object(
                        'id', dc.card_id, 'form', dc.form, 'name', c.name,
-                       'elixir_cost', c.elixir_cost)
+                       'rarity', c.rarity, 'elixir_cost', c.elixir_cost)
                      order by dc.card_id, dc.form), '[]'::jsonb)
                       from unnest(d.card_ids, d.card_forms) as dc(card_id, form)
                       join card c on c.card_id = dc.card_id))

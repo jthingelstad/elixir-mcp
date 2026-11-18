@@ -11,6 +11,7 @@
  */
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
 import pg from "pg";
 import { ATTESTED_FACT_KINDS } from "@elixir-mcp/contracts";
 import { buildTimeline } from "../../../packages/tools/src/activity/entries.mjs";
@@ -20,6 +21,8 @@ import {
   digestWindow,
 } from "../src/email/build-digest.mjs";
 import { renderMail } from "../../../packages/mail/src/render.mjs";
+import { projectCardCatalog } from "../../../packages/ingest/src/cards.mjs";
+import { seedPlayedDeck } from "../../../packages/tools/test/deck-rows.mjs";
 import {
   createScratch,
   dropScratch,
@@ -110,6 +113,31 @@ before(async () => {
      values ('b2', $1, 0, '2026-09-16T20:00:00Z', 'win', 3, 'PvP', 'pvp'),
             ('b2', $2, 1, '2026-09-16T20:00:00Z', 'loss', 0, 'PvP', 'pvp')`,
     [FRIEND, OPP],
+  );
+  const fixture = async (name) =>
+    JSON.parse(
+      await readFile(
+        new URL(`../../../fixtures/${name}`, import.meta.url),
+        "utf8",
+      ),
+    );
+  await projectCardCatalog(db, {
+    payload: await fixture("cards/catalog.json"),
+    fetchedAt: TO,
+  });
+  const played = (
+    await fixture("player_battlelog/with_colosseum_duel.json")
+  ).find((b) => b.type === "PvP").team[0];
+  const deckHash = await seedPlayedDeck(db, {
+    battle_id: "b2",
+    player_tag: FRIEND,
+    battle_time: "2026-09-16T20:00:00Z",
+    cards: played.cards,
+    supportCards: played.supportCards,
+  });
+  await db.query(
+    "update battle_participant set deck_hash = $1 where battle_id = 'b2' and player_tag = $2",
+    [deckHash, FRIEND],
   );
   const poster = (
     await db.query(
@@ -231,6 +259,9 @@ test("a followed friend's post about a battle comes with their words and the bat
   assert.ok(friend, JSON.stringify(mail.people));
   assert.equal(friend.relationship, "friend");
   assert.equal(friend.battles, 1);
+  const champion = friend.sittings[0].deck.cards.find((c) => c.id === 26000074);
+  assert.equal(champion.rarity, "champion");
+  assert.equal(champion.form, "base");
   const [h] = friend.items;
   assert.equal(h.kind, "battle_highlight");
   // The words as typed: escaping is the render's, at its output.
