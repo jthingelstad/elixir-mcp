@@ -16,6 +16,7 @@ import "../src/pages/StatsPage.jsx";
 import "../src/pages/HomePage.jsx";
 import "../src/views/Battle.jsx";
 import "../src/views/SharedItem.jsx";
+import "../src/views/MemberItem.jsx";
 import "../src/home/Find.jsx";
 import "../src/home/You.jsx";
 import "../src/home/Player.jsx";
