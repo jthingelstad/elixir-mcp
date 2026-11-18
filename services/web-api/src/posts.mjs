@@ -9,8 +9,8 @@
  *
  * A post is a few words of plain text (POST_MAX, no links, mentioning
  * nobody) a person writes as their Verified player, perhaps marked as a
- * question, perhaps carrying a deck read from the game's deck link or a
- * few cards from the catalog. It is a timeline item of its own
+ * question, perhaps carrying a deck read from the game's deck link, a
+ * few cards from the catalog, or one of their recorded game achievements. It is a timeline item of its own
  * (`kind: "post"`, a random `tl_` id), so cheers and comments name it as
  * they name any item; a battle highlight is the same idea about a battle,
  * a post can also carry an own recorded game achievement.
@@ -68,12 +68,14 @@ const POST_ID = /^[1-9][0-9]{0,18}$/;
 
 /**
  * What a post request asks for: `{ text, question, deck, cards, battle,
- * player_tag }` (deck as the link reads it, ids not yet checked), or
+ * player_tag, moment }` (deck as the link reads it, ids not yet checked), or
  * `{ error, message }`. The deck comes from `deck_link`, or else from a
  * deck link in the words, which is taken out of them: the post keeps the
  * cards, never the link. A post about a battle (`battle`, its id or link,
  * and `player_tag`, which of the author's players played it) carries the
- * battle alone, and its words may be empty (0292).
+ * battle alone, and its words may be empty (0292). A milestone is a game
+ * item locator only: its canonical record and current ownership are resolved
+ * by writePost, never accepted from submitted facts.
  */
 export function readPostInput(body) {
   if (
@@ -305,8 +307,8 @@ function carriesOf({ deck, cards, battle, moment }) {
 }
 
 /**
- * Write a post. `cfg` is `{ plain, check }`: `plain` whether posts about
- * nothing in the record are on (the stack's PostsEnabled with
+ * Write a post. `cfg` is `{ plain, check }`: `plain` whether posts without
+ * a battle attachment are on (the stack's PostsEnabled with
  * CommentsEnabled); `check` the comments config (`{ capUsd, moderate }`)
  * while comments are on, else null. A post about a battle is a
  * highlight's successor and works with either flag off (0292): its words

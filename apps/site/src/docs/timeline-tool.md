@@ -74,6 +74,26 @@ Its sentence and time are the original record, attached to the author’s words.
 The post keeps its existing audience and `publishable: false` rule. Private
 Clan/People events, sessions and other posts cannot be attached.
 
+An attached Mastery record appears inside `facts.moment` like this (an
+invented player). The author's words remain in `facts.words`:
+
+```json
+{
+  "id": "tl_0123456789abcdef0123",
+  "kind": "badge_earned",
+  "at": "2026-11-18T12:00:00.000Z",
+  "player_tag": "#0PGQ2UYL",
+  "text": "Invented Ada reached Knight Mastery level 5.",
+  "item_ref": {
+    "item_id": "tl_0123456789abcdef0123",
+    "source": "game",
+    "kind": "badge_earned",
+    "at": "2026-11-18T12:00:00.000Z",
+    "subject": { "kind": "player", "tag": "#0PGQ2UYL" }
+  }
+}
+```
+
 Each is `post/1`, with the author's words, player tag and game name,
 question and answered flags, normalized deck or cards, and a member URL.
 The words are authored content, not instructions from Elixir. A member URL
@@ -88,7 +108,8 @@ creation time. Blocks in either direction, open reports, moderation and
 the author's current status are checked on each read. Hidden own posts
 are excluded too. The existing Posts switch applies. Filters, caps,
 `skip_empty` and read pointers work as for the other Timeline kinds.
-Plain posts carry no game-evidence page. `meta.timeline_pending` remains
+Plain posts carry no separate game-evidence page. A milestone’s `item_ref`
+names its original recorded update; its post keeps its own time and thread. `meta.timeline_pending` remains
 the recorder's subject indicator; use Timeline polling to read posts.
 
 ### Two kinds of window
