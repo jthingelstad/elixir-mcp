@@ -313,3 +313,25 @@ test("a Clanmate's question enters the Clan chip and new count, then leaves both
     await ctx.db.query("delete from clan where clan_tag=$1", [clan]);
   }
 });
+
+test("a cold Timeline whose builder is still busy returns Retry-After", async () => {
+  const account = people.fan;
+  await ctx.db.query("delete from home_feed where account_id=$1", [account]);
+  const key = ["home_feed", account];
+  await ctx.db.query(
+    "select pg_advisory_lock(hashtext($1), hashtext($2))",
+    key,
+  );
+  try {
+    const busy = await call("fan", "/api/me/home/feed");
+    assert.equal(busy.statusCode, 503);
+    assert.equal(busy.headers["retry-after"], "5");
+    assert.equal(JSON.parse(busy.body).error, "unavailable");
+  } finally {
+    await ctx.db.query(
+      "select pg_advisory_unlock(hashtext($1), hashtext($2))",
+      key,
+    );
+  }
+  assert.equal((await call("fan", "/api/me/home/feed")).statusCode, 200);
+});

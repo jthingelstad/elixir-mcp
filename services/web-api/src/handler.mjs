@@ -150,21 +150,15 @@ export { CLAN_UNSIGNED } from "./routes/clan.mjs";
  *  Retry-After and a request id to quote. */
 const UNAVAILABLE_MESSAGE =
   "Elixir could not reach its database. Nothing was read or changed; try again in a few seconds.";
-function unavailable(isApi, lambdaRequestId) {
+function unavailable(isApi, lambdaRequestId, message = UNAVAILABLE_MESSAGE) {
   const requestId = lambdaRequestId ?? randomUUID();
   return isApi
-    ? apiProblem(
-        503,
-        "temporarily_unavailable",
-        requestId,
-        UNAVAILABLE_MESSAGE,
-        5,
-      )
+    ? apiProblem(503, "temporarily_unavailable", requestId, message, 5)
     : json(
         503,
         {
           error: "unavailable",
-          message: UNAVAILABLE_MESSAGE,
+          message,
           request_id: requestId,
         },
         { "retry-after": "5" },
@@ -712,6 +706,14 @@ export function makeHandler({
       const answer = { ...res };
       delete answer.trace;
       return answer;
+    } catch (error) {
+      if (error?.code !== "cache_build_busy") throw error;
+      status = 503;
+      return unavailable(
+        isApi,
+        requestId,
+        "Your activity is still loading. Try again in a few seconds.",
+      );
     } finally {
       // A timed-out route may still hold a query. The pool destroys a
       // busy or failed lease; PostgreSQL notices a closed socket only

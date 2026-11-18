@@ -51,7 +51,7 @@ export const HOME_READ_RECENT_MS = 3 * 86_400_000;
 export const HOME_READ_IDLE_MS = 7 * 86_400_000;
 export const HOME_IDLE_REBUILD_MS = 2 * 3_600_000;
 /** How long a read waits for another build of the same account's row to
- *  finish before it builds one itself. */
+ *  finish before its last attempt to reuse a valid stored row. */
 const BUILD_WAIT_MS = 12_000;
 /** read_at moves at most this often (one write an hour, not a read). */
 const READ_MARK_MS = 3_600_000;
@@ -92,50 +92,51 @@ const homeKey = (subjects, accounts = []) =>
  * build the same row side by side, each holding a pool client and the
  * database for seconds. `build` runs under a session advisory lock keyed
  * by `name` and the account; a second caller waits for it (at most
- * BUILD_WAIT_MS, holding no lock of its own) and then asks `reuse` for
- * what the first stored, building only when that answers null.
+ * BUILD_WAIT_MS). Callers have already checked the row. A caller that
+ * waited checks again under the lock before starting a replacement build.
  */
-export async function buildOnce(db, name, accountId, { build, reuse }) {
+export async function buildOnce(
+  db,
+  name,
+  accountId,
+  { build, reuse, waitMs = BUILD_WAIT_MS },
+) {
   const key = [name, String(accountId)];
-  const { rows } = await db.query(
-    `select pg_try_advisory_lock(hashtext($1), hashtext($2)) as ok`,
-    key,
-  );
-  if (rows[0]?.ok) {
-    try {
-      return await build();
-    } finally {
-      await db
-        .query(`select pg_advisory_unlock(hashtext($1), hashtext($2))`, key)
-        .catch(() => {});
-    }
-  }
-  // Another build of this row is running: wait for it, then read it.
-  const waited = await waitForBuild(db, key);
-  if (waited) {
-    const kept = await reuse();
-    if (kept) return kept;
-  }
-  return build();
-}
-
-/** Wait until the holder of `key` lets go, never holding it: true when it
- *  did within BUILD_WAIT_MS. */
-async function waitForBuild(db, key) {
-  const until = Date.now() + BUILD_WAIT_MS;
-  for (let pause = 100; Date.now() < until; pause = Math.min(pause * 2, 800)) {
-    await new Promise((r) => setTimeout(r, pause));
+  const until = Date.now() + waitMs;
+  let waited = false;
+  for (let pause = 100; ; pause = Math.min(pause * 2, 800)) {
     const { rows } = await db.query(
-      `select not exists (
-         select 1 from pg_locks
-          where locktype = 'advisory' and granted
-            and classid = hashtext($1)::oid and objid = hashtext($2)::oid
-            and objsubid = 2) as free`,
+      `select pg_try_advisory_lock(hashtext($1), hashtext($2)) as ok`,
       key,
     );
-    if (rows[0]?.free) return true;
+    if (rows[0].ok) {
+      try {
+        if (waited) {
+          const kept = await reuse();
+          if (kept != null) return kept;
+        }
+        return await build();
+      } finally {
+        await db.query(
+          `select pg_advisory_unlock(hashtext($1), hashtext($2))`,
+          key,
+        );
+      }
+    }
+    waited = true;
+    const remaining = until - Date.now();
+    if (remaining <= 0) {
+      // The builder can commit its row before it releases the lock.
+      const kept = await reuse();
+      if (kept != null) return kept;
+      throw Object.assign(new Error("Cache build is still running"), {
+        code: "cache_build_busy",
+      });
+    }
+    await new Promise((resolve) =>
+      setTimeout(resolve, Math.min(pause, remaining)),
+    );
   }
-  return false;
 }
 
 /** The account's time zone and seen marker, as the feed reads them. */
