@@ -96,7 +96,7 @@ async function read(label, path, opts, { statements, buffers }) {
   const total = planned.reduce((a, p) => a + p.buffers, 0);
   assert.ok(
     total <= buffers,
-    `${label}: ${total} shared buffers, ceiling ${buffers}`,
+    `${label}: ${total} shared buffers, ceiling ${buffers}; ${JSON.stringify(planned)}`,
   );
   return { ...r, planned };
 }
@@ -223,49 +223,41 @@ test("a clanmate's and a stranger's player pages stay in their budgets", async (
   await playerPage(rows[0].player_tag);
 });
 
-/** Stats' reads, tab by tab, as the page asks them. */
+/** Stats' query shapes, tab by tab. A recent and a preceding fortnight
+ * replace calendar seasons in this performance fixture: a current season
+ * grows from one to five fixture weeks as the real month passes. Season
+ * resolution is covered by the tools' functional tests and browser journeys;
+ * here the same indexed range must process the same volume every day. */
 const STATS = (t) => [
   ["players_summary", { player_tag: t }, 29, 3500],
   // The season list, from the first recorded battle: a long window, read
   // battle by battle, never by hashing the battle table.
   ["battles_performance", { player_tag: t, from: "LONG" }, 18, 14000],
-  // 1100 to 1200 (2026-11-17): the current season's share of the seeded
-  // 26 weeks grows with the clock, and read 1101 to 1104 under a full run.
-  ["battles_performance", { player_tag: t, season: "current" }, 18, 1200],
+  ["battles_performance", { player_tag: t, from: "RECENT" }, 18, 1200],
   [
     "battles_performance",
-    { player_tag: t, season: "current", mode: "ladder" },
+    { player_tag: t, from: "RECENT", mode: "ladder" },
     18,
     1000,
   ],
   ["elixir_coverage", { player_tag: t }, 16, 200],
   [
     "battles_query",
-    { player_tag: t, season: "current", verbosity: "compact" },
+    { player_tag: t, from: "RECENT", verbosity: "compact" },
     21,
     900,
   ],
   [
     "battles_performance",
-    { player_tag: t, season: "current", mode: "ladder", group_by: "week" },
+    { player_tag: t, from: "RECENT", mode: "ladder", group_by: "week" },
     18,
     500,
   ],
-  [
-    "battles_decks",
-    { player_tag: t, season: "current", mode: "ladder" },
-    22,
-    800,
-  ],
-  [
-    "battles_decks",
-    { player_tag: t, season: "previous", mode: "ladder" },
-    22,
-    1800,
-  ],
+  ["battles_decks", { player_tag: t, from: "RECENT", mode: "ladder" }, 22, 800],
+  ["battles_decks", { player_tag: t, from: "PRIOR", mode: "ladder" }, 22, 1800],
   [
     "battles_cards",
-    { player_tag: t, season: "current", mode: "ladder", perspective: "mine" },
+    { player_tag: t, from: "RECENT", mode: "ladder", perspective: "mine" },
     15,
     1300,
   ],
@@ -273,7 +265,7 @@ const STATS = (t) => [
     "battles_cards",
     {
       player_tag: t,
-      season: "current",
+      from: "RECENT",
       mode: "ladder",
       perspective: "opponent",
     },
@@ -282,13 +274,13 @@ const STATS = (t) => [
   ],
   [
     "battles_cards",
-    { player_tag: t, season: "current", mode: "war", perspective: "mine" },
+    { player_tag: t, from: "RECENT", mode: "war", perspective: "mine" },
     15,
     1300,
   ],
   [
     "battles_opponents",
-    { player_tag: t, season: "current", mode: "ladder" },
+    { player_tag: t, from: "RECENT", mode: "ladder" },
     15,
     1300,
   ],
@@ -296,10 +288,33 @@ const STATS = (t) => [
   ["war_history", { clan_tag: "#J2RGCRVG", player_tag: t, seasons: 4 }, 18, 80],
 ];
 
-test("Stats' reads stay in their budgets and read the record by range", async () => {
-  const long = new Date(Date.now() - 400 * 86_400_000).toISOString();
+test("Stats' fixed-volume reads stay in their budgets and read the record by range", async () => {
+  const day = 86_400_000;
+  const window = (prior = false) => {
+    const to = seed.gameNow - (prior ? 14 * day : 0);
+    return {
+      from: new Date(to - 14 * day).toISOString(),
+      to: new Date(to).toISOString(),
+    };
+  };
+  const scoped = (
+    await seed.db.query(
+      `select count(*)::int as battles,
+      count(*) filter (where type = 'PvP')::int as pvp
+    from battle_participant where player_tag = $1 and battle_time >= $2 and battle_time < $3`,
+      [seed.leaderTag, window().from, window().to],
+    )
+  ).rows[0];
+  assert.deepEqual(scoped, { battles: 68, pvp: 50 });
+  const long = new Date(seed.gameNow - 400 * day).toISOString();
   for (const [name, args, statements, buffers] of STATS(seed.leaderTag)) {
-    const a = args.from === "LONG" ? { ...args, from: long } : args;
+    const { from, ...rest } = args;
+    const a =
+      from === "LONG"
+        ? { ...rest, from: long, to: new Date(seed.gameNow).toISOString() }
+        : from === "RECENT" || from === "PRIOR"
+          ? { ...rest, ...window(from === "PRIOR") }
+          : args;
     const label = `${name} ${JSON.stringify(a)}`;
     const r = await read(label, "/api/me/stats", tool(name, a), {
       statements,
