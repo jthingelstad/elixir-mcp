@@ -16,7 +16,7 @@ export async function catalogRows(db, ids) {
   const list = [...new Set(ids.filter((n) => Number.isInteger(n)))];
   if (list.length === 0) return new Map();
   const { rows } = await db.query(
-    `select card_id, name, kind, elixir_cost, in_catalog
+    `select card_id, name, kind, rarity, elixir_cost, in_catalog
        from card where card_id = any($1::bigint[])`,
     [list],
   );
@@ -27,6 +27,7 @@ export async function catalogRows(db, ids) {
         id: Number(r.card_id),
         name: r.name,
         kind: r.kind,
+        rarity: r.rarity ?? null,
         elixir_cost: r.elixir_cost,
         in_catalog: r.in_catalog,
       },
@@ -307,6 +308,7 @@ function deckView(deck, catalog, roles) {
     return {
       id,
       name: c?.name ?? String(id),
+      rarity: c?.rarity ?? null,
       elixir_cost: c?.elixir_cost ?? null,
     };
   });

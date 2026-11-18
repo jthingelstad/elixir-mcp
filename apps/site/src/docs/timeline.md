@@ -149,7 +149,8 @@ down for a loss, as tall as the crown margin (one to three). A draw is a flat
 tick, and a battle whose crowns the record lacks is a short, faint bar. Chips
 say how many wins took three crowns and the widest win. The deck played most
 shows its eight cards, with how many battles it played, and the card names
-the other decks the session switched to.
+the other decks the session switched to. Decks follow the same
+[Evo, Hero and Wild display order](/docs/battles#deck-display) throughout Elixir.
 
 Short sessions step back so the big ones stand out. A session of one or
 two battles is one line: who, when, the result and its

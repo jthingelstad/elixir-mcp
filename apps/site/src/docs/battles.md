@@ -123,6 +123,19 @@ battle's `.png` picture requires sign-in too. Previous anonymous battle,
 session and post links return 404. [Sharing a Timeline item](/docs/timeline#share-a-timeline-item)
 explains the audience and lifetime.
 
+### Deck display
+
+Eight-card decks use the game's Evo, Hero and Wild positions: an active Evo
+first, a Hero or Champion second, and another Evo, Hero or Champion third.
+Other cards fill unused positions in their original order. A Champion keeps
+its own name and art. Each duel round is its own deck.
+
+This display order does not show which slots a player has unlocked or
+reconstruct an older deck screen. Decks from other formats, including
+boat defenses and decks with more special cards than this layout allows,
+keep their recorded order. Copy deck keeps the deck's original card order.
+The same display rule applies in the Timeline, posts, emails and shared pictures.
+
 ### Cheers
 
 A member battle page has **In your feed** when your Timeline contains an

@@ -14,6 +14,7 @@
 import { initWasm, Resvg } from "@resvg/resvg-wasm";
 import { DISCLAIMER } from "@elixir-mcp/contracts";
 import { whenAt } from "@elixir-mcp/ui/time";
+import { deckDisplayCards } from "@elixir-mcp/ui/deck-display";
 import { fontMetrics } from "./font-metrics.mjs";
 import { scoreOf } from "./battle-page.mjs";
 import {
@@ -660,49 +661,51 @@ function drawDeck(push, f, read, deck, { x, y, w, cols, gap }) {
     );
     return;
   }
-  deck.cards.slice(0, 8).forEach((card, k) => {
-    const cx = x + (k % cols) * (w + gap);
-    const cy = y + Math.floor(k / cols) * (h + 22);
-    const art = f.art.get(`${card.id}:${card.form ?? "base"}`);
-    if (art) {
-      push(
-        `<image x="${cx}" y="${cy}" width="${w}" height="${h}" preserveAspectRatio="xMidYMid meet" href="data:image/png;base64,${art}"/>`,
-      );
-    } else {
-      push(
-        `<rect x="${cx + 0.5}" y="${cy + 0.5}" width="${w - 1}" height="${h - 1}" rx="8" fill="${C.raised}" stroke="${C.lineStrong}" stroke-dasharray="4 3"/>`,
-      );
-      const size = w > 60 ? 12 : 9.5;
-      const lines = wrap(card.name, f.regular, size, w - 8).slice(0, 3);
-      lines.forEach((line, n) =>
+  deckDisplayCards(deck.cards)
+    .slice(0, 8)
+    .forEach((card, k) => {
+      const cx = x + (k % cols) * (w + gap);
+      const cy = y + Math.floor(k / cols) * (h + 22);
+      const art = f.art.get(`${card.id}:${card.form ?? "base"}`);
+      if (art) {
         push(
-          `<text x="${cx + w / 2}" y="${cy + h / 2 - ((lines.length - 1) * size * 1.2) / 2 + n * size * 1.2 + size / 3}" font-family="Inter" font-size="${size}" fill="${C.dim}" text-anchor="middle">${esc(line)}</text>`,
-        ),
-      );
-    }
-    const form = FORM[card.form];
-    if (form) {
-      const fs = w > 60 ? 11 : 8.5;
-      const fw = f.bold.width(form[0], fs) + (w > 60 ? 12 : 8);
-      push(
-        `<rect x="${cx + (w - fw) / 2}" y="${cy + 4}" width="${fw}" height="${fs + 6}" rx="${(fs + 6) / 2}" fill="${form[1]}"/>`,
-      );
-      push(
-        `<text x="${cx + w / 2}" y="${cy + 4 + fs + 1.5}" font-family="Inter" font-size="${fs}" font-weight="700" fill="${C.onForm}" text-anchor="middle">${form[0]}</text>`,
-      );
-    }
-    if (card.level) {
-      const ls = w > 60 ? 13 : 10.5;
-      const lw = f.bold.width(String(card.level), ls) + 14;
-      const lh = ls + 7;
-      push(
-        `<rect x="${cx + (w - lw) / 2}" y="${cy + h - lh / 2}" width="${lw}" height="${lh}" rx="6" fill="${C.ground}" stroke="${C.line}"/>`,
-      );
-      push(
-        `<text x="${cx + w / 2}" y="${cy + h + ls / 2 - 1.5}" font-family="Inter" font-size="${ls}" font-weight="700" fill="${C.body}" text-anchor="middle">${card.level}</text>`,
-      );
-    }
-  });
+          `<image x="${cx}" y="${cy}" width="${w}" height="${h}" preserveAspectRatio="xMidYMid meet" href="data:image/png;base64,${art}"/>`,
+        );
+      } else {
+        push(
+          `<rect x="${cx + 0.5}" y="${cy + 0.5}" width="${w - 1}" height="${h - 1}" rx="8" fill="${C.raised}" stroke="${C.lineStrong}" stroke-dasharray="4 3"/>`,
+        );
+        const size = w > 60 ? 12 : 9.5;
+        const lines = wrap(card.name, f.regular, size, w - 8).slice(0, 3);
+        lines.forEach((line, n) =>
+          push(
+            `<text x="${cx + w / 2}" y="${cy + h / 2 - ((lines.length - 1) * size * 1.2) / 2 + n * size * 1.2 + size / 3}" font-family="Inter" font-size="${size}" fill="${C.dim}" text-anchor="middle">${esc(line)}</text>`,
+          ),
+        );
+      }
+      const form = FORM[card.form];
+      if (form) {
+        const fs = w > 60 ? 11 : 8.5;
+        const fw = f.bold.width(form[0], fs) + (w > 60 ? 12 : 8);
+        push(
+          `<rect x="${cx + (w - fw) / 2}" y="${cy + 4}" width="${fw}" height="${fs + 6}" rx="${(fs + 6) / 2}" fill="${form[1]}"/>`,
+        );
+        push(
+          `<text x="${cx + w / 2}" y="${cy + 4 + fs + 1.5}" font-family="Inter" font-size="${fs}" font-weight="700" fill="${C.onForm}" text-anchor="middle">${form[0]}</text>`,
+        );
+      }
+      if (card.level) {
+        const ls = w > 60 ? 13 : 10.5;
+        const lw = f.bold.width(String(card.level), ls) + 14;
+        const lh = ls + 7;
+        push(
+          `<rect x="${cx + (w - lw) / 2}" y="${cy + h - lh / 2}" width="${lw}" height="${lh}" rx="6" fill="${C.ground}" stroke="${C.line}"/>`,
+        );
+        push(
+          `<text x="${cx + w / 2}" y="${cy + h + ls / 2 - 1.5}" font-family="Inter" font-size="${ls}" font-weight="700" fill="${C.body}" text-anchor="middle">${card.level}</text>`,
+        );
+      }
+    });
 }
 
 /** Words into lines no wider than `max`. */
@@ -932,7 +935,7 @@ function topDeck(games) {
 }
 
 /** A deck in the game's 2 by 4, each card's art and nothing over it. */
-function drawPlainDeck(push, f, deck, { x, y, w, gap }) {
+function drawPlainDeck(push, f, deck, { x, y, w, gap, slots = true }) {
   const h = Math.round(w * CARD_RATIO);
   const rowGap = 12;
   if (!deck?.cards?.length) {
@@ -948,7 +951,8 @@ function drawPlainDeck(push, f, deck, { x, y, w, gap }) {
     );
     return;
   }
-  deck.cards.slice(0, 8).forEach((card, k) => {
+  const shown = slots ? deckDisplayCards(deck.cards) : deck.cards;
+  shown.slice(0, 8).forEach((card, k) => {
     const cx = x + (k % 4) * (w + gap);
     const cy = y + Math.floor(k / 4) * (h + rowGap);
     const art = f.art.get(`${card.id}:${card.form ?? "base"}`);
@@ -1131,6 +1135,7 @@ export function drawItem(read, f) {
   );
   if (deck)
     drawPlainDeck((s) => out.push(s), f, deck, {
+      slots: !item.post?.cards?.length,
       x: 730,
       y: 180,
       w: 91,

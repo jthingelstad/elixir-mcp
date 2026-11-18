@@ -7,6 +7,7 @@ import {
   type ReactNode,
 } from "react";
 import { Link } from "./Link.tsx";
+import { deckDisplayCards } from "./deck-display.ts";
 
 /**
  * Cards as the game draws them (design canvas, 2026-10-01): the art the
@@ -26,6 +27,7 @@ export interface DeckCard {
   id: number;
   name: string;
   form?: CardForm | null;
+  rarity?: string | null;
   level?: number | null;
   /** The catalog's elixir cost, for a deck row's cost drop. */
   elixir_cost?: number | null;
@@ -53,6 +55,8 @@ export type CardArtMap = Partial<Record<CardForm, string>>;
 export interface CardArtSource {
   status: "loading" | "ready" | "unavailable";
   art: (id: number) => CardArtMap | null | undefined;
+  /** Catalog rarity identifies Champions without inventing a Hero form. */
+  rarity?: (id: number) => string | null | undefined;
   want?: () => void;
 }
 
@@ -216,7 +220,7 @@ export function CardArt({
 }
 
 /** A deck as the game lays it out: two rows of four (`columns` 8 for one
- *  strip). Cards are in the order played. */
+ *  strip). The display copy follows Evo, Hero, Wild slots. */
 export function DeckGrid({
   cards,
   size = 64,
@@ -224,6 +228,7 @@ export function DeckGrid({
   showLevel = true,
   cardTo,
   label,
+  preserveOrder = false,
 }: {
   cards: DeckCard[];
   size?: number;
@@ -231,14 +236,18 @@ export function DeckGrid({
   showLevel?: boolean;
   cardTo?: ((card: DeckCard) => string | undefined) | undefined;
   label?: string | undefined;
+  /** Loose card attachments keep their authored order. */
+  preserveOrder?: boolean;
 }) {
+  const source = useContext(CardArtContext);
+  const shown = preserveOrder ? cards : deckDisplayCards(cards, source?.rarity);
   return (
     <ul
       className={`deck-grid deck-grid--${columns}`}
       aria-label={label ?? "Deck"}
     >
-      {cards.map((c, i) => (
-        <li key={`${c.id}-${i}`}>
+      {shown.map((c) => (
+        <li key={`${c.id}-${cards.indexOf(c)}`}>
           <CardArt
             card={c}
             size={size}
@@ -295,6 +304,7 @@ export function DeckRow({
   showCost = false,
   cardTo,
   label,
+  preserveOrder = false,
 }: {
   cards: DeckCard[];
   columns?: 4 | 8;
@@ -302,17 +312,20 @@ export function DeckRow({
   showCost?: boolean;
   cardTo?: ((card: DeckCard) => string | undefined) | undefined;
   label?: string | undefined;
+  preserveOrder?: boolean;
 }) {
+  const source = useContext(CardArtContext);
+  const shown = preserveOrder ? cards : deckDisplayCards(cards, source?.rarity);
   return (
     <ul
       className={`kit-deckrow kit-deckrow--${columns}`}
       aria-label={label ?? "Deck"}
     >
-      {cards.map((c, i) => {
+      {shown.map((c) => {
         const cost =
           showCost && typeof c.elixir_cost === "number" ? c.elixir_cost : null;
         return (
-          <li key={`${c.id}-${i}`}>
+          <li key={`${c.id}-${cards.indexOf(c)}`}>
             <CardArt
               card={c}
               size="fill"

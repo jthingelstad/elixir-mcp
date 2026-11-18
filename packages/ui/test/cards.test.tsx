@@ -16,6 +16,101 @@ import {
 
 afterEach(cleanup);
 
+test.each([DeckGrid, DeckRow])(
+  "%s lays out active Evo, Hero and Wild before the remaining cards",
+  (View) => {
+    const cards: DeckCard[] = Array.from({ length: 8 }, (_, i) => ({
+      id: 26000000 + i,
+      name: `Card ${i}`,
+      form: i === 5 || i === 7 ? "evolution" : i === 3 ? "hero" : "base",
+    }));
+    render(<View cards={cards} />);
+    expect(
+      screen.getAllByRole("img").map((x) => x.getAttribute("aria-label")),
+    ).toEqual([
+      "Evo Card 5",
+      "Hero Card 3",
+      "Evo Card 7",
+      "Card 0",
+      "Card 1",
+      "Card 2",
+      "Card 4",
+      "Card 6",
+    ]);
+    expect(cards.map((c) => c.id)).toEqual(
+      Array.from({ length: 8 }, (_, i) => 26000000 + i),
+    );
+  },
+);
+
+test.each([DeckGrid, DeckRow])(
+  "%s resolves Champions from the shared catalog and preserves loose lists",
+  (View) => {
+    const cards: DeckCard[] = Array.from({ length: 8 }, (_, id) => ({
+      id,
+      name: `Card ${id}`,
+      form: id === 7 ? "evolution" : "base",
+    }));
+    const value: CardArtSource = {
+      status: "unavailable",
+      art: () => null,
+      rarity: (id) => (id === 4 ? "champion" : "common"),
+    };
+    const { rerender } = render(
+      <CardArtProvider value={value}>
+        <View cards={cards} />
+      </CardArtProvider>,
+    );
+    expect(
+      screen.getAllByRole("img").map((x) => x.getAttribute("aria-label")),
+    ).toEqual([
+      "Evo Card 7",
+      "Card 4",
+      "Card 0",
+      "Card 1",
+      "Card 2",
+      "Card 3",
+      "Card 5",
+      "Card 6",
+    ]);
+    rerender(
+      <CardArtProvider value={value}>
+        <View cards={cards} preserveOrder />
+      </CardArtProvider>,
+    );
+    expect(
+      screen.getAllByRole("img").map((x) => x.getAttribute("aria-label")),
+    ).toEqual(cards.map(cardLabel));
+  },
+);
+
+test.each([DeckGrid, DeckRow])(
+  "%s keeps keyboard focus when catalog rarity arrives",
+  (View) => {
+    const cards: DeckCard[] = Array.from({ length: 8 }, (_, id) => ({
+      id,
+      name: `Card ${id}`,
+      form: id === 7 ? "evolution" : "base",
+    }));
+    const empty: CardArtSource = { status: "unavailable", art: () => null };
+    const { rerender } = render(
+      <CardArtProvider value={empty}>
+        <View cards={cards} cardTo={(c) => `/cards/${c.id}`} />
+      </CardArtProvider>,
+    );
+    const focused = screen.getByRole("link", { name: "Card 4" });
+    focused.focus();
+    rerender(
+      <CardArtProvider
+        value={{ ...empty, rarity: (id) => (id === 4 ? "champion" : "common") }}
+      >
+        <View cards={cards} cardTo={(c) => `/cards/${c.id}`} />
+      </CardArtProvider>,
+    );
+    expect(document.activeElement).toBe(focused);
+  },
+);
+
 /**
  * The kit's card tile (design canvas, 2026-10-01): one tile for every
  * surface that shows a card, so a deck reads the same on the battle page,

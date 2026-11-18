@@ -1016,7 +1016,7 @@ export const deckCardsWithCost = (identity) => identity?.[DECK_COSTS] ?? null;
 
 /** deckIdentities' statement ($1 the hashes): a deck's cards from its
  *  arrays (0255), in identity order. */
-export const DECK_IDENTITY_SQL = `select d.deck_hash, dc.card_id, dc.form, c.name, c.elixir_cost,
+export const DECK_IDENTITY_SQL = `select d.deck_hash, dc.card_id, dc.form, c.name, c.elixir_cost, c.rarity,
             d.tower_troop_id, t.name as tower_name
      from deck d
      left join lateral unnest(d.card_ids, d.card_forms) as dc(card_id, form)
@@ -1053,6 +1053,7 @@ export async function deckIdentities(db, hashes) {
         id: r.card_id,
         name: r.name,
         form: r.form,
+        rarity: r.rarity ?? null,
         elixir_cost: r.elixir_cost,
       });
     }
@@ -1065,6 +1066,7 @@ export async function deckIdentities(db, hashes) {
       id: c.id,
       name: c.name,
       form: formName(c.form),
+      rarity: c.rarity ?? null,
       elixir_cost: c.elixir_cost ?? null,
     }));
   }
