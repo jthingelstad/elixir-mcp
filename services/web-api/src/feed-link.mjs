@@ -13,6 +13,7 @@
 import { createHash, randomBytes } from "node:crypto";
 import { ELIXIR_ORIGIN } from "@elixir-mcp/contracts";
 import { sessionPathOf } from "@elixir-mcp/ui/session-story";
+import { memberPostUrl } from "@elixir-mcp/posts/paths";
 
 /** 24 random bytes, base64url: 32 characters, 192 bits. */
 const TOKEN_RE = /^[A-Za-z0-9_-]{32}$/;
@@ -117,6 +118,7 @@ function whoOf(it) {
  *  that proved it, a battle post's battle, else the player's page, else
  *  the Timeline. */
 function linkOf(it) {
+  if (it.kind === "post") return memberPostUrl(it.facts.post_id);
   const session = sessionPathOf(it);
   if (session) return `${ELIXIR_ORIGIN}${session}`;
   const battle = it.battle_url ?? it.facts?.battle?.url ?? null;
@@ -144,7 +146,28 @@ export function renderRss(items, { now = new Date() } = {}) {
   const entries = items.map((it) => {
     const who = whoOf(it);
     const text = String(it.text ?? "").trim();
-    const title = who ? `${who.name}: ${text}` : text;
+    const question = it.kind === "post" && it.facts.question;
+    const title = who
+      ? `${who.name}: ${question ? "Question: " : ""}${text}`
+      : text;
+    const attachment =
+      it.kind === "post"
+        ? [
+            ...(it.facts.deck
+              ? [
+                  `Deck: ${it.facts.deck.cards.map((c) => c.name).join(", ")}`,
+                  ...(it.facts.deck.tower_troop
+                    ? [`Tower Troop: ${it.facts.deck.tower_troop.name}`]
+                    : []),
+                ]
+              : []),
+            ...(it.facts.cards.length
+              ? [`Cards: ${it.facts.cards.map((c) => c.name).join(", ")}`]
+              : []),
+            ...(question && it.facts.answered ? ["Answered"] : []),
+          ]
+        : [];
+    const description = [text, ...attachment].join("\n\n");
     const at = new Date(Date.parse(it.observed_at ?? it.at) || now.getTime());
     return [
       "<item>",
@@ -152,7 +175,7 @@ export function renderRss(items, { now = new Date() } = {}) {
       `<link>${xmlText(linkOf(it))}</link>`,
       `<guid isPermaLink="false">${xmlText(it.id)}</guid>`,
       `<pubDate>${at.toUTCString()}</pubDate>`,
-      `<description>${xmlText(text)}</description>`,
+      `<description>${xmlText(description)}</description>`,
       "</item>",
     ].join("");
   });

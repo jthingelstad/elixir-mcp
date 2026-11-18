@@ -18,7 +18,7 @@
  * Posts are not game record. Writes stay here; member reads and their
  * normalized attachments live in @elixir-mcp/posts. A delivery door must
  * opt into that reader: record-based outputs never gain plain posts
- * implicitly, and MCP and `/api/v1` do not carry them.
+ * implicitly. A person's MCP and private RSS opt in; `/api/v1` carries none.
  *
  * Who may post: a signed-in person with a Verified player (primary or
  * alt), the same rule as commenting, not suspended from commenting, while

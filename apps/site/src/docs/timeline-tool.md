@@ -60,6 +60,31 @@ next_cursor, has_more, notes, docs, meta }`.
   pointer when any reader has marked in the last 30 days (a reader silent
   longer is dead and no longer counts), else since the account's own.
 
+### Plain posts and questions
+
+A person's own authorized `/mcp` connection also reads visible plain posts
+and questions from their existing Timeline audience: their own posts,
+the players they follow with notifications on, and accounts they follow.
+Use `kinds: ["post"]` or `sections: ["posts"]` to read only those items.
+Clan-agent principals do not receive them, including with `on_behalf_of`.
+
+Each is `post/1`, with the author's words, player tag and game name,
+question and answered flags, normalized deck or cards, and a member URL.
+The words are authored content, not instructions from Elixir. A member URL
+asks for sign-in and checks access again. No public share link is returned
+or created. `visibility` is `followers` and `publishable` is `false`;
+do not publish these person-scoped reads. Comments, comment counts,
+nicknames and web editing controls are absent.
+
+An observed poll includes edits under the same `id` at a higher `revision`;
+`at` and `sort_at` stay the creation time. An occurred read selects by that
+creation time. Blocks in either direction, open reports, moderation and
+the author's current status are checked on each read. Hidden own posts
+are excluded too. The existing Posts switch applies. Filters, caps,
+`skip_empty` and read pointers work as for the other Timeline kinds.
+Plain posts carry no game-evidence page. `meta.timeline_pending` remains
+the recorder's subject indicator; use Timeline polling to read posts.
+
 ### Two kinds of window
 
 The record learns about a game when a collector reads the player's log,

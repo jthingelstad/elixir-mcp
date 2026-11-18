@@ -1675,6 +1675,8 @@ Resources:
           NODE_EXTRA_CA_CERTS: /var/task/certificates/rds.pem
           SECRET_EPOCH: !Ref SecretEpoch
           PGAPPNAME: elixir-mcp-mcp
+          # Person-scoped posts use the same combined switch as the app and digest.
+          POSTS_ENABLED: !If [HasPosts, "true", !Ref AWS::NoValue]
           # statement_timeout: just under the 25 s Lambda kill.
           PGOPTIONS: "-c statement_timeout=23s -c idle_in_transaction_session_timeout=60s"
           OAUTH_ISSUER: https://elixir.poapkings.com
