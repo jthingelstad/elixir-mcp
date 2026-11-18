@@ -76,8 +76,8 @@ or created. `visibility` is `followers` and `publishable` is `false`;
 do not publish these person-scoped reads. Comments, comment counts,
 nicknames and web editing controls are absent.
 
-An observed poll includes edits under the same `id` at a higher `revision`;
-`at` and `sort_at` stay the creation time. An occurred read selects by that
+An `observed` poll includes edits under the same `id` at a higher `revision`;
+`at` and `sort_at` stay the creation time. An `occurred` read selects by that
 creation time. Blocks in either direction, open reports, moderation and
 the author's current status are checked on each read. Hidden own posts
 are excluded too. The existing Posts switch applies. Filters, caps,
