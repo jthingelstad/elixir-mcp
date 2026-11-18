@@ -17,6 +17,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { createQueryClient } from "../src/client/index.ts";
 import { renderWithProviders } from "./helpers.jsx";
 import { BellSheet } from "../src/shell/Bell.jsx";
+import { readMemberItemPath } from "@elixir-mcp/ui/item-link";
 
 const reply = (body, status = 200) => ({
   ok: status < 400,
@@ -531,8 +532,12 @@ test("My conversations reads only on selection and resumes the first unread repl
   expect(thread.querySelector("b")).toBeNull();
   const url = new URL(thread.getAttribute("href"), "https://example.test");
   expect(url.pathname).toBe(`/home/item/${ref.item_id}`);
-  expect(url.searchParams.get("reply")).toBe("42");
-  expect(JSON.parse(url.searchParams.get("ref"))).toEqual(ref);
+  const target = readMemberItemPath(
+    ref.item_id,
+    Object.fromEntries(url.searchParams),
+  );
+  expect(target.entry.reply).toBe("42");
+  expect(target.ref).toEqual(ref);
   expect(
     calls.filter(
       ([method, path]) => method !== "GET" && path.includes("conversation"),

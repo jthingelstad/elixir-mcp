@@ -26,6 +26,9 @@ first unread reply and can read later replies with Show latest.
 
 The list is available only to the person who owns it, never another
 member, an agent, MCP, RSS or a public share. No new mail or push is sent.
+Participation is private current state retained with its account. Read
+receipts go with their comments and participation, including the existing
+comment retention trim; there is no new retention clock.
 No legal wording changes are included. Parent release coordination owns
 deployment and production readback.
 

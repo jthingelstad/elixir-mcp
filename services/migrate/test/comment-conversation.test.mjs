@@ -49,6 +49,31 @@ test("historical participation is lossless and previous Lambda writes join durin
       ).rows,
       [first, last],
     );
+    await ctx.db.query(
+      "insert into comment_conversation_read(account_id,item_id,comment_id) values($1,$2,$3)",
+      [people.reader, post.item_id, last.comment_id],
+    );
+    await ctx.db.query("delete from timeline_comment where comment_id=$1", [
+      last.comment_id,
+    ]);
+    assert.equal(
+      (
+        await ctx.db.query(
+          "select count(*)::int as n from comment_conversation_read",
+        )
+      ).rows[0].n,
+      0,
+      "the existing comment retention removes its private read receipts too",
+    );
+    assert.equal(
+      (
+        await ctx.db.query(
+          "select count(*)::int as n from comment_conversation",
+        )
+      ).rows[0].n,
+      1,
+      "comment deletion does not erase participation",
+    );
     const second = await people.post();
     await ctx.db.query(
       `insert into timeline_comment(item_id,account_id,owner_account_id,subject_tag,body) values($1,$2,$3,$4,'Old Lambda comment')`,

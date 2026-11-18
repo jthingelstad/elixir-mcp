@@ -189,6 +189,8 @@ export const CHILDREN = Object.freeze({
   war_period_log: "goes with its war week",
   war_week_clan: "goes with its war week",
   comment_report: "goes with its comment (on delete cascade)",
+  comment_conversation_read:
+    "goes with its comment or private participation (on delete cascade)",
   post_report: "goes with its post (on delete cascade)",
 });
 
@@ -216,6 +218,8 @@ export const KEPT = Object.freeze({
   clan_activity_discord: "a current channel setting",
   timeline_reader: "a reader's cursor",
   bell_seen: "a reader's cursor",
+  comment_conversation:
+    "private participation and a thread read cursor; goes with its account",
   account_block: "a standing block",
   comment_setting: "a current comment setting and any suspension",
   bell_week: "one cached week per account, rebuilt in place",
