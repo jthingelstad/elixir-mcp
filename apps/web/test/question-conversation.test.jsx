@@ -1,5 +1,5 @@
 import { afterEach, expect, test, vi } from "vitest";
-import { cleanup, fireEvent, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, screen } from "@testing-library/react";
 import { renderWithProviders } from "./helpers.jsx";
 import { Comments } from "../src/home/Comments.jsx";
 import { PostActions, PostBody } from "../src/home/Post.jsx";
@@ -52,6 +52,10 @@ test("a question always says how many answers it has, including zero and the new
 });
 
 test("only the question's author can mark it answered, and its state is visible", async () => {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async () => reply({ features: { comments: true, posts: true } })),
+  );
   const update = vi
     .spyOn(api, "setQuestionAnswered")
     .mockResolvedValue({ ok: true, data: {} });
@@ -61,7 +65,7 @@ test("only the question's author can mark it answered, and its state is visible"
       <PostActions it={question} />
     </>,
   );
-  fireEvent.click(screen.getByRole("button", { name: "Mark answered" }));
+  fireEvent.click(await screen.findByRole("button", { name: "Mark answered" }));
   await vi.waitFor(() => expect(update).toHaveBeenCalled());
   rerender(
     <>
@@ -228,3 +232,49 @@ test("editing a question's answer state stays out of New markers and fallback wa
     new Date(edited).toISOString(),
   );
 });
+
+test.each([false, true])(
+  "a readable battle question hides its answer-state action with posts off (answered=%s)",
+  async (answered) => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () =>
+        reply({
+          authenticated: true,
+          features: { comments: true, posts: false },
+        }),
+      ),
+    );
+    const readable = {
+      ...question,
+      post: {
+        ...question.post,
+        answered,
+        battle: { battle_id: "question-off", url: "/battle/question-off" },
+      },
+    };
+    const { queryClient } = renderWithProviders(
+      <>
+        <PostBody it={readable} />
+        <PostActions it={readable} />
+      </>,
+    );
+    await act(async () => {
+      queryClient.setQueryData(["me"], {
+        ok: true,
+        data: {
+          authenticated: true,
+          features: { comments: true, posts: false },
+        },
+      });
+    });
+    expect(screen.getByText(question.post.text)).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Open battle" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Edit" })).toBeTruthy();
+    expect(
+      screen.queryByRole("button", {
+        name: answered ? "Mark unanswered" : "Mark answered",
+      }),
+    ).toBeNull();
+  },
+);

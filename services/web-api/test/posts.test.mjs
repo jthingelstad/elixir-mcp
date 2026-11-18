@@ -690,6 +690,29 @@ test("with comments on and posts off, a post about a battle's author can be bloc
     [AUTHOR, A],
   );
   const off = callWith(commentsOnlyHandler);
+  await db.query(`update account_post set question=true where post_id=$1`, [
+    battlePost.id,
+  ]);
+  for (const answered of [false, true]) {
+    await db.query(
+      `update account_post set answered_at=case when $2 then now() else null end where post_id=$1`,
+      [battlePost.id, answered],
+    );
+    const readable = await off(AUTHOR, "GET", `/api/me/post/${battlePost.id}`);
+    assert.equal(readable.statusCode, 200, readable.body);
+    assert.equal(data(readable).item.post.question, true);
+    assert.equal(data(readable).item.post.answered, answered);
+    const refused = await off(AUTHOR, "PUT", `/api/me/posts/${battlePost.id}`, {
+      answered: !answered,
+    });
+    assert.equal(refused.statusCode, 404, refused.body);
+    assert.equal(data(refused).error, "posts_off");
+    assert.equal(
+      data(await off(AUTHOR, "GET", `/api/me/post/${battlePost.id}`)).item.post
+        .answered,
+      answered,
+    );
+  }
   const plain = await off(STRANGER, "POST", "/api/me/blocks", {
     post_id: plainPost.id,
   });

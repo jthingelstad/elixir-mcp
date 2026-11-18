@@ -216,6 +216,9 @@ export function HomeFeed({
   if (items.length === 0 && questionsOnly)
     return (
       <div ref={top} tabIndex={-1} className="kit-feed__top">
+        {pill}
+        {/* Keep the floating notice clear of short phone copy, without a jump when it arrives. */}
+        <div className="h-12 min-[1024px]:hidden" aria-hidden="true" />
         {composer}
         {modeOnly}
         <Empty

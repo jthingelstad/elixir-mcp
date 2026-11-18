@@ -227,6 +227,84 @@ for (const width of [320, 390, 1280]) {
     await expect(page.locator('[id$="-reply-8"]')).toBeFocused();
     await capture(page, "question-detail", width);
   });
+  test(`An empty Questions view loads its first new question at ${width}px`, async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await page.clock.install();
+    let arrived = false;
+    const before = new Date(Date.parse(at) - 60000).toISOString();
+    await mockApi(
+      page,
+      homeApi({
+        "GET /api/me": [200, on],
+        "GET /api/me/home/feed": (route) => {
+          const only =
+            new URL(route.request().url()).searchParams.get("questions") ===
+            "1";
+          return [
+            200,
+            {
+              ...TIMELINE,
+              watermark: arrived ? at : before,
+              timeline: only ? (arrived ? [question] : []) : TIMELINE.timeline,
+              total: only ? Number(arrived) : TIMELINE.timeline.length,
+              next: null,
+              timeline_more: 0,
+            },
+          ];
+        },
+        "GET /api/me/home/feed/new": (route) => [
+          200,
+          {
+            new:
+              arrived &&
+              Date.parse(
+                new URL(route.request().url()).searchParams.get("since") ?? "",
+              ) < Date.parse(at)
+                ? 1
+                : 0,
+            built_at: at,
+          },
+        ],
+      }),
+    );
+    await page.goto("/timeline");
+    await (await target(page, /^Questions/)).click();
+    const emptyHead = page.getByRole("heading", {
+      name: "No questions in the last seven days",
+    });
+    await expect(emptyHead).toBeVisible();
+    const emptyBefore = await emptyHead.boundingBox();
+    await capture(page, "questions-first-empty", width);
+    arrived = true;
+    await page.clock.fastForward(61000);
+    await page.clock.runFor(250);
+    const pill = await target(page, "Show 1 new item");
+    await expect(pill).toBeVisible();
+    const box = await pill.boundingBox();
+    const emptyAfter = await emptyHead.boundingBox();
+    const words = await emptyHead.evaluate((el) => {
+      const range = document.createRange();
+      range.selectNodeContents(el);
+      const r = range.getBoundingClientRect();
+      return { x: r.x, y: r.y, width: r.width, height: r.height };
+    });
+    expect(emptyAfter!.y).toBe(emptyBefore!.y);
+    expect(
+      box!.x < words.x + words.width &&
+        box!.x + box!.width > words.x &&
+        box!.y < words.y + words.height &&
+        box!.y + box!.height > words.y,
+    ).toBe(false);
+    await capture(page, "questions-first-arrival", width);
+    await pill.focus();
+    await page.keyboard.press("Enter");
+    await expect(page.getByText(question.text, { exact: true })).toBeVisible();
+    await expect(pill).toHaveCount(0);
+    await capture(page, "questions-first-loaded", width);
+  });
   test(`Clan Questions uses its own source view at ${width}px`, async ({
     page,
   }) => {

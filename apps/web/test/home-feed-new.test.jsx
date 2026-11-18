@@ -288,3 +288,66 @@ test("Questions polls use their own source and cache and return to Everyone's po
   fireEvent.click(screen.getByRole("button", { name: /^Everyone/ }));
   expect(screen.queryByRole("button", { name: /Show .* new/ })).toBeNull();
 });
+
+test("an empty Questions view offers its first arriving question through the New pill", async () => {
+  const originalFetch = global.fetch;
+  let questionFeed = { ...page([]), watermark: AGO(10_080) };
+  global.fetch = vi.fn(async (path, init) => {
+    const url = new URL(String(path), "https://elixir.test");
+    if (url.pathname === "/api/me")
+      return {
+        ok: true,
+        text: async () =>
+          JSON.stringify({
+            authenticated: true,
+            features: { posts: true, comments: true },
+          }),
+      };
+    const result = await originalFetch(path, init);
+    return url.pathname === "/api/me/home/feed" &&
+      url.searchParams.get("questions") === "1"
+      ? { ok: true, text: async () => JSON.stringify(questionFeed) }
+      : result;
+  });
+  feed = page([friend()]);
+  fresh = 0;
+  const { queryClient } = renderWithProviders(<HomeFeed />);
+  fireEvent.click(
+    await screen.findByRole("button", { name: "Questions", exact: true }),
+  );
+  await screen.findByRole("heading", {
+    name: "No questions in the last seven days",
+  });
+  await vi.waitFor(() =>
+    expect(
+      calls.filter(
+        (c) => c.key === "GET /api/me/home/feed/new" && c.questions === "1",
+      ),
+    ).toHaveLength(1),
+  );
+  const arriving = item(7, 1, {
+    kind: "post",
+    post: {
+      id: "8",
+      text: "The first new question",
+      question: true,
+      author: { name: "Invented Ada", player_tag: "#00JQ20" },
+    },
+  });
+  questionFeed = { ...page([arriving]), watermark: arriving.at };
+  fresh = 1;
+  await act(() => queryClient.refetchQueries({ queryKey: HOME_FEED_NEW_KEY }));
+  const pill = await screen.findByRole("button", {
+    name: "Show 1 new item",
+    exact: true,
+  });
+  expect(screen.queryByText("The first new question")).toBeNull();
+  fresh = 0;
+  fireEvent.click(pill);
+  expect(await screen.findByText("The first new question")).toBeTruthy();
+  await vi.waitFor(() =>
+    expect(
+      screen.queryByRole("button", { name: "Show 1 new item", exact: true }),
+    ).toBeNull(),
+  );
+});
