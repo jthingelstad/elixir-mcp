@@ -298,7 +298,9 @@ export function HomeFeed({
         options={chipList.map((c) => ({
           ...c,
           count:
-            c.key === "questions" && !questionsOnly ? undefined : counts[c.key],
+            (c.key === "questions") !== questionsOnly
+              ? undefined
+              : counts[c.key],
         }))}
         value={show}
         onChange={setShow}
