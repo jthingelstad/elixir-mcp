@@ -121,7 +121,7 @@ for (const width of [320, 390]) {
       await accessible(page, "card");
       await capture(page, "card", width);
 
-      await section.getByRole("button", { name: "See all 3 comments" }).click();
+      await card.getByRole("button", { name: "See all 3 comments" }).click();
       await expect(section).toContainText("Nice one");
       const box = section.getByRole("textbox", { name: "Your comment" });
       await box.fill("you are so bad at this");

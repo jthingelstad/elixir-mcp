@@ -313,6 +313,8 @@ plain words.
 
 ## Web
 
+- **One Timeline action row** — cheers and picker, comment/answer glyph and count, then Share; latest replies and the inline thread stay below. All FeedItem variants use one wrapper. Main cheer counts and +N other cheers keep the row compact; full counts remain accessible. Eligibility and public-share boundaries stay at the existing source. [engineering, 2026-11-18; Jamie requested the layout cleanup]
+
 - **A shared item offers a Follow after sign-in**. A post names its author and a game item names its player subjects. The member chooses through the usual priced Follow flow. [Jamie, 2026-11-17; engineering: omit players already on the account, no referral identity]
 
 - **A first follow has something to open.** After a confirmed starter follow, Elixir offers one recent Timeline item from the selected friends with its ordinary cheers. Opening the Timeline is available immediately, including when nobody has a recorded item. [Jamie, 2026-11-18; engineering: use the newest eligible item from the last seven days.]

@@ -7843,7 +7843,8 @@ a.kit-mbattle:hover {
   font-weight: 600;
   white-space: nowrap;
 }
-/* An item's foot: cheers on the left, its one way in on the right. */
+/* Detail pages still use this navigation/reaction footer. Timeline cards
+   use ItemActions below. */
 .kit-feed__foot {
   display: flex;
   flex-wrap: wrap;
@@ -7860,6 +7861,12 @@ a.kit-mbattle:hover {
   align-items: center;
   gap: var(--s-1) 14px;
   margin-left: auto;
+}
+.kit-feed__item > .kit-feed__links {
+  margin-top: var(--s-1);
+}
+.kit-feed__links:empty {
+  display: none;
 }
 .kit-feed__links .link {
   font-size: var(--t-body-sm);
@@ -7943,38 +7950,88 @@ a.kit-mbattle:hover {
 /* A short session, one line: face, who and what, its cheers on the right.
    The six open across the whole row. */
 .kit-feed__item--line {
-  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-columns: auto minmax(0, 1fr);
   align-items: center;
   column-gap: var(--s-3);
   row-gap: 6px;
   padding: var(--s-2) 0;
 }
-.kit-feed__item--line > .kit-cheers {
+.kit-item-actions {
+  display: grid;
+  grid-column: 1 / -1;
+  min-width: 0;
+  gap: var(--s-2);
+  margin-top: var(--s-1);
+}
+.kit-item-actions__row {
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 4px;
+  min-width: 0;
+}
+.kit-item-actions__row > .kit-cheers,
+.kit-item-actions__row > .kit-item-share {
   display: contents;
 }
-.kit-feed__item--line > .kit-cheers > .kit-cheers__row:first-child {
-  grid-column: 3;
+.kit-item-actions__row .kit-cheers__row {
+  grid-column: 1;
   grid-row: 1;
-  justify-content: flex-end;
-}
-.kit-feed__item--line .kit-cheers__row {
   flex-wrap: nowrap;
   gap: 0;
 }
-.kit-feed__item--line .kit-cheers__error,
-.kit-feed__item--line > .kit-cheers ~ * {
+.kit-item-actions__row .kit-cheers__error {
   grid-column: 1 / -1;
 }
-/* Give a narrow moment its full sentence before the action buttons. */
-@media (max-width: 359px) {
-  .kit-feed__item--moment .kit-line__main {
-    grid-column: 2 / -1;
-  }
-  .kit-feed__item--moment > .kit-cheers > .kit-cheers__row:first-child {
-    grid-column: 1 / -1;
-    grid-row: auto;
-    justify-content: flex-start;
-  }
+.kit-item-actions__row .kit-cheers__rest {
+  margin-inline: 4px;
+}
+.kit-comment-action {
+  display: inline-flex;
+  grid-column: 2;
+  grid-row: 1;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: var(--hit);
+  min-height: var(--hit);
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-pill);
+  background: transparent;
+  color: var(--ink-dim);
+  font: inherit;
+  font-size: var(--t-body-sm);
+  cursor: pointer;
+}
+.kit-comment-action:hover {
+  background: var(--control-hover);
+  color: var(--ink);
+}
+.kit-comment-action:focus-visible {
+  outline: 2px solid var(--accent-bright);
+  outline-offset: 2px;
+}
+.kit-item-actions__row .kit-item-share__action {
+  grid-column: 4;
+  grid-row: 1;
+}
+.kit-item-share__details {
+  display: contents;
+}
+.kit-item-actions__row .kit-item-share__details {
+  display: flex;
+  grid-column: 1 / -1;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-1);
+  min-width: 0;
+}
+.kit-item-actions__row .kit-item-share__details:empty {
+  display: none;
+}
+.kit-item-actions > .kit-comments {
+  margin-top: 0;
 }
 .kit-line__main {
   display: grid;

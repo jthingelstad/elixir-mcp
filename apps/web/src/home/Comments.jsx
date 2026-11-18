@@ -1,5 +1,11 @@
 import { useEffect, useId, useRef, useState } from "react";
-import { ConfirmAction, Link, PlayerName, useClock } from "@elixir-mcp/ui";
+import {
+  ConfirmAction,
+  Icon,
+  Link,
+  PlayerName,
+  useClock,
+} from "@elixir-mcp/ui";
 import { api } from "../api.js";
 import { useMe } from "../App.jsx";
 import {
@@ -40,18 +46,82 @@ export function useCommentsOn() {
   return !scope && me?.features?.comments === true;
 }
 
-export function Comments({ it, entry = null }) {
+export function Comments({ it, entry = null, renderActions = null }) {
   const on = useCommentsOn();
   const summary = it?.comments;
   const [open, setOpen] = useState(Boolean(entry));
   const [writing, setWriting] = useState(false);
   const threadId = useId();
-  if (!on || !it?.id || summary === null) return null;
+  if (!on || !it?.id || summary === null) return renderActions?.() ?? null;
 
   const onCard = summary !== undefined;
   const question = isQuestion(it);
   const count = summary?.count ?? 0;
   const latest = summary?.latest ?? [];
+  if (renderActions) {
+    const canOpen = question || !onCard || count > 0 || summary.open || open;
+    const name = open
+      ? question
+        ? "Hide answers"
+        : "Hide comments"
+      : question
+        ? onCard
+          ? `${count} ${count === 1 ? "answer" : "answers"}`
+          : "Answers"
+        : count
+          ? commentsCountLabel(count)
+          : onCard
+            ? "Comment"
+            : "Comments";
+    const action = canOpen ? (
+      <button
+        type="button"
+        className="kit-comment-action"
+        aria-label={name}
+        title={name}
+        aria-describedby={onCard ? `${threadId}-count` : undefined}
+        aria-expanded={open}
+        aria-controls={open ? threadId : undefined}
+        onClick={() => {
+          setWriting(!open && summary?.open === true);
+          setOpen(!open);
+        }}
+      >
+        <Icon name="message-circle" size={18} />
+        <span aria-hidden="true">{onCard ? count : ""}</span>
+        {onCard ? (
+          <span id={`${threadId}-count`} className="sr-only">
+            {count}{" "}
+            {question
+              ? count === 1
+                ? "answer"
+                : "answers"
+              : count === 1
+                ? "comment"
+                : "comments"}
+          </span>
+        ) : null}
+      </button>
+    ) : null;
+    const thread =
+      open || latest.length ? (
+        <section
+          className="kit-comments"
+          aria-label={question ? "Answers" : "Comments"}
+        >
+          {open ? (
+            <Thread id={threadId} it={it} focus={writing} entry={entry} />
+          ) : (
+            <ul className="kit-comments__list">
+              {latest.map((c) => (
+                <CommentRow key={c.id} c={c} it={it} />
+              ))}
+            </ul>
+          )}
+        </section>
+      ) : null;
+    return renderActions(action, thread);
+  }
   return (
     <section
       className="kit-comments"
