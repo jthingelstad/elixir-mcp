@@ -53,3 +53,10 @@ Coverage pins source filtering before caps; paging and cursor mismatch;
 owner-only, idempotent mark/unmark with unchanged chronology and new counts;
 coalesced unread notices, moderation and blocks; direct links; answer counts
 at zero; feature switches; keyboard operation and responsive layouts.
+
+Post-thread access uses the canonical visiblePost read exclusively. Its
+game fallback excludes post and battle_highlight projections, which can
+name the same item in an older read. A regression reproduced a reported
+battle post reopening through that older projection before the fix. It now
+pins report, moderation, removal and block denial against a replayed
+projection, with a real clan game-item control and valid post access.
