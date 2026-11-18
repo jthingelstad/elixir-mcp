@@ -11,6 +11,11 @@ import {
   readTimelineEvidence,
 } from "../../activity/entries.mjs";
 import { followFor, forCaller } from "../../activity/follow.mjs";
+import {
+  EMPTY_POST_PAGE,
+  readPostTimeline,
+  mergePostTimeline,
+} from "../../activity/posts.mjs";
 import { resolveInstant } from "../../time.mjs";
 import {
   TAG_RULE_HINT,
@@ -41,7 +46,7 @@ const PAGE_CHAR_BUDGET = 40_000;
 
 export const elixir_timeline = {
   description:
-    "Your newest-first timeline for the players and clans you follow: one item per story (time-free text, subjects, visibility, publishable) plus subject summaries. basis occurred reads what happened in a window; a poller (reader, pointer) reads what the record learned, and omitting from starts at the pointer (default 24 hours, cap 30 days). evidence_item_id reads one item's ordered canonical games, version-pinned; evidence reads keep every pointer. Facts, never advice; game_clock supplies timing.",
+    "Your newest-first timeline for followed players and clans, plus visible posts/questions for a person's own connection. One item per story plus subject summaries. basis occurred reads what happened; a poller reads what the record learned, and omitting from starts at its pointer (default 24 hours, cap 30 days). evidence_item_id reads canonical games, version-pinned, keeping every pointer. Plain posts are followers-scoped, never publishable here; no comments. Facts, never advice; game_clock supplies timing.",
   inputSchema: {
     type: "object",
     properties: {
@@ -100,14 +105,14 @@ export const elixir_timeline = {
         items: { type: "string" },
         maxItems: 16,
         description:
-          "Keep only items and entry sections in these sections; the summary, subject, window and player notables always stay. Player sections: battles, trophies, arena, ranked, collection, badges, clan, war, presence. Clan sections: activity, roster, war, presence, standouts, donations. Plus account, and attested (9.2.0: what a person did in a clan through a family app, or a family app's game produced for a player, said as theirs).",
+          "Keep only items and entry sections in these sections; the summary, subject, window and player notables always stay. Player sections: battles, trophies, arena, ranked, collection, badges, clan, war, presence. Clan sections: activity, roster, war, presence, standouts, donations. Plus account, attested and posts (plain posts/questions, only a person's own connection).",
       },
       kinds: {
         type: "array",
         items: { type: "string" },
         maxItems: 32,
         description:
-          "Keep only timeline items of these kinds (entries are untouched): battle_session, session_standout, battle_highlight (a battle its player highlighted, with their words; 11.20.0), badge_earned, legendary_badge_earned, arena_changed, ranked_promotion, best_trophies_band, collection_level_step, career_wins_step, card_unlocked, card_form_unlocked, card_maxed, king_tower_leveled, challenge_best_run, twelve_win_run (13.5.0), deck_switched (13.6.0), ranked_season_finished (13.8.0), card_first_win (13.9.0), clan_joined, clan_left, member_joined, member_left, member_role_changed (also on a player's own timeline for promotions, 13.10.0), bracket_observed, race_finished, week_resolved, war_week_played (a player's own war week; 13.10.0), quiet_crossed, returned, the attested facts (departure_classified, role_change_made, award_granted, award_standing, member_away, clan_message, personal_record; each shown only to the reader its type allows), or an account_* kind. A consumer that wakes on a few kinds reads only those.",
+          "Keep only timeline items of these kinds (entries are untouched): post (plain posts/questions, person-scoped), battle_session, session_standout, battle_highlight (a battle its player highlighted, with their words; 11.20.0), badge_earned, legendary_badge_earned, arena_changed, ranked_promotion, best_trophies_band, collection_level_step, career_wins_step, card_unlocked, card_form_unlocked, card_maxed, king_tower_leveled, challenge_best_run, twelve_win_run (13.5.0), deck_switched (13.6.0), ranked_season_finished (13.8.0), card_first_win (13.9.0), clan_joined, clan_left, member_joined, member_left, member_role_changed (also on a player's own timeline for promotions, 13.10.0), bracket_observed, race_finished, week_resolved, war_week_played (a player's own war week; 13.10.0), quiet_crossed, returned, the attested facts (departure_classified, role_change_made, award_granted, award_standing, member_away, clan_message, personal_record; each shown only to the reader its type allows), or an account_* kind. A consumer that wakes on a few kinds reads only those.",
       },
       player_tag: {
         type: "string",
@@ -261,6 +266,7 @@ export const elixir_timeline = {
       (k) =>
         k !== "account" &&
         k !== "attested" &&
+        k !== "posts" &&
         !PLAYER_SECTIONS.includes(k) &&
         !CLAN_SECTIONS.includes(k),
     );
@@ -268,20 +274,21 @@ export const elixir_timeline = {
       throw new ToolFailure(
         "bad_request",
         `Unknown section '${unknown}'.`,
-        `Player sections: ${PLAYER_SECTIONS.join(", ")}. Clan sections: ${CLAN_SECTIONS.join(", ")}. Plus account and attested.`,
+        `Player sections: ${PLAYER_SECTIONS.join(", ")}. Clan sections: ${CLAN_SECTIONS.join(", ")}. Plus account, attested and posts.`,
       );
     const kinds =
       Array.isArray(args.kinds) && args.kinds.length > 0
         ? args.kinds.map(String)
         : null;
     const unknownKind = kinds?.find(
-      (k) => !ITEM_KINDS.includes(k) && !k.startsWith("account_"),
+      (k) =>
+        k !== "post" && !ITEM_KINDS.includes(k) && !k.startsWith("account_"),
     );
     if (unknownKind)
       throw new ToolFailure(
         "bad_request",
         `Unknown kind '${unknownKind}'.`,
-        `Kinds: ${ITEM_KINDS.join(", ")}, or an account_* kind.`,
+        `Kinds: ${ITEM_KINDS.join(", ")}, post, or an account_* kind.`,
       );
     const compact = args.verbosity === "compact";
     const iso = (ms) => (ms === null ? null : new Date(ms).toISOString());
@@ -305,6 +312,23 @@ export const elixir_timeline = {
       it.subject_tag === memberTag ||
       it.facts?.player_tag === memberTag;
     const subjects = await subjectsFor(ctx.db, ctx.account.accountId);
+    const wantsPosts =
+      (ctx.account.kind ?? "person") === "person" &&
+      process.env.POSTS_ENABLED === "true" &&
+      (!kinds || kinds.includes("post")) &&
+      (!sections || sections.includes("posts"));
+    const postPageFor = (readBasis) =>
+      wantsPosts
+        ? readPostTimeline(ctx.db, ctx.account.accountId, {
+            subjects,
+            fromMs,
+            toMs,
+            basis: readBasis,
+            playerTag: memberTag,
+            timezone: tz,
+          })
+        : Promise.resolve(EMPTY_POST_PAGE);
+    const postPage = await postPageFor(basis);
     // skip_empty (11.7.0): one statement asks whether any source could
     // serve an item this read keeps; when none could, the build is skipped
     // and the read answers as an empty window (no entries), moving the
@@ -312,6 +336,7 @@ export const elixir_timeline = {
     const skipped =
       args.skip_empty === true &&
       !args.evidence_item_id &&
+      postPage.items.length === 0 &&
       !(
         await timelineNews(ctx.db, subjects, {
           fromMs,
@@ -322,8 +347,8 @@ export const elixir_timeline = {
           kinds,
         })
       ).any;
-    const buildFor = (b) =>
-      buildTimeline(ctx.db, subjects, {
+    const buildFor = async (b) => {
+      const game = await buildTimeline(ctx.db, subjects, {
         fromMs,
         toMs,
         timezone: tz,
@@ -341,6 +366,12 @@ export const elixir_timeline = {
           (!kinds || kinds.includes(it.kind)) &&
           aboutMember(it),
       });
+      return mergePostTimeline(
+        game,
+        b === basis ? postPage : await postPageFor(b),
+        b,
+      );
+    };
     const built = skipped
       ? {
           window: { from: iso(fromMs), to: iso(toMs) },
@@ -416,6 +447,7 @@ export const elixir_timeline = {
     }
     const newestLeftOut = Math.max(
       ...droppedShown.map(pageMs),
+      built.post_more_at ? Date.parse(built.post_more_at) : -Infinity,
       sizeCutMs ?? -Infinity,
     );
     let cutMs = Number.isFinite(newestLeftOut) ? newestLeftOut : null;
@@ -443,7 +475,10 @@ export const elixir_timeline = {
     const remaining =
       cutMs === null && stuckAt === null
         ? 0
-        : all.length - timeline.length + droppedShown.length;
+        : all.length -
+          timeline.length +
+          droppedShown.length +
+          (built.post_more ?? 0);
     // A member session the window cuts recurs in the next read (Gym
     // #302); a read that holds each sitting whole says nothing. Since
     // 11.8.0 a standout sitting is the member's session too (#374). The
@@ -564,7 +599,11 @@ export const elixir_timeline = {
     // A player_tag the reader follows neither as a player nor as a member
     // of its clans reads 0 items by construction; say so (Gym #258).
     let memberNote = null;
-    if (memberTag && !subjects.some((sub) => sub.tag === memberTag)) {
+    if (
+      memberTag &&
+      !subjects.some((sub) => sub.tag === memberTag) &&
+      !postPage.items.some((it) => it.subject_tag === memberTag)
+    ) {
       const { rows: inClan } = clanTags.length
         ? await ctx.db.query(
             `select 1 from clan_membership
@@ -629,7 +668,7 @@ export const elixir_timeline = {
       timeline_more_to: cutMs !== null ? iso(cutMs) : null,
       notes: notes(
         seasonFields.seasonNotes,
-        subjects.length === 0
+        subjects.length === 0 && postPage.items.length === 0
           ? "No subjects: follow a player or clan (notify defaults on) and it appears here."
           : `basis ${occurred ? "occurred: items that happened in the window" : "observed: items the record learned in the window"}. timeline is newest first by sort_at, a newsfeed: one item per story, its text a time-free sentence about its subjects, the time to show in at_unix and local, which name sort_at (a sitting's at is its first battle). id is the story, the same in every read; revision is how far it has grown: tell it once per id and update it on a higher revision. Publish only publishable items. Nothing here is advice; schedule from game_clock.`,
         skipped

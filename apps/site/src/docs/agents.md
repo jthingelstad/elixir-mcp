@@ -118,6 +118,11 @@ of Clan is the clan directory, the same public part of each policy
 the clan directory in Find shows, through `clans_directory`
 ([Clan directory](/docs/clan-directory)).
 
+Plain posts and questions are available only to a person's own authorized
+connection at `/mcp`, in `elixir_timeline`. A clan agent never receives
+them. `on_behalf_of` identifies who is asking; it does not grant access to
+that person's posts. Comments are never served over MCP.
+
 ## Knowing which human is asking
 
 MCP carries no per-request user identity, so the agent supplies one.

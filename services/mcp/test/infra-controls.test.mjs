@@ -1610,14 +1610,18 @@ test("posts (2026-11-17): off by default, effective only with comments on, prese
     template,
     /HasPosts: !And\n\s+- !Condition HasComments\n\s+- !Equals \[!Ref PostsEnabled, "true"\]/,
   );
-  // The web API and digest share the same combined switch.
+  // The web API, digest and person-scoped MCP share the same combined switch.
   const env = [
     ...template.matchAll(
       /POSTS_ENABLED: !If \[HasPosts, "true", !Ref AWS::NoValue\]/g,
     ),
   ];
-  assert.equal(env.length, 2);
-  assert.equal([...template.matchAll(/POSTS_ENABLED/g)].length, 2);
+  assert.equal(env.length, 3);
+  assert.equal([...template.matchAll(/POSTS_ENABLED/g)].length, 3);
+  assert.match(
+    resource(template, "McpWebRevision", "McpWebEndpoint"),
+    /POSTS_ENABLED: !If \[HasPosts, "true", !Ref AWS::NoValue\]/,
+  );
   assert.match(
     resource(template, "JobsFunction", "JobsInvokeConfig"),
     /POSTS_ENABLED: !If \[HasPosts, "true", !Ref AWS::NoValue\]/,

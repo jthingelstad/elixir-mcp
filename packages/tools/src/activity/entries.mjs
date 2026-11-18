@@ -29,7 +29,6 @@ import {
   playerEventProofSql,
 } from "@elixir-mcp/record/event-origin";
 import { battleLinks } from "@elixir-mcp/record/battle-links";
-import { blockedSql } from "@elixir-mcp/claims";
 import { battlePostRows, battleOfRow } from "@elixir-mcp/posts/battle";
 import { daysSincePollSql } from "@elixir-mcp/record/read-facts";
 import { createHash } from "node:crypto";
@@ -48,7 +47,6 @@ import {
   ATTESTED_FACT_KINDS,
   ATTESTED_FACT_TYPES,
   ATTESTED_SOURCE_NAMES,
-  formName,
   modeGroupOf,
   postUrl,
 } from "@elixir-mcp/contracts";
@@ -5109,7 +5107,7 @@ const PUBLISHABLE = new Set(["public", "clan", "player"]);
 export const isPublishable = (it) => PUBLISHABLE.has(itemVisibility(it));
 
 /** The local reading of an instant in the reader's zone. */
-function localOf(isoAt, timeZone) {
+export function localOf(isoAt, timeZone) {
   const d = new Date(isoAt);
   const parts = (tz) =>
     Object.fromEntries(

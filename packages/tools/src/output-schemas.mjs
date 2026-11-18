@@ -654,6 +654,25 @@ const OWN_VIEW = closed({
   read_at: ISO,
 });
 
+/** External posts are an allowlist, independent of the member app's controls. */
+const POST_FACTS = closed({
+  player_tag: TAG,
+  name: NAME,
+  post_id: { type: "string", pattern: "^[1-9][0-9]{0,18}$" },
+  words: { type: "string", maxLength: 500 },
+  question: { type: "boolean" },
+  answered: { type: "boolean" },
+  deck: { type: ["object", "null"] },
+  cards: {
+    type: "array",
+    items: closed({ id: { type: "integer" }, name: { type: "string" } }),
+  },
+  url: {
+    type: "string",
+    pattern: "^https://elixir\\.poapkings\\.com/home/post/[1-9][0-9]{0,18}$",
+  },
+});
+
 export const OUTPUT_SCHEMAS = {
   clans_my_view: {
     type: "object",
@@ -2965,6 +2984,23 @@ export const OUTPUT_SCHEMAS = {
         type: "array",
         items: {
           type: "object",
+          allOf: [
+            {
+              if: {
+                properties: { kind: { const: "post" } },
+                required: ["kind"],
+              },
+              then: {
+                properties: {
+                  facts: POST_FACTS,
+                  schema: { const: "post/1" },
+                  section: { const: "posts" },
+                  visibility: { const: "followers" },
+                  publishable: { const: false },
+                },
+              },
+            },
+          ],
           properties: {
             id: {
               type: "string",
@@ -3053,14 +3089,21 @@ export const OUTPUT_SCHEMAS = {
             },
             visibility: {
               type: "string",
-              enum: ["public", "clan", "player", "leaders", "owner"],
+              enum: [
+                "public",
+                "clan",
+                "player",
+                "leaders",
+                "owner",
+                "followers",
+              ],
               description:
-                "11.8.0: who may see it. public is the game record; clan, player and leaders are an attested fact's rule; owner is the account's own administration.",
+                "Who may see it. public is the game record; clan, player and leaders are an attested fact's rule; owner is the account's own administration; followers is a plain post in the person's current follow audience, never a clan-agent grant.",
             },
             publishable: {
               type: "boolean",
               description:
-                "11.8.0: whether the item may be posted outside Elixir (visibility public, clan or player). Elixir's own cross-posting posts only these; a consumer that publishes should too.",
+                "Whether the item may be posted outside Elixir (visibility public, clan or player). Followers-scoped plain posts are false. A member may explicitly share an item in Elixir; this read creates no public link.",
             },
             evidence: TIMELINE_EVIDENCE,
             facts: { type: "object" },

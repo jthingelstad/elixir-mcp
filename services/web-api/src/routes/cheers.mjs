@@ -20,6 +20,7 @@ import { blockedEitherWay, verifierOf } from "@elixir-mcp/claims";
 import { itemPlayer } from "../comments.mjs";
 import { normalizeTag } from "@elixir-mcp/contracts";
 import { buildTimeline, subjectsFor } from "@elixir-mcp/tools/activity/entries";
+import { readPostTimeline } from "@elixir-mcp/tools/activity/posts";
 import { json } from "../http.mjs";
 import { annotateFeed } from "../feed.mjs";
 import {
@@ -240,7 +241,21 @@ export function cheersRoutes({ resolveAccount, posts = false }) {
         // Items only: the feed says no entry's late-capture count.
         lateCounts: false,
       });
-      const items = await annotateFeed(db, feedItems(built.timeline), subjects);
+      const postPage = posts
+        ? await readPostTimeline(db, owner.account_id, {
+            subjects,
+            fromMs: toMs - 7 * 86_400_000,
+            toMs,
+            basis: "observed",
+            timezone: owner.timezone ?? "UTC",
+            limit: 50,
+          })
+        : { items: [] };
+      const items = await annotateFeed(
+        db,
+        feedItems([...built.timeline, ...postPage.items]),
+        subjects,
+      );
       return {
         statusCode: 200,
         headers: {

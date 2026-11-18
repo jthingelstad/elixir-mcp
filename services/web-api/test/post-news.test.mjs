@@ -108,6 +108,29 @@ test("an account-only follower counts visible posts without a cached game week; 
   );
 });
 
+test("a post edit refreshes its words without counting new since the last visit", async () => {
+  const now = Date.now();
+  const post = await people.post({ at: new Date(now - 60_000) });
+  await ctx.db.query(
+    `update account set console_timeline_seen_at = $2 where account_id = $1`,
+    [people.reader, new Date(now - 30_000)],
+  );
+  try {
+    await ctx.db.query(
+      `update account_post set body = 'Updated words', revision = 2, updated_at = now() where post_id = $1`,
+      [post.id],
+    );
+    const feed = body(await call("reader", "/api/me/home/feed"));
+    assert.equal(feed.counts.new, 0);
+    assert.ok(feed.timeline.some((it) => it.post?.text === "Updated words"));
+  } finally {
+    await ctx.db.query(
+      `update account set console_timeline_seen_at = null where account_id = $1`,
+      [people.reader],
+    );
+  }
+});
+
 test("poll counts honor notify, block, report and moderation state live", async () => {
   const since = new Date(Date.now() - 60_000).toISOString();
   const post = await people.post();

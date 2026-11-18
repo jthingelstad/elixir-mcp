@@ -492,8 +492,10 @@ post from you right away, and Elixir takes a look.
 Treat a post as public. It shows on the Timeline, your clan's Timeline,
 your Profile and your player's page. New posts and questions can appear in
 the existing digest of people you follow. Anyone who can see a post can
-share a link to that one item, readable without an account. Plain posts do
-not go to RSS, Discord, push or agents. A post about a battle already goes
+share a link to that one item, readable without an account. Plain posts also
+go to your private RSS feed and your own connected agent, with the same
+follow audience and block/report checks. Comments stay inside Elixir.
+Plain posts do not go to Discord or push. A post about a battle goes
 further (below).
 
 ## Your RSS link
@@ -509,9 +511,13 @@ seven days and at most 50 items, newest first.
 - **Reset** makes a new link and stops the old one at once; **Turn off**
   ends it. Closing your account ends it too.
 - **What it carries:** each item's words with players by their game names,
-  a link to the session, the battle or the player, and when. Never your nicknames for
-  players, your email, your account's own items, leaders-only facts or
-  cheers.
+  a link to the session, battle, player or post, and when. Posts and questions
+  include their deck or card names. A post opens in Elixir after sign-in,
+  where access is checked again. Never comments, your nicknames for players,
+  your email, your account notices, leaders-only facts or cheers.
+- Posts reach the same people and account follows as your Timeline. Blocks,
+  reports, removed posts and hidden posts are checked on each read. An edit
+  updates the same entry. Your reader may keep copies it already downloaded.
 - A feed reader may read it up to 60 times an hour.
 
 ## Posts about battles
