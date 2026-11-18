@@ -34,6 +34,13 @@ which rechecks access after sign-in. Edits keep a GUID; the next read omits
 removed or newly inaccessible content. A feed reader may retain downloaded
 copies. No comment text is read for delivery, and the DTO omits public share fields.
 
+RSS item descriptions are HTML after XML decoding, per the
+[RSS Best Practices Profile](https://www.rssboard.org/rss-profile#data-types-characterdata).
+Descriptions encode literal words for both HTML and XML; titles stay XML
+text. A browser regression parses the XML, presents its description as HTML,
+and verifies authored tag-shaped words, entities and game/card names survive
+as text without creating elements.
+
 Source work moves existing battle-post facts below the tool registry,
 removing the posts-to-tools dependency before tools read canonical posts.
 Member readers keep their existing direct audience predicate; bounded
