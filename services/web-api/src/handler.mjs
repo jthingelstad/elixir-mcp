@@ -53,6 +53,7 @@ import { deadlineMs } from "./deadline.mjs";
 import { principalsRoutes } from "./routes/principals.mjs";
 import { battleRoutes } from "./routes/battle.mjs";
 import { itemSharingRoutes } from "./routes/item-sharing.mjs";
+import { timelineItemRoutes } from "./routes/timeline-items.mjs";
 import { cheersRoutes } from "./routes/cheers.mjs";
 import { commentsRoutes } from "./routes/comments.mjs";
 import { postsRoutes } from "./routes/posts.mjs";
@@ -549,6 +550,11 @@ export function makeHandler({
       posts: postsOn,
       comments: comments?.enabled === true,
       shareImage,
+    }),
+    ...timelineItemRoutes({
+      resolveAccount,
+      posts: postsOn,
+      comments: comments?.enabled === true,
     }),
     ...pushRoutes({ resolveAccount, publicKey: vapidPublicKey }),
     // The bell's stored week rides the same wake (bell_week, 0247).

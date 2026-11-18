@@ -20,7 +20,7 @@ export async function recoverMemberItemRef(
   db,
   { accountId, itemId, subjectTag, commentedAt, posts = false },
 ) {
-  if (!ITEM_ID_RE.test(String(itemId ?? ""))) return null;
+  if (!accountId || !ITEM_ID_RE.test(String(itemId ?? ""))) return null;
   const subjects = await subjectsFor(db, accountId);
   const post = await visiblePost(db, accountId, itemId, subjects, {
     plain: posts,

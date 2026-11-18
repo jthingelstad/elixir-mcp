@@ -42,6 +42,7 @@ test("a player page, member battle and shared item context survive sign-in", () 
     "/home/player/2ABC?from=mail",
     "/battle/ccd04012bda8",
     "/share/abcdefghijklmnopqrstuvwx",
+    "/home/item/tl_0123456789abcdef0041?ref=%7B%22source%22%3A%22game%22%7D&reply=42&after=all",
   ]) {
     rememberAfterSignIn(path);
     expect(takeAfterSignIn()).toBe(path);

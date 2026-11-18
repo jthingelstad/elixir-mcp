@@ -41,6 +41,8 @@ plain words.
 
 ## Interface
 
+- **Shared items and digest updates open their exact member conversation** — a reusable member URL carries only a canonical source locator and optional reply cursor, re-resolved under the current audience, blocks and moderation on every visit. Sign-in keeps that destination; a public capability grants no member access. Digest posts and game updates show their original local day and time and link to the same item. Retained comments lacking a locator may recover one by exact ID from their original named subject and a bounded month around the comment; no authorized match leaves the history intact without an invented link. [engineering, 2026-11-18, implementing Jamie's approved recommendation 1; `docs/notes/2026-11-18-exact-item-conversation.md`]
+
 - **Reactions and comments on every recorded Timeline item** — Players can cheer and comment on each individual item shown on a signed-in Timeline, including Card Mastery and dated quiet stretches. Open a folded group to choose its item. A rolling total has no thread. [Jamie, 2026-11-18] Each surface uses the same item ID and current audience. Verified commenters, owner settings, blocks and moderation apply. Unclaimed player and clan game items accept verified commenters with access. Account notices and public shared pages stay outside these member conversations. Supersedes the earlier restrictions on people items, clan game items and the reader's seven-day feed. [engineering, 2026-11-18]
 
 - Share on a Timeline item is a single Lucide glyph. The three connected dots (`share-2`) carry the accessible name “Share”. Once tapped, the control says when the link is ready. [Jamie, 2026-11-17, glyph in place of the repeated label] [engineering, 2026-11-17, glyph and feedback]

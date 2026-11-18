@@ -288,15 +288,23 @@ const quote = (words) =>
  *  string is escaped here, at its output (DECISIONS "A name is escaped
  *  at its output"). */
 function digestItem(it, c) {
+  const when = it.at
+    ? c.small(esc(c.dayTime({ at: it.at })), "margin-top:4px;")
+    : "";
+  const member =
+    typeof it.member_path === "string" &&
+    /^\/home\/item\/tl_[a-f0-9]{20}\?/.test(it.member_path)
+      ? `${SITE}${it.member_path}`
+      : null;
   if (it.kind === "post") {
-    const url = memberPostUrl(it.post?.id);
+    const url = member ?? memberPostUrl(it.post?.id);
     const cards = it.post?.deck?.cards ?? it.post?.cards ?? [];
-    return `<div style="font-family:${FONT};font-size:14px;line-height:1.5;color:${M.muted};margin-top:12px;">${esc(it.post?.question ? "Question" : "Post")}</div>${it.words ? quote(it.words) : ""}${cards.length ? deckRow(cards, { names: true, slots: Boolean(it.post?.deck) }) : ""}${it.post?.deck?.label ? c.small(esc(it.post.deck.label)) : ""}${url ? `<div style="margin-top:8px;">${c.link(url, it.post?.question ? "Read and reply" : "Open post", `display:inline-block;min-height:44px;line-height:44px;font-family:${FONT};font-size:14px;font-weight:600;`)}</div>` : ""}`;
+    return `<div style="font-family:${FONT};font-size:14px;line-height:1.5;color:${M.muted};margin-top:12px;">${esc(it.post?.question ? "Question" : "Post")}</div>${when}${it.words ? quote(it.words) : ""}${cards.length ? deckRow(cards, { names: true, slots: Boolean(it.post?.deck) }) : ""}${it.post?.deck?.label ? c.small(esc(it.post.deck.label)) : ""}${url ? `<div style="margin-top:8px;">${c.link(url, it.post?.question ? "Read and reply" : "Open post", `display:inline-block;min-height:44px;line-height:44px;font-family:${FONT};font-size:14px;font-weight:600;`)}</div>` : ""}`;
   }
   const battle = it.battle_url
     ? ` ${c.link(it.battle_url, "See the battle", "font-weight:600;")}`
     : "";
-  return `<div style="font-family:${FONT};font-size:16px;line-height:1.5;color:${M.muted};margin-top:8px;">${esc(sentence(it.text))}${battle}</div>${it.words ? quote(it.words) : ""}`;
+  return `<div style="font-family:${FONT};font-size:16px;line-height:1.5;color:${M.muted};margin-top:8px;">${esc(sentence(it.text))}${battle}</div>${when}${it.words ? quote(it.words) : ""}${member ? `<div style="margin-top:4px;">${c.link(member, "Open item and comments", `display:inline-block;min-height:44px;line-height:44px;font-family:${FONT};font-size:14px;font-weight:600;`)}</div>` : ""}`;
 }
 
 /** A sitting's own page on Elixir's origin, or null: the path the issue

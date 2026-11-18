@@ -64,7 +64,8 @@ export function SharedItem({
 }) {
   const { when } = useClock();
   const back = encodeURIComponent(
-    typeof window === "undefined" ? "/timeline" : window.location.pathname,
+    read?.member_url ??
+      (typeof window === "undefined" ? "/timeline" : window.location.pathname),
   );
   return (
     <div className="kit-shared-item">
@@ -104,42 +105,51 @@ export function SharedItem({
           )}
         </>
       )}
-      <section
-        className="kit-cta"
-        aria-label={me?.authenticated ? "Next steps" : "See more on Elixir"}
-      >
-        {!me?.authenticated && (
-          <>
-            <h2 className="kit-cta__title">See more on Elixir</h2>
-            <p className="kit-cta__text">
-              Follow your friends and your clan, see how they play, and cheer
-              them on.
-            </p>
-          </>
-        )}
-        <div className="share-actions">
-          {me?.authenticated ? (
+      {!pending && (
+        <section
+          className="kit-cta"
+          aria-label={me?.authenticated ? "Next steps" : "See more on Elixir"}
+        >
+          {!me?.authenticated && (
             <>
-              <SharedFollow item={read?.item} claims={me.claims} />
-              <Link className="btn" to="/timeline">
-                Open your Timeline
-              </Link>
-            </>
-          ) : (
-            <>
-              <a
-                className="btn btn--gold"
-                href={`/signin?signup&return_to=${back}`}
-              >
-                Create an account
-              </a>
-              <a className="btn" href={`/signin?return_to=${back}`}>
-                Sign in
-              </a>
+              <h2 className="kit-cta__title">See more on Elixir</h2>
+              <p className="kit-cta__text">
+                Follow your friends and your clan, see how they play, and cheer
+                them on.
+              </p>
             </>
           )}
-        </div>
-      </section>
+          <div className="share-actions">
+            {me?.authenticated ? (
+              <>
+                {read?.member_url ? (
+                  <Link className="btn btn--primary" to={read.member_url}>
+                    {read.item?.kind === "battle"
+                      ? "Open battle"
+                      : "Open item and comments"}
+                  </Link>
+                ) : null}
+                <SharedFollow item={read?.item} claims={me.claims} />
+                <Link className="btn" to="/timeline">
+                  Open your Timeline
+                </Link>
+              </>
+            ) : (
+              <>
+                <a
+                  className="btn btn--gold"
+                  href={`/signin?signup&return_to=${back}`}
+                >
+                  Create an account
+                </a>
+                <a className="btn" href={`/signin?return_to=${back}`}>
+                  Sign in
+                </a>
+              </>
+            )}
+          </div>
+        </section>
+      )}
     </div>
   );
 }

@@ -21,6 +21,11 @@ const ORIGIN = "https://elixir.poapkings.com";
 const at = (p) => analyticsLocation(p, ORIGIN);
 
 describe("analyticsLocation", () => {
+  test("an exact item reports no locator, canonical id or reply", () => {
+    expect(
+      at("/home/item/tl_0123456789abcdef0041?ref=private&reply=42"),
+    ).toEqual({ path: "/home/item", url: `${ORIGIN}/home/item` });
+  });
   test("the sign-in page reports nothing at all", () => {
     expect(at("/signin")).toBeNull();
     expect(at("/signin/code")).toBeNull();

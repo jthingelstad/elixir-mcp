@@ -37,6 +37,7 @@ import {
   subjectsFor,
 } from "@elixir-mcp/tools/activity/entries";
 import { SITTINGS, sessionPathOf } from "@elixir-mcp/ui/session-story";
+import { memberItemPath, timelineItemRef } from "@elixir-mcp/ui/item-link";
 import { itemText } from "@elixir-mcp/tools/activity/summary";
 import { BIG_FIRST_KINDS, progressOf } from "@elixir-mcp/tools/friends-week";
 import { verifiedPlayerIdentities } from "@elixir-mcp/auth/player-identities";
@@ -184,6 +185,7 @@ function digestItem(it, tz, links) {
     return {
       kind: "post",
       at: it.at,
+      member_path: memberItemPath(timelineItemRef(it)),
       text: p.question ? "Asked a question" : "Posted",
       words: p.text,
       // Delivery facts contain no share token, private account machinery,
@@ -205,6 +207,7 @@ function digestItem(it, tz, links) {
   return {
     kind: it.kind,
     at: it.at,
+    member_path: memberItemPath(timelineItemRef(it)),
     text,
     ...(isHighlight && f.words ? { words: String(f.words) } : {}),
     battle_url: f.battle?.url ?? (ref ? (links.get(ref)?.url ?? null) : null),

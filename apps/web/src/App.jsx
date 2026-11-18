@@ -1,4 +1,5 @@
 import { PlayerIdentities } from "./lib/PlayerIdentities.jsx";
+import { MEMBER_ITEM_PATH } from "@elixir-mcp/ui/item-link";
 import {
   InitialTimeProvider,
   ErrorBoundary,
@@ -287,6 +288,7 @@ const isHome = (path) =>
   isPassportPath(path) ||
   isAccountPath(path) ||
   MEMBER_POST_PATH.test(path) ||
+  MEMBER_ITEM_PATH.test(path) ||
   BATTLE_PATH.test(path);
 
 const isClan = (path) =>
@@ -747,6 +749,14 @@ const memberPostRoute = createRoute({
     "MemberPostPage",
   ),
 });
+const memberItemRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/home/item/$id",
+  component: lazyRouteComponent(
+    () => import("./views/MemberItem.jsx"),
+    "MemberItemPage",
+  ),
+});
 
 /** Stats, You's tab (Ladder until 2026-11-12): no rail. Signed in only. */
 const statsRoute = createRoute({
@@ -870,6 +880,7 @@ export const routeTree = rootRoute.addChildren([
   battleRoute,
   shareRoute,
   memberPostRoute,
+  memberItemRoute,
   statsRoute,
   createClanRoutes(rootRoute),
 ]);
