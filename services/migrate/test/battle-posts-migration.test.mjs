@@ -36,11 +36,14 @@ let scratch, sql, account;
 
 /** Put the database back to 0290: undo what 0292 adds. */
 async function before0292(db) {
+  // Recreate the historical table using its immutable migrations.
+  for (const file of [
+    "0239_battle_highlight.sql",
+    "0240_battle_highlight_revision.sql",
+    "0254_highlight_clan_discord.sql",
+  ])
+    await db.query(await readFile(path.join(MIGRATIONS, file), "utf8"));
   await db.query(`
-    drop trigger battle_highlight_moved on battle_highlight;
-    drop function battle_highlight_moved();
-    drop trigger account_post_battle_gone on account_post;
-    drop function account_post_battle_gone();
     delete from account_post where battle_id is not null;
     drop index account_post_player_battle, account_post_battle,
                account_post_player_changed;
@@ -275,4 +278,30 @@ test("after 0292 deleting a post that was a highlight takes the frozen row", asy
     `select count(*)::int as n from battle_highlight`,
   );
   assert.equal(after[0].n, rows[0].n);
+});
+
+test("0295 refuses a missing copy and preserves the canonical post after later edits", async () => {
+  const db = scratch.db;
+  sql = await readFile(
+    path.join(MIGRATIONS, "0295_retire_battle_highlight.sql"),
+    "utf8",
+  );
+  const id = storyId("battle_highlight", H.plain);
+  await db.query(
+    "update account_post set item_id = 'tl_aaaaaaaaaaaaaaaaaaaa' where item_id = $1",
+    [id],
+  );
+  await assert.rejects(runFile(), /no matching canonical battle post/);
+  await db.query(
+    "update account_post set item_id = $1, body = 'edited after migration' where item_id = 'tl_aaaaaaaaaaaaaaaaaaaa'",
+    [id],
+  );
+  const expected = await posts();
+  await runFile();
+  assert.deepEqual(await posts(), expected);
+  assert.equal(
+    (await db.query("select to_regclass('battle_highlight') as old")).rows[0]
+      .old,
+    null,
+  );
 });

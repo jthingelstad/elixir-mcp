@@ -420,7 +420,6 @@ test("a dry run is the default: it reports what would go and writes nothing", as
     player_nickname: 1,
     // Frozen at 0292: the person's post about a battle is an account_post
     // row now.
-    battle_highlight: 0,
     timeline_cheer: 1,
     timeline_feed_link: 1,
     comment_report: 1,
@@ -585,7 +584,6 @@ test("the run removes the person and their agent, keeps the game record, and lea
     "feedback",
     "email_send",
     "player_nickname",
-    "battle_highlight",
     "timeline_cheer",
     "timeline_feed_link",
     "timeline_comment",
