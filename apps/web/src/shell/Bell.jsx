@@ -419,10 +419,20 @@ export function BellSheet({ me, onClose, returnTo = null }) {
                 ) : (
                   <TagText>{r.who}</TagText>
                 )}{" "}
-                commented
+                {r.question
+                  ? "answered your question"
+                  : r.post
+                    ? "commented on your post"
+                    : "commented"}
               </>
             }
-            detail={[`“${r.text}”`, r.at ? clock.when(r.at) : null]
+            detail={[
+              r.post && r.count > 1
+                ? `${r.count} ${r.question ? "answers" : "comments"}${r.unread ? ` · ${r.unread} new` : ""}`
+                : null,
+              `“${r.text}”`,
+              r.at ? clock.when(r.at) : null,
+            ]
               .filter(Boolean)
               .join(" · ")}
           />

@@ -56,6 +56,7 @@ import {
 } from "@elixir-mcp/tools/activity/bell";
 import { levelCount, stampById } from "@elixir-mcp/stamps/catalog";
 import { blockedSql } from "@elixir-mcp/claims";
+import { commentSeenSql } from "./comments.mjs";
 
 export { markBellSeen } from "@elixir-mcp/tools/activity/bell";
 
@@ -233,7 +234,8 @@ export function mergeAccountLines(lines, stamps) {
 }
 
 /** Comments other people left on your items in the last seven days
- *  (2026-11-16), newest first, each naming its author as the comment
+ *  (2026-11-16), newest first, grouped per post before the cap; game
+ *  comments stay separate. Each names the latest author as the comment
  *  does (their account's primary player and its page) with a clip of the
  *  words. None from anyone in a block with you. This list is the one
  *  place comments reach you (DECISIONS "Comments, checked before they
@@ -242,30 +244,49 @@ export function mergeAccountLines(lines, stamps) {
  *  input, escaped wherever they are shown. */
 async function readComments(db, accountId, seen) {
   const { rows } = await db.query(
-    `select tc.comment_id::text as comment_id, tc.item_id, tc.subject_tag,
-            tc.body,
-            tc.created_at, ap.passport_id as author_id,
-            pc.player_tag as author_tag, pp.name as author_name,
-            ($2::timestamptz is null or tc.created_at > $2) as fresh
-       from timeline_comment tc
-       join account a on a.account_id = tc.account_id
-                     and a.kind = 'person' and a.status = 'approved'
-       left join account_passport ap on ap.account_id = tc.account_id
-       left join claim pc on pc.account_id = tc.account_id and pc.is_primary
-       left join player pp on pp.player_tag = pc.player_tag
-      where tc.owner_account_id = $1 and tc.account_id <> $1
-        and tc.status = 'visible'
-        and tc.created_at > now() - make_interval(days => $3)
-        and not ${blockedSql("tc.account_id", "$1::uuid")}
-      order by tc.created_at desc, tc.comment_id desc
-      limit $4`,
+    `with visible as (
+       select tc.*, p.post_id::text as post_id, p.question,
+              case when p.post_id is null then 'comment-' || tc.comment_id::text
+                   else 'post-' || p.post_id::text end as conversation
+         from timeline_comment tc
+         join account a on a.account_id = tc.account_id
+                       and a.kind = 'person' and a.status = 'approved'
+         left join account_post p on p.item_id = tc.item_id
+        where tc.owner_account_id = $1 and tc.account_id <> $1
+          and tc.status = 'visible'
+          and tc.created_at > now() - make_interval(days => $3)
+          and (p.post_id is null or (p.status = 'visible' and p.account_id = $1))
+          and ${commentSeenSql("$1::uuid")}
+     ), ranked as (
+       select *, row_number() over w as position,
+              count(*) over (partition by conversation)::int as reply_count,
+              count(*) filter (where $2::timestamptz is null or created_at > $2)
+                over (partition by conversation)::int as unread_count
+         from visible window w as
+           (partition by conversation order by created_at desc, comment_id desc)
+     ) select r.*, ap.passport_id as author_id,
+              pc.player_tag as author_tag, pp.name as author_name
+         from ranked r
+         left join account_passport ap on ap.account_id = r.account_id
+         left join claim pc on pc.account_id = r.account_id and pc.is_primary
+         left join player pp on pp.player_tag = pc.player_tag
+        where r.position = 1
+        order by r.created_at desc, r.comment_id desc limit $4`,
     [accountId, seen, ACCOUNT_DAYS, LIST_CAP + 1],
   );
   const items = rows.slice(0, LIST_CAP).map((r) => ({
     comment_id: r.comment_id,
     item_id: r.item_id,
-    // Your player it is about: the bell's row opens that player's page.
     subject_tag: r.subject_tag,
+    ...(r.post_id
+      ? {
+          post_id: r.post_id,
+          question: r.question === true,
+          count: r.reply_count,
+          unread_count: r.unread_count,
+          unread_since: seen ? new Date(seen).toISOString() : null,
+        }
+      : {}),
     at: r.created_at ? new Date(r.created_at).toISOString() : null,
     author: {
       account_id: r.author_id ?? null,
@@ -273,7 +294,7 @@ async function readComments(db, accountId, seen) {
       name: r.author_name ?? null,
     },
     text: clip(String(r.body ?? ""), 120),
-    new: r.fresh === true,
+    new: r.unread_count > 0,
   }));
   return { items, new: items.filter((i) => i.new).length };
 }

@@ -18,6 +18,7 @@ import { withMyCheer } from "../src/home/cheer-set.js";
 vi.mock("@tanstack/react-router", async (original) => ({
   ...(await original()),
   useParams: () => ({ id: "41" }),
+  useSearch: () => ({}),
 }));
 const KEY = memberPostKey("41");
 const ITEM = {

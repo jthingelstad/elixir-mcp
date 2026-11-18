@@ -40,19 +40,23 @@ export function useCommentsOn() {
   return !scope && me?.features?.comments === true;
 }
 
-export function Comments({ it }) {
+export function Comments({ it, entry = null }) {
   const on = useCommentsOn();
   const summary = it?.comments;
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(Boolean(entry));
   const [writing, setWriting] = useState(false);
   const threadId = useId();
   if (!on || !it?.id || summary === null) return null;
 
   const onCard = summary !== undefined;
+  const question = isQuestion(it);
   const count = summary?.count ?? 0;
   const latest = summary?.latest ?? [];
   return (
-    <section className="kit-comments" aria-label="Comments">
+    <section
+      className="kit-comments"
+      aria-label={question ? "Answers" : "Comments"}
+    >
       {onCard && !open && latest.length ? (
         <ul className="kit-comments__list">
           {latest.map((c) => (
@@ -60,9 +64,11 @@ export function Comments({ it }) {
           ))}
         </ul>
       ) : null}
-      {open ? <Thread id={threadId} it={it} focus={writing} /> : null}
+      {open ? (
+        <Thread id={threadId} it={it} focus={writing} entry={entry} />
+      ) : null}
       <div className="kit-comments__bar">
-        {!onCard || count > latest.length || open ? (
+        {question || !onCard || count > latest.length || open ? (
           <button
             type="button"
             className="kit-chip kit-comments__more"
@@ -73,7 +79,15 @@ export function Comments({ it }) {
               setOpen(!open);
             }}
           >
-            {open ? "Hide comments" : commentsCountLabel(onCard ? count : null)}
+            {question
+              ? open
+                ? "Hide answers"
+                : onCard
+                  ? `${count} ${count === 1 ? "answer" : "answers"}`
+                  : "Answers"
+              : open
+                ? "Hide comments"
+                : commentsCountLabel(onCard ? count : null)}
           </button>
         ) : null}
         {onCard && summary.open && !open ? (
@@ -95,36 +109,90 @@ export function Comments({ it }) {
 
 /** The whole thread, read when it opens, with the box to add one when
  *  the owner's setting lets you. */
-function Thread({ id, it, focus }) {
-  const read = useItemComments(it, true);
+function Thread({ id, it, focus, entry }) {
+  const [latest, setLatest] = useState(false);
+  const read = useItemComments(it, true, latest ? null : entry?.reply);
   const data = read.data;
+  const word = isQuestion(it) ? "Answers" : "Comments";
+  const focused = useRef(false);
+  useEffect(() => {
+    if (
+      !focused.current &&
+      entry?.reply &&
+      data?.comments?.some((c) => c.id === entry.reply)
+    ) {
+      focused.current = true;
+      document
+        .getElementById(`${id}-reply-${entry.reply}`)
+        ?.focus({ preventScroll: false });
+    }
+  }, [data, id, entry?.reply]);
   return (
     <div id={id} className="kit-comments__thread">
       {read.isPending ? (
         <p className="kit-tiny" role="status">
-          Reading comments.
+          Reading {word.toLowerCase()}.
         </p>
-      ) : read.isError ? (
+      ) : read.isError && !data ? (
         <p className="kit-tiny" role="status">
           {read.error?.status === 404
-            ? "Comments show here for players in your feed."
-            : "Comments couldn't be read just now."}
+            ? `${word} show here for players in your feed.`
+            : `${word} couldn't be read just now.`}
         </p>
       ) : (
         <>
+          {read.isFetchNextPageError ? (
+            <p className="kit-tiny" role="status">
+              Older {word.toLowerCase()} could not be read. Try Older again.
+            </p>
+          ) : null}
+          {read.hasNextPage ? (
+            <button
+              type="button"
+              className="btn btn--quiet btn--sm"
+              disabled={read.isFetchingNextPage}
+              onClick={() => read.fetchNextPage()}
+            >
+              Older {word.toLowerCase()}
+            </button>
+          ) : null}
           {data.comments.length ? (
             <ul className="kit-comments__list">
               {data.comments.map((c) => (
-                <CommentRow key={c.id} c={c} it={it} />
+                <CommentRow
+                  key={c.id}
+                  c={c}
+                  it={it}
+                  id={`${id}-reply-${c.id}`}
+                  fresh={
+                    !c.mine &&
+                    entry?.after &&
+                    (entry.after === "all" ||
+                      Date.parse(c.at) > Date.parse(entry.after))
+                  }
+                />
               ))}
             </ul>
           ) : (
-            <p className="kit-tiny">No comments yet.</p>
+            <p className="kit-tiny">No {word.toLowerCase()} yet.</p>
           )}
+          {data.anchored && !latest ? (
+            <button
+              type="button"
+              className="btn btn--quiet btn--sm"
+              onClick={() => setLatest(true)}
+            >
+              Show latest {word.toLowerCase()}
+            </button>
+          ) : null}
           {data.open ? (
-            <Composer it={it} autoFocus={focus} />
+            <Composer
+              it={it}
+              autoFocus={focus}
+              onPosted={() => setLatest(true)}
+            />
           ) : (
-            <p className="kit-tiny">Comments on this one are closed to you.</p>
+            <p className="kit-tiny">{word} on this one are closed to you.</p>
           )}
         </>
       )}
@@ -134,7 +202,7 @@ function Thread({ id, it, focus }) {
 
 /** Write one: 280 characters, checked before it posts. A no says why in
  *  one plain line and keeps the words, so they can be changed. */
-export function Composer({ it, autoFocus = false }) {
+export function Composer({ it, autoFocus = false, onPosted = null }) {
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
@@ -159,6 +227,7 @@ export function Composer({ it, autoFocus = false }) {
     if (res.ok) {
       setText("");
       changed(it.id);
+      onPosted?.();
       return;
     }
     setError(res.data?.message ?? "Your comment wasn't posted. Try again.");
@@ -204,7 +273,7 @@ export function Composer({ it, autoFocus = false }) {
 }
 
 /** One comment: who, when, the words, and what you may do about it. */
-function CommentRow({ c, it }) {
+function CommentRow({ c, it, id, fresh = false }) {
   const { when } = useClock();
   const changed = useCommentsChanged();
   const [reporting, setReporting] = useState(false);
@@ -230,8 +299,13 @@ function CommentRow({ c, it }) {
     );
   const ownerRemoves = c.can_delete && !c.mine;
   return (
-    <li className="kit-comments__item">
+    <li className="kit-comments__item" id={id} tabIndex={id ? -1 : undefined}>
       <p className="kit-comments__head">
+        {fresh ? (
+          <span className="kit-written__label">
+            New {isQuestion(it) ? "answer" : "comment"}
+          </span>
+        ) : null}
         {theirs}
         {c.at ? <span className="kit-tiny"> · {when(c.at)}</span> : null}
       </p>

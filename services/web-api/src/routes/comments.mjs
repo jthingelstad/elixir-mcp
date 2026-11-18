@@ -35,6 +35,8 @@ import {
   commentQueue,
   commentSettingOf,
   commentsOnItem,
+  readCommentCursor,
+  validCommentId,
   deleteComment,
   dismissReports,
   postComment,
@@ -137,7 +139,16 @@ export function commentsRoutes({
         tagsOf(q.subjects),
       );
       if (!item) return notFound();
-      return json(200, await commentsOnItem(db, account.accountId, item));
+      const before = q.before ? readCommentCursor(q.before) : null;
+      if ((q.before && !before) || (q.around && !validCommentId(q.around)))
+        return json(400, { error: "invalid_cursor" });
+      return json(
+        200,
+        await commentsOnItem(db, account.accountId, item, {
+          before,
+          around: q.around ?? null,
+        }),
+      );
     },
 
     "POST /api/me/comments": async (db, event, body) => {

@@ -35,11 +35,15 @@ Your Timeline is one feed, newest first, in days. Chips choose
 whose items it shows: **Everyone**, **Close friends** (once you have
 starred one, below), **Friends** (the players you follow as friends),
 **Clan** (the clans you follow), or **You** (your own players), each with
-its count. A player you only watch is under Everyone. **All** or **New**
+its count. Questions shows its own count when selected. A player you only watch is under Everyone. **All** or **New**
 chooses between everything and what came since your last visit. The chips
 only choose what the page draws: your place moves when you open the feed,
 whichever chip is on, so **New** means the same under every chip. Your
 choice is kept for your next visit on the same device.
+
+**Questions** reads just the questions in your audience, before the pages
+are cut, so a busy week of game activity cannot hide them. It works with
+Mode: a question without a battle appears under **All modes**.
 
 While the Timeline is open, **N new** tells you when new items are ready,
 including new posts and questions from the people you follow. Tap it to
@@ -456,7 +460,9 @@ of your own, and the post goes out as that player.
   The writing field takes keyboard focus. **Cancel**, or sending the post,
   returns focus to where you started.
 - **Ask a question** marks it a **Question**. People answer it under the
-  post.
+  post. Its answer count includes zero. As its author, you can **Mark
+  answered** or **Mark unanswered**. Answered leaves the conversation open
+  and does not move the post or announce it as new.
 - **Add a deck:** in Clash Royale, tap **Copy deck** on any deck, then
   paste the link into your post. Elixir shows the eight cards with their
   art, the deck's name, its average elixir and a **Copy deck** button. The
@@ -483,7 +489,14 @@ Who sees it:
   Elixir after sign-in.
 
 Anyone who can see a post can cheer it. Notifications tell you how many
-cheered your posts, never who. Nobody you've blocked, or who has blocked
+cheered your posts, never who. Replies to each post share one notification,
+with a count and the latest reply. Questions say **answers**. New replies
+are distinct from earlier ones, and the notification opens that post at
+the notified reply. **New answer** marks unread answers from other people;
+**Older answers** reads back through a long conversation.
+Reply words and author names stay inside Elixir; they do not go to email,
+push, RSS or agents. Your post and its answers stay yours if your player claim changes.
+Nobody you've blocked, or who has blocked
 you, sees your posts. You don't see theirs.
 
 **Delete** takes your post away at once. **Report** hides someone else's

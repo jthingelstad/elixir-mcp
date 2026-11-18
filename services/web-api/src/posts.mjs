@@ -476,6 +476,34 @@ export async function editPost(db, account, id, text, cfg) {
   return { ok: true, post, changed };
 }
 
+/** An author marks their visible question answered, without changing its
+ * words, chronology or revision. Answers stay open in either state. */
+export async function setQuestionAnswered(db, account, id, answered, cfg) {
+  if (typeof answered !== "boolean") return { error: "bad_request" };
+  const row = await postRow(db, id);
+  if (
+    !row ||
+    row.status !== "visible" ||
+    !row.question ||
+    row.account_id !== account.accountId
+  )
+    return { error: "not_found" };
+  if (!cfg?.plain) return { error: "posts_off" };
+  const { rowCount } = await db.query(
+    `update account_post set answered_at = case when $2 then now() else null end
+       where post_id = $1::bigint and question and status = 'visible'
+         and account_id = $3::uuid and (answered_at is not null) <> $2`,
+    [row.post_id, answered, account.accountId],
+  );
+  return {
+    ok: true,
+    changed: rowCount > 0,
+    post: await readVisiblePost(db, account.accountId, row.post_id, {
+      plain: true,
+    }),
+  };
+}
+
 /** One post's row for its author or an admin, or null. */
 async function postRow(db, id) {
   if (!POST_ID.test(String(id ?? ""))) return null;
@@ -588,6 +616,7 @@ export {
   visiblePost,
   postsBy,
   clanPosts,
+  clanQuestionCounts,
   ownPostsOn,
   postQueue,
 } from "@elixir-mcp/posts";

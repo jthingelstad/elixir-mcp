@@ -3,7 +3,7 @@ import { feedOrder } from "@elixir-mcp/tools/activity/home-feed";
 import { withCheers } from "./cheers.mjs";
 import { withComments } from "./comments.mjs";
 import { annotateFeed } from "./feed.mjs";
-import { clanPosts } from "./posts.mjs";
+import { clanPosts, clanQuestionCounts } from "./posts.mjs";
 import { ATTESTED_FACT_TYPES } from "@elixir-mcp/contracts";
 
 /**
@@ -73,31 +73,34 @@ export async function readClanFeed(
 ) {
   const perf = {};
   const started = Date.now();
-  const built = await buildTimeline(
-    db,
-    [{ kind: "clan", tag: clanTag, scope: "comprehensive" }],
-    {
-      fromMs: now - FEED_DAYS * DAY_MS,
-      toMs: now,
-      timezone: account.timezone ?? "UTC",
-      accountId: account.accountId,
-      interactive: true,
-      // A post about a battle is read below as the post it is, so the
-      // record's own line for it (kind battle_highlight) is left out here:
-      // one item, not two.
-      filter: (it) =>
-        it.section !== "account" &&
-        it.kind !== "battle_highlight" &&
-        (view !== "news" || isClanNews(it)),
-      // The Feed draws items, never a clan entry's activity counts, so it
-      // skips the late-capture count (2026-11-12, "a clan's late counts
-      // are read only when a read says them"): that count walks every
-      // battle the record learned in the week, for every clan, and was
-      // most of the Feed's time (2026-11-13). The items are the same.
-      lateCounts: false,
-      perf,
-    },
-  );
+  const questionsView = view === "questions" || view === "unanswered";
+  const built = questionsView
+    ? { timeline: [], timeline_more: 0 }
+    : await buildTimeline(
+        db,
+        [{ kind: "clan", tag: clanTag, scope: "comprehensive" }],
+        {
+          fromMs: now - FEED_DAYS * DAY_MS,
+          toMs: now,
+          timezone: account.timezone ?? "UTC",
+          accountId: account.accountId,
+          interactive: true,
+          // A post about a battle is read below as the post it is, so the
+          // record's own line for it (kind battle_highlight) is left out here:
+          // one item, not two.
+          filter: (it) =>
+            it.section !== "account" &&
+            it.kind !== "battle_highlight" &&
+            (view !== "news" || isClanNews(it)),
+          // The Feed draws items, never a clan entry's activity counts, so it
+          // skips the late-capture count (2026-11-12, "a clan's late counts
+          // are read only when a read says them"): that count walks every
+          // battle the record learned in the week, for every clan, and was
+          // most of the Feed's time (2026-11-13). The items are the same.
+          lateCounts: false,
+          perf,
+        },
+      );
   // Where the Feed's time goes, each builder's name beside its ms, as Home's
   // timeline logs it (#649): the read is the timeline's own, shared.
   console.info(
@@ -121,8 +124,19 @@ export async function readClanFeed(
           fromMs: now - FEED_DAYS * DAY_MS,
           toMs: now,
           plain: posts,
+          questionsOnly: questionsView,
+          unansweredOnly: view === "unanswered",
         })
       : [];
+  const questionCounts =
+    posts && account.kind === "person"
+      ? await clanQuestionCounts(db, account.accountId, {
+          clanTag,
+          fromMs: now - FEED_DAYS * DAY_MS,
+          toMs: now,
+          plain: posts,
+        })
+      : null;
   const extra = found.length
     ? await withComments(
         db,
@@ -138,12 +152,19 @@ export async function readClanFeed(
     clan_tag: clanTag,
     view,
     window_days: FEED_DAYS,
+    question_counts: questionCounts,
     items: (await annotateFeed(db, items, [])).map(feedItem),
     // The builder also bounds member moments before its final cap. Those
     // discarded moments are not omitted Clan news. Its dropped rows let
     // this source count only the view that was requested.
-    more:
-      view === "news"
+    more: questionsView
+      ? Math.max(
+          0,
+          (questionCounts?.[
+            view === "unanswered" ? "unanswered" : "questions"
+          ] ?? 0) - found.length,
+        )
+      : view === "news"
         ? (built.timeline_dropped ?? []).filter(isClanNews).length
         : (built.timeline_more ?? 0),
   };

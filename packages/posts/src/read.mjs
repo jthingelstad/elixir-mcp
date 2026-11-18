@@ -36,7 +36,7 @@ export async function catalogRows(db, ids) {
 }
 
 const POST_COLS = `p.post_id::text as post_id, p.item_id, p.account_id,
-       p.player_tag, p.body, p.question, p.deck, p.cards, p.status,
+       p.player_tag, p.body, p.question, p.answered_at, p.deck, p.cards, p.status,
        p.battle_id, ts.share_id, p.revision, p.created_at, p.updated_at,
        pl.name as player_name, ap.passport_id as author_page`;
 const POST_AUTHOR_JOIN = `join account a on a.account_id = p.account_id
@@ -128,6 +128,7 @@ export async function readVisiblePosts(
     visibleOnly = false,
     plainOnly = false,
     createdOnly = false,
+    questionsOnly = false,
     limit = 200,
   },
 ) {
@@ -135,7 +136,7 @@ export async function readVisiblePosts(
   const rows = await readRows(
     db,
     `${audience()} and ${createdOnly ? "p.created_at" : "coalesce(p.updated_at, p.created_at)"} >= $3
-        and p.created_at ${createdOnly ? "<" : "<="} $4${plainOnly ? " and p.battle_id is null" : ""}`,
+        and p.created_at ${createdOnly ? "<" : "<="} $4${plainOnly ? " and p.battle_id is null" : ""}${questionsOnly ? " and p.question" : ""}`,
     [readerId, tags, new Date(fromMs), new Date(toMs)],
     { plain, visibleOnly, limit },
   );
@@ -340,17 +341,41 @@ export async function postsBy(
 
 /** A clan's Feed: the posts of its members now, in the window, for a
  *  reader the Clan handler has proved is in the clan. */
-export async function clanPosts(
+const clanPostWindow = `p.player_tag in (select player_tag from clan_membership
+                       where clan_tag = $2 and left_observed_at is null)
+        and coalesce(p.updated_at, p.created_at) >= $3 and p.created_at <= $4`;
+
+/** Questions in the same current-clan audience, counted before the cap. */
+export async function clanQuestionCounts(
   db,
   readerId,
   { clanTag, fromMs, toMs, plain = false },
 ) {
+  const { rows } = await db.query(
+    `select count(*)::int as questions,
+            count(*) filter (where p.answered_at is null)::int as unanswered
+       from account_post p ${POST_JOIN}
+      where ${seen(plain)} and ${clanPostWindow} and p.question`,
+    [readerId, clanTag, new Date(fromMs), new Date(toMs)],
+  );
+  return rows[0];
+}
+
+export async function clanPosts(
+  db,
+  readerId,
+  {
+    clanTag,
+    fromMs,
+    toMs,
+    plain = false,
+    questionsOnly = false,
+    unansweredOnly = false,
+  },
+) {
   const rows = await readRows(
     db,
-    `p.player_tag in (select player_tag from clan_membership
-                       where clan_tag = $2 and left_observed_at is null)
-        and coalesce(p.updated_at, p.created_at) >= $3
-        and p.created_at <= $4`,
+    `${clanPostWindow}${questionsOnly || unansweredOnly ? " and p.question" : ""}${unansweredOnly ? " and p.answered_at is null" : ""}`,
     [readerId, clanTag, new Date(fromMs), new Date(toMs)],
     { plain, limit: 100 },
   );
@@ -439,6 +464,7 @@ export async function postItems(db, rows, readerId) {
         id: r.post_id,
         text: String(r.body ?? ""),
         question: r.question === true,
+        answered: r.question === true && r.answered_at != null,
         deck: r.deck ? deckView(r.deck, catalog, roles) : null,
         cards: (r.cards ?? []).map((id) => {
           const c = catalog.get(Number(id));

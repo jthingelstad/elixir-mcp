@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Chips, Empty, Skeleton, useClock, ErrorState } from "@elixir-mcp/ui";
+import { useMe } from "../../App.jsx";
 import { FeedRows } from "../../home/FeedItem.jsx";
 import { CLAN, clanPath } from "../lib/base.js";
 import { keys, useFeed, useRace } from "../lib/queries.js";
@@ -32,6 +33,9 @@ function byDay(items, dayHeading) {
  *  cheer and answer it here. */
 function ClanTimeline({ clan }) {
   const { dayHeading } = useClock();
+  const { me } = useMe();
+  const questionsOn =
+    me?.features?.posts === true && me?.features?.comments === true;
   const [view, setView] = useState("all");
   const { state, load } = useFeed(clan.clan_tag, view);
   const [shown, setShown] = useState(FEED_PAGE);
@@ -51,6 +55,20 @@ function ClanTimeline({ clan }) {
       options={[
         { key: "all", label: "All activity" },
         { key: "news", label: "Clan news" },
+        ...(questionsOn
+          ? [
+              {
+                key: "questions",
+                label: "Questions",
+                count: state.data?.question_counts?.questions,
+              },
+              {
+                key: "unanswered",
+                label: "Unanswered",
+                count: state.data?.question_counts?.unanswered,
+              },
+            ]
+          : []),
       ]}
       onChange={(next) => {
         setView(next);
@@ -96,14 +114,22 @@ function ClanTimeline({ clan }) {
       {items.length === 0 ? (
         <Empty
           title={
-            view === "news"
-              ? "No clan news in the last seven days"
-              : "Nothing in the last seven days"
+            view === "unanswered"
+              ? "No unanswered questions in the last seven days"
+              : view === "questions"
+                ? "No questions in the last seven days"
+                : view === "news"
+                  ? "No clan news in the last seven days"
+                  : "Nothing in the last seven days"
           }
         >
-          {view === "news"
-            ? "All activity still shows your clanmates' moments and posts."
-            : "Joins, departures, promotions, members' moments and posts appear here as Elixir records them."}
+          {view === "unanswered"
+            ? "Questions stay here until their author marks them Answered."
+            : view === "questions"
+              ? "Questions from your current clanmates appear here."
+              : view === "news"
+                ? "All activity still shows your clanmates' moments and posts."
+                : "Joins, departures, promotions, members' moments and posts appear here as Elixir records them."}
         </Empty>
       ) : (
         <div className="kit-feed">
@@ -139,8 +165,13 @@ function ClanTimeline({ clan }) {
       {left === 0 && d.more > 0 ? (
         <p className="page-head__note m-0">
           A busy week: the {all.length} newest{" "}
-          {view === "news" ? "clan news" : "activity"} items were read, and{" "}
-          {Number(d.more).toLocaleString("en-US")} more are not.
+          {view === "news"
+            ? "clan news"
+            : view === "questions" || view === "unanswered"
+              ? "question"
+              : "activity"}{" "}
+          items were read, and {Number(d.more).toLocaleString("en-US")} more are
+          not.
         </p>
       ) : null}
     </section>

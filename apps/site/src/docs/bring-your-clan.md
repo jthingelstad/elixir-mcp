@@ -126,7 +126,9 @@ Below it, the tabs:
 - **Timeline**: what is waiting for you comes first, then the clan's last
   seven days, newest first. **All activity** starts with everything you
   may read: joins, departures and role changes, members' moments and
-  posts. **Clan news** focuses on roster moves, races, awards and the
+  posts. **Questions** reads current clanmates' questions, with answer
+  counts and the author's Answered state. **Unanswered** reads only those
+  the author has not marked Answered, with counts taken before the page cap. **Clan news** focuses on roster moves, races, awards and the
   clan's own notices. Each view keeps the same item once, in time order;
   it does not change your personal Timeline.
   Thirty lines appear at a time, with **More** for the next thirty.

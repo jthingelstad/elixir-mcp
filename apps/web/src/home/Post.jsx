@@ -358,7 +358,11 @@ export function PostBody({ it }) {
   const words = String(p.text ?? "");
   return (
     <div className="kit-written">
-      {p.question ? <p className="kit-written__label">Question</p> : null}
+      {p.question ? (
+        <p className="kit-written__label">
+          Question{p.answered ? <span> · Answered</span> : null}
+        </p>
+      ) : null}
       {words ? <p className="kit-written__text">{words}</p> : null}
       {p.battle ? (
         <PostBattle battle={p.battle} versus={p.versus} who={p.author} />
@@ -488,6 +492,8 @@ export function PostActions({ it }) {
   const [reporting, setReporting] = useState(false);
   const [reported, setReported] = useState(false);
   const [editing, setEditing] = useState(false);
+  const [answerBusy, setAnswerBusy] = useState(false);
+  const [answerError, setAnswerError] = useState(null);
   const name = p.author?.name ?? p.author?.player_tag ?? "this player";
   if (reported)
     return (
@@ -497,6 +503,29 @@ export function PostActions({ it }) {
     );
   return (
     <div className="kit-written__acts">
+      {p.can_edit && p.mine && p.question && !p.status ? (
+        <button
+          type="button"
+          className="btn btn--quiet btn--sm"
+          disabled={answerBusy}
+          aria-busy={answerBusy}
+          onClick={async () => {
+            setAnswerBusy(true);
+            setAnswerError(null);
+            const out = await api.setQuestionAnswered(p.id, !p.answered);
+            setAnswerBusy(false);
+            if (out.ok) changed();
+            else setAnswerError(refusalWords(out));
+          }}
+        >
+          {p.answered ? "Mark unanswered" : "Mark answered"}
+        </button>
+      ) : null}
+      {answerError ? (
+        <p className="kit-tiny" role="status">
+          {answerError}
+        </p>
+      ) : null}
       {p.can_edit && !editing ? (
         <button
           type="button"

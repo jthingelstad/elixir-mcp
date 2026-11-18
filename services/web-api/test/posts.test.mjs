@@ -708,3 +708,49 @@ test("with comments on and posts off, a post about a battle's author can be bloc
     ["tl_0000000000000000b10c", "tl_0000000000000000b10d"],
   ]);
 });
+
+test("Questions reads its own pages before the mixed post cap and refuses a cursor in another view", async () => {
+  const { db } = scratch;
+  await db.query(
+    `insert into account_post(item_id,account_id,player_tag,body,question,created_at)
+    select 'tl_' || substr(md5('questions-page-' || i),1,20),$1,$2,
+      'Questions paging fixture',i <= 35,
+      now() - case when i <= 35 then interval '3 minutes' else interval '1 minute' end
+    from generate_series(1,240) i`,
+    [AUTHOR, A],
+  );
+  const read = await call(AUTHOR, "GET", "/api/me/home/feed", undefined, {
+    questions: "1",
+  });
+  assert.equal(read.statusCode, 200, read.body);
+  const first = data(read);
+  assert.equal(first.timeline.length, 30);
+  assert.ok(
+    first.timeline.every((it) => it.kind === "post" && it.post.question),
+  );
+  assert.ok(first.next);
+  const rest = await call(AUTHOR, "GET", "/api/me/home/feed", undefined, {
+    questions: "1",
+    cursor: first.next,
+  });
+  assert.equal(rest.statusCode, 200, rest.body);
+  assert.ok(data(rest).timeline.every((it) => it.post.question));
+  assert.equal(
+    [...first.timeline, ...data(rest).timeline].filter(
+      (it) => it.post.text === "Questions paging fixture",
+    ).length,
+    35,
+  );
+  const mismatch = await call(AUTHOR, "GET", "/api/me/home/feed", undefined, {
+    cursor: first.next,
+  });
+  assert.equal(mismatch.statusCode, 400);
+  const absent = await callWith(commentsOnlyHandler)(
+    AUTHOR,
+    "GET",
+    "/api/me/home/feed",
+    undefined,
+    { questions: "1" },
+  );
+  assert.equal(absent.statusCode, 404);
+});

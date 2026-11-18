@@ -240,6 +240,7 @@ export function FeedItem({
   onToggle = null,
   cheerWhere = undefined,
   publicView = false,
+  commentEntry = null,
 }) {
   const sitting = SITTINGS.has(it.kind);
   const clan = isClanItem(it);
@@ -356,7 +357,9 @@ export function FeedItem({
           </span>
         </footer>
       ) : null}
-      {!publicView && "comments" in it ? <Comments it={it} /> : null}
+      {!publicView && "comments" in it ? (
+        <Comments it={it} entry={commentEntry} />
+      ) : null}
     </article>
   );
 }
