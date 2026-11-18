@@ -9,6 +9,7 @@ import {
   poolOwner,
   pooledFollows,
   pooledUsage,
+  visibleFriendSql,
 } from "@elixir-mcp/claims";
 import { normalizeTag, InvalidTagError } from "@elixir-mcp/contracts";
 import { enqueueJob } from "@elixir-mcp/ledger";
@@ -102,7 +103,7 @@ async function readerSide(db, accountId, tag, clanTag) {
   const { rows } = await db.query(
     // One statement: the reader's claim on the tag, if any, and whether
     // the reader blocked the account that verified it (Codex on #1081).
-    `select c.is_primary, c.relationship, c.close,
+    `select c.is_primary, c.relationship, c.close, ${visibleFriendSql("c")} as visible_friend,
             exists (
               select 1 from account_block b
                 join claim v on v.account_id = b.blocked_account_id
@@ -124,6 +125,7 @@ async function readerSide(db, accountId, tag, clanTag) {
     own,
     // Following is the reader's own Follow, a friend claim.
     following: !own && claim?.relationship === "friend",
+    pair: !own && claim?.visible_friend === true,
     // A close friend (0281): the reader's own private mark, in the reader's
     // own block, never anywhere another member reads.
     close: !own && claim?.relationship === "friend" && claim?.close === true,

@@ -307,6 +307,11 @@ export const api = {
   /** A player's page (#764): their record, follows, followers and badges. */
   playerPage: (tag) =>
     request("GET", `/api/player?tag=${encodeURIComponent(tag)}`),
+  playerPair: (params) =>
+    request(
+      "GET",
+      `/api/me/player-pair?${new URLSearchParams(Object.entries(params).filter(([, value]) => value != null))}`,
+    ),
   /** A sitting's games on a player's page (View games): `tag` and the
    *  evidence params Home's timeline read takes. */
   playerEvidence: (params) =>

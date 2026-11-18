@@ -7574,6 +7574,20 @@ button.kit-row {
   flex-wrap: wrap;
   gap: var(--s-2);
 }
+.kit-pair__filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: var(--s-3);
+}
+.kit-pair__filters label {
+  flex: 1 1 160px;
+  min-width: 0;
+}
+.kit-pair__filters select {
+  width: 100%;
+  min-width: 0;
+}
 .kit-form__row .input {
   flex: 1 1 160px;
   min-width: 0;

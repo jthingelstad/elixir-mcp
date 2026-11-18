@@ -51,6 +51,7 @@ import {
 import { FollowAll, FollowButton } from "./follow.jsx";
 import { CloseToggle } from "./close.jsx";
 import { PlayerRecord } from "./PlayerRecord.jsx";
+import { PairGames } from "./PairGames.jsx";
 import { useAskOnOpen } from "../lib/own-refresh.js";
 import { RefreshPlayer } from "./RefreshPlayer.jsx";
 import { PostList } from "./PostList.jsx";
@@ -80,7 +81,12 @@ export const PLAYER_TABS = [
 /** Their record in your clan, the member page Clan kept until 2026-11-12:
  *  drawn only for a viewer with a player in that clan. */
 const CLAN_TAB = { key: "clan", label: "Clan" };
-const OWN_TABS = new Set([...PLAYER_TABS.map((t) => t.key), CLAN_TAB.key]);
+const PAIR_TAB = { key: "together", label: "Together" };
+const OWN_TABS = new Set([
+  ...PLAYER_TABS.map((t) => t.key),
+  CLAN_TAB.key,
+  PAIR_TAB.key,
+]);
 export function PlayerPage() {
   const { pathname, search } = useLocation();
   const tag = tagFromPath(pathname.replace(/\/$/, "").split("/")[3] ?? "");
@@ -168,7 +174,10 @@ export function PlayerView({ page, initialTab = "timeline" }) {
   // An address asking for Clan before Clan answers waits for it; once it
   // has, a viewer outside the clan reads the timeline.
   const shown =
-    tab === "clan" && !inClan.clan && !inClan.pending ? "timeline" : tab;
+    (tab === "clan" && !inClan.clan && !inClan.pending) ||
+    (tab === "together" && !you.pair)
+      ? "timeline"
+      : tab;
   const sub = [
     p.tag,
     p.clan_name ?? (p.clan_tag ? p.clan_tag : "No clan"),
@@ -177,10 +186,13 @@ export function PlayerView({ page, initialTab = "timeline" }) {
     .filter(Boolean)
     .join(" · ");
   const items = [
-    ...PLAYER_TABS.map((t) => ({
-      ...t,
-      count: t.key === "moments" ? page.moments.length : null,
-    })),
+    ...PLAYER_TABS.flatMap((t) => [
+      {
+        ...t,
+        count: t.key === "moments" ? page.moments.length : null,
+      },
+      ...(t.key === "timeline" && you.pair ? [PAIR_TAB] : []),
+    ]),
     ...(inClan.clan ? [CLAN_TAB] : []),
   ];
   return (
@@ -296,6 +308,8 @@ export function PlayerView({ page, initialTab = "timeline" }) {
             cheered={cheered}
             where={{ key: ["me", "player", p.tag], list: "moments" }}
           />
+        ) : shown === "together" ? (
+          <PairGames key={p.tag} tag={p.tag} />
         ) : shown === "record" ? (
           <PlayerRecord tag={p.tag} />
         ) : (

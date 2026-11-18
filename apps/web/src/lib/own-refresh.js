@@ -22,7 +22,7 @@
 import { useCallback, useEffect, useSyncExternalStore } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { api } from "../api.js";
-import { HOME_FEED_KEY } from "./queries.js";
+import { HOME_FEED_KEY, PLAYER_PAIR_KEY } from "./queries.js";
 
 /** Back after this long hidden: ask again. */
 export const HIDDEN_ASK_MS = 5 * 60_000;
@@ -33,25 +33,19 @@ export const MAX_POLLS = 4;
 const MIN_WAIT_S = 5;
 const MAX_WAIT_S = 60;
 
-/** What landing refreshes: your Home's reads (head, feed, week), player
- *  pages and their games (the list a battle to post about is picked from). */
-export const LANDED_KEYS = [
-  ["me", "home"],
-  ["me", "player"],
-  ["me", "player-evidence"],
-  ["me", "player-record"],
-];
-
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-const hiddenDoc = () =>
-  typeof document !== "undefined" && document.visibilityState === "hidden";
-
-/** What landing refreshes for one player's page: the page and its games. */
+/** Player reads, including every Together summary and battle page. */
 export const PLAYER_LANDED_KEYS = [
   ["me", "player"],
   ["me", "player-evidence"],
   ["me", "player-record"],
+  PLAYER_PAIR_KEY,
 ];
+/** The account's read completion includes those same player reads. */
+export const LANDED_KEYS = [["me", "home"], ...PLAYER_LANDED_KEYS];
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const hiddenDoc = () =>
+  typeof document !== "undefined" && document.visibilityState === "hidden";
 
 /**
  * One refresher. `ask` never throws; `snapshot()` is `{ checking,

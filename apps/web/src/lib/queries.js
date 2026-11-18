@@ -249,6 +249,26 @@ export const usePlayerPage = (tag) =>
     staleTime: 30_000,
   });
 
+export const PLAYER_PAIR_KEY = ["me", "player-pair"];
+export const usePlayerPair = (tag, as) =>
+  useQuery({
+    queryKey: [...PLAYER_PAIR_KEY, tag, as ?? null],
+    queryFn: answered(() => api.playerPair({ tag, as })),
+    staleTime: 30_000,
+    retry: false,
+  });
+export const usePairBattles = ({ tag, as, mode, side }, enabled) =>
+  useInfiniteQuery({
+    queryKey: [...PLAYER_PAIR_KEY, tag, as, mode, side],
+    queryFn: ({ pageParam }) =>
+      api.playerPair({ tag, as, mode, side, before: pageParam }).then(unwrap),
+    initialPageParam: null,
+    getNextPageParam: (last) => last.next_before ?? undefined,
+    enabled,
+    staleTime: 30_000,
+    retry: false,
+  });
+
 /** An account's page (2026-11-15). Under ["me"]: whether you follow it
  *  changes it. */
 export const useAccountPage = (id) =>
