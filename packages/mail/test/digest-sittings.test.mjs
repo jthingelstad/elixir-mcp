@@ -215,7 +215,8 @@ test("plain posts retain deck/cards and member actions within the digest byte bu
   assert.ok(html.includes("/home/post/1?"));
   assert.ok(words(html).includes("Hog Rider"));
   assert.ok(words(html).includes("3 more on your timeline."));
-  assert.match(subject, /36 posts/);
+  assert.match(subject, /36 posts from 12 players/);
+  assert.doesNotMatch(words(html), /No battles recorded/);
   assert.match(words(html), /36 posts/);
   assert.doesNotMatch(html, /\/h\//);
 });

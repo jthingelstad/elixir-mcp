@@ -42,6 +42,7 @@ import { BIG_FIRST_KINDS, progressOf } from "@elixir-mcp/tools/friends-week";
 import { verifiedPlayerIdentities } from "@elixir-mcp/auth/player-identities";
 import { battleLinks } from "@elixir-mcp/record/battle-links";
 import { readVisiblePosts } from "@elixir-mcp/posts";
+import { digestActivity, isDigestPost } from "@elixir-mcp/mail/digest-activity";
 
 /** The items a digest tells: a post about a battle (kind battle_highlight), the big
  *  firsts the milestone mail told (each with the battle that made it),
@@ -433,12 +434,11 @@ export async function buildDigest({
     );
     // Posts first (the player's own words), then the rest; each
     // group newest first, the timeline's own order.
-    const ordered = [
-      ...mine.filter((it) => ["battle_highlight", "post"].includes(it.kind)),
-      ...mine.filter((it) => !["battle_highlight", "post"].includes(it.kind)),
-    ];
+    const posted = mine.filter(isDigestPost);
+    const ordered = [...posted, ...mine.filter((it) => !isDigestPost(it))];
     const sat = pickSittings(items, tag);
     return {
+      post_count: posted.length,
       items: ordered
         .slice(0, ITEMS_PER_PERSON)
         .map((it) => digestItem(it, tz, links)),
@@ -528,6 +528,7 @@ export async function buildDigest({
         b.items.length + b.more_items - (a.items.length + a.more_items) ||
         b.battles - a.battles,
     );
+  const followedActivity = digestActivity(followed);
   const primary = players.find((e) => e.relationship === "primary");
   // Your alts: Arena week's part that had no other mail (D12, an alt's
   // firsts), so each alt that played or reached something carries its
@@ -604,6 +605,7 @@ export async function buildDigest({
       to: new Date(window.toMs).toISOString(),
     },
     people: shown,
+    followed_activity: followedActivity,
     more_people: Math.max(0, followed.length - PEOPLE_CAP),
     clans,
     // Your own sittings are not retold to you: You keeps its count and

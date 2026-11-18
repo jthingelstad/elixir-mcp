@@ -19,8 +19,9 @@ you: a clan action that is yours to do, cheers and new followers you
 have not seen yet, your collector's week if you run one, and an answer to
 feedback you filed.
 
-The digest gives each friend room: their posts, questions and words come before
-their battle record. A gold check beside a linked player name marks a
+Your digest counts how many players posted and how many played. A question or
+a post about a battle counts as a post. A friend who did both counts once in
+each group. Their words come first, with a battle record when they played. A gold check beside a linked player name marks a
 player verified in Elixir, even if they have not chosen an image.
 
 Mail apps that support custom fonts show the same game titles as Elixir.

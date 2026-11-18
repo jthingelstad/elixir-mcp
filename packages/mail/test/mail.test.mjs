@@ -266,7 +266,7 @@ test("the digest replaces the friends mail under its kind: Your week in Elixir, 
   assert.equal(KIND_LABELS.tracking_report, "Your digest");
   assert.match(
     out.subject,
-    /^Your week in Elixir: 3 people you follow, 73 battles$/,
+    /^Your week in Elixir: 1 post from 1 player · 73 battles from 3 players$/,
   );
   assert.ok(!/Your friends this week|Tracking report/.test(out.html));
   assert.match(out.html, /Turn off this mail/);
@@ -303,6 +303,64 @@ test("the digest replaces the friends mail under its kind: Your week in Elixir, 
   assert.doesNotMatch(text, /[A-Za-z0-9]\.\./);
   // Each player once: a followed clanmate is marked, never told twice.
   assert.match(text, /Rapid Clear[^\n]*\n+In POAP KINGS/);
+});
+
+test("digest headlines count posting and play independently in both cadences", () => {
+  const facts = allFixtures().find((x) => x.kind === "tracking_report").facts;
+  const [poster, player, moment] = facts.people;
+  const question = {
+    kind: "post",
+    words: "Which card?",
+    post: { id: "403", question: true },
+  };
+  const people = [
+    { ...poster, battles: 0, sessions: 0, sittings: [], items: [question] },
+    { ...player, battles: 1 },
+    { ...moment, battles: 0, sessions: 0, sittings: [] },
+  ];
+  for (const cadence of ["daily", "weekly"]) {
+    const title =
+      cadence === "daily" ? "Your day in Elixir" : "Your week in Elixir";
+    const out = renderMail(
+      "tracking_report",
+      { ...facts, cadence, people, you: null },
+      links,
+    );
+    const summary = "1 post from 1 player · 1 battle from 1 player";
+    assert.equal(out.subject, title + ": " + summary);
+    const text = htmlToText(out.html);
+    assert.ok(text.includes(summary));
+    assert.match(out.preheader, /Which card/);
+    const author = text.slice(
+      text.indexOf("From people you follow"),
+      text.indexOf(player.name),
+    );
+    assert.match(author, /Read and reply/);
+    assert.match(author, /8,962 trophies/);
+    assert.doesNotMatch(author, /No battles recorded/);
+    // The person whose only news was a milestone still has their own row.
+    assert.match(text, /passed 5,000 career wins/);
+  }
+});
+
+test("a reader's own post can stand alone in their digest", () => {
+  const facts = allFixtures().find((x) => x.kind === "tracking_report").facts;
+  const you = {
+    ...facts.you,
+    battles: 0,
+    alts: [],
+    trophies: null,
+    items: [{ kind: "post", words: "New deck", post: { id: "404" } }],
+  };
+  const out = renderMail(
+    "tracking_report",
+    { ...facts, people: [], clans: [], you },
+    links,
+  );
+  const text = htmlToText(out.html);
+  assert.match(text, /New deck/);
+  assert.doesNotMatch(text, /No battles recorded/);
+  assert.equal(out.subject, "Your week in Elixir: your week");
 });
 
 test("a daily digest says its day and its cadence (#767)", () => {

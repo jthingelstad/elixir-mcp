@@ -34,6 +34,11 @@ import {
   signedCount,
   trophyNet,
 } from "@elixir-mcp/ui/session-story";
+import {
+  digestActivity,
+  digestPostCount,
+  isDigestPost,
+} from "./digest-activity.mjs";
 import { MAIL_PATHS } from "./paths.mjs";
 
 export const KIND_LABELS = {
@@ -62,6 +67,7 @@ const FAMILY_ORIGINS = [
 ];
 
 const n = (v) => (v == null ? "—" : Number(v).toLocaleString("en-US"));
+const plural = (k, one, many = `${one}s`) => `${n(k)} ${k === 1 ? one : many}`;
 const signed = (v) =>
   v == null ? "—" : v > 0 ? `+${n(v)}` : v < 0 ? `−${n(-v)}` : "0";
 const pct = (v) => (v == null ? "—" : `${Math.round(v * 100)}%`);
@@ -409,19 +415,24 @@ function digestSittings(x, c, { mode = "full", art = true } = {}) {
     .join("")}${more}`;
 }
 
-/** A person in the digest: their name, their sittings and record, then
- *  what they posted and reached, the rest counted. Tone, not outlines
- *  (DECISIONS "Flat: tone, not outlines"). */
+/** A post can stand on its own even when the digest has no recorded play. */
+function digestRecord(person, separator) {
+  if (!person.battles)
+    return digestPostCount(person) ? "" : "No battles recorded";
+  return [
+    plural(person.sessions, "session"),
+    plural(person.battles, "battle"),
+    recHtml(person.wins, person.losses),
+  ].join(separator);
+}
+
 function digestPerson(x, c, sittings = {}) {
-  const record = x.battles
-    ? `${n(x.sessions)} session${x.sessions === 1 ? "" : "s"} · ${n(x.battles)} battle${x.battles === 1 ? "" : "s"} · ${recHtml(x.wins, x.losses)}`
-    : "No battles recorded";
-  const trophies =
-    x.trophies && x.trophies.to !== x.trophies.from
-      ? `<br>${n(x.trophies.to)} trophies (${signed(x.trophies.to - x.trophies.from)})`
-      : x.trophies
-        ? `<br>${n(x.trophies.to)} trophies`
-        : "";
+  const trophies = x.trophies
+    ? `${n(x.trophies.to)} trophies${x.trophies.to !== x.trophies.from ? ` (${signed(x.trophies.to - x.trophies.from)})` : ""}`
+    : "";
+  const record = [digestRecord(x, " · "), trophies]
+    .filter(Boolean)
+    .join("<br>");
   const progress = progressText(x.progress);
   const more = x.more_items
     ? c.small(
@@ -435,7 +446,7 @@ function digestPerson(x, c, sittings = {}) {
     ${(x.items ?? []).map((it) => digestItem(it, c)).join("")}
     ${digestSittings(x, c, sittings)}
     ${progress ? c.small(esc(sentence(capFirst(progress))), "margin-top:8px;") : ""}
-    <div style="margin-top:8px;font-family:${FONT};font-size:12px;line-height:1.5;color:${M.faint};">${record}${trophies}</div>${more}
+    ${record ? c.small(record, "margin-top:8px;") : ""}${more}
   </td></tr></table>`;
 }
 
@@ -486,6 +497,7 @@ function digestPeople(people, c) {
         html = digestPerson(
           {
             ...x,
+            post_count: digestPostCount(x),
             items: [],
             more_items: x.items.length + (x.more_items ?? 0),
           },
@@ -498,6 +510,50 @@ function digestPeople(people, c) {
     .join("");
 }
 
+function digestPreview(people) {
+  for (const person of people) {
+    const quote = (person.items ?? []).find(
+      (it) => isDigestPost(it) && it.words,
+    );
+    if (quote) return `${person.name}: “${quote.words}”`;
+  }
+  return sentence(
+    people
+      .filter((x) => x.battles > 0)
+      .slice(0, 4)
+      .map((x) => `${x.name} ${plural(x.battles, "battle")}`)
+      .join(", "),
+  );
+}
+
+function digestYou(you, c) {
+  const record = sentence(
+    [
+      digestRecord(you, ", "),
+      you.trophies && you.trophies.to !== you.trophies.from
+        ? `${signed(you.trophies.to - you.trophies.from)} trophies`
+        : "",
+    ]
+      .filter(Boolean)
+      .join(", "),
+  );
+  const alts = you.alts ?? [];
+  const withAlts = alts.length
+    ? `With ${alts.map((a) => `${c.P(a.tag, a.name)} (${n(a.battles)})`).join(" and ")}.`
+    : "";
+  const intro = [record, withAlts].filter(Boolean).join(" ");
+  const items = [intro, ...(you.items ?? []).map((it) => digestItem(it, c))]
+    .filter(Boolean)
+    .join("<br>");
+  return `${items}${you.progress ? c.small(esc(sentence(capFirst(progressText(you.progress)))), "margin-top:4px;") : ""}${alts
+    .filter((a) => a.items?.length || a.progress)
+    .map(
+      (a) =>
+        `<div style="margin-top:8px;font-family:${FONT};font-size:16px;font-weight:600;color:${M.ink};">${c.P(a.tag, a.name)}</div>${(a.items ?? []).map((it) => digestItem(it, c)).join("")}${a.progress ? c.small(esc(sentence(capFirst(progressText(a.progress)))), "margin-top:4px;") : ""}`,
+    )
+    .join("")}`;
+}
+
 /** The digest of the people you follow (tracking_report, #767): who
  *  played and posted, what they reached, the clans around the reader and
  *  their own stretch, for a week or a day. An issue stored by the
@@ -507,12 +563,28 @@ function digest(f, c) {
   const daily = f.cadence === "daily";
   const span = daily ? "day" : "week";
   const people = f.people ?? [];
-  const total = people.reduce((s, x) => s + (x.battles ?? 0), 0);
-  const posted = people.filter((x) =>
-    (x.items ?? []).some((it) =>
-      ["battle_highlight", "post"].includes(it.kind),
-    ),
-  );
+  const activity = f.followed_activity ?? digestActivity(people);
+  const parts = [];
+  if (activity.posters)
+    parts.push(
+      `${plural(activity.posts, "post")} from ${plural(activity.posters, "player")}`,
+    );
+  if (activity.players)
+    parts.push(
+      `${plural(activity.battles, "battle")} from ${plural(activity.players, "player")}`,
+    );
+  if (!parts.length)
+    parts.push(
+      `Updates from ${plural(people.length + (f.more_people ?? 0), "player")}`,
+    );
+  const summary = parts.join(" · ");
+  // Keep each count with its players when a phone wraps the opening line.
+  const summaryHtml = parts
+    .map(
+      (part) =>
+        `<span style="display:inline-block;max-width:100%;">${esc(part)}</span>`,
+    )
+    .join(" · ");
   const from = people.length
     ? `${c.h2("From people you follow", `${n(people.length + (f.more_people ?? 0))}${f.account_follow_posts ? "" : ` of ${n(f.following ?? 0)}`} had something this ${span}`)}${digestPeople(people, c)}${
         f.more_people
@@ -523,17 +595,6 @@ function digest(f, c) {
       }`
     : "";
   const you = f.you;
-  const youText = you
-    ? `${you.battles ? `${n(you.sessions)} session${you.sessions === 1 ? "" : "s"}, ${n(you.battles)} battle${you.battles === 1 ? "" : "s"}, ${recHtml(you.wins, you.losses)}` : "No battles recorded"}${you.trophies && you.trophies.to !== you.trophies.from ? `, ${signed(you.trophies.to - you.trophies.from)} trophies` : ""}.${you.alts?.length ? ` With ${you.alts.map((a) => `${c.P(a.tag, a.name)} (${n(a.battles)})`).join(" and ")}.` : ""}${(you.items ?? []).map((it) => `<br>${digestItem(it, c)}`).join("")}${you.progress ? c.small(esc(sentence(capFirst(progressText(you.progress)))), "margin-top:4px;") : ""}${(
-        you.alts ?? []
-      )
-        .filter((a) => a.items?.length || a.progress)
-        .map(
-          (a) =>
-            `<div style="margin-top:8px;font-family:${FONT};font-size:16px;font-weight:600;color:${M.ink};">${c.P(a.tag, a.name)}</div>${(a.items ?? []).map((it) => digestItem(it, c)).join("")}${a.progress ? c.small(esc(sentence(capFirst(progressText(a.progress)))), "margin-top:4px;") : ""}`,
-        )
-        .join("")}`
-    : "";
   const around = [
     ...(f.clans ?? []).map((k) => ({
       title: `${c.K(k.tag, k.name)}${you?.clan?.tag === k.tag ? `<span style="font-weight:400;color:${M.faint};">, your clan</span>` : ""}`,
@@ -541,7 +602,13 @@ function digest(f, c) {
       mark: M.link,
     })),
     ...(you
-      ? [{ title: `You, ${c.P(you.tag, you.name)}`, text: youText, mark: M.ok }]
+      ? [
+          {
+            title: `You, ${c.P(you.tag, you.name)}`,
+            text: digestYou(you, c),
+            mark: M.ok,
+          },
+        ]
       : []),
   ];
   const body = `${from}
@@ -550,50 +617,27 @@ function digest(f, c) {
     ${c.small(`Anyone with a player tag can be followed: ${c.link(`${SITE}/home/find`, "follow a friend")}. Everyone you follow: <a href="${c.T(MAIL_PATHS.players)}" style="color:${M.link};">Settings › Players</a>.`)}
     ${c.cov(esc(f.coverage ?? ""))}`;
   // The inbox preview: a post's words first, else who played.
-  const lead = posted[0]
-    ? `${posted[0].name}: “${posted[0].items.find((it) => ["battle_highlight", "post"].includes(it.kind))?.words ?? ""}”`
-    : people
-        .slice(0, 4)
-        .map(
-          (x) =>
-            `${x.name} ${n(x.battles)} battle${x.battles === 1 ? "" : "s"}`,
-        )
-        .join(", ");
-  const said = posted[0] ? lead : sentence(lead);
+  const lead = digestPreview(people);
   const preheader = lead
-    ? said.length > 140
-      ? `${said.slice(0, 139)}…`
-      : said
+    ? lead.length > 140
+      ? `${lead.slice(0, 139)}…`
+      : lead
     : `Your ${span} in Elixir.`;
   const title = daily ? "Your day in Elixir" : "Your week in Elixir";
-  const plainPosts = people.reduce(
-    (sum, x) => sum + (x.items ?? []).filter((it) => it.kind === "post").length,
-    0,
-  );
-  const postCount = people.reduce(
-    (sum, x) =>
-      sum +
-      (x.items ?? []).filter((it) =>
-        ["post", "battle_highlight"].includes(it.kind),
-      ).length,
-    0,
-  );
-  const activity =
-    total || !plainPosts
-      ? `${n(total)} battle${total === 1 ? "" : "s"}`
-      : `${n(plainPosts)} post${plainPosts === 1 ? "" : "s"}`;
   const since = c.date(f.window?.from);
   // With no one you follow in it, a clan's news names the clan (its
   // name is the clan's, never a person's); otherwise "your week".
   const clansOnly = !people.length && !you && (f.clans ?? []).length;
   return {
-    subject: `${title}: ${people.length ? `${n(people.length)} ${people.length === 1 ? "person" : "people"} you follow, ${activity}` : clansOnly ? `${f.clans[0].name}${f.clans.length > 1 ? ` and ${n(f.clans.length - 1)} more` : ""}` : `your ${span}`}`,
+    subject: `${title}: ${people.length ? summary : clansOnly ? `${f.clans[0].name}${f.clans.length > 1 ? ` and ${n(f.clans.length - 1)} more` : ""}` : `your ${span}`}`,
     preheader,
     html: (links) =>
       c.shell({
         kind: "tracking_report",
         title,
-        subtitle: `${since ? `Since ${esc(since)} · ` : ""}${postCount ? `${n(postCount)} ${plainPosts ? "post" : "battle post"}${postCount === 1 ? "" : "s"} · ` : ""}${people.length ? `${n(people.length)} ${people.length === 1 ? "person" : "people"} you follow${total || !plainPosts ? " played" : " shared"} ${activity}` : `your ${span}`}`,
+        subtitle: people.length
+          ? `${summaryHtml}${since ? `<br>Since ${esc(since)}` : ""}`
+          : `${since ? `Since ${esc(since)} · ` : ""}your ${span}`,
         preheader,
         body,
         why: digestWhyLine(daily ? "daily" : "weekly", c.timezone),
@@ -916,8 +960,6 @@ function activityToday(f, c) {
     cheers.reduce((s, i) => s + Number(i.fresh ?? 0), 0) +
     Number(f.more_cheers ?? 0);
   const followTotal = followers.reduce((s, p) => s + Number(p.count ?? 0), 0);
-  const plural = (k, one, many = `${one}s`) =>
-    `${n(k)} ${k === 1 ? one : many}`;
   const subjectParts = [
     cheerTotal ? plural(cheerTotal, "cheer") : null,
     followTotal ? plural(followTotal, "new follower") : null,
