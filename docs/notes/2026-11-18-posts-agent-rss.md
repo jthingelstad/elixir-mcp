@@ -43,6 +43,14 @@ Defaults decided in engineering: the person-only grant, followers scope,
 no publication permission, allowlisted DTO and member destinations. These
 match the approved delivery scope and require no legal wording change.
 
+Browser QA used repository Playwright because the Browser plugin was not
+available. The docs were captured, inspected and iterated at 320, 390 and
+1280 pixels with images blocked, external requests suppressed and reduced
+motion enabled. The new descriptive link was focused and followed by
+keyboard into the MCP post section. No horizontal page overflow or page
+errors appeared. The RSS reader app's presentation is outside Elixir;
+its XML content, escaping and member destinations are covered at the route.
+
 MCP 13.13.0, additive; JSON API 5.1.0 unchanged. No new tool, subscription,
 mail kind, write action or actual delivery is introduced. Baseline-failing
 regressions cover MCP and RSS posts; source, read-pointer, cap, edit,
