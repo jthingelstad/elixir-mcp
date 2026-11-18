@@ -143,33 +143,34 @@ const audiencePostIds = ({
   players = "$2::text[]",
   clanmates = false,
   hiddenOwn = false,
-  createdFrom = null,
-  createdTo = null,
+  creationCount = false,
+  window = "",
+  timeColumn = "p.created_at",
 } = {}) => {
-  const window = `${createdFrom ? ` and p.created_at >= ${createdFrom}` : ""}${createdTo ? ` and p.created_at <= ${createdTo}` : ""}`;
+  const range = window ? ` and ${window}` : "";
   return [
     `select p.post_id from account_post p where p.account_id=$1::uuid
-      and (p.status='visible'${hiddenOwn ? " or p.status='hidden'" : ""})${window}`,
-    createdFrom
+      and (p.status='visible'${hiddenOwn ? " or p.status='hidden'" : ""})${range}`,
+    creationCount
       ? `select named.post_id from (
          select p.post_id from account_post p
-          where p.player_tag=any(${players}) and p.status='visible'${window}
+          where p.player_tag=any(${players}) and p.status='visible'${range}
           order by p.player_tag,p.created_at desc offset 0
        ) named`
       : `select p.post_id from unnest(${players}) followed(player_tag)
      cross join lateral (
        select p.post_id from account_post p
-        where p.player_tag=followed.player_tag and p.status='visible'${window}
-        order by p.created_at desc offset 0
+        where p.player_tag=followed.player_tag and p.status='visible'${range}
+        order by ${timeColumn} desc offset 0
      ) p`,
     `select p.post_id from account_follow f cross join lateral (
      select p.post_id from account_post p
-      where p.account_id = f.followed_account_id and p.status = 'visible'${window}
-      order by p.created_at desc offset 0
+      where p.account_id = f.followed_account_id and p.status = 'visible'${range}
+      order by ${timeColumn} desc offset 0
    ) p where f.account_id = $1::uuid`,
     ...(clanmates
       ? [
-          createdFrom
+          creationCount
             ? `
        select candidate.post_id from (
          with named_clans as materialized (${currentOwnClansSql("$1")}),
@@ -177,7 +178,7 @@ const audiencePostIds = ({
            select p.post_id,p.player_tag from account_post p
             where p.player_tag=any(array(select cm.player_tag from named_clans own
               join clan_membership cm on cm.clan_tag=own.clan_tag and cm.left_observed_at is null))
-              and p.status='visible'${window}
+              and p.status='visible'${range}
             order by p.player_tag,p.created_at desc offset 0
          ), posters as materialized (select distinct player_tag from roster_posts),
          permitted as materialized (
@@ -193,8 +194,8 @@ const audiencePostIds = ({
        select p.post_id from (${clanmatePlayersSql("$1", { names: false })}) current_mates
        cross join lateral (
          select p.post_id from account_post p
-          where p.player_tag=current_mates.player_tag and p.status='visible'
-          order by p.created_at desc offset 0
+          where p.player_tag=current_mates.player_tag and p.status='visible'${range}
+          order by ${timeColumn} desc offset 0
        ) p`,
         ]
       : []),
@@ -229,17 +230,25 @@ export async function readVisiblePosts(
 ) {
   const tags = subjectTags(subjects);
   const players = memberPlayers("$2::text[]", clanmates);
+  const timeColumn = createdOnly
+    ? "p.created_at"
+    : "coalesce(p.updated_at, p.created_at)";
+  const window = `${timeColumn} >= $3 and p.created_at ${createdOnly ? "<" : "<="} $4`;
   const rows = await readRows(
     db,
-    `${clanmates ? "true" : audience(players)}${feedMute(clanmates)}${subjectsOnly ? ` and p.player_tag = any(${players})` : ""} and ${createdOnly ? "p.created_at" : "coalesce(p.updated_at, p.created_at)"} >= $3
-        and p.created_at ${createdOnly ? "<" : "<="} $4${plainOnly ? " and p.battle_id is null" : ""}${questionsOnly ? " and p.question" : ""}`,
+    `${clanmates ? "true" : `${audience(players)} and ${window}`}${feedMute(clanmates)}${subjectsOnly ? ` and p.player_tag = any(${players})` : ""}${plainOnly ? " and p.battle_id is null" : ""}${questionsOnly ? " and p.question" : ""}`,
     [readerId, tags, new Date(fromMs), new Date(toMs)],
     {
       plain,
       visibleOnly,
       limit,
       candidates: clanmates
-        ? audiencePostIds({ clanmates, hiddenOwn: !visibleOnly })
+        ? audiencePostIds({
+            clanmates,
+            hiddenOwn: !visibleOnly,
+            window,
+            timeColumn,
+          })
         : null,
     },
   );
@@ -328,8 +337,9 @@ export async function countNewPosts(
     players,
     clanmates,
     hiddenOwn: true,
-    createdFrom: "($2::timestamptz + interval '1 millisecond')",
-    createdTo: "$4::timestamptz",
+    creationCount: true,
+    window:
+      "p.created_at >= ($2::timestamptz + interval '1 millisecond') and p.created_at <= $4::timestamptz",
   });
   const { rows } = await db.query(
     `${candidates ? `with candidates as materialized (${candidates})` : ""}
