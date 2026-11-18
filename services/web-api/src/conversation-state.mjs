@@ -14,6 +14,7 @@ export async function readConversationThrough(
        from comment_conversation c join timeline_comment tc on tc.item_id=c.item_id
       where c.account_id=$1 and c.item_id=$2 and tc.comment_id=any($3::bigint[])
         and (tc.created_at,tc.comment_id)>(c.read_at,c.read_comment_id)
+     order by tc.comment_id for key share of tc,c
      on conflict do nothing`,
     [readerId, item.id, commentIds],
   );
@@ -39,5 +40,14 @@ export async function readConversationThrough(
         where c.account_id=$1 and c.item_id=$2
           and (c.read_at,c.read_comment_id)<(tc.created_at,tc.comment_id)`,
     [readerId, item.id, JSON.stringify(itemRef)],
+  );
+  // The contiguous cursor now represents these reads. Only exceptions
+  // beyond an unread gap need their per-comment receipt; no comment or
+  // participation is deleted. Concurrent cursors only move forward.
+  await db.query(
+    `delete from comment_conversation_read r using comment_conversation c,timeline_comment tc
+      where c.account_id=$1 and c.item_id=$2 and r.account_id=c.account_id and r.item_id=c.item_id
+        and tc.comment_id=r.comment_id and (tc.created_at,tc.comment_id)<=(c.read_at,c.read_comment_id)`,
+    [readerId, item.id],
   );
 }

@@ -187,3 +187,44 @@ test("My conversations distinguishes empty from failed and supports a retry", as
       path: `${process.env.CONVERSATIONS_SHOTS}/conversations-empty-390.png`,
     });
 });
+
+test("an entirely filtered conversation page offers its continuation", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 320, height: 844 });
+  await mockApi(
+    page,
+    homeApi({
+      "GET /api/me": [200, { ...BELL_ME, features: { comments: true } }],
+      "GET /api/me/bell": [200, EMPTY_BELL],
+      "PUT /api/me/bell/seen": [200, { seen_at: at }],
+      "GET /api/me/conversations": (route) =>
+        new URL(route.request().url()).searchParams.has("before")
+          ? [200, { items: [rows[0]], next_before: null }]
+          : [200, { items: [], next_before: "sealed-fixture-cursor" }],
+    }),
+  );
+  await page.goto("/timeline?bell");
+  const dialog = page.getByRole("dialog", { name: "Notifications" });
+  await dialog
+    .getByRole("button", { name: "My conversations", exact: true })
+    .click();
+  await expect(
+    dialog.getByText("No available conversations here"),
+  ).toBeVisible();
+  const older = dialog.getByRole("button", {
+    name: "Older conversations",
+    exact: true,
+  });
+  await expect(older).toBeVisible();
+  await older.focus();
+  await page.keyboard.press("Enter");
+  await expect(
+    dialog.getByRole("link", { name: /Birch Lantern.*2 new replies/ }),
+  ).toBeVisible();
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth - innerWidth,
+    ),
+  ).toBeLessThanOrEqual(0);
+});

@@ -34,7 +34,7 @@ create table comment_conversation_read (
   foreign key(account_id,item_id) references comment_conversation(account_id,item_id) on delete cascade
 );
 comment on table comment_conversation_read is
-  '0303: private read receipts for comments actually served to a participant, including pages beyond an unread gap. A receipt never joins a thread or grants source access. Removed when its comment or membership is deleted.';
+  '0303: private read receipts for comments actually served to a participant, including pages beyond an unread gap. Covered receipts are pruned once represented by the contiguous cursor. A receipt never joins a thread or grants source access, and goes with its comment or membership.';
 insert into comment_conversation(account_id,item_id,legacy_subject_tag,joined_at,read_at,read_comment_id)
 select distinct on (account_id,item_id) account_id,item_id,subject_tag,
        min(created_at) over(partition by account_id,item_id),created_at,comment_id
