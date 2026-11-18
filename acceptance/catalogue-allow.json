@@ -47,7 +47,8 @@
     "tower_troop": "on a card_first_win timeline item only, a kind a run's window may not hold",
     "war_week_played": "timeline: a kind served only on a followed player's timeline at a war week's close, read from the clan's resolved week (13.10.0); never on a clan's timeline, so a clan suite's window holds none. Pinned by packages/tools/test/timeline-player-clan.test.mjs.",
     "rating": "on a ranked_season_finished timeline item only, a kind a run's window may not hold",
-    "overtime_wins": "on a sitting item only when the tiebreaker decided one of its wins, a rare case (13.5.0). Pinned by services/web-api/test/home-feed.test.mjs and packages/tools/test/profile-moments-text.test.mjs."
+    "overtime_wins": "on a sitting item only when the tiebreaker decided one of its wins, a rare case (13.5.0). Pinned by services/web-api/test/home-feed.test.mjs and packages/tools/test/profile-moments-text.test.mjs.",
+    "item_ref": "Only facts.moment on a person-visible milestone post carries this game-only locator. The acceptance clan agent cannot read plain posts, and natural windows may contain no milestone post. services/web-api/test/milestone-posts.test.mjs invokes the real elixir_timeline handler against a saved canonical achievement and pins its follower/block audience on scratch data. Never manufacture a live post or label a synthetic fixture as a captured bite for acceptance."
   },
   "players_names": {
     "in_corpus": "on unknown[] rows, present only when a tag is unknown"

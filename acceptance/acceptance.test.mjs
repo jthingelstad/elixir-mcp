@@ -1027,3 +1027,43 @@ test("players_summary deck-mode acceptance skips without a best deck and still a
     assert.equal((await criterion.run({ read })).skip, undefined);
   }
 });
+
+test("milestone locator docs are conditional only for elixir_timeline, without invented production activity", async () => {
+  let markdown = "A post's recorded milestone carries its `item_ref`.";
+  const body = { docs: "timeline-tool", timeline: [], notes: [] };
+  const ctx = {
+    tools: new Map(
+      ["elixir_timeline", "example_tool"].map((name) => [
+        name,
+        { inputSchema: { properties: {} }, outputSchema: { type: "object" } },
+      ]),
+    ),
+    allTools: new Set(["elixir_timeline", "example_tool"]),
+    cache: new Map(),
+    biteKeys: new Map(),
+    read: async (tool) =>
+      tool === "elixir_docs" ? { body: { markdown }, ms: 1 } : { body, ms: 1 },
+  };
+  const cases = buildCatalogueCases({
+    tools: Object.fromEntries(
+      [...ctx.tools.keys()].map((name) => [
+        name,
+        { sets: [{ args: {} }], p95_ms: 1 },
+      ]),
+    ),
+  });
+  const run = (id) => cases.find((c) => c.id === id).run(ctx);
+  await run("elixir_timeline#0");
+  // A clan-agent window cannot carry person-only plain posts. Their actual
+  // milestone shape/audience is proved by the real MCP invocation in
+  // services/web-api/test/milestone-posts.test.mjs, never by a fake live bite.
+  await run("elixir_timeline#docs");
+  markdown += " But `invented_milestone_secret` is not a field.";
+  await assert.rejects(
+    () => run("elixir_timeline#docs"),
+    /documents invented_milestone_secret/,
+  );
+  markdown = "A post's recorded milestone carries its `item_ref`.";
+  await run("example_tool#0");
+  await assert.rejects(() => run("example_tool#docs"), /documents item_ref/);
+});
