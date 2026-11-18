@@ -288,125 +288,151 @@ function roleRoutes(role: "member" | "elder", small = false) {
 
 for (const size of ["wide", "@narrow"])
   for (const role of ["member", "elder"] as const) {
-    test(`${role} reads permitted clan views without leader controls ${size}`, async ({
-      page,
-    }) => {
-      const writes: string[] = [],
-        errors: string[] = [];
-      page.on("request", (request) => {
-        if (request.url().includes("/api/clan/") && request.method() !== "GET")
-          writes.push(request.url());
-      });
-      page.on("pageerror", (error) => errors.push(error.message));
-      await page.route("https://tile.openstreetmap.org/**", (route) =>
-        route.fulfill({
-          status: 200,
-          contentType: "image/png",
-          body: Buffer.from(
-            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aL1kAAAAASUVORK5CYII=",
-            "base64",
-          ),
-        }),
-      );
-      await mockApi(page, roleRoutes(role));
-      await page.goto(`${base}/members`);
-      await expect(clanTab(page, "Run")).toHaveCount(0);
-      // One page since G6: Scout at its foot for an elder, never a member.
-      await expect(page.getByRole("region", { name: "Scout" })).toHaveCount(
-        role === "elder" ? 1 : 0,
-      );
-      // Review is in Run, which stays the leaders'.
-      await page.goto(`${base}/run/review`);
-      await expect(page.getByRole("alert")).toContainText(
-        "Run is for the clan’s leader and co-leaders",
-      );
-      // Run is the leaders' (slice 8, #766): a member who types its
-      // address is told so, with nothing to change, and sent to Policy.
-      await page.goto(`${base}/run/about`);
-      await expect(page.getByRole("alert")).toContainText(
-        "Run is for the clan’s leader and co-leaders",
-      );
-      await expect(
-        page.getByRole("button", { name: "Save this clan's policy" }),
-      ).toHaveCount(0);
-      await page.getByRole("link", { name: "Open Policy" }).click();
-      await expect(page).toHaveURL(/\/clan\/0QC8RCGY\/policy$/);
-      // Standing is on Standings, open to every member as before.
-      await page.goto(`${base}/standings`);
-      await expect(page.getByText(/^How it works here/).first()).toBeVisible();
-      // A name opens the player page; the member's page in this clan keeps
-      // its address.
-      await expect(
-        page
-          .getByRole("region", { name: "Standing" })
-          .getByRole("link", { name: "Ben", exact: true }),
-      ).toHaveAttribute("href", "/home/player/02QQPCYQQ");
-      await page.goto(`${base}/members/02qqpcyqq`);
-      await expect(
-        page.getByText(
-          /^A gap is unknown\. No battle here does not prove no play/,
-        ),
-      ).toBeHidden();
-      await page.goto(`${base}/standings`);
-      await expect(
-        page.getByRole("button", { name: /Grant Clan Pick for season 135/ }),
-      ).toHaveCount(role === "elder" ? 1 : 0);
-      await expect(
-        page.getByRole("button", {
-          name: /edit the awards|update to clan/,
-        }),
-      ).toHaveCount(0);
-      await expect(
-        page.getByRole("link", { name: "Ben", exact: true }).first(),
-      ).toHaveAttribute("href", "/home/player/02QQPCYQQ");
-      await page.goto(`${base}/feed`);
-      await expect(
-        page.getByText("Nothing waiting for you", { exact: true }),
-      ).toBeVisible();
-      await page.goto(`${base}/actions/99`);
-      await expect(
-        page.getByText("No action #99 here", { exact: true }),
-      ).toBeVisible();
-      await page.goto(`${base}/members/me`);
-      await expect(
-        page.getByText("Before roster recording", { exact: true }),
-      ).toBeVisible();
-      await expect(
-        page.getByText(/Zero battles here does not prove no play/),
-      ).toBeVisible();
-      await page.goto(`${base}/members/map`);
-      await expect(
-        page.getByRole("heading", { name: "Clan map", exact: true }),
-      ).toBeVisible();
-      await expect(page.getByText(/only verified members/)).toBeVisible();
-      const axe = await new AxeBuilder({ page })
-        .withTags(["wcag2a", "wcag2aa"])
-        .analyze();
-      expect(
-        axe.violations.filter((v) =>
-          ["serious", "critical"].includes(v.impact ?? ""),
-        ),
-      ).toEqual([]);
-      await page.screenshot({
-        path: `/tmp/elixir-${role}-map-${size.replace("@", "")}.png`,
-        fullPage: true,
-      });
-      await page.goto("/home");
-      await expect(
-        page.getByRole("heading", { level: 1, name: "Timeline", exact: true }),
-      ).toBeVisible();
-      await expect(
-        page
-          .locator(".kit-feed__text")
-          .getByText("Ada played recorded games.", { exact: true }),
-      ).toBeVisible();
-      await expect(
-        page.getByText(/changes nothing your connections have read/),
-      ).toBeVisible();
-      expect(writes).toEqual([]);
-      expect(errors).toEqual([]);
-    });
+    test.describe(`${role} permitted clan views ${size}`, () => {
+      let writes: string[], errors: string[];
+      test.beforeEach(async ({ page }) => {
+        writes = [];
+        errors = [];
+        page.on("request", (request) => {
+          if (
+            request.url().includes("/api/clan/") &&
+            request.method() !== "GET"
+          )
+            writes.push(request.url());
+        });
+        page.on("pageerror", (error) => errors.push(error.message));
 
+        await page.route("https://tile.openstreetmap.org/**", (route) =>
+          route.fulfill({
+            status: 200,
+            contentType: "image/png",
+            body: Buffer.from(
+              "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aL1kAAAAASUVORK5CYII=",
+              "base64",
+            ),
+          }),
+        );
+        await mockApi(page, roleRoutes(role));
+      });
+      test.afterEach(() => {
+        expect(writes).toEqual([]);
+        expect(errors).toEqual([]);
+      });
+      test("roster and restricted Run", async ({ page }) => {
+        await page.goto(`${base}/members`);
+        await expect(
+          page.getByRole("link", { name: "Clan map", exact: true }),
+        ).toBeVisible();
+        await expect(clanTab(page, "Run")).toHaveCount(0);
+        // One page since G6: Scout at its foot for an elder, never a member.
+        await expect(page.getByRole("region", { name: "Scout" })).toHaveCount(
+          role === "elder" ? 1 : 0,
+        );
+        // Review is in Run, which stays the leaders'.
+        await page.goto(`${base}/run/review`);
+        await expect(page.getByRole("alert")).toContainText(
+          "Run is for the clan’s leader and co-leaders",
+        );
+        // Run is the leaders' (slice 8, #766): a member who types its
+        // address is told so, with nothing to change, and sent to Policy.
+        await page.goto(`${base}/run/about`);
+        await expect(page.getByRole("alert")).toContainText(
+          "Run is for the clan’s leader and co-leaders",
+        );
+        await expect(
+          page.getByRole("button", { name: "Save this clan's policy" }),
+        ).toHaveCount(0);
+        await page.getByRole("link", { name: "Open Policy" }).click();
+        await expect(page).toHaveURL(/\/clan\/0QC8RCGY\/policy$/);
+      });
+      test("standing and member navigation", async ({ page }) => {
+        // Standing is on Standings, open to every member as before.
+        await page.goto(`${base}/standings`);
+        await expect(
+          page.getByText(/^How it works here/).first(),
+        ).toBeVisible();
+        // A name opens the player page; the member's page in this clan keeps
+        // its address.
+        await expect(
+          page
+            .getByRole("region", { name: "Standing" })
+            .getByRole("link", { name: "Ben", exact: true }),
+        ).toHaveAttribute("href", "/home/player/02QQPCYQQ");
+        await page.goto(`${base}/members/02qqpcyqq`);
+        await expect(page).toHaveURL(/\/home\/player\/02QQPCYQQ\?tab=clan$/);
+        await expect(
+          page.getByText(
+            /^A gap is unknown\. No battle here does not prove no play/,
+          ),
+        ).toBeHidden();
+        await page.goto(`${base}/standings`);
+        await expect(
+          page.getByRole("button", { name: /Grant Clan Pick for season 135/ }),
+        ).toHaveCount(role === "elder" ? 1 : 0);
+        await expect(
+          page.getByRole("button", {
+            name: /edit the awards|update to clan/,
+          }),
+        ).toHaveCount(0);
+        await expect(
+          page.getByRole("link", { name: "Ben", exact: true }).first(),
+        ).toHaveAttribute("href", "/home/player/02QQPCYQQ");
+      });
+      test("activity and own record", async ({ page }) => {
+        await page.goto(`${base}/feed`);
+        await expect(
+          page.getByText("Nothing waiting for you", { exact: true }),
+        ).toBeVisible();
+        await page.goto(`${base}/actions/99`);
+        await expect(
+          page.getByText("No action #99 here", { exact: true }),
+        ).toBeVisible();
+        await page.goto(`${base}/members/me`);
+        await expect(
+          page.getByText("Before roster recording", { exact: true }),
+        ).toBeVisible();
+        await expect(
+          page.getByText(/Zero battles here does not prove no play/),
+        ).toBeVisible();
+      });
+      test("map", async ({ page }) => {
+        await page.goto(`${base}/members/map`);
+        await expect(
+          page.getByRole("heading", { name: "Clan map", exact: true }),
+        ).toBeVisible();
+        await expect(page.getByText(/only verified members/)).toBeVisible();
+        const axe = await new AxeBuilder({ page })
+          .withTags(["wcag2a", "wcag2aa"])
+          .analyze();
+        expect(
+          axe.violations.filter((v) =>
+            ["serious", "critical"].includes(v.impact ?? ""),
+          ),
+        ).toEqual([]);
+        await page.screenshot({
+          path: `/tmp/elixir-${role}-map-${size.replace("@", "")}.png`,
+          fullPage: true,
+        });
+      });
+      test("personal Timeline", async ({ page }) => {
+        await page.goto("/home");
+        await expect(
+          page.getByRole("heading", {
+            level: 1,
+            name: "Timeline",
+            exact: true,
+          }),
+        ).toBeVisible();
+        await expect(
+          page
+            .locator(".kit-feed__text")
+            .getByText("Ada played recorded games.", { exact: true }),
+        ).toBeVisible();
+        await expect(
+          page.getByText(/changes nothing your connections have read/),
+        ).toBeVisible();
+      });
+    });
     test(`${role} under ten keeps member navigation and explains unavailable awards ${size}`, async ({
       page,
     }) => {
