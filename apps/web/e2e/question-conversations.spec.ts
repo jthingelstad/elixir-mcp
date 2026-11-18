@@ -95,7 +95,11 @@ for (const width of [320, 390, 1280]) {
     await page.setViewportSize({ width, height: 900 });
     await page.emulateMedia({ reducedMotion: "reduce" });
     let answered = false;
-    const item = () => ({ ...question, post: { ...question.post, answered } });
+    let revision = 1;
+    const item = () => ({
+      ...question,
+      post: { ...question.post, answered, edited: revision > 1 },
+    });
     const requests: string[] = [];
     await mockApi(
       page,
@@ -119,7 +123,9 @@ for (const width of [320, 390, 1280]) {
           ];
         },
         "PUT /api/me/posts/42": (route) => {
-          answered = route.request().postDataJSON().answered;
+          const next = route.request().postDataJSON().answered;
+          if (answered !== next) revision += 1;
+          answered = next;
           return [200, { post: item(), changed: true }];
         },
         "GET /api/me/post/42": () => [200, { item: item() }],
@@ -177,6 +183,7 @@ for (const width of [320, 390, 1280]) {
     await expect(page.locator(".kit-written__label")).toHaveText(
       "Question · Answered",
     );
+    await expect(page.getByText("Edited", { exact: true })).toBeVisible();
     await capture(page, "questions-answered", width);
     await (await target(page, "Mark unanswered")).click();
     await expect(
@@ -276,5 +283,6 @@ for (const width of [320, 390, 1280]) {
     await expect(
       page.getByRole("button", { name: "Unanswered 0", exact: true }),
     ).toBeVisible();
+    await capture(page, "clan-no-unanswered", width);
   });
 }

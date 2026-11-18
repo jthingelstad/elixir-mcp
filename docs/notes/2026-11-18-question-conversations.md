@@ -22,10 +22,13 @@ synthesis for Questions; membership and all private Clan permissions stay
 at the existing boundary. All activity remains the default.
 
 The author may mark a visible question Answered or unanswered with the
-existing authenticated post update route. This updates only answered_at,
-never created_at, updated_at or revision. Answers remain open and neither
-answers nor marking a question count as new posts. This field is normalized
-as post.answered, false on ordinary posts. Public shared projection omits it
+existing authenticated post update route. This updates answered_at,
+increments revision and stamps updated_at, as a word edit does. ID, created_at and display order stay fixed. MCP/RSS observed
+reads see the current state and revision. No-op requests change nothing.
+Answers remain open. Neither answers nor marking a question count as new posts or new digest entries.
+Replies do not edit the post. Home counts posts by creation time, including
+its New markers and watermark; late game moments still count when learned.
+This field is normalized as post.answered, false on ordinary posts. Public shared projection omits it
 and answer counts. The normal Timeline Questions chip omits a count because
 the mixed feed's cap cannot count older questions honestly; the selected
 Questions view has its own source count. Audience counts stay hidden while
