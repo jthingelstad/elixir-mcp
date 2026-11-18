@@ -5,7 +5,7 @@
 import { blockedSql } from "@elixir-mcp/claims";
 import { classifyDeck, deckLink, postUrl } from "@elixir-mcp/contracts";
 import { cachedVocabulary } from "@elixir-mcp/ingest/card-roles";
-import { battlePostFacts } from "@elixir-mcp/tools/activity/entries";
+import { battlePostFacts } from "./battle.mjs";
 import { memberPostPath } from "./paths.mjs";
 
 const POSTS_PAGE = 30;
