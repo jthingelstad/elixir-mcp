@@ -354,7 +354,7 @@ test("two builds of one account's row never run at once", async () => {
         await gate;
         return "built";
       },
-      reuse: async () => "reused",
+      reuse: async () => null,
     });
     // The first holds the lock once its build has begun: no timer, which
     // under a loaded run let the second ask first (2026-11-13).
@@ -377,7 +377,18 @@ test("two builds of one account's row never run at once", async () => {
         builds += 1;
         return "built twice";
       },
-      reuse: async () => "reused",
+      reuse: async () => {
+        const probe = await db.query(
+          "select pg_try_advisory_xact_lock(hashtext($1),hashtext($2)) as ok",
+          ["home_feed", owner],
+        );
+        assert.equal(
+          probe.rows[0].ok,
+          false,
+          "the waiter owns the lock while rechecking",
+        );
+        return "reused";
+      },
     });
     assert.equal(await askedOnce, false, "the first holds the lock");
     assert.equal(builds, 1, "the second waits for the first");
@@ -389,7 +400,7 @@ test("two builds of one account's row never run at once", async () => {
     assert.equal(
       await buildOnce(other, "bell_week", owner, {
         build: async () => "own",
-        reuse: async () => "reused",
+        reuse: async () => null,
       }),
       "own",
     );
@@ -401,6 +412,50 @@ test("two builds of one account's row never run at once", async () => {
       }),
       "built",
     );
+  } finally {
+    await other.end();
+  }
+});
+
+test("a slow cache builder keeps its lock past the waiter's deadline", async () => {
+  const other = new pg.Client({ connectionString: ctx.url });
+  await other.connect();
+  const key = ["home_feed", owner];
+  const lock = "select pg_try_advisory_lock(hashtext($1),hashtext($2)) as ok";
+  try {
+    assert.equal((await other.query(lock, key)).rows[0].ok, true);
+    const options = {
+      waitMs: 0,
+      reuse: async () => null,
+      build: () => assert.fail("a waiter built without the lock"),
+    };
+    await assert.rejects(buildOnce(db, ...key, options), {
+      code: "cache_build_busy",
+    });
+    assert.equal(
+      await buildOnce(db, ...key, {
+        ...options,
+        reuse: async () => "valid row",
+      }),
+      "valid row",
+    );
+    await other.query(
+      "select pg_advisory_unlock(hashtext($1),hashtext($2))",
+      key,
+    );
+    // The previous builder stored nothing. The replacement owns the lock
+    // throughout its callback and releases it even if that callback fails.
+    await assert.rejects(
+      buildOnce(db, ...key, {
+        ...options,
+        build: async () => {
+          assert.equal((await other.query(lock, key)).rows[0].ok, false);
+          throw new Error("build failed");
+        },
+      }),
+      /build failed/,
+    );
+    assert.equal((await other.query(lock, key)).rows[0].ok, true);
   } finally {
     await other.end();
   }
