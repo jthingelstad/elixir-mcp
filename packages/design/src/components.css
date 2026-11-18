@@ -7392,6 +7392,9 @@ button.kit-row {
 .kit-people__row.kit-starter__row .kit-row__detail {
   display: block;
 }
+.kit-people__row.kit-starter__row {
+  padding-block: 8px;
+}
 .kit-starter__row .kit-people__cost::before {
   content: " \00b7  ";
   color: var(--ink-faint);

@@ -111,10 +111,12 @@ function Person({ p, detail, used, limit, roster = false }) {
 }
 
 /** A suggestion's why, as facts, and Free when it costs nothing. */
-function WhyCost({ p, dayHeading }) {
+function WhyCost({ p, dayHeading, compact = false }) {
   return (
     <>
-      <span className="kit-people__why">{whyLines(p.why, { dayHeading })}</span>
+      <span className="kit-people__why">
+        {whyLines(p.why, { dayHeading, compact })}
+      </span>
       {isClanmateConnection(p) ? null : <FreeMark p={p} />}
     </>
   );
@@ -705,7 +707,7 @@ export function StarterSet({ query, onOpenTimeline, onFollowed }) {
                   <TagText>{name}</TagText>
                 </Link>
               }
-              detail={<WhyCost p={p} dayHeading={feedDayHeading} />}
+              detail={<WhyCost p={p} dayHeading={feedDayHeading} compact />}
             />
           );
         })}

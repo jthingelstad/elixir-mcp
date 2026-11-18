@@ -417,7 +417,7 @@ function playedLine(at, dayHeading) {
  *  nickname, never a rating. The friendly battles come first: "those are
  *  probably folks they know" (Jamie, 2026-11-13). `dayHeading` is the
  *  clock's (useClock().feedDayHeading), for a clanmate's last battle. */
-export function whyLine(why, { dayHeading = null } = {}) {
+export function whyLine(why, { dayHeading = null, compact = false } = {}) {
   if (why.kind === "clan") {
     if (why.recorded) return "In your clan, already in Elixir";
     const played = playedLine(why.last_battle, dayHeading);
@@ -435,25 +435,43 @@ export function whyLine(why, { dayHeading = null } = {}) {
       : `${who} follows them`;
   }
   if (why.kind === "battles") {
-    const span = why.days === 7 ? "this week" : `in the last ${why.days} days`;
+    const span =
+      why.days === 7
+        ? "this week"
+        : `${compact ? "last" : "in the last"} ${why.days} days`;
     const friendly = why.friendly ?? 0;
     const clan = why.clanmate_battles ?? 0;
     const rest = Math.max(0, (why.against ?? 0) - friendly - clan);
     const played = [
-      friendly ? many(friendly, "a friendly battle", "friendly battles") : null,
-      clan ? many(clan, "a clan friendly", "clan friendlies") : null,
+      friendly
+        ? many(
+            friendly,
+            compact ? "Friendly battle" : "a friendly battle",
+            "friendly battles",
+          )
+        : null,
+      clan
+        ? many(
+            clan,
+            compact ? "Clan friendly" : "a clan friendly",
+            "clan friendlies",
+          )
+        : null,
     ].filter(Boolean);
     const parts = [];
     if (played.length)
       parts.push(
-        `You played ${played.join(" and ")}${rest ? `, and ${times(rest)} more` : ""}`,
+        `${compact ? "" : "You played "}${played.join(" and ")}${rest ? `, ${compact ? "plus" : "and"} ${times(rest)} more` : ""}`,
       );
-    else if (rest) parts.push(`You played them ${times(rest)}`);
+    else if (rest)
+      parts.push(`${compact ? "Played" : "You played them"} ${times(rest)}`);
     if (why.with_you > 0)
       parts.push(
-        `${parts.length ? "your" : "Your"} 2v2 teammate${why.with_you > 1 ? ` ${times(why.with_you)}` : ""}`,
+        `${compact ? "" : `${parts.length ? "your" : "Your"} `}2v2 teammate${why.with_you > 1 ? ` ${times(why.with_you)}` : ""}`,
       );
-    return parts.length ? `${parts.join(", ")} ${span}` : null;
+    return parts.length
+      ? `${parts.join(compact ? " · " : ", ")}${compact ? " ·" : ""} ${span}`
+      : null;
   }
   return null;
 }
