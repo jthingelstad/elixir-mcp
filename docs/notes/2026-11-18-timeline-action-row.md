@@ -27,4 +27,4 @@ clan results, question posts, entry forwarding and private/public boundaries.
 Before/after browser captures at 320, 390 and 1280 were inspected, including
 keyboard picker/close, composer focus, count targets and Share feedback.
 
-MCP 13.14.0 and JSON API 5.1.0 unchanged.
+MCP 14.0.0 and JSON API 6.0.0 unchanged.
