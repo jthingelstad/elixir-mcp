@@ -9,6 +9,7 @@
     "./deck-display": "./src/deck-display.ts",
     "./shell.json": "./src/shell.json",
     "./session-story": "./src/session-story.ts",
+    "./item-link": "./src/item-link.mjs",
     "./time": "./src/time.ts",
     "./verification-mark.json": "./src/verification-mark.json"
   },
