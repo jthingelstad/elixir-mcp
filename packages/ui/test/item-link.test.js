@@ -50,3 +50,18 @@ test("canonical posts and People retain their actual source identity", () => {
   }
   expect(timelineItemRef({ id: ID, section: "account" })).toBeNull();
 });
+test("the exact read tuple survives a reply link", () => {
+  const path = memberItemPath(ref, {
+    commentId: "44",
+    after: "2026-11-18T10:00:00.000001Z",
+    afterId: "42",
+  });
+  const search = Object.fromEntries(
+    new URL(path, "https://elixir.test").searchParams,
+  );
+  expect(readMemberItemPath(ID, search).entry).toEqual({
+    reply: "44",
+    after: "2026-11-18T10:00:00.000001Z",
+    afterId: "42",
+  });
+});

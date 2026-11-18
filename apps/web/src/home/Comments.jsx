@@ -9,6 +9,7 @@ import {
 } from "../lib/queries.js";
 import { playerHref } from "../lib/player.js";
 import { useScope } from "../lib/scope.js";
+import { commentIsAfter } from "./comment-read.js";
 import {
   COMMENT_MAX,
   REPORT_REASONS,
@@ -165,9 +166,9 @@ function Thread({ id, it, focus, entry }) {
                   id={`${id}-reply-${c.id}`}
                   fresh={
                     !c.mine &&
-                    entry?.after &&
-                    (entry.after === "all" ||
-                      Date.parse(c.at) > Date.parse(entry.after))
+                    (typeof c.unread === "boolean"
+                      ? c.unread
+                      : commentIsAfter(c, entry))
                   }
                 />
               ))}

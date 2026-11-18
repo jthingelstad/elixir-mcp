@@ -3,14 +3,74 @@
  * Public sharing uses the same game/people read without a member seat. */
 import { blockedSql } from "@elixir-mcp/claims";
 import { normalizeTag } from "@elixir-mcp/contracts";
-import { buildTimeline } from "@elixir-mcp/tools/activity/entries";
+import { buildTimeline, subjectsFor } from "@elixir-mcp/tools/activity/entries";
 import { ITEM_ID_RE, cheerable } from "@elixir-mcp/tools/activity/cheers";
 import { visiblePost } from "@elixir-mcp/posts";
 import { SITTINGS } from "@elixir-mcp/ui/session-story";
 import { annotateFeed } from "./feed.mjs";
+import { timelineItemRef } from "@elixir-mcp/ui/item-link";
 
 const DAY = 86_400_000;
 const PAGE_ID = /^[a-z0-9]{12}$/i;
+
+/** Old comments retained only a subject and their own time. Recover a
+ * locator from one named subject and the preceding month, never infer an
+ * item from its hash or a shared capability. No match leaves history intact. */
+export async function recoverMemberItemRef(
+  db,
+  { accountId, itemId, subjectTag, commentedAt, posts = false },
+) {
+  if (!ITEM_ID_RE.test(String(itemId ?? ""))) return null;
+  const subjects = await subjectsFor(db, accountId);
+  const post = await visiblePost(db, accountId, itemId, subjects, {
+    plain: posts,
+    open: true,
+  });
+  if (post) return timelineItemRef(post);
+  let tag;
+  try {
+    tag = normalizeTag(subjectTag);
+  } catch {
+    return null;
+  }
+  const anchor = Date.parse(commentedAt);
+  const now = Date.now();
+  if (
+    !Number.isFinite(anchor) ||
+    anchor < now - 366 * DAY ||
+    anchor > now + DAY
+  )
+    return null;
+  const built = await buildTimeline(
+    db,
+    [
+      { kind: "player", tag },
+      { kind: "clan", tag, scope: "comprehensive" },
+    ],
+    {
+      accountId,
+      interactive: true,
+      fromMs: anchor - 30 * DAY,
+      toMs: Math.min(now, anchor + DAY),
+      basis: "occurred",
+      accountLines: false,
+      lateCounts: false,
+      people: { accounts: [], players: true },
+      filter: (it) =>
+        it.id === itemId &&
+        it.kind !== "post" &&
+        it.kind !== "battle_highlight",
+    },
+  );
+  const found = built.timeline.find((it) => it.id === itemId);
+  if (
+    !found ||
+    !cheerable(found) ||
+    (await blockedSocialItems(db, accountId, [found])).has(itemId)
+  )
+    return null;
+  return timelineItemRef(found);
+}
 
 export async function itemPerson(db, pageId, readerId = null) {
   if (!PAGE_ID.test(String(pageId ?? ""))) return null;
