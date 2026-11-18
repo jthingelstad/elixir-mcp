@@ -83,7 +83,7 @@ export const CHEERS_PER_HOUR = 120;
  *  days, the same build the feed made, only the items that take cheers.
  *  `tags` names the subjects (a page sends the item's subject tags; only the
  *  account's own follows count). Empty when the person follows none. */
-async function feedItemsFor(db, { accountId, tags, subjects }) {
+export async function feedItemsFor(db, { accountId, tags, subjects }) {
   const asked = new Set(tags);
   const mine = subjects.filter((s) => asked.has(s.tag));
   if (mine.length === 0) return { items: [], tags: [] };

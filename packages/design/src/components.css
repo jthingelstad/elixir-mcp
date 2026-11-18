@@ -7285,6 +7285,27 @@ button.kit-row {
 /* Home's starter set (2026-11-13): the profile list's flat panel, its people as
    the rows People to follow draws, a tick at the left of each, and the one
    Follow these at the foot. No rule between rows: the rows' own space. */
+.kit-starter__confirmation {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-2);
+  padding: 0 var(--s-4) var(--s-3);
+  min-width: 0;
+  border-bottom: 1px solid var(--line);
+}
+.kit-starter__confirmation .kit-starter__lead {
+  margin: 0;
+  padding: 0;
+}
+.kit-starter__moment {
+  flex: 0 0 100%;
+  min-width: 0;
+}
+.kit-starter__moment article {
+  border-bottom: 0;
+}
 .kit-starter {
   margin-bottom: 14px;
   padding: 10px 0 var(--s-1);

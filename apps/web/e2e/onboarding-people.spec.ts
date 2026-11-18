@@ -56,6 +56,8 @@ for (const width of [320, 390, 1280]) {
     await page.emulateMedia({ reducedMotion: "reduce" });
     await page.clock.install({ time: new Date(NOW) });
     const sent: string[][] = [];
+    const cheers: string[] = [];
+    const previewId = "tl_00000000000000000123";
     let listed = [...PEOPLE];
     let battlesLanded = false;
     const currentFirst = () =>
@@ -89,6 +91,37 @@ for (const width of [320, 390, 1280]) {
             poll_ms: null,
           },
         ],
+        "GET /api/me/people/followed-moment": (route) => {
+          expect(
+            new URL(route.request().url()).searchParams.get("players"),
+          ).toBe([PEOPLE[0]!.tag, PEOPLE[2]!.tag].join(","));
+          return [
+            200,
+            {
+              item: {
+                id: previewId,
+                at: NOW,
+                kind: "pol_league",
+                section: "record",
+                subject_tag: PEOPLE[0]!.tag,
+                subject_name: "Amber",
+                subjects: [
+                  { kind: "player", tag: PEOPLE[0]!.tag, name: "Amber" },
+                ],
+                text: "Amber reached a new Ranked league.",
+                facts: {},
+                cheers: {},
+                can_cheer: true,
+                my_cheer: null,
+              },
+            },
+          ];
+        },
+        "PUT /api/me/cheers": (route) => {
+          const { item_id, cheer } = route.request().postDataJSON();
+          cheers.push(item_id);
+          return [200, { my_cheer: cheer, cheers: { [cheer]: 1 } }];
+        },
         "GET /api/me/people/starter": () => [
           200,
           {
@@ -147,6 +180,16 @@ for (const width of [320, 390, 1280]) {
     });
     await expect(open).toBeVisible();
     await expect(open).toBeFocused();
+    const preview = page.getByRole("region", { name: "From your new follows" });
+    await expect(
+      preview.getByText("Amber reached a new Ranked league."),
+    ).toBeVisible();
+    await preview.getByRole("button", { name: /^Cheer: / }).click();
+    await expect(
+      preview.getByRole("button", { name: /^Cheered: / }),
+    ).toHaveAttribute("aria-pressed", "true");
+    expect(cheers).toEqual([previewId]);
+    await open.focus();
     const bounds = (await open.boundingBox())!;
     expect(bounds.height).toBeGreaterThanOrEqual(44);
     if (shots)

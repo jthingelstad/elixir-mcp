@@ -257,6 +257,39 @@ after(async () => {
   await ctx?.drop();
 });
 
+test("the starter preview returns one recent item from a current named friend only", async () => {
+  const preview = (account, players) =>
+    call(account, "GET", "/api/me/people/followed-moment", undefined, {
+      players,
+    });
+  const response = await preview(follower, [MEMBER, PLAYER].join(","));
+  assert.equal(response.statusCode, 200, response.body);
+  assert.equal(response.data.item.subject_tag, PLAYER);
+  assert.equal(response.data.item.can_cheer, true);
+  assert.equal(response.data.item.item_ref.item_id, response.data.item.id);
+  assert.ok(Date.parse(response.data.item.at) >= now - 7 * DAY);
+  assert.equal((await preview(follower, MEMBER)).data.item, null);
+  assert.equal((await preview(stranger, PLAYER)).data.item, null);
+  for (const [blocker, other] of [
+    [author, follower],
+    [follower, author],
+  ]) {
+    await ctx.db.query(
+      "insert into account_block(account_id,blocked_account_id) values($1,$2)",
+      [blocker, other],
+    );
+    try {
+      assert.equal((await preview(follower, PLAYER)).data.item, null);
+    } finally {
+      await ctx.db.query(
+        "delete from account_block where account_id=$1 and blocked_account_id=$2",
+        [blocker, other],
+      );
+    }
+  }
+  assert.equal((await preview(follower, "bad!")).statusCode, 400);
+});
+
 test("unfollowed recorded player and clan items resolve by actual source beyond Home's week", async () => {
   const badges = items.filter((it) => it.kind === "badge_earned");
   assert.equal(badges.length, 2);

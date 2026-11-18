@@ -6,6 +6,8 @@
  *  (AGENT_SCOPED_ROUTES does not list them). */
 import { checkRateLimit } from "@elixir-mcp/auth";
 import { HOURLY_RATE_LIMIT } from "@elixir-mcp/tools/quota";
+import { normalizeTag } from "@elixir-mcp/contracts";
+import { followedMoment } from "../followed-moment.mjs";
 import { json } from "../http.mjs";
 import { peopleWithAvatars } from "../avatars.mjs";
 import { blockedPeople, withoutBlocked } from "../blocks.mjs";
@@ -24,7 +26,11 @@ import {
 /** Three reads a visit at most, as Home's panels are counted. */
 const PEOPLE_RATE_LIMIT = 3 * HOURLY_RATE_LIMIT;
 
-export function peopleRoutes({ resolveAccount, blocks = false }) {
+export function peopleRoutes({
+  resolveAccount,
+  blocks = false,
+  posts = false,
+}) {
   const read = (name, fn) => async (db, event) => {
     const account = await resolveAccount(db, event);
     if (!account) return json(401, { error: "unauthenticated" });
@@ -61,6 +67,34 @@ export function peopleRoutes({ resolveAccount, blocks = false }) {
     // Home's starter set (2026-11-13): follows offered to an account that
     // follows few, never followed for it.
     "GET /api/me/people/starter": read("people_starter", starterSet),
+    "GET /api/me/people/followed-moment": async (db, event) => {
+      const account = await resolveAccount(db, event);
+      if (!account) return json(401, { error: "unauthenticated" });
+      if (account.kind !== "person")
+        return json(403, { error: "not_entitled" });
+      const raw = (event.queryStringParameters?.players ?? "").split(",");
+      if (raw.length > 50) return json(400, { error: "invalid_players" });
+      let tags;
+      try {
+        tags = raw.map(normalizeTag);
+      } catch {
+        return json(400, { error: "invalid_players" });
+      }
+      if (
+        !(await checkRateLimit(db, {
+          bucket: `people#${account.accountId}`,
+          max: PEOPLE_RATE_LIMIT,
+        }))
+      )
+        return json(429, { error: "rate_limited" });
+      return json(
+        200,
+        await followedMoment(db, account.accountId, tags, {
+          comments: blocks,
+          posts,
+        }),
+      );
+    },
     // Find's Near you and the player map (#768): signed-in people only.
     "GET /api/me/people/near": read("people_near", nearPeople),
     "GET /api/me/player-map": read("player_map", playerMap),

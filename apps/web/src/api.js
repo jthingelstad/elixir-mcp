@@ -472,6 +472,11 @@ export const api = {
   // The player map (#768): everyone who has set a place, at that place.
   playerMap: () => request("GET", "/api/me/player-map"),
   // Home's suggested follows' "Not now": off Home's top for 30 days.
+  followedMoment: (tags) =>
+    request(
+      "GET",
+      `/api/me/people/followed-moment?${new URLSearchParams({ players: tags.join(",") })}`,
+    ),
   hideStarter: () => request("POST", "/api/me/people/starter/hide", {}),
   // Your timeline's private RSS link (#765): whether it is on; making or
   // resetting it answers the link, the one time it is shown; off ends it.

@@ -129,13 +129,14 @@ export async function readVisiblePosts(
     plainOnly = false,
     createdOnly = false,
     questionsOnly = false,
+    subjectsOnly = false,
     limit = 200,
   },
 ) {
   const tags = subjects.filter((s) => s.kind === "player").map((s) => s.tag);
   const rows = await readRows(
     db,
-    `${audience()} and ${createdOnly ? "p.created_at" : "coalesce(p.updated_at, p.created_at)"} >= $3
+    `${audience()}${subjectsOnly ? " and p.player_tag = any($2::text[])" : ""} and ${createdOnly ? "p.created_at" : "coalesce(p.updated_at, p.created_at)"} >= $3
         and p.created_at ${createdOnly ? "<" : "<="} $4${plainOnly ? " and p.battle_id is null" : ""}${questionsOnly ? " and p.question" : ""}`,
     [readerId, tags, new Date(fromMs), new Date(toMs)],
     { plain, visibleOnly, limit },

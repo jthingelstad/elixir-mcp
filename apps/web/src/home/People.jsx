@@ -16,7 +16,13 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useWrite } from "../client/index.ts";
 import { api } from "../api.js";
 import { playerHref } from "../lib/player.js";
-import { useFollowPlan, usePeople } from "../lib/queries.js";
+import { FeedItem } from "./FeedItem.jsx";
+import {
+  followedMomentKey,
+  useFollowedMoment,
+  useFollowPlan,
+  usePeople,
+} from "../lib/queries.js";
 import { PLACE_HREF } from "../lib/passport.js";
 import { FollowAll, FollowButton, followPlanLine } from "./follow.jsx";
 import {
@@ -504,6 +510,8 @@ export function StarterSet({ query, onOpenTimeline, onFollowed }) {
   const [hidden, setHidden] = useState(false);
   const [followed, setFollowed] = useState(() => new Set());
   const [remaining, setRemaining] = useState(null);
+  const [latest, setLatest] = useState([]);
+  const moment = useFollowedMoment(latest);
   const finish = useRef(null);
   useEffect(() => {
     if (followed.size) finish.current?.focus();
@@ -533,8 +541,10 @@ export function StarterSet({ query, onOpenTimeline, onFollowed }) {
     : (retainedPlan.data ?? null);
   if (hidden || !data?.ok || (!data.offer && followed.size === 0)) return null;
   const confirmation = followed.size ? (
-    <p role="status" className="kit-tiny kit-starter__lead">
-      Your follows are ready.{" "}
+    <div className="kit-starter__confirmation">
+      <p role="status" className="kit-starter__lead">
+        Your follows are ready.
+      </p>
       {onOpenTimeline ? (
         <button
           ref={finish}
@@ -549,7 +559,18 @@ export function StarterSet({ query, onOpenTimeline, onFollowed }) {
           Open Timeline
         </Link>
       )}
-    </p>
+      {moment.data?.item ? (
+        <section
+          aria-label="From your new follows"
+          className="kit-starter__moment"
+        >
+          <FeedItem
+            it={moment.data.item}
+            cheerWhere={{ key: followedMomentKey(latest), list: "item" }}
+          />
+        </section>
+      ) : null}
+    </div>
   ) : null;
   const notNow = (
     <button
@@ -574,6 +595,7 @@ export function StarterSet({ query, onOpenTimeline, onFollowed }) {
         <h2 id="kit-starter-head" className="kit-starter__head">
           People you know
         </h2>
+        {confirmation}
         <p className="kit-starter__lead">
           {followed.size
             ? "Find more people in Find. "
@@ -583,7 +605,6 @@ export function StarterSet({ query, onOpenTimeline, onFollowed }) {
           </Link>
           .
         </p>
-        {confirmation}
         {notNow}
         <WriteError error={hide.error} className="field-error" />
       </section>
@@ -598,6 +619,7 @@ export function StarterSet({ query, onOpenTimeline, onFollowed }) {
     });
   return (
     <section className="kit-starter" aria-labelledby="kit-starter-head">
+      {confirmation}
       <div className="kit-starter__top">
         <h2 id="kit-starter-head" className="kit-starter__head">
           People you know
@@ -611,6 +633,7 @@ export function StarterSet({ query, onOpenTimeline, onFollowed }) {
           className="btn btn--follow"
           onDone={(result) => {
             if (result?.followed?.length) {
+              setLatest(result.followed);
               setRemaining(
                 people.filter((p) => !result.followed.includes(p.tag)),
               );
@@ -629,7 +652,6 @@ export function StarterSet({ query, onOpenTimeline, onFollowed }) {
                 : "Checking what this costs…"}
         </p>
       </div>
-      {confirmation}
       <Rows>
         {shown.map((p) => {
           const id = `starter-${p.tag.slice(1)}`;
