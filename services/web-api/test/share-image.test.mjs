@@ -461,3 +461,29 @@ test("one shared battle post keeps both decks and the public author without card
     assert.doesNotMatch(tag, /filter|mask|clip-path|opacity|transform/);
   assert.doesNotMatch(svg, /<filter|<mask|<clipPath/);
 });
+
+test("a shared milestone post keeps its original achievement and UTC time beside the author's words", () => {
+  const svg = drawItem(
+    {
+      item: {
+        kind: "post",
+        subjects: [{ kind: "player", name: "Invented <Ada>" }],
+        post: {
+          text: "Finally reached this step",
+          moment: {
+            text: "Invented <Ada> reached Knight Mastery level 5.",
+            at: "2026-11-18T12:00:00.000Z",
+          },
+        },
+      },
+      url: "https://elixir.poapkings.com/share/abcdefghijklmnopqrst2345",
+    },
+    metrics,
+  );
+  assert.match(svg, /Finally reached this step/);
+  assert.match(svg, /Recorded milestone/);
+  assert.match(svg, /Knight Mastery level 5/);
+  assert.match(svg, /UTC/);
+  assert.match(svg, /&lt;Ada&gt;/);
+  assert.doesNotMatch(svg, /<Ada>/);
+});

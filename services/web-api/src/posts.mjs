@@ -13,7 +13,7 @@
  * few cards from the catalog. It is a timeline item of its own
  * (`kind: "post"`, a random `tl_` id), so cheers and comments name it as
  * they name any item; a battle highlight is the same idea about a battle,
- * a post is about nothing in the record.
+ * a post can also carry an own recorded game achievement.
  *
  * Posts are not game record. Writes stay here; member reads and their
  * normalized attachments live in @elixir-mcp/posts. A delivery door must
@@ -35,6 +35,9 @@
 import { randomBytes } from "node:crypto";
 import { catalogRows, readVisiblePost } from "@elixir-mcp/posts";
 import { findDeckLink, parseDeckLink } from "@elixir-mcp/contracts";
+import { postableMoment, readPostMoment } from "@elixir-mcp/posts/moment";
+import { resolveMemberItem } from "./timeline-items.mjs";
+import { timelineItemRef } from "./timeline-item-ref.mjs";
 import { battleFor, pickPlayer } from "./battle-posts.mjs";
 import { checkComment, POST_REFUSAL_WORDS } from "./comment-check.mjs";
 import { tidyComment } from "./comment-filter.mjs";
@@ -73,11 +76,24 @@ const POST_ID = /^[1-9][0-9]{0,18}$/;
  * battle alone, and its words may be empty (0292).
  */
 export function readPostInput(body) {
+  if (
+    body?.moment != null &&
+    (typeof body.moment !== "object" || Array.isArray(body.moment))
+  )
+    return {
+      error: "bad_request",
+      message: "Choose a recorded milestone from your Timeline.",
+    };
   const battle =
     body?.battle != null && body.battle !== ""
       ? String(body.battle).slice(0, 400)
       : null;
   if (battle) {
+    if (body.moment != null)
+      return {
+        error: "bad_request",
+        message: "A post carries one attachment.",
+      };
     if (body.text != null && typeof body.text !== "string")
       return { error: "bad_request", message: "Write something first." };
     if (
@@ -140,6 +156,8 @@ export function readPostInput(body) {
       };
     if (!cards.includes(n)) cards.push(n);
   }
+  if (body.moment != null && (deck || cards.length))
+    return { error: "bad_request", message: "A post carries one attachment." };
   if (deck && cards.length)
     return {
       error: "refused",
@@ -153,6 +171,7 @@ export function readPostInput(body) {
     cards,
     battle: null,
     player_tag: null,
+    moment: body.moment ?? null,
   };
 }
 
@@ -276,7 +295,8 @@ async function repeated(db, accountId, body) {
 }
 
 /** What a post carries, for the check's line about it. */
-function carriesOf({ deck, cards, battle }) {
+function carriesOf({ deck, cards, battle, moment }) {
+  if (moment) return "their recorded game achievement attached";
   if (battle) return "one of their battles attached";
   if (deck) return "a deck of eight cards attached";
   if (cards.length)
@@ -299,6 +319,7 @@ export async function writePost(db, account, input, cfg) {
   const accountId = account.accountId;
   let tag;
   let battleId = null;
+  let moment = null;
   if (input.battle) {
     const on = await battleFor(db, accountId, input.battle);
     if (on.error) return on;
@@ -312,7 +333,38 @@ export async function writePost(db, account, input, cfg) {
       };
   } else {
     if (!cfg?.plain) return { error: "posts_off" };
-    tag = await posterTag(db, accountId);
+    if (input.moment) {
+      const actual = await resolveMemberItem(db, {
+        accountId,
+        itemId: input.moment.item_id,
+        item: input.moment,
+      });
+      if (!postableMoment(actual)) return { error: "not_found" };
+      const { rows } = await db.query(
+        `select player_tag from claim
+        where account_id=$1 and status='verified'
+          and (is_primary or relationship in ('primary','alt'))
+          and player_tag=any($2::text[])
+        order by is_primary desc limit 1`,
+        [
+          accountId,
+          (actual.subjects ?? [])
+            .filter((s) => s.kind === "player")
+            .map((s) => s.tag),
+        ],
+      );
+      tag = rows[0]?.player_tag ?? null;
+      if (!tag) return { error: "not_found" };
+      moment = readPostMoment({
+        id: actual.id,
+        kind: actual.kind,
+        at: actual.at,
+        player_tag: tag,
+        text: actual.text,
+        item_ref: timelineItemRef(actual),
+      });
+      if (!moment) return { error: "not_found" };
+    } else tag = await posterTag(db, accountId);
     if (!tag)
       return { error: "not_verified", message: "Verify your player to post." };
   }
@@ -323,7 +375,7 @@ export async function writePost(db, account, input, cfg) {
   // One check at a time per account, comments and posts alike: the
   // limits count logged checks, which land only once the model answers.
   return withCheckLock(db, accountId, () =>
-    writeChecked(db, accountId, tag, battleId, input, cfg),
+    writeChecked(db, accountId, tag, battleId, { ...input, moment }, cfg),
   );
 }
 
@@ -405,8 +457,10 @@ async function writeChecked(db, accountId, tag, battleId, input, cfg) {
   if (!checked.ok) return checked;
   const { rows } = await db.query(
     `insert into account_post
-       (item_id, account_id, player_tag, body, question, deck, cards, battle_id)
-     values ($1, $2, $3, $4, $5, $6::jsonb, $7::int[], $8)
+       (item_id, account_id, player_tag, body, question, deck, cards, battle_id, moment)
+     select $1, $2, $3, $4, $5, $6::jsonb, $7::int[], $8, $9::jsonb
+      where exists (select 1 from claim where account_id=$2::uuid and player_tag=$3
+        and status='verified' and (is_primary or relationship in ('primary','alt')))
      on conflict (player_tag, battle_id) where battle_id is not null do nothing
      returning post_id`,
     [
@@ -418,12 +472,15 @@ async function writeChecked(db, accountId, tag, battleId, input, cfg) {
       input.deck ? JSON.stringify(input.deck) : null,
       input.cards,
       battleId,
+      input.moment ? JSON.stringify(input.moment) : null,
     ],
   );
   if (rows.length === 0)
     return {
-      error: "already_posted",
-      message: "You've already posted about this battle as that player.",
+      error: battleId ? "already_posted" : "not_verified",
+      message: battleId
+        ? "You've already posted about this battle as that player."
+        : "Verify your player to post.",
     };
   const post = await readVisiblePost(db, accountId, rows[0].post_id, {
     plain: true,
@@ -457,6 +514,7 @@ export async function editPost(db, account, id, text, cfg) {
       battle: battle ? row.battle_id : null,
       deck: row.deck,
       cards: row.cards ?? [],
+      moment: readPostMoment(row.moment),
     };
     const checked = await withCheckLock(db, account.accountId, () =>
       checkWords(db, account.accountId, row.item_id, body, input, cfg),
@@ -511,7 +569,7 @@ async function postRow(db, id) {
   if (!POST_ID.test(String(id ?? ""))) return null;
   const { rows } = await db.query(
     `select post_id::text as post_id, item_id, account_id, player_tag, status,
-            battle_id, body, question, deck, cards
+            battle_id, body, question, deck, cards, moment
        from account_post where post_id = $1::bigint`,
     [String(id)],
   );

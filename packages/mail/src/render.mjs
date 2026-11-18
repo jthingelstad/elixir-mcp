@@ -299,7 +299,7 @@ function digestItem(it, c) {
   if (it.kind === "post") {
     const url = member ?? memberPostUrl(it.post?.id);
     const cards = it.post?.deck?.cards ?? it.post?.cards ?? [];
-    return `<div style="font-family:${FONT};font-size:14px;line-height:1.5;color:${M.muted};margin-top:12px;">${esc(it.post?.question ? "Question" : "Post")}</div>${when}${it.words ? quote(it.words) : ""}${cards.length ? deckRow(cards, { names: true, slots: Boolean(it.post?.deck) }) : ""}${it.post?.deck?.label ? c.small(esc(it.post.deck.label)) : ""}${url ? `<div style="margin-top:8px;">${c.link(url, it.post?.question ? "Read and reply" : "Open post", `display:inline-block;min-height:44px;line-height:44px;font-family:${FONT};font-size:14px;font-weight:600;`)}</div>` : ""}`;
+    return `<div style="font-family:${FONT};font-size:14px;line-height:1.5;color:${M.muted};margin-top:12px;">${esc(it.post?.question ? "Question" : "Post")}</div>${when}${it.words ? quote(it.words) : ""}${it.post?.moment ? `<div style="font-family:${FONT};font-size:14px;line-height:1.5;margin-top:8px;">${esc(it.post.moment.text)}${c.small(esc(c.dayTime({ at: it.post.moment.at })))}</div>` : ""}${cards.length ? deckRow(cards, { names: true, slots: Boolean(it.post?.deck) }) : ""}${it.post?.deck?.label ? c.small(esc(it.post.deck.label)) : ""}${url ? `<div style="margin-top:8px;">${c.link(url, it.post?.question ? "Read and reply" : "Open post", `display:inline-block;min-height:44px;line-height:44px;font-family:${FONT};font-size:14px;font-weight:600;`)}</div>` : ""}`;
   }
   const battle = it.battle_url
     ? ` ${c.link(it.battle_url, "See the battle", "font-weight:600;")}`

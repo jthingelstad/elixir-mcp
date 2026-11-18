@@ -17,6 +17,7 @@
  * as they are touched.
  */
 
+import { POST_MOMENT_KINDS } from "@elixir-mcp/posts/moment";
 import { FEEDBACK_STATUSES } from "@elixir-mcp/contracts";
 
 const ISO = { type: "string", description: "ISO 8601 UTC instant." };
@@ -667,6 +668,25 @@ const POST_FACTS = closed({
     type: "array",
     items: closed({ id: { type: "integer" }, name: { type: "string" } }),
   },
+  moment: nullable(
+    closed({
+      id: { type: "string", pattern: "^tl_[0-9a-f]{20}$" },
+      kind: { type: "string", enum: [...POST_MOMENT_KINDS] },
+      at: ISO,
+      player_tag: TAG,
+      text: { type: "string", maxLength: 2000 },
+      item_ref: closed({
+        item_id: { type: "string" },
+        source: { const: "game", type: "string" },
+        kind: { type: "string", enum: [...POST_MOMENT_KINDS] },
+        at: ISO,
+        subject: closed({
+          kind: { type: "string", enum: ["player", "clan"] },
+          tag: TAG,
+        }),
+      }),
+    }),
+  ),
   url: {
     type: "string",
     pattern: "^https://elixir\\.poapkings\\.com/home/post/[1-9][0-9]{0,18}$",

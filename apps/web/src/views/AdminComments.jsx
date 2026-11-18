@@ -195,6 +195,9 @@ function ReportedPosts({ items }) {
                 </span>
               </p>
               <p className="kit-comments__text">{p.text}</p>
+              {p.moment ? (
+                <p className="kit-tiny">Recorded milestone: {p.moment.text}</p>
+              ) : null}
               {p.deck || p.cards?.length ? (
                 <p className="kit-tiny">
                   {p.deck

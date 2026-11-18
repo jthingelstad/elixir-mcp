@@ -164,6 +164,12 @@ export function renderRss(items, { now = new Date() } = {}) {
             ...(it.facts.cards.length
               ? [`Cards: ${it.facts.cards.map((c) => c.name).join(", ")}`]
               : []),
+            ...(it.facts.moment
+              ? [
+                  `Recorded milestone: ${it.facts.moment.text}`,
+                  `Recorded at: ${it.facts.moment.at}`,
+                ]
+              : []),
             ...(question && it.facts.answered ? ["Answered"] : []),
           ]
         : [];

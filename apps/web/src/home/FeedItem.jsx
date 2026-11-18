@@ -1,3 +1,4 @@
+import { postableMoment } from "@elixir-mcp/posts/moment";
 import { useId, useState } from "react";
 import {
   Avatar,
@@ -32,7 +33,7 @@ import {
 } from "./Session.jsx";
 import { signedCount } from "@elixir-mcp/ui/session-story";
 import { cheerCounts } from "./cheer-set.js";
-import { PostActions, PostBody } from "./Post.jsx";
+import { MilestonePost, PostActions, PostBody } from "./Post.jsx";
 import { ItemActions } from "./ItemActions.jsx";
 import { RacePlace } from "./RacePlace.jsx";
 
@@ -346,6 +347,9 @@ export function FeedItem({
       {it.kind === "week_resolved" ? <RacePlace rank={it.facts?.rank} /> : null}
       {moment && it.battle_url && !publicView ? <MomentBattle it={it} /> : null}
       {post && !publicView ? <PostActions it={it} /> : null}
+      {!publicView && postableMoment(it) ? (
+        <MilestonePost key={it.id} it={it} />
+      ) : null}
       {!publicView ? (
         <>
           <div className="kit-feed__links">{links}</div>
@@ -704,6 +708,7 @@ function MomentLine({ it, inGroup = false, cheerWhere, commentEntry }) {
           </span>
         </p>
       </div>
+      {postableMoment(it) ? <MilestonePost key={it.id} it={it} /> : null}
       <ItemActions
         it={it}
         cheerWhere={cheerWhere}

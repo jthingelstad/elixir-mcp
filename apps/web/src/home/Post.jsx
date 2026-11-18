@@ -8,8 +8,11 @@ import {
   Icon,
   Link,
   TagText,
+  useClock,
   avatarCardOf,
 } from "@elixir-mcp/ui";
+import { postableMoment } from "@elixir-mcp/posts/moment";
+import { memberItemPath, timelineItemRef } from "@elixir-mcp/ui/item-link";
 import { api } from "../api.js";
 import { useMe } from "../App.jsx";
 import { useCardCatalog, usePostsChanged } from "../lib/queries.js";
@@ -91,7 +94,7 @@ export function PostComposer({ open, setOpen }) {
   return <PostForm onClose={() => setOpen(false)} opener={opener} />;
 }
 
-function PostForm({ onClose, opener }) {
+function PostForm({ onClose, opener, moment = null }) {
   const [text, setText] = useState("");
   const [question, setQuestion] = useState(false);
   const [cards, setCards] = useState([]);
@@ -125,15 +128,18 @@ function PostForm({ onClose, opener }) {
       }))
     : null;
   const empty = !draft.words;
+  const conflictingLink = Boolean(moment && draft.deck);
   const send = async (e) => {
     e.preventDefault();
-    if (busy || empty || left < 0) return;
+    if (busy || empty || left < 0 || conflictingLink) return;
     setBusy(true);
     setError(null);
     const res = await api.writePost({
       text,
       question,
-      cards: draft.deck ? [] : cards,
+      ...(moment
+        ? { moment: timelineItemRef(moment) }
+        : { cards: draft.deck ? [] : cards }),
     });
     setBusy(false);
     if (res.ok) {
@@ -175,7 +181,22 @@ function PostForm({ onClose, opener }) {
         aria-describedby={`${fieldId}-help`}
         onChange={(e) => setText(e.target.value)}
       />
-      {deckCards ? (
+      {moment ? (
+        <PostMoment
+          moment={{
+            id: moment.id,
+            kind: moment.kind,
+            at: moment.at,
+            text: moment.text,
+          }}
+        />
+      ) : null}
+      {conflictingLink ? (
+        <p className="field-error" role="alert">
+          This post carries the milestone. Remove the deck link to post it.
+        </p>
+      ) : null}
+      {!moment && deckCards ? (
         <div className="kit-written__deck">
           <p className="kit-tiny m-0">The deck from your link</p>
           <DeckRow cards={deckCards} showCost label="The deck from your link" />
@@ -189,7 +210,7 @@ function PostForm({ onClose, opener }) {
           onRemove={(id) => setCards(cards.filter((c) => c !== id))}
         />
       ) : null}
-      {picking && !draft.deck ? (
+      {!moment && picking && !draft.deck ? (
         <CardPicker
           picked={cards}
           onPick={(id) =>
@@ -212,7 +233,7 @@ function PostForm({ onClose, opener }) {
           {left < 0 ? `${-left} too many` : `${left} left`}
         </span>
         <span className="kit-post-compose__acts">
-          {!draft.deck ? (
+          {!moment && !draft.deck ? (
             <button
               type="button"
               className="btn btn--sm"
@@ -232,7 +253,7 @@ function PostForm({ onClose, opener }) {
           <button
             type="submit"
             className="btn btn--sm btn--primary"
-            disabled={busy || empty || left < 0}
+            disabled={busy || empty || left < 0 || conflictingLink}
           >
             {busy ? "Checking" : question ? "Ask" : "Post"}
           </button>
@@ -364,6 +385,7 @@ export function PostBody({ it }) {
         </p>
       ) : null}
       {words ? <p className="kit-written__text">{words}</p> : null}
+      {p.moment ? <PostMoment moment={p.moment} /> : null}
       {p.battle ? (
         <PostBattle battle={p.battle} versus={p.versus} who={p.author} />
       ) : null}
@@ -375,6 +397,68 @@ export function PostBody({ it }) {
       ) : null}
       {p.deck ? <PostDeck deck={p.deck} /> : null}
       {p.cards?.length ? <PostCards cards={p.cards} /> : null}
+    </div>
+  );
+}
+
+/** An actual recorded achievement, with its original time and source link. */
+export function PostMoment({ moment }) {
+  const { when } = useClock();
+  const to = moment.item_ref ? memberItemPath(moment.item_ref) : null;
+  return (
+    <div className="kit-written__moment">
+      <p className="kit-tiny m-0">
+        Recorded milestone · <time dateTime={moment.at}>{when(moment.at)}</time>
+      </p>
+      <p className="kit-feed__text">
+        <TagText>{moment.text}</TagText>
+      </p>
+      {to ? (
+        <Link to={to} className="btn btn--sm">
+          Open milestone
+        </Link>
+      ) : null}
+    </div>
+  );
+}
+/** An own milestone's Post action and composer, outside the social row. */
+export function MilestonePost({ it }) {
+  const { me } = useMe();
+  const may = useMayPost();
+  const [open, setOpen] = useState(false);
+  const opener = useRef(null);
+  const owns = (me?.claims ?? []).some(
+    (c) =>
+      c.status === "verified" &&
+      (c.is_primary || ["primary", "alt"].includes(c.relationship)) &&
+      (it.subjects ?? []).some(
+        (s) => s.kind === "player" && s.tag === c.player_tag,
+      ),
+  );
+  const start = useRef(null);
+  useEffect(() => {
+    if (!open && opener.current) start.current?.focus();
+  }, [open]);
+  const close = () => setOpen(false);
+  if (!may || !owns || !postableMoment(it)) return null;
+  return (
+    <div className="kit-milestone-post">
+      {open ? (
+        <PostForm moment={it} opener={opener} onClose={close} />
+      ) : (
+        <button
+          ref={start}
+          type="button"
+          className="btn btn--sm"
+          onClick={(e) => {
+            e.currentTarget.focus();
+            opener.current = e.currentTarget;
+            setOpen(true);
+          }}
+        >
+          Post
+        </button>
+      )}
     </div>
   );
 }

@@ -12776,3 +12776,23 @@ button.kit-written__card:focus-visible {
 .kit-shared-item .kit-feed__item {
   margin-block: var(--s-4);
 }
+
+/* An immutable game achievement attached to the author's post. */
+.kit-written__moment {
+  display: grid;
+  gap: var(--s-1);
+  min-width: 0;
+  padding: var(--s-2) var(--s-3);
+  border-left: 2px solid var(--gold);
+  background: var(--panel-raised);
+  overflow-wrap: anywhere;
+  justify-items: start;
+}
+.kit-written__moment .kit-feed__text {
+  margin: 0;
+}
+.kit-milestone-post {
+  grid-column: 1 / -1;
+  margin-top: var(--s-2);
+  min-width: 0;
+}

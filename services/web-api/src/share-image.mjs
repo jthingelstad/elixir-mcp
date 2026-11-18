@@ -1125,14 +1125,37 @@ export function drawItem(read, f) {
     item.text ||
     (item.facts ? sessionHeadline(item.facts) : "Shared on Elixir");
   const max = deck ? 615 : 1090;
-  const lines = wrap(words, f.regular, 27, max).slice(0, 9);
+  const moment = item.post?.moment;
+  const maxLines = moment ? 4 : 9;
+  const lines = wrap(words, f.regular, 27, max).slice(0, maxLines);
   lines.forEach((line, i) =>
     out.push(
-      text(PAD, 190 + i * 37, i === 8 ? fit(line, f.regular, 27, max) : line, {
-        size: 27,
-      }),
+      text(
+        PAD,
+        190 + i * 37,
+        i === maxLines - 1 ? fit(line, f.regular, 27, max) : line,
+        {
+          size: 27,
+        },
+      ),
     ),
   );
+  if (moment) {
+    out.push(text(PAD, 365, "Recorded milestone", { size: 17, fill: C.dim }));
+    wrap(moment.text, f.regular, 23, 1090)
+      .slice(0, 3)
+      .forEach((line, i) =>
+        out.push(
+          text(PAD, 401 + i * 29, fit(line, f.regular, 23, 1090), { size: 23 }),
+        ),
+      );
+    out.push(
+      text(PAD, 500, whenAt(moment.at, null, { now: 0 }), {
+        size: 17,
+        fill: C.dim,
+      }),
+    );
+  }
   if (deck)
     drawPlainDeck((s) => out.push(s), f, deck, {
       slots: !item.post?.cards?.length,
