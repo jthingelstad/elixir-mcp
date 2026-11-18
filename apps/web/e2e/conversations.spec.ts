@@ -3,6 +3,7 @@ import AxeBuilder from "@axe-core/playwright";
 import { mockApi } from "./fixtures.ts";
 import { homeApi } from "./home-fixture.ts";
 import { BELL_ME, EMPTY_BELL, NO_NEEDS } from "./bell-fixture.ts";
+import { readMemberItemPath } from "@elixir-mcp/ui/item-link";
 
 const ITEM = "tl_0123456789abcdef0099";
 const at = "2026-11-18T10:00:00.000Z";
@@ -104,9 +105,13 @@ for (const width of [320, 390, 1280]) {
       "https://example.test",
     );
     expect(url.pathname).toBe(`/home/item/${ITEM}`);
-    expect(url.searchParams.get("reply")).toBe("42");
-    expect(url.searchParams.get("after_id")).toBe("40");
-    expect(JSON.parse(url.searchParams.get("ref")!)).toEqual(ref);
+    const target = readMemberItemPath(
+      ITEM,
+      Object.fromEntries(url.searchParams),
+    );
+    expect(target!.entry.reply).toBe("42");
+    expect(target!.entry.afterId).toBe("40");
+    expect(target!.ref).toEqual(ref);
     await expect(dialog.getByText(/1 new answer/)).toBeVisible();
     await expect(dialog.getByText(/No new replies/)).toBeVisible();
     for (const element of [
