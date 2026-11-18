@@ -168,6 +168,9 @@ export function renderRss(items, { now = new Date() } = {}) {
           ]
         : [];
     const description = [text, ...attachment].join("\n\n");
+    // RSS item descriptions are HTML after XML decoding. Keep names and
+    // authored words literal in that HTML, then encode it for the XML.
+    const descriptionHtml = xmlText(description);
     const at = new Date(Date.parse(it.observed_at ?? it.at) || now.getTime());
     return [
       "<item>",
@@ -175,7 +178,7 @@ export function renderRss(items, { now = new Date() } = {}) {
       `<link>${xmlText(linkOf(it))}</link>`,
       `<guid isPermaLink="false">${xmlText(it.id)}</guid>`,
       `<pubDate>${at.toUTCString()}</pubDate>`,
-      `<description>${xmlText(description)}</description>`,
+      `<description>${xmlText(descriptionHtml)}</description>`,
       "</item>",
     ].join("");
   });
