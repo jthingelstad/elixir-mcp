@@ -388,6 +388,13 @@ test("a followed player who only posted is told: a post about an older battle, w
   assert.equal(p.tag, POSTER);
   assert.equal(p.name, POSTER);
   assert.equal(p.battles, 0);
+  assert.equal(p.post_count, 1);
+  assert.deepEqual(mail.followed_activity, {
+    posters: 1,
+    posts: 1,
+    players: 0,
+    battles: 0,
+  });
   assert.equal(p.items[0].kind, "battle_highlight");
   assert.equal(p.items[0].words, "Still my best game");
   assert.equal(mail.you, null, "a quiet reader with no alt has no line");
@@ -397,7 +404,8 @@ test("a followed player who only posted is told: a post about an older battle, w
     period: "2026-10-08",
     pixel: false,
   });
-  assert.match(out.html, /No battles recorded/);
+  assert.doesNotMatch(out.html, /No battles recorded/);
+  assert.match(out.subject, /1 post from 1 player/);
   assert.match(out.html, /Still my best game/);
 });
 

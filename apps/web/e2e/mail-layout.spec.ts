@@ -51,7 +51,11 @@ for (const viewport of [
           `${name}: primary action remains easy to tap`,
         ).toBeGreaterThanOrEqual(44);
       }
-      if (name === "tracking_report-posts") {
+      if (
+        ["tracking_report-posts", "tracking_report-posts-and-play"].includes(
+          name,
+        )
+      ) {
         const memberActions = page.getByRole("link", {
           name: /^(Read and reply|Open post)$/,
         });
@@ -67,6 +71,49 @@ for (const viewport of [
         }
         await expect(
           page.getByText("Hog Rider · Musketeer", { exact: true }),
+        ).toBeVisible();
+      }
+      if (name === "tracking_report-posts-and-play") {
+        await expect(page.locator("body")).toContainText(
+          "2 posts from 1 player · 23 battles from 1 player",
+        );
+        await expect(page.locator("body")).not.toContainText(
+          "2 people you follow played",
+        );
+        await expect(page.locator("body")).not.toContainText(
+          "No battles recorded",
+        );
+        for (const phrase of [
+          "2 posts from 1 player",
+          "23 battles from 1 player",
+        ]) {
+          const lines = await page.evaluate((text) => {
+            const walker = document.createTreeWalker(
+              document.body,
+              NodeFilter.SHOW_TEXT,
+            );
+            let node;
+            while ((node = walker.nextNode())) {
+              const start = (node.textContent ?? "").indexOf(text);
+              if (start < 0) continue;
+              const range = document.createRange();
+              range.setStart(node, start);
+              range.setEnd(node, start + text.length);
+              return new Set(
+                Array.from(range.getClientRects())
+                  .filter((r) => r.width > 0)
+                  .map((r) => Math.round(r.top)),
+              ).size;
+            }
+            return 0;
+          }, phrase);
+          expect(lines, `${name}: ${phrase} stays together`).toBe(1);
+        }
+        await expect(
+          page.getByRole("link", { name: /^Invented Ada/ }),
+        ).toBeVisible();
+        await expect(
+          page.getByRole("link", { name: /^Rapid Clear/ }),
         ).toBeVisible();
       }
       if (name === "tracking_report") {

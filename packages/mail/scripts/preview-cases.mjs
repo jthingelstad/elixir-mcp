@@ -109,6 +109,22 @@ export function mailPreviewCases() {
         "This digest includes posts from accounts you follow. A gap in the game record means unknown. It does not mean they didn’t play.",
     }),
   );
+  const postsOnly = cases.find((c) => c.name === "tracking_report-posts").facts;
+  cases.push(
+    product("tracking_report-posts-and-play", "tracking_report", {
+      ...digest,
+      account_follow_posts: true,
+      following: 2,
+      people: [
+        { ...postsOnly.people[0], relationship: "friend" },
+        { ...digest.people[0], items: [], more_items: 0 },
+      ],
+      more_people: 0,
+      clans: [],
+      you: null,
+      coverage: postsOnly.coverage,
+    }),
+  );
   const collector = read("collector_activity");
   cases.push(
     product("collector_activity-silent", "collector_activity", {

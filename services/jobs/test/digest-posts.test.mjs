@@ -4,6 +4,7 @@ import { scratchDb } from "../../../packages/ingest/test/helpers.mjs";
 import {
   postFixture,
   AUTHOR_TAG,
+  READER_TAG,
 } from "../../../packages/posts/test/fixture.mjs";
 import { runEmail } from "../src/email/index.mjs";
 import { buildDigest } from "../src/email/build-digest.mjs";
@@ -40,6 +41,13 @@ test("a post-only question reaches the existing digest and links to its signed-i
   const post = await people.post({ at, text: "Which card <img src=x> & why?" });
   const facts = await build();
   assert.ok(facts, "a visible post alone is news for the existing digest");
+  assert.deepEqual(facts.followed_activity, {
+    posters: 1,
+    posts: 1,
+    players: 0,
+    battles: 0,
+  });
+  assert.equal(facts.people[0].post_count, 1);
   const item = facts.people[0].items[0];
   assert.equal(item.kind, "post");
   const mail = renderMail("tracking_report", facts, {
@@ -203,4 +211,117 @@ test("the existing cadence, off switch and send ledger still govern a post-only 
   });
   assert.equal(off.sent, 0);
   assert.equal(messages.length, 1, "posts never turn a digest back on");
+});
+
+test("followed activity counts visible posts and play before person and item presentation caps", async () => {
+  const db = ctx.db;
+  const post = async (accountId, tag, serial, status = "visible") =>
+    (
+      await db.query(
+        `insert into account_post(item_id,account_id,player_tag,body,created_at,status)
+         values($1,$2,$3,$4,$5,$6) returning post_id::text`,
+        [
+          `tl_${String(serial).padStart(20, "d")}`,
+          accountId,
+          tag,
+          `Visible source post ${serial}`,
+          at,
+          status,
+        ],
+      )
+    ).rows[0].post_id;
+  const played = async (tag, prefix) => {
+    for (let n = 0; n < 2; n++) {
+      const id = `${prefix}-${n}`;
+      const when = new Date(at.getTime() - 3_600_000 + n * 60_000);
+      await db.query(
+        `insert into battle(battle_id,battle_time,type,type_class,created_at)
+         values($1,$2,'PvP','pvp',$2)`,
+        [id, when],
+      );
+      await db.query(
+        `insert into battle_participant(battle_id,player_tag,side,battle_time,type,type_class,outcome)
+         values($1,$2,0,$3,'PvP','pvp','win')`,
+        [id, tag, when],
+      );
+    }
+  };
+  const addFollowed = async (n) => {
+    const tag = `#0P${n.toString(2).replaceAll("0", "P").replaceAll("1", "Y").padStart(6, "P")}`;
+    const accountId = (
+      await db.query(
+        "insert into account(email_hash,status) values($1,'approved') returning account_id",
+        [`digest-cap-${n}`],
+      )
+    ).rows[0].account_id;
+    await db.query("insert into player(player_tag,name) values($1,$2)", [
+      tag,
+      `Invented Player ${n}`,
+    ]);
+    await db.query(
+      `insert into claim(account_id,player_tag,is_primary,relationship,status,verified_at)
+       values($1,$2,true,'primary','verified',now()),($3,$2,false,'friend','unverified',null)`,
+      [accountId, tag, people.reader],
+    );
+    return { accountId, tag };
+  };
+  let serial = 100;
+  let frequent;
+  for (let n = 0; n < 13; n++) {
+    const person = await addFollowed(n);
+    frequent ??= person.tag;
+    await played(person.tag, `digest-cap-${n}`);
+    for (let j = 0; j < (n === 0 ? 5 : 1); j++)
+      await post(person.accountId, person.tag, serial++);
+  }
+  // The reader's own post and play belong to You, never these totals.
+  await post(people.reader, READER_TAG, serial++);
+  await played(READER_TAG, "digest-cap-own");
+  // All are followed, but their denied or out-of-window posts add no
+  // poster and no post. These writers have no visible play in this window.
+  await post(people.author, AUTHOR_TAG, serial++, "hidden");
+  const reported = await post(people.author, AUTHOR_TAG, serial++);
+  await db.query(
+    "insert into post_report(post_id,account_id,reason) values($1,$2,'other')",
+    [reported, people.reader],
+  );
+  const outside = await post(people.author, AUTHOR_TAG, serial++);
+  await db.query("update account_post set created_at=$2 where post_id=$1", [
+    outside,
+    new Date(from.getTime() - 1),
+  ]);
+  const blocked = await addFollowed(13);
+  await post(blocked.accountId, blocked.tag, serial++);
+  await db.query(
+    "insert into account_block(account_id,blocked_account_id) values($1,$2)",
+    [blocked.accountId, people.reader],
+  );
+  const facts = await build();
+  assert.deepEqual(facts.followed_activity, {
+    posters: 13,
+    posts: 17,
+    players: 13,
+    battles: 26,
+  });
+  const mail = renderMail("tracking_report", facts, {
+    timezone: "UTC",
+    unsubscribe: "https://elixir.test/off",
+    manage: "https://elixir.test/settings/emails",
+  });
+  const activity = "17 posts from 13 players · 26 battles from 13 players";
+  assert.ok(mail.subject.includes(activity), mail.subject);
+  assert.ok(htmlToText(mail.html).includes(activity));
+  assert.equal(facts.people.length, 12);
+  assert.equal(facts.more_people, 1);
+  const busiest = facts.people.find((p) => p.tag === frequent);
+  assert.equal(busiest.post_count, 5);
+  assert.equal(busiest.items.length, 3);
+  assert.equal(busiest.more_items, 2);
+  assert.equal(facts.you.post_count, 1);
+  assert.equal(facts.you.battles, 2);
+  assert.ok(
+    !facts.people.some((p) =>
+      [AUTHOR_TAG, blocked.tag, READER_TAG].includes(p.tag),
+    ),
+  );
 });

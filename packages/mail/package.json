@@ -8,6 +8,7 @@
   "exports": {
     ".": "./src/index.mjs",
     "./archive": "./src/archive.mjs",
+    "./digest-activity": "./src/digest-activity.mjs",
     "./deliver": "./src/deliver.mjs",
     "./ledger": "./src/ledger.mjs",
     "./clan-mail": "./src/clan-mail.mjs",
