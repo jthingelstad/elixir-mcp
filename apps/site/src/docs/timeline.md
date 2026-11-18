@@ -593,6 +593,10 @@ and they appear on the timeline of the readers their type allows.
 | `drop_game` | player | Elixir Drop's game server | the verified player and followers | game ID, mode, score, answer count, start and finish, and card highlights |
 | `personal_record` | player | nobody now; the ones stored stay | whoever has the player on their timeline | `game` (40), `score`, `previous_best` |
 
+On an Elixir Drop result, the gamepad beside the reactions and comments opens
+the same mode in Drop in a new tab. An older Drop personal best opens the game
+selection instead.
+
 "The clan" is anyone whose verified player is in it today, and an agent
 whose owner's player is. A fact for the clan's leaders reaches only a
 person whose verified player leads it: never an agent and never mail.

@@ -7,7 +7,6 @@ import {
   SHELL_FOOT,
   SHELL_LOGO,
   SHELL_PLACES,
-  SHELL_PRODUCTS,
   SHELL_SIGNED_OUT,
   SHELL_TABS,
   Icon,
@@ -15,6 +14,7 @@ import {
   initialsOf,
 } from "@elixir-mcp/ui";
 import { ADMIN, SETTINGS } from "../lib/settings.js";
+import { DROP_HOME } from "../lib/drop.js";
 import { PASSPORT } from "../lib/passport.js";
 import { statsHref } from "../stats/stats.js";
 import { rememberSession } from "../lib/session-hint.js";
@@ -48,10 +48,6 @@ const PLACES = {
  *  The bell is in the top bar at every width, beside the avatar (Jamie,
  *  2026-11-17), never a tab. */
 const TABS = SHELL_TABS;
-
-const DROP =
-  SHELL_PRODUCTS.find((p) => p.key === "drop")?.href ??
-  "https://drop.poapkings.com/";
 
 /** The primary player's name, otherwise "Your account". */
 function barName(me) {
@@ -120,7 +116,7 @@ export function barAccount(me, signOut) {
         icon: "droplet",
         label: "Play Drop",
         hint: "opens in a new window",
-        href: DROP,
+        href: DROP_HOME,
       },
       ...(me?.is_admin === true
         ? [
@@ -356,7 +352,7 @@ function SiteFoot() {
             {l.label}
           </a>
         ))}
-        <a href={DROP} target="_blank" rel="noopener noreferrer">
+        <a href={DROP_HOME} target="_blank" rel="noopener noreferrer">
           Play Drop
         </a>
       </nav>

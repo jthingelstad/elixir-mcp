@@ -321,6 +321,7 @@ plain words.
 ## Web
 
 - **One Timeline action row** — cheers and picker, comment/answer glyph and count, then Share; latest replies and the inline thread stay below. All FeedItem variants use one wrapper. Main cheer counts and +N other cheers keep the row compact; full counts remain accessible. Eligibility and public-share boundaries stay at the existing source. [engineering, 2026-11-18; Jamie requested the layout cleanup]
+- **Play from a Drop result** [Jamie, 2026-11-18; engineering, same-mode destination and gamepad glyph] A gamepad in the Timeline action row opens the recorded Drop mode in a new tab. Older Drop personal bests open the game selection. The link carries only the mode. [Record](notes/2026-11-18-drop-timeline-play.md).
 
 - **A shared item offers a Follow after sign-in**. A post names its author and a game item names its player subjects. The member chooses through the usual priced Follow flow. [Jamie, 2026-11-17; engineering: omit players already on the account, no referral identity]
 
