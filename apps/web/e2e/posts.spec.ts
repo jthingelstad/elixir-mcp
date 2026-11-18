@@ -179,7 +179,7 @@ for (const width of [320, 390, 1280]) {
       await expect(q).toContainText("<b>bold</b> https://example.com/deck");
       await expect(q.locator('a[href*="example.com"]')).toHaveCount(0);
       await expect(
-        q.getByRole("button", { name: "Answer", exact: true }),
+        q.getByRole("button", { name: "0 answers", exact: true }),
       ).toBeVisible();
       const c = page.locator("article", {
         hasText: "Who else levels these first?",
