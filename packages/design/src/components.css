@@ -6601,6 +6601,23 @@ button.kit-row {
     > .roster-table__follow::before {
     content: none;
   }
+  /* Connection status gets its own line so both labels leave room for the
+     member's name and trophies, including on a 320px phone. */
+  .clan-rows.roster-table
+    .kit-table--cards
+    > tbody
+    > tr:has(.kit-connection-state) {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .clan-rows.roster-table
+    .kit-table--cards
+    > tbody
+    > tr:has(.kit-connection-state)
+    > .roster-table__follow {
+    grid-area: 2 / 1 / 2 / -1;
+    justify-self: end;
+    margin-top: var(--s-1);
+  }
   .roster-table__line {
     display: flex;
     flex-wrap: wrap;
@@ -8789,6 +8806,41 @@ a.kit-scard:focus-visible {
   gap: var(--s-3) 14px;
   padding: var(--s-4) var(--s-4) var(--s-1);
 }
+.kit-clanpeople-list {
+  display: grid;
+  gap: var(--s-4);
+}
+.kit-connection-state {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+.kit-connection-state__primary {
+  font-size: var(--t-body-sm);
+  font-weight: 700;
+}
+.kit-connection-state__primary--friend {
+  color: var(--accent-bright);
+}
+.kit-connection-state__primary--close {
+  color: var(--gold);
+}
+.kit-clanmate-connection {
+  display: grid;
+  gap: 4px;
+  max-width: 44ch;
+  margin-top: var(--s-2);
+}
+.kit-clanmate-connection p {
+  margin: 0;
+}
+.kit-clanmate-connection__state {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-2);
+}
 .kit-clanpeople__who {
   flex: 1 1 200px;
   min-width: 0;
@@ -9505,6 +9557,18 @@ a.kit-bell__hit:focus-visible::after {
 .kit-phead > .kit-av {
   grid-area: av;
 }
+.kit-phead:has(> .kit-clanmate-connection) {
+  grid-template-areas:
+    "av main actions"
+    "av connection actions"
+    "av counts actions";
+}
+.kit-phead:has(> .kit-clanmate-connection) > .kit-av {
+  align-self: start;
+}
+.kit-phead > .kit-clanmate-connection {
+  grid-area: connection;
+}
 .kit-phead__main {
   grid-area: main;
   display: grid;
@@ -9919,6 +9983,13 @@ a.kit-bell__hit:focus-visible::after {
     width: 56px;
     height: 56px;
     font-size: var(--t-h2);
+  }
+  .kit-phead:has(> .kit-clanmate-connection) {
+    grid-template-areas:
+      "av main"
+      "connection connection"
+      "counts counts"
+      "actions actions";
   }
   .kit-phead__name {
     font-size: var(--t-title);

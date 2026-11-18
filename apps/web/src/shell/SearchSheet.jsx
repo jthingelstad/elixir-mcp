@@ -4,7 +4,8 @@ import { ErrorState, Icon, Link, TagText } from "@elixir-mcp/ui";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { api } from "../api.js";
 import { FollowCost, Followed, useFollow } from "../home/follow.jsx";
-import { useCardCatalog, useMyClans } from "../lib/queries.js";
+import { useCardCatalog, useMyClans, usePeople } from "../lib/queries.js";
+import { ClanmateState, isClanmateConnection } from "../home/Connection.jsx";
 import {
   readSearch,
   readable,
@@ -19,27 +20,14 @@ import { normTag } from "../lib/tag-url.js";
  *  read is on the account's shared hourly budget. */
 const SETTLE_MS = 500;
 
-/** Your clan's members, read once when the sheet first opens and kept. The
- *  roster's names are the game's: nobody's private nickname is in it. */
-function useHomeRoster(clanTag) {
-  return useQuery({
-    queryKey: ["me", "search", "roster", clanTag],
-    enabled: Boolean(clanTag),
-    staleTime: 10 * 60 * 1000,
-    retry: false,
-    queryFn: async () => {
-      const r = await api.tool("clans_roster", { clan_tag: clanTag });
-      return r.ok && !r.data?.is_error ? r.data.body : null;
-    },
-  });
-}
-
 export function SearchSheet({ me, onClose }) {
   const box = useRef(null);
   const [q, setQ] = useState("");
   const [settled, setSettled] = useState("");
   const clans = useMyClans();
-  const roster = useHomeRoster(clans.data?.home_clan?.clan_tag ?? null);
+  // The same current, blocked-aware peers as Find, including alt clans.
+  // A raw roster or followed clan cannot establish a social connection.
+  const clanmates = usePeople("clan");
   const cards = useCardCatalog({ enabled: q.trim().length > 0 });
 
   useEffect(() => {
@@ -75,10 +63,10 @@ export function SearchSheet({ me, onClose }) {
       searchSources({
         me,
         clans: clans.data,
-        roster: roster.data,
+        clanmates: clanmates.data,
         cards: cards.data?.cards,
       }),
-    [me, clans.data, roster.data, cards.data],
+    [me, clans.data, clanmates.data, cards.data],
   );
   // Accounts by @handle (2026-11-15), beside the player read.
   const handle = handleQuery(settled);
@@ -198,6 +186,15 @@ export function SearchSheet({ me, onClose }) {
                       </PlayerName>
                     </span>
                     <span className="kit-search__door">
+                      {isClanmateConnection(r) ? (
+                        <>
+                          <ClanmateState
+                            friend={r.connection === "friend"}
+                            close={r.close === true}
+                          />
+                          <br />
+                        </>
+                      ) : null}
                       <TagText>{r.d}</TagText>
                     </span>
                   </Link>

@@ -1,3 +1,4 @@
+import { playerConnections } from "@elixir-mcp/claims";
 import { latestSnapshotOrder } from "@elixir-mcp/record/latest-snapshot";
 import { checkRateLimit } from "@elixir-mcp/auth";
 import { featuredDeck, buildFriendsWeek } from "@elixir-mcp/tools/friends-week";
@@ -6,6 +7,7 @@ import { makeInvoker } from "@elixir-mcp/tools/invoker";
 import { HOURLY_RATE_LIMIT } from "@elixir-mcp/tools/quota";
 import {
   buildTimeline,
+  followedAccountIds,
   readTimelineEvidence,
   shownAt,
   subjectsFor,
@@ -27,7 +29,7 @@ import { lastGameWeek } from "@elixir-mcp/record/game-week";
 import { json } from "../http.mjs";
 import { toolDeadlineMs } from "../deadline.mjs";
 import { TIMELINE_MODES } from "@elixir-mcp/contracts";
-import { annotateFeed, closeTags, groupsOf, inMode } from "../feed.mjs";
+import { annotateFeed, groupsOf, inMode } from "../feed.mjs";
 import { cheersReceived, withCheers } from "../cheers.mjs";
 import { withComments } from "../comments.mjs";
 import { homePosts } from "../posts.mjs";
@@ -602,22 +604,12 @@ async function readNeedsPanel({ db, account, event, clan, requestId }) {
 /** How many items a page of Home's feed carries (G1, 2026-11-12). */
 const FEED_PAGE = 30;
 const FEED_DAYS_MS = HOME_WEEK_MS;
-/** A week built again for a page whose stored week was since replaced
- *  (More, an item's evidence) is kept this long for the next such read. */
-const FEED_KEEP_MS = 90_000;
-const FEED_KEPT_MAX = 32;
-const builtFeeds = new Map();
-
-/** Home's week as the timeline builds it, without the account's own
- *  administration (the bell tells that), for a window the store no longer
- *  holds. A build of the same window made in the last 90 s by this
- *  instance is reused. */
+/** An old cursor can outlive both the stored week and a connection. Rebuild
+ * that exceptional window with the reader's current subjects and access. */
 async function buildFeed(db, account, { fromMs, toMs }) {
-  const key = `${account.accountId}|${fromMs}|${toMs}`;
-  const kept = builtFeeds.get(key);
-  if (kept && Date.now() - kept.at < FEED_KEEP_MS) return kept;
   const { timezone } = await homeAccount(db, account.accountId);
   const subjects = await subjectsFor(db, account.accountId);
+  const accounts = await followedAccountIds(db, account.accountId);
   const built = await buildTimeline(db, subjects, {
     fromMs,
     toMs,
@@ -625,14 +617,10 @@ async function buildFeed(db, account, { fromMs, toMs }) {
     accountId: account.accountId,
     interactive: true,
     accountLines: false,
+    lateCounts: false,
+    people: { accounts, players: true },
   });
-  const feed = { at: Date.now(), built, subjects };
-  for (const [k, v] of builtFeeds)
-    if (Date.now() - v.at >= FEED_KEEP_MS) builtFeeds.delete(k);
-  if (builtFeeds.size >= FEED_KEPT_MAX)
-    builtFeeds.delete(builtFeeds.keys().next().value);
-  builtFeeds.set(key, feed);
-  return feed;
+  return { built, subjects };
 }
 
 /** A page's place: the week it reads, how far in, and the item it ended
@@ -738,6 +726,7 @@ async function readFeed(
         toMs: Math.max(Date.now(), week.toMs),
         plain: posts,
         questionsOnly,
+        clanmates: true,
       })
     : [];
   const whole = [
@@ -752,9 +741,19 @@ async function readFeed(
   // are cut, so every page is thirty of that mode's items and More reads
   // on in the same mode; the chips' counts are that mode's too.
   const all = mode ? whole.filter((it) => inMode(it, mode)) : whole;
-  // Close friends (0281): read apart from the stored week, so marking one
-  // never changes the week's subjects or makes it rebuild.
-  const close = await closeTags(db, account.accountId);
+  // These chips reflect the relationship now, even when the game week is cached.
+  // One keyed lookup serves every item and every named player on the page.
+  const tags = all.flatMap((it) => [
+    it.subject_tag,
+    ...(it.subjects ?? []).map((subject) => subject.tag),
+  ]);
+  const connections = await playerConnections(db, account.accountId, tags);
+  const close = new Set();
+  const clanmates = new Set();
+  for (const [tag, connection] of connections) {
+    if (connection.close) close.add(tag);
+    if (connection.clanmate) clanmates.add(tag);
+  }
   let start = cursor?.offset ?? 0;
   if (cursor?.last) {
     const after = all.findIndex((it) => feedAfter(it, cursor.last));
@@ -777,7 +776,7 @@ async function readFeed(
       db,
       await withCheers(
         db,
-        await annotateFeed(db, page, week.subjects, close),
+        await annotateFeed(db, page, week.subjects, close, clanmates),
         account.accountId,
         { allowed: person },
       ),
@@ -818,7 +817,8 @@ async function readFeed(
     const seenMs = seen_to ? Date.parse(seen_to) : null;
     let fresh = 0;
     for (const it of all) {
-      for (const g of groupsOf(it, week.subjects, close)) counts[g] += 1;
+      for (const g of groupsOf(it, week.subjects, close, clanmates))
+        counts[g] += 1;
       if (seenMs !== null && feedNewsAt(it) > seenMs) fresh += 1;
     }
     out.counts = { ...counts, new: fresh, new_since: seen_to };
@@ -1157,6 +1157,7 @@ export function homeRoutes({
               plain: posts,
               nowMs: now,
               questionsOnly,
+              clanmates: true,
             })
           : 0;
       return json(200, {

@@ -2,6 +2,7 @@ import { ConfirmAction, Tag } from "@elixir-mcp/ui";
 import { api } from "../api.js";
 import { useFollowPlan, useInvalidate, useMyClans } from "../lib/queries.js";
 import { FollowAll, FollowButton, followPlanLine } from "./follow.jsx";
+import { ClanmateState } from "./Connection.jsx";
 
 /**
  * Follow everyone in a clan, from Clan › Members (2026-11-12, the canvas's
@@ -18,6 +19,14 @@ export function FollowClan({ clanTag, clanName = null }) {
   const ask = { clan_tag: clanTag };
   const plan = useFollowPlan(ask);
   const p = plan.data ?? null;
+  if (!p) return null;
+  if (p?.shared_clan)
+    return (
+      <p className="kit-tiny follow-clan__note">
+        Clanmates connect automatically through your verified players. Open a
+        player to manage your connection.
+      </p>
+    );
   const all = Boolean(p && p.to_follow === 0 && p.following > 0);
   const refused = Boolean(p && !p.fits && p.to_follow > 0);
   return (
@@ -61,6 +70,15 @@ export function FollowMember({ clanTag, playerTag, name = null }) {
   if (!p || (p.yours ?? []).includes(playerTag)) return null;
   const row = (p.players ?? []).find((x) => x.player_tag === playerTag);
   if (!row) return null;
+  if (p.shared_clan)
+    return row.connection === "clanmate" || row.connection === "friend" ? (
+      <ClanmateState
+        friend={row.connection === "friend"}
+        close={row.close === true}
+      />
+    ) : (
+      <span className="kit-tiny">Clan member</span>
+    );
   if (row.following)
     return <span className="kit-following roster-follow__on">Following</span>;
   return (

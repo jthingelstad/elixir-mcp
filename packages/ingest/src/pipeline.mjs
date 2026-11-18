@@ -265,7 +265,7 @@ const PROJECTORS = {
     // changes) over the window since the last admission. Replayed
     // history stamps nothing.
     const fresh = Date.parse(fetchedAt) > Date.now() - 24 * 3600_000;
-    if (fresh) {
+    if (fresh && !result.skipped) {
       const liveliness =
         result.activeNow >= 3
           ? "active"
@@ -367,18 +367,25 @@ const PROJECTORS = {
           ? "member"
           : "unknown";
     await db.query(
-      `insert into player_profile_membership(player_tag,state,observed_at)
-       values ($1,$2,$3)
+      `insert into player_profile_membership as prior
+         (player_tag, state, observed_at, clan_tag, clan_observed_at)
+       values ($1, $2, $3, $4, $3)
        on conflict (player_tag) do update set
-         state = case when player_profile_membership.observed_at = excluded.observed_at
-                        and player_profile_membership.state is distinct from excluded.state then 'unknown'
-                      else excluded.state end,
-         observed_at = excluded.observed_at
-       where player_profile_membership.observed_at < excluded.observed_at
-          or (player_profile_membership.observed_at = excluded.observed_at
-              and player_profile_membership.state is distinct from excluded.state
-              and player_profile_membership.state <> 'unknown')`,
-      [entityKey, membershipState, fetchedAt],
+         state = case when prior.observed_at = excluded.observed_at then 'unknown' else excluded.state end,
+         clan_tag = case when prior.observed_at = excluded.observed_at then null else excluded.clan_tag end,
+         observed_at = excluded.observed_at,
+         clan_observed_at = excluded.observed_at
+       where prior.observed_at < excluded.observed_at
+          or (prior.observed_at = excluded.observed_at and prior.state <> 'unknown'
+              and (prior.state is distinct from excluded.state
+                   or (prior.clan_observed_at = prior.observed_at
+                       and prior.clan_tag is distinct from excluded.clan_tag)))`,
+      [
+        entityKey,
+        membershipState,
+        fetchedAt,
+        membershipState === "member" ? clanTag : null,
+      ],
     );
     // This observation stamp earns no collector fact credit.
     // Tenure from the YearsPlayed badge (0024): level = completed years,

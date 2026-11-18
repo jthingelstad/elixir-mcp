@@ -34,7 +34,7 @@ ahead and kept, so your Timeline opens at once (below).
 Your Timeline is one feed, newest first, in days. Chips choose
 whose items it shows: **Everyone**, **Close friends** (once you have
 starred one, below), **Friends** (the players you follow as friends),
-**Clan** (the clans you follow), or **You** (your own players), each with
+**Clan** (clan updates and your current clanmates’ posts), or **You** (your own players), each with
 its count. Questions shows its own count when selected. **All** or **New**
 chooses between everything and what came since your last visit. The chips
 only choose what the page draws: your place moves when you open the feed,
@@ -46,7 +46,7 @@ are cut, so a busy week of game activity cannot hide them. It works with
 Mode: a question without a battle appears under **All modes**.
 
 While the Timeline is open, **N new** tells you when new items are ready,
-including new posts and questions from the people you follow. Tap it to
+including new posts and questions from friends and current clanmates. Tap it to
 refresh when you are ready. Editing a post changes its words on refresh;
 it does not count as another new post.
 
@@ -267,13 +267,14 @@ their clan:
 
 ### Getting set up
 
-When you first add your player, **Your people** shows friends and
-clanmates you can follow while your battles arrive. Elixir asks its
+After you verify your player, **Your people** shows how many clanmates are
+already connected. You can open your Timeline or look for friends while
+your battles arrive. Elixir asks its
 collectors for your missing first battle log even if your profile is
 already on record. If it has just learned your clan and already follows
 that clan for you, it can ask for the clan's missing roster too. These
 reads share the recorder's rate budget, so a busy collector can take
-longer. No one is followed until you choose and confirm.
+longer. Adding a friend takes your confirmation.
 
 **Finish your setup** keeps the other welcome steps available. After
 following, your unticked choices stay in place and **Open Timeline** lets
@@ -325,15 +326,8 @@ last 7 days, your Timeline opens with **People you know** at the top, every time
 you visit, not only the first. Following players who've gone quiet
 doesn't put it away. It lists
 players you already know in the game, each with why, and **Free** on
-anyone following costs nothing:
-
-- clanmates Elixir already records, free to follow ("In your clan,
-  already in Elixir"),
-- players you played a friendly battle with ("You played a friendly
-  battle"), your 2v2 teammates ("Your 2v2 teammate") and clanmates you
-  battled in clan chat, from the last 30 days,
-- then your other clanmates, the ones who played most recently first ("In
-  your clan, played today").
+anyone following costs nothing. It can show players you met in a friendly battle and your 2v2 teammates from
+the last 30 days. Current clanmates already appear in **Find › Your clan**.
 
 Everyone is ticked. Untick anyone you'd rather not follow, then tap
 **Follow these**. One line by the button says what following the ticked
@@ -368,12 +362,9 @@ it. Each reads on its own, so the feed never waits for them.
   fame", or training days, or finished), the last race's place, and your
   war decks and donations this week.
 - **People to follow:** up to five players, each with why they are there
-  as a fact, and **Free** on anyone following costs nothing. They come in turn from three
-  places: players your own players met in the last seven days (twice or
-  more, a friendly battle, or as a 2v2 teammate, those first: "You played
-  a friendly battle this week"), players followed by the verified players
-  you follow ("Ada follows them"), and your clan's members ("In your
-  clan"). Players you already follow or own are never suggested.
+  as a fact, and **Free** on anyone following costs nothing. They come from encounters in your battles and the players followed by
+  people you follow. Your own players, friends and current clanmates already
+  have a connection and stay out of these suggestions.
   Nobody is ranked by trophies, wins or any rating, and names are game
   names, never a nickname. While **People you know** is at the top of
   your Timeline, this panel steps aside. **Find more people** opens [Find](/docs/follow-a-friend#find).

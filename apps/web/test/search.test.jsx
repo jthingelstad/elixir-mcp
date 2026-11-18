@@ -10,6 +10,7 @@ import {
   fireEvent,
   screen,
   waitFor,
+  within,
 } from "@testing-library/react";
 import { renderWithProviders } from "./helpers.jsx";
 import { SearchSheet } from "../src/shell/SearchSheet.jsx";
@@ -51,8 +52,166 @@ const ROSTER = {
     { player_tag: "#02PQCV", name: "Pal Game Name", role: "member" },
   ],
 };
+const CLANMATES = {
+  players: ROSTER.members.map((p) => ({
+    ...p,
+    connection:
+      p.player_tag === "#09CV8UVL"
+        ? "self"
+        : p.player_tag === "#02PQCV"
+          ? "friend"
+          : "clanmate",
+    clanmate: CLANS.home_clan.clan_tag,
+    shared_clan: CLANS.home_clan,
+    close: false,
+  })),
+};
 const sources = (over = {}) =>
-  searchSources({ me: ME, clans: CLANS, roster: ROSTER, cards: [], ...over });
+  searchSources({
+    me: ME,
+    clans: CLANS,
+    clanmates: CLANMATES,
+    cards: [],
+    ...over,
+  });
+
+const CONNECTED = {
+  player_tag: "#0PLUG2V9",
+  name: "Willow & <Birch>",
+  role: "elder",
+  connection: "clanmate",
+  clanmate: "#0L8P9LLJ",
+  shared_clan: { clan_tag: "#0L8P9LLJ", name: "Alt's Grove" },
+  close: false,
+};
+
+describe("automatic connections in global search", () => {
+  test("a retained claim with no visible connection is not a local friend association", () => {
+    const source = searchSources({
+      me: {
+        claims: [
+          {
+            player_tag: CONNECTED.player_tag,
+            name: CONNECTED.name,
+            relationship: "friend",
+            connection: null,
+          },
+        ],
+      },
+    });
+    expect(beforeTyping(source).some((g) => g.h === "People you follow")).toBe(
+      false,
+    );
+  });
+  test("only canonical current clanmates establish a connection, including an alt's clan", () => {
+    const source = searchSources({
+      me: { claims: [] },
+      clans: CLANS,
+      roster: ROSTER,
+      clanmates: { players: [CONNECTED] },
+    });
+    expect(doorFor(CONNECTED.player_tag, source, CONNECTED.name)).toMatchObject(
+      {
+        connection: "clanmate",
+        clanmate: CONNECTED.clanmate,
+        d: "Alt's Grove",
+      },
+    );
+    expect(
+      beforeTyping(source)
+        .find((g) => g.h === "Clanmates")
+        .rows.map((r) => r.t),
+    ).toEqual([CONNECTED.name]);
+    const incidental = searchSources({
+      me: { claims: [] },
+      clans: CLANS,
+      roster: ROSTER,
+    });
+    expect(beforeTyping(incidental).some((g) => g.h === "Clanmates")).toBe(
+      false,
+    );
+  });
+  test("a current remote result removes a stale cached Clanmate association", () => {
+    const source = searchSources({
+      me: { claims: [] },
+      clanmates: { players: [CONNECTED] },
+    });
+    const groups = typedGroups("willow", source, {
+      players: [
+        { ...CONNECTED, connection: null, clanmate: null, shared_clan: null },
+      ],
+    });
+    expect(groups.some((g) => g.h === "Clanmates")).toBe(false);
+    expect(groups.find((g) => g.h === "Players").rows[0].connection).not.toBe(
+      "clanmate",
+    );
+  });
+  test.each([
+    [false, "Friend"],
+    [true, "Close friend"],
+  ])(
+    "the sheet renders the canonical friend state, close=%s",
+    async (close, label) => {
+      const fetch = vi.fn(async (path) => {
+        const body =
+          String(path) === "/api/me/people/clan"
+            ? { players: [{ ...CONNECTED, connection: "friend", close }] }
+            : {};
+        return {
+          ok: true,
+          status: 200,
+          json: async () => body,
+          text: async () => JSON.stringify(body),
+        };
+      });
+      vi.stubGlobal("fetch", fetch);
+      const closeSheet = vi.fn();
+      renderWithProviders(
+        <SearchSheet me={{ claims: [] }} onClose={closeSheet} />,
+      );
+      const name = await screen.findByText(CONNECTED.name);
+      const row = name.closest("a");
+      expect(within(row).getByText(label)).toBeTruthy();
+      expect(within(row).getByText("Clanmate")).toBeTruthy();
+      expect(within(row).getByText("Alt's Grove")).toBeTruthy();
+      expect(row.getAttribute("href")).toBe(
+        `/home/player/${CONNECTED.player_tag.slice(1)}`,
+      );
+      expect(row.querySelector("birch")).toBeNull();
+      expect(
+        fetch.mock.calls.some(
+          ([path, init]) =>
+            String(path) === "/api/me/tool" && init?.method === "POST",
+        ),
+      ).toBe(false);
+      fireEvent.click(row);
+      expect(closeSheet).toHaveBeenCalledTimes(1);
+    },
+  );
+  test("account-search rows carry the shared connection without losing the handle or main player's name", () => {
+    const source = searchSources({ me: { claims: [] } });
+    const row = typedGroups("willow", source, {
+      accounts: [
+        {
+          id: "abcdefghjkmn",
+          handle: "willow",
+          player: { name: "Willow" },
+          ...CONNECTED,
+          connection: "friend",
+          close: true,
+        },
+      ],
+    }).find((g) => g.h === "Accounts").rows[0];
+    expect(row).toMatchObject({
+      t: "@willow",
+      d: "Willow",
+      connection: "friend",
+      close: true,
+      clanmate: CONNECTED.clanmate,
+      href: "/home/account/abcdefghjkmn",
+    });
+  });
+});
 
 describe("what counts as a tag, and what is worth a read", () => {
   test("a # needs tag shape; bare text needs the game's alphabet", () => {

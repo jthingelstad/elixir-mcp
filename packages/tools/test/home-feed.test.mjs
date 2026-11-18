@@ -219,6 +219,11 @@ test("a change of subjects or time zone, or a row past serving, is built again",
      values ($1, $2, 'Me')`,
     [owner, PLAYER],
   );
+  assert.equal(
+    await read(T + 60_000, { window: { fromMs: T - 7 * 24 * H, toMs: T } }),
+    null,
+    "an old cursor cannot reuse the week after its current subjects change",
+  );
   const renamed = await read(T + 120_000);
   assert.equal(renamed.stored, false, "a nickname is a change of subjects");
   assert.equal((await row()).built_at.getTime(), T + 120_000);

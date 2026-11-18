@@ -43,7 +43,7 @@ test("roster seeds players and opens memberships (clan auto-follow payoff)", asy
   assert.equal(open, 49);
 });
 
-test("re-ingest of the same roster is a no-op: no events, no tuple version moves", async () => {
+test("an unchanged roster advances only the clan observation, never member tuples or events", async () => {
   const clan = await fixture("clan/roster.json");
   // A roster is polled far more often than a member plays; an unchanged
   // member rewritten is a dead tuple for nothing (2026-09-11).
@@ -53,8 +53,6 @@ test("re-ingest of the same roster is a no-op: no events, no tuple version moves
         select 'pl' as t, player_tag as k, xmin::text as v from player
         union all
         select 'cm', clan_tag || '|' || player_tag, xmin::text from clan_membership
-        union all
-        select 'c', clan_tag, xmin::text from clan
         order by 1, 2`)
     ).rows;
   const before = await versions();
@@ -64,7 +62,30 @@ test("re-ingest of the same roster is a no-op: no events, no tuple version moves
   });
   assert.equal(result.joined, 0);
   assert.equal(result.departed, 0);
-  assert.deepEqual(await versions(), before, "no row version moved");
+  assert.equal(result.facts, 0, "the source clock earns no collector credit");
+  assert.deepEqual(await versions(), before, "no member row version moved");
+  const observed = async () =>
+    (
+      await ctx.db.query(
+        "select roster_observed_at,xmin::text as version from clan where clan_tag=$1",
+        [clan.tag],
+      )
+    ).rows[0];
+  const stamp = await observed();
+  assert.equal(
+    stamp.roster_observed_at.toISOString(),
+    "2026-09-03T14:55:34.000Z",
+  );
+  const duplicate = await ingestClanRoster(ctx.db, {
+    payload: clan,
+    observedAt: "2026-09-03T14:55:34Z",
+  });
+  assert.equal(duplicate.facts, 0);
+  assert.deepEqual(
+    await observed(),
+    stamp,
+    "an identical observation is fully unchanged",
+  );
 });
 
 test("a member disappearing closes their membership, observed not asserted", async () => {

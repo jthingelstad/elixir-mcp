@@ -34,6 +34,20 @@ their player on Elixir, their bell shows a new follower ([the bell](/docs/your-a
 and you also follow their account and their other Verified players
 ([Linked follows](/docs/verified-players#linked-follows)).
 
+## Clanmates
+
+When you verify a player, Elixir connects you to the people who share that
+player’s current clan. Your verified alts count too. Open **Find › Your clan**
+to see your clanmates. A Clanmate takes no friend slot.
+
+On a clanmate’s player page, **Friend** adds them to your friends. You can then
+star them for your circle. **Unfriend** returns them to Clanmate while you
+still share a clan. When Elixir sees either player leave, the Clanmate connection
+ends. A friendship you chose carries on across clans.
+
+Blocking an Elixir member hides the connection in both directions. After
+unblocking, the current roster decides whether you are clanmates again.
+
 ## Find
 
 Find is where you look for people to follow, in sections. It opens on
@@ -41,9 +55,9 @@ Find is where you look for people to follow, in sections. It opens on
 
 | Section | What it holds |
 |---|---|
-| Suggested | a list to tap through: players you had a friendly battle with or teamed up with in 2v2 (or met twice) in the last 30 days, the players followed by the people you follow ("Ada follows them"), and your clan, taking turns. Each says why, and **Free** when following costs nothing; what a Follow costs is in its dialog. Ten show, then **Show more** (up to 30). With nobody to suggest yet, it says what fills it and offers Search and your Follow me link |
+| Suggested | a list to tap through: players you had a friendly battle with or teamed up with in 2v2 (or met twice) in the last 30 days, and players followed by the people you follow ("Ada follows them"). Your current clanmates already appear under **Your clan**. Each says why, and **Free** when following costs nothing; what a Follow costs is in its dialog. Ten show, then **Show more** (up to 30). With nobody to suggest yet, it says what fills it and offers Search and your Follow me link |
 | Near you | people who set a place in your country and region, each as the player they verified, with where ("Plays near you, in Austin") and a Follow button. People in your city come first, then by name. Never ranked, and never closer than the place each picked. You, your own players and people you already follow are left out. Below it, the **player map**: everyone who set a place, a pin at each one. You need [a place](/docs/your-account#your-place) of your own to see who's near you; without one it asks you to set it. There is nothing to join or leave: setting a place puts you on both, and removing it takes you off |
-| Your clan | your player's clan now: each member with their role (and **Free** when following costs nothing), and **Follow my clan**, asked once with the same pricing and refusal as following a clan from a player's page; then **Invite clanmates**, words to bring the rest of your clan to Elixir ([Bring your clanmates](/docs/bring-your-clan#bring-your-clanmates)) |
+| Your clan | the clans of your verified players, their current members and roles. Tap a name to open their page. **Invite clanmates** gives you words to bring the rest of your clan to Elixir ([Bring your clanmates](/docs/bring-your-clan#bring-your-clanmates)) |
 | Search | the search sheet (players Elixir has seen, by name or tag; clans, cards and help), and **Follow by player tag** for anyone else |
 | From your battles | the players your own players met in the last 30 days, opponents and 2v2 teammates: players you had a friendly battle with first, then your 2v2 teammates, then the most met. How often, how it went for you ("A friendly battle · Met once · 1 win") and when last ("Last met today, 3:52 pm"), in the Timeline's time format. From the log only, never a rating. Players you follow are marked, never hidden |
 | Clan directory | a link to every clan on Elixir |

@@ -1,5 +1,10 @@
 # Timeline
 
+> Jamie, 2026-11-18: current members of a verified player’s clans are
+> automatic Clanmates. Find shows the roster as connections. Friending
+> someone is a separate choice that outlasts clan membership.
+
+
 *2026-11-17: names changed, intent did not. Home is the Timeline, at
 `/timeline` (every `/home` address still works), You is Profile, and the
 bell's list is Notifications; a person never reads "sitting" (DECISIONS
@@ -110,7 +115,7 @@ left rail stays only in Settings"]
    2026-11-11, 2026-11-12, 2026-11-16, "Reactions, not comments",
    "Comments, checked before they post"]
 3. **People to follow states why, and ranks nobody.** Up to five players
-   from your battles, your clan and the players your follows follow, each
+   from your battles and the players your follows follow, each
    with why as a fact and what following costs; never a nickname, never
    ordered by trophies, wins or any score. It is not a recommendation in
    the sense Elixir forbids: it advises nothing about the game.
@@ -180,8 +185,7 @@ Action; carry a referral id in a Follow me link.
   reader does not follow, should show counts there, and whether a shared
   highlight shows them.
 - Whether People to follow's thresholds (met twice in a week, a 2v2
-  teammate once), its friends-of-follows source and clanmates in name
-  order are right.
+  teammate once), and its friends-of-follows source are right.
 - Whether the bell should name who cheered, say when someone followed, or
   mark answers read when it is opened.
 - Whether an alt should have a Profile page of its own; Profile is the primary.

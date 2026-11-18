@@ -11,6 +11,7 @@ import {
   MCP_RESULT_MAX_CHARS,
 } from "@elixir-mcp/tools/result-text";
 
+import { withPlayerConnections } from "../connections.mjs";
 import { json } from "../http.mjs";
 import { toolDeadlineMs } from "../deadline.mjs";
 
@@ -119,10 +120,19 @@ export function toolBridgeRoutes({ resolveAccount, toolRegistry }) {
       tool,
       result.body,
     );
+    const body =
+      !truncated &&
+      !result.isError &&
+      tool === "players_search" &&
+      account.kind !== "agent"
+        ? await withPlayerConnections(db, account.accountId, result.body)
+        : truncated
+          ? JSON.parse(text)
+          : result.body;
     return json(200, {
       tool,
       is_error: result.isError === true || truncated,
-      body: truncated ? JSON.parse(text) : result.body,
+      body,
       ...(truncated ? { result_cap_chars: MCP_RESULT_MAX_CHARS } : {}),
     });
   }

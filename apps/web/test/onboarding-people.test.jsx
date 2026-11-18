@@ -14,13 +14,13 @@ const people = [
     tag: "#00JRG2RU",
     name: "Amber",
     free: true,
-    why: [{ kind: "clan", clan_name: "Grove", recorded: true }],
+    why: [{ kind: "battles", friendly: 1, against: 1, days: 30 }],
   },
   {
     tag: "#0LJR0G22",
     name: "<b>Birch</b>",
     free: false,
-    why: [{ kind: "clan", clan_name: "Grove" }],
+    why: [{ kind: "battles", with_you: 1, days: 30 }],
   },
 ];
 const first = {

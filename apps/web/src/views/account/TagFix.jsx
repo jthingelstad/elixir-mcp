@@ -16,15 +16,23 @@ const canonical = (raw) =>
  * (your main player, while you track others) stays in the dialog and says
  * why.
  */
-export function StopFollowing({ name, run, busy, onDone }) {
+export function StopFollowing({ name, run, busy, onDone, friend = false }) {
   return (
     <ConfirmAction
-      label="Unfollow"
+      label={friend ? "Unfriend" : "Unfollow"}
       className="btn btn--sm btn--danger"
       disabled={busy}
-      title={<>Unfollow {name}?</>}
-      body="History stays for at least a year after the last person stops following. Elixir stops recording them for you, and they leave your timeline and your digest."
-      confirm="Yes, stop"
+      title={
+        <>
+          {friend ? "Unfriend" : "Unfollow"} {name}?
+        </>
+      }
+      body={
+        friend
+          ? "History stays for at least a year after the last person stops following. Your friend connection ends. Any clanmate connection stays while you share a clan."
+          : "History stays for at least a year after the last person stops following. Elixir stops recording them for you, and they leave your timeline and your digest."
+      }
+      confirm={friend ? "Unfriend" : "Yes, stop"}
       run={run}
       onDone={(r) => {
         if (r?.ok) onDone?.();

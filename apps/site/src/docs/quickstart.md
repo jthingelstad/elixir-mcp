@@ -55,23 +55,17 @@ names. Win or lose, it counts ([Verify](/docs/verify)). A verified player can
 [post about a battle](/docs/battles#post-about-a-battle) and act in Clan with
 their in-game role.
 
-## 3. Follow a few people
+## 3. Meet your clanmates and find friends
 
-Open **Find** (in the top bar, or the tab at the bottom on your phone). In
-there:
+Open **Find › Your clan** to see who shares a clan with your verified player.
+You’re already connected. Their posts and questions appear on your Timeline.
+Open a clanmate’s player page and choose **Friend** if you’d also like their
+game activity. That friendship stays when either of you changes clans.
 
-- **Your clan**: your clanmates, and **Follow my clan**.
-- **Follow a friend**: type a player tag.
-- **From your battles**: players you met in your own battles.
-- **The clan directory**: every clan on Elixir.
-
-Until you follow five, your Timeline opens with **People you know**: your
-clanmates, the players you played a friendly battle with and your 2v2
-teammates, all ticked. Untick anyone you'd rather not follow and tap
-**Follow these** ([People you know](/docs/timeline#people-you-know)). You can
-cheer a recent item from those players right there or open your Timeline.
-After that, your Timeline's **People to follow** suggests a few more, and says why
-each one is there ([Find](/docs/follow-a-friend#find)).
+To find someone outside your clan, search for their player tag in **Find**,
+or open **From your battles**. Your Timeline can also suggest people from
+friendly battles and 2v2 games. Choose the players you want to follow in
+[People you know](/docs/timeline#people-you-know).
 
 Everyone you follow fills **your Timeline**: their sessions, their firsts and
 their best battles, newest first ([The timeline](/docs/timeline)). Tap

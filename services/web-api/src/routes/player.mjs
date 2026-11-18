@@ -5,6 +5,9 @@ import {
   addPlayer,
   linkAfterFollow,
   playerCosts,
+  playerConnections,
+  currentOwnClansSql,
+  currentRosterSql,
   poolLimits,
   poolOwner,
   pooledFollows,
@@ -32,7 +35,6 @@ import { battleLinks } from "@elixir-mcp/record/battle-links";
 import { proofOf, scoresOf, sparkOf } from "../feed.mjs";
 import { claimantsOf } from "../account-page.mjs";
 import { json } from "../http.mjs";
-import { homeClan } from "./clans.mjs";
 import { withTimelineSocial } from "../timeline-social.mjs";
 
 /**
@@ -99,7 +101,7 @@ async function latestTrophies(db, tag) {
 
 /** The reader and this player: theirs, followed, or a member of the reader's
  *  home clan (which door Stats and Clan are on the page). */
-async function readerSide(db, accountId, tag, clanTag) {
+async function readerSide(db, accountId, tag) {
   const { rows } = await db.query(
     // One statement: the reader's claim on the tag, if any, and whether
     // the reader blocked the account that verified it (Codex on #1081).
@@ -120,7 +122,7 @@ async function readerSide(db, accountId, tag, clanTag) {
     claim &&
     (claim.is_primary || ["primary", "alt"].includes(claim.relationship)),
   );
-  const home = await homeClan(db, accountId);
+  const connection = (await playerConnections(db, accountId, [tag])).get(tag);
   return {
     own,
     // Following is the reader's own Follow, a friend claim.
@@ -134,10 +136,7 @@ async function readerSide(db, accountId, tag, clanTag) {
     // (2026-11-16): their own block only, for Unblock in place of Follow
     // and Block. A block the other way is never said.
     blocked: !own && rows[0]?.blocked === true,
-    clanmate:
-      !own && home && clanTag && home.clan_tag === clanTag
-        ? home.clan_tag
-        : null,
+    ...connection,
   };
 }
 
@@ -368,14 +367,19 @@ async function readPlayerPage(
   { comments = false } = {},
 ) {
   const { rows } = await db.query(
-    `select p.player_tag, p.name, cm.clan_tag, cl.name as clan_name,
+    `select p.player_tag, p.name, cm.clan_tag, cm.clan_name,
             exists (select 1 from recording r where r.subject_type = 'player'
                      and r.subject_tag = p.player_tag and r.status = 'active')
               as recorded
        from player p
-       left join clan_membership cm on cm.player_tag = p.player_tag
-        and cm.left_observed_at is null
-       left join clan cl on cl.clan_tag = cm.clan_tag
+       left join lateral (
+         select membership.clan_tag, cl.name as clan_name
+           from clan_membership membership
+           join clan cl on cl.clan_tag=membership.clan_tag
+          where membership.player_tag=p.player_tag
+            and ${currentRosterSql("membership", "cl.roster_observed_at")}
+          limit 1
+       ) cm on true
       where p.player_tag = $1
       limit 1`,
     [tag],
@@ -462,7 +466,7 @@ async function readPlayerPage(
       tag,
       avatars,
     ),
-    you: await readerSide(db, account.accountId, tag, p.clan_tag),
+    you: await readerSide(db, account.accountId, tag),
     // Who says they are this player (Jamie, 2026-11-15): the account that
     // verified it, else every account claiming it, each by its page id.
     // Empty: Imported, or not followed at all.
@@ -491,13 +495,24 @@ async function readPlayerPage(
  *  tracks, is still theirs to follow, and free, since the pool records them
  *  already (addPlayer, playerCost). A plan that needs no slot always fits,
  *  even with the pool over its limit, as a single free follow does. */
-export async function followPlan(db, accountId, tags) {
+export async function followPlan(
+  db,
+  accountId,
+  tags,
+  { clanTag = null, connections = null } = {},
+) {
   const owner = await poolOwner(db, accountId);
   const limits = poolLimits(owner);
   const { rows: own } = await db.query(
-    `select player_tag from claim where account_id = $1
+    `select player_tag, ${
+      clanTag
+        ? `(select jsonb_build_object('clan_tag', shared.clan_tag, 'name', shared.name)
+       from (${currentOwnClansSql()}) shared where shared.clan_tag=$2)`
+        : "null::jsonb"
+    } as shared_clan
+       from claim where account_id = $1
         and (is_primary or relationship in ('primary', 'alt'))`,
-    [accountId],
+    clanTag ? [accountId, clanTag] : [accountId],
   );
   const yours = new Set(own.map((r) => r.player_tag));
   const wanted = tags.filter((t) => !yours.has(t));
@@ -515,10 +530,12 @@ export async function followPlan(db, accountId, tags) {
   );
   const followed = new Set(friends.map((r) => r.player_tag));
   const used = (await pooledUsage(db, owner.account_id)).players_used;
+  const links = connections ?? (await playerConnections(db, accountId, wanted));
   const players = costs.map((c) => ({
     player_tag: c.player_tag,
     name: nameOf.get(c.player_tag) ?? null,
     following: followed.has(c.player_tag),
+    ...links.get(c.player_tag),
     // Recorded for this pool already, including an agent's follow:
     // following them takes no slot.
     free: c.free || c.following,
@@ -529,6 +546,7 @@ export async function followPlan(db, accountId, tags) {
   const limit = limits.player_slots === Infinity ? null : limits.player_slots;
   return {
     players,
+    shared_clan: own.find((row) => row.shared_clan)?.shared_clan ?? null,
     yours: tags.filter((t) => yours.has(t)),
     to_follow: fresh.length,
     free: fresh.length - slots,
@@ -807,7 +825,9 @@ export function playerRoutes({
       const q = event.queryStringParameters ?? {};
       const asked = await namedPlayers(db, q);
       if (asked.error) return named(asked);
-      const plan = await followPlan(db, account.accountId, asked.tags);
+      const plan = await followPlan(db, account.accountId, asked.tags, {
+        clanTag: asked.clan_tag,
+      });
       return json(200, { clan_tag: asked.clan_tag, ...plan });
     },
 
@@ -828,7 +848,9 @@ export function playerRoutes({
       if (account.kind === "agent") return json(403, { error: "not_entitled" });
       const asked = await namedPlayers(db, body ?? {});
       if (asked.error) return named(asked);
-      const plan = await followPlan(db, account.accountId, asked.tags);
+      const plan = await followPlan(db, account.accountId, asked.tags, {
+        clanTag: asked.clan_tag,
+      });
       if (!plan.fits)
         return json(429, {
           error: "quota_exceeded",

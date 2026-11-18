@@ -8,7 +8,15 @@ export const ADA = {
     trophies: 9400,
     recorded: true,
   },
-  you: { own: false, following: false, relationship: null, clanmate: null },
+  you: {
+    own: false,
+    following: false,
+    relationship: null,
+    connection: null,
+    clanmate: null,
+    shared_clan: null,
+    close: false,
+  },
   badges: { verified_player: true, discord: false },
   follows: { count: 1, players: [{ tag: "#0J0RVYRR", name: "Grace" }] },
   followers: {

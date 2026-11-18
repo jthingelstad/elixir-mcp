@@ -54,6 +54,10 @@ An account page shows a person on Elixir:
 - One timeline: their players' battles and news, plus the account's own
   news, like a Stamp earned, a place set, or a player verified.
 
+When one of their verified players shares a current clan with yours, the account
+page also shows your [Clanmate connection](/docs/follow-a-friend#clanmates).
+You can open their player page from the player list.
+
 Tap **Follow** to follow an account. You also follow every player it has
 verified, now and later, and its news (Stamps, places, verified players)
 shows on your Timeline. Elixir tells you first what the follow uses of your

@@ -536,6 +536,7 @@ test(
         own: false,
         following: true,
         relationship: "friend",
+        connection: "friend",
         clanmate: null,
       },
     };
@@ -604,6 +605,152 @@ test(
         hidden: true,
       }),
     ).toBeTruthy();
+  },
+);
+
+test(
+  "a clanmate can become and stop being a friend without removing the clan connection",
+  { timeout: 20000 },
+  async () => {
+    const clanmate = {
+      own: false,
+      following: false,
+      relationship: null,
+      connection: "clanmate",
+      clanmate: "#0LL2",
+      shared_clan: { clan_tag: "#0LL2", name: "Grove" },
+      pair: false,
+      close: false,
+    };
+    page = { ...PAGE, you: clanmate };
+    const originalFetch = global.fetch;
+    global.fetch = vi.fn(async (path, init) => {
+      if (String(path) === "/api/claims" && init?.body) {
+        const body = JSON.parse(init.body);
+        const friend = body.action !== "remove";
+        page = {
+          ...page,
+          you: {
+            ...clanmate,
+            following: friend,
+            relationship: friend ? "friend" : null,
+            connection: friend ? "friend" : "clanmate",
+            pair: friend,
+          },
+        };
+      }
+      return originalFetch(path, init);
+    });
+    window.history.pushState({}, "", "/home/player/0VJ2QV");
+    render(<App />);
+    await screen.findByRole("heading", {
+      name: /Copper Fern\s*Verified player/,
+    });
+    const head = screen.getByRole("navigation", {
+      name: "More about this player",
+    });
+    expect(screen.getByText("Clanmate", { exact: true })).toBeTruthy();
+    expect(screen.getByText(/Clanmates connect automatically/)).toBeTruthy();
+    expect(
+      within(head).queryByRole("button", { name: /close friend/ }),
+    ).toBeNull();
+    expect(
+      within(head).queryByRole("link", { name: "Their stats" }),
+    ).toBeNull();
+    fireEvent.click(
+      within(head).getByRole("button", { name: "Friend", exact: true }),
+    );
+    const add = await screen.findByRole("dialog", {
+      name: "Friend Copper Fern?",
+      hidden: true,
+    });
+    fireEvent.click(
+      within(add).getByRole("button", {
+        name: "Friend",
+        exact: true,
+        hidden: true,
+      }),
+    );
+    await within(head).findByRole("button", {
+      name: "Mark Copper Fern a close friend",
+    });
+    expect(
+      document
+        .querySelector(".kit-clanmate-connection .kit-badge")
+        .textContent.trim(),
+    ).toBe("Friend");
+    expect(
+      within(head).getByRole("link", { name: "Their stats" }),
+    ).toBeTruthy();
+    fireEvent.click(
+      within(head).getByRole("button", { name: "Friend", exact: true }),
+    );
+    const remove = await screen.findByRole("dialog", {
+      name: "Unfriend Copper Fern?",
+      hidden: true,
+    });
+    expect(remove.textContent).toContain("clanmate connection stays");
+    fireEvent.click(
+      within(remove).getByRole("button", {
+        name: "Unfriend",
+        exact: true,
+        hidden: true,
+      }),
+    );
+    await waitFor(() =>
+      expect(
+        within(head).queryByRole("button", { name: /close friend/ }),
+      ).toBeNull(),
+    );
+    expect(screen.getByText("Clanmate", { exact: true })).toBeTruthy();
+    expect(
+      document
+        .querySelector(".kit-clanmate-connection .kit-badge")
+        .textContent.trim(),
+    ).toBe("Clanmate");
+    expect(
+      within(head).getByRole("button", { name: "Friend", exact: true }),
+    ).toBeTruthy();
+    expect(posted).toEqual([
+      ["/api/claims", { player_tag: "#0VJ2QV", relationship: "friend" }],
+      ["/api/claims", { player_tag: "#0VJ2QV", action: "remove" }],
+    ]);
+  },
+);
+
+test.each([
+  ["stale identity", "#0LL2", "Stale Clan"],
+  ["no identity clan", null, null],
+])(
+  "the shared-clan door uses canonical membership with %s",
+  async (_, tag, name) => {
+    page = {
+      ...PAGE,
+      player: { ...PAGE.player, clan_tag: tag, clan_name: name },
+      you: {
+        ...PAGE.you,
+        connection: "clanmate",
+        clanmate: "#0U082URG",
+        shared_clan: { clan_tag: "#0U082URG", name: "Willow Guild" },
+      },
+    };
+    window.history.pushState({}, "", "/home/player/0VJ2QV?tab=follows");
+    render(<App />);
+    const open = await screen.findByRole("link", { name: "Open your clan" });
+    expect(open.getAttribute("href")).toBe("/clan/0U082URG");
+    expect(open.closest(".kit-pfollows__clan").textContent).toContain(
+      "Willow Guild",
+    );
+    expect(document.querySelector(".kit-phead__line").textContent).toContain(
+      "Willow Guild",
+    );
+    expect(document.querySelector(".kit-phead__line").textContent).not.toMatch(
+      /No clan|Stale Clan/,
+    );
+    expect(screen.queryByRole("tab", { name: "Clan", exact: true })).toBeNull();
+    expect(
+      screen.queryByRole("button", { name: "Follow everyone" }),
+    ).toBeNull();
   },
 );
 

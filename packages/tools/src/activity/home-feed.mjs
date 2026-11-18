@@ -318,6 +318,8 @@ export async function readHomeWeek(
   if (window) {
     if (
       !row ||
+      row.subjects_key !== key ||
+      row.timezone !== timezone ||
       row.window_from.getTime() !== window.fromMs ||
       row.window_to.getTime() !== window.toMs
     )

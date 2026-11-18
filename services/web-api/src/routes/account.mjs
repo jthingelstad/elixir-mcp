@@ -11,6 +11,7 @@ import {
   setClose,
   setRelationship,
   playerCosts,
+  playerConnections,
   poolLimits,
   poolOwner,
   pooledUsage,
@@ -121,7 +122,10 @@ export function accountRoutes({
           message:
             "Only a player you follow as a friend can be a close friend.",
         });
-      return json(200, r);
+      return json(200, {
+        ...r,
+        ...(await playerConnections(db, account.accountId, [tag])).get(tag),
+      });
     }
     // Primary changes use addPlayer's atomic move. This action only
     // changes an existing non-primary between friend and alt.
@@ -144,7 +148,11 @@ export function accountRoutes({
       // Full Roster, or a follow (#1015), once the change committed.
       if (account.kind !== "agent")
         await playersChangedAfter(db, account.accountId, "relationship");
-      return json(200, { ok: true, relationship: body.relationship });
+      return json(200, {
+        ok: true,
+        relationship: body.relationship,
+        ...(await playerConnections(db, account.accountId, [tag])).get(tag),
+      });
     }
     if (action === "remove") {
       // Linked follows: unfollowing a Verified player you follow through
@@ -161,6 +169,7 @@ export function accountRoutes({
         removed: r.removed,
         recording_stopped: r.recordingStopped,
         primary_player_tag: r.promotedPrimary,
+        ...(await playerConnections(db, account.accountId, [tag])).get(tag),
         ...(r.unlinked ? { unfollowed: r.unlinked.unfollowed } : {}),
       });
     }
@@ -232,6 +241,9 @@ export function accountRoutes({
       first_read: first.requested,
       not_found: first.not_found === true,
       clan_followed: r.clanFollowed ?? null,
+      ...(account.kind !== "agent"
+        ? (await playerConnections(db, account.accountId, [tag])).get(tag)
+        : {}),
       slot: slotWire(r.slot),
       ...(follow ? { added: r.added, relationship: r.relationship } : {}),
       ...(linked
@@ -517,6 +529,11 @@ export function accountRoutes({
             [account.accountId, claims.rows.length > 0],
           )
         : { rows: [] };
+      const connections = await playerConnections(
+        db,
+        account.accountId,
+        claims.rows.map((row) => row.player_tag),
+      );
       return json(200, {
         authenticated: true,
         features: { discord_login: discordLogin, comments, posts },
@@ -564,7 +581,10 @@ export function accountRoutes({
           agents: { limit: lim(q.agents) },
         },
         agents: agents.map((a) => ({ ...a, name: a.name ?? a.public_id })),
-        claims: claims.rows,
+        claims: claims.rows.map((row) => ({
+          ...row,
+          ...connections.get(row.player_tag),
+        })),
         recordings: recordings.rows,
       });
     },

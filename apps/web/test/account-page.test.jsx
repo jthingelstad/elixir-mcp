@@ -13,6 +13,7 @@ import {
   configure,
   fireEvent,
   waitFor,
+  within,
 } from "@testing-library/react";
 import { App, barArea, titleFor } from "../src/App.jsx";
 import "./warm-routes.js";
@@ -243,3 +244,71 @@ test("an unknown account says so", { timeout: 20000 }, async () => {
   at("/home/account/zzzzzzzzzzzz");
   await screen.findByText("No Elixir account at this address");
 });
+
+const sharedClan = { clan_tag: "#0QC8RCGY", name: "Copper <Grove> & Fern" };
+const connectedPage = ({
+  friend = false,
+  close = false,
+  self = false,
+  blocked = false,
+} = {}) => {
+  const page = PAGE(friend);
+  return {
+    ...page,
+    you: {
+      ...page.you,
+      self,
+      blocked,
+      close,
+      connection: friend ? "friend" : "clanmate",
+      clanmate: sharedClan.clan_tag,
+      shared_clan: sharedClan,
+    },
+  };
+};
+
+test("an account profile names the automatic Clanmate connection without following it", async () => {
+  routes[`GET /api/accounts/${THEIRS}`] = () => reply(connectedPage());
+  at(`/home/account/${THEIRS}`);
+  const connection = await screen.findByLabelText("Clanmate connection");
+  expect(within(connection).getByText("Clanmate")).toBeTruthy();
+  expect(within(connection).getByText(sharedClan.name)).toBeTruthy();
+  expect(connection.querySelector("grove")).toBeNull();
+  expect(screen.getByRole("button", { name: "Follow" })).toBeTruthy();
+  expect(writes).toEqual([]);
+});
+
+test.each([
+  [false, "Friend"],
+  [true, "Close friend"],
+])(
+  "an account's friend connection takes precedence over Clanmate, close=%s",
+  async (close, label) => {
+    routes[`GET /api/accounts/${THEIRS}`] = () =>
+      reply(connectedPage({ friend: true, close }));
+    at(`/home/account/${THEIRS}`);
+    const connection = await screen.findByLabelText("Clanmate connection");
+    expect(within(connection).getByText(label)).toBeTruthy();
+    expect(within(connection).getByText("Clanmate")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: /Following/ }));
+    const dialog = await screen.findByRole("dialog");
+    expect(dialog.textContent).toContain(
+      "Clanmate connections stay while you share a clan",
+    );
+    expect(writes).toEqual([]);
+  },
+);
+
+test.each(["own", "blocked"])(
+  "%s account profile shows no Clanmate association",
+  async (state) => {
+    const id = state === "own" ? MINE : THEIRS;
+    routes[`GET /api/accounts/${id}`] = () =>
+      reply(
+        connectedPage({ self: state === "own", blocked: state === "blocked" }),
+      );
+    at(`/home/account/${id}`);
+    await screen.findByRole("heading", { level: 1, name: /Copper Fern/ });
+    expect(screen.queryByLabelText("Clanmate connection")).toBeNull();
+  },
+);

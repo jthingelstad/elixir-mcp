@@ -33,6 +33,7 @@ import {
   itemVisibility,
 } from "@elixir-mcp/tools/activity/entries";
 import { verifiedAvatars, withAvatar } from "./avatars.mjs";
+import { accountConnections, withPlayerConnections } from "./connections.mjs";
 import { HANDLE, normalizeHandle } from "./handle.mjs";
 import { withTimelineSocial } from "./timeline-social.mjs";
 
@@ -238,7 +239,14 @@ export async function readAccountPage(
 ) {
   const account = await accountByPageId(db, id);
   if (!account) return null;
-  const players = await accountPlayers(db, account.account_id);
+  const players = (
+    await withPlayerConnections(db, reader.accountId, {
+      players: await accountPlayers(db, account.account_id),
+    })
+  ).players;
+  const connection = (
+    await accountConnections(db, reader.accountId, [account.page_id])
+  ).get(account.page_id);
   const avatars = await verifiedAvatars(
     db,
     players.filter((p) => p.state === "verified").map((p) => p.tag),
@@ -272,6 +280,7 @@ export async function readAccountPage(
       following_accounts: counts.following,
     },
     you: {
+      ...connection,
       self: reader.accountId === account.account_id,
       following: counts.you_follow === true,
       // Whether the reader blocked this account (2026-11-16): their own
@@ -312,6 +321,9 @@ export async function followAccount(db, reader, id) {
   return {
     ok: true,
     following: true,
+    ...(await accountConnections(db, reader.accountId, [target.page_id])).get(
+      target.page_id,
+    ),
     followed: r.followed,
     skipped: r.skipped.map((s) => ({ player_tag: s.tag, reason: s.reason })),
   };
@@ -325,5 +337,12 @@ export async function unfollowAccount(db, reader, id) {
   const r = await unfollowAccountLinked(db, reader, target.account_id, {
     via: "web",
   });
-  return { ok: true, following: false, unfollowed: r.unfollowed };
+  return {
+    ok: true,
+    following: false,
+    unfollowed: r.unfollowed,
+    ...(await accountConnections(db, reader.accountId, [target.page_id])).get(
+      target.page_id,
+    ),
+  };
 }

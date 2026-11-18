@@ -162,13 +162,13 @@ it costs proportionally more to run: the member role has none, so
 `elixir_follow_clan`, which defaults to `comprehensive`, needs
 `scope: "activity"` there.
 
-Players you follow are always recorded in full. A recorded player's current clan is
-also read for its roster and membership, a few times a day, following
-the clan's own liveliness, without a slot and without polling the other
-members. When nobody follows that clan, the read keeps only what concerns
-the players you follow: their membership and role, their roster row, and the
-clan's name. The other members, and the clan's own daily numbers, are not
-kept. Follow the clan to keep them.
+Elixir records each player you follow in full. It also checks that player’s
+current clan roster a few times a day. When nobody follows the clan, Elixir
+keeps the clan’s name and the membership, role and roster row of each player
+it already records. If the roster includes a verified primary or alt on a
+member’s account, Elixir also keeps peers’ names, tags, roles and membership
+so the member can see their Clanmates. This uses no player slots. Following
+a player or recording a clan comprehensively brings in that player’s games.
 
 **A followed clan's roster poll records what it carries.** Every clan someone follows gets
 one row per game day of its own numbers (clan score, war

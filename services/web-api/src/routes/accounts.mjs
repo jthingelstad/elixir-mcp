@@ -11,6 +11,7 @@
  *
  *  A person's only: an agent is refused, and no agent console reaches
  *  them (AGENT_SCOPED_ROUTES does not list them). */
+import { accountConnections } from "../connections.mjs";
 import { searchHandles } from "../handle.mjs";
 import { checkRateLimit } from "@elixir-mcp/auth";
 import { HOURLY_RATE_LIMIT } from "@elixir-mcp/tools/quota";
@@ -55,7 +56,17 @@ export function accountsRoutes({ resolveAccount, blocks = false }) {
         { accounts: await searchHandles(db, q) },
         await blockedPeople(db, account.accountId, { enabled: blocks }),
       );
-      return json(200, { accounts: found.accounts });
+      const connections = await accountConnections(
+        db,
+        account.accountId,
+        found.accounts.map((a) => a.id),
+      );
+      return json(200, {
+        accounts: found.accounts.map((a) => ({
+          ...a,
+          ...connections.get(a.id),
+        })),
+      });
     },
 
     "GET /api/accounts/*": async (db, event) => {

@@ -1,4 +1,4 @@
-import { HOME } from "./moved.js";
+import { HOME } from "./home-paths.js";
 import { normTag, tagPath } from "./tag-url.js";
 
 /**

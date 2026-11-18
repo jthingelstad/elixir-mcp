@@ -24,6 +24,7 @@ import { useCommentsOn } from "./Comments.jsx";
 import { ItemList } from "./Player.jsx";
 import { PassportRow } from "./PassportRow.jsx";
 import { followPlanLine } from "./follow.jsx";
+import { ClanmateState, isClanmateConnection } from "./Connection.jsx";
 
 /**
  * An account's page (Jamie, 2026-11-15): /home/account/<id>, or
@@ -138,6 +139,26 @@ export function AccountView({ page, actions = null, noPlayers = null }) {
             </p>
           ) : null}
           <AccountBadges badges={a.badges} />
+          {!page.you.self &&
+          !page.you.blocked &&
+          isClanmateConnection(page.you) ? (
+            <div
+              className="kit-clanmate-connection"
+              aria-label="Clanmate connection"
+            >
+              <p className="kit-clanmate-connection__state">
+                <ClanmateState
+                  friend={page.you.connection === "friend"}
+                  close={page.you.close === true}
+                />
+                <TagText>
+                  {page.you.shared_clan?.name ??
+                    page.you.shared_clan?.clan_tag ??
+                    page.you.clanmate}
+                </TagText>
+              </p>
+            </div>
+          ) : null}
           {page.passport ? (
             <PassportRow summary={page.passport} own={page.you.self} />
           ) : null}
@@ -280,7 +301,8 @@ function FollowAccount({ id, following, plan }) {
           body={
             <p className="m-0">
               You&rsquo;ll stop following their account and every player
-              they&rsquo;ve verified. Their news leaves your feed.
+              they&rsquo;ve verified. Clanmate connections stay while you share
+              a clan.
             </p>
           }
           confirm="Stop following"

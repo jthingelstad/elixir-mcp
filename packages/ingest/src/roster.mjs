@@ -72,8 +72,8 @@ async function seenBefore(db, { prevAll, windowStart, tags }) {
 
 /**
  * Ingest one admitted clan payload. Caller owns the transaction.
- * windowStart (the previous admitted observation) brackets the emitted
- * events honestly.
+ * The previous projected roster brackets the emitted events. An admitted
+ * receipt whose projection was skipped is not a membership observation.
  *
  * A first sight is a BASELINE, never a join (elixir-bot invariant: the
  * seed observation is silent, there is no diff yet; 0207 for the rest):
@@ -89,32 +89,57 @@ export async function ingestClanRoster(
 ) {
   const clanTag = normalizeTag(payload.tag);
   const at = observedAt ?? new Date().toISOString();
-
-  // The clan row: a rename or a badge is news; last_seen_at moves at
-  // most hourly, like a player's, so a quiet clan polled all day is
-  // not rewritten all day (21,377 updates on 5,151 rows before 2026-09-11).
-  await db.query(
-    `insert into clan (clan_tag, name, badge_id, last_seen_at) values ($1, $2, $3, $4)
-     on conflict (clan_tag) do update
-       set name = excluded.name,
-           badge_id = coalesce(excluded.badge_id, clan.badge_id),
-           last_seen_at = greatest(excluded.last_seen_at, clan.last_seen_at)
-     where clan.name is distinct from excluded.name
-        or (excluded.badge_id is not null and clan.badge_id is distinct from excluded.badge_id)
-        or clan.last_seen_at is null
-        or clan.last_seen_at < excluded.last_seen_at - interval '1 hour'`,
-    [clanTag, payload.name, payload.badgeId ?? null, at],
-  );
-
   const members = payload.memberList.map((m) => ({
     tag: normalizeTag(m.tag),
     name: m.name ?? null,
     role: m.role ?? null,
-    // The game's own activity stamp, which exists ONLY here - /players/{tag}
-    // does not carry it - so a poll that drops it loses that moment for good.
-    // Lenient on purpose: a strange lastSeen must not stop a roster run.
+    // This game's own activity stamp exists only on roster payloads.
     gameLastSeen: crTimeToIso(m.lastSeen),
   }));
+  const atMs = Date.parse(at);
+  const seenWithin = (ms) =>
+    members.filter(
+      (m) => m.gameLastSeen && atMs - Date.parse(m.gameLastSeen) <= ms,
+    ).length;
+  const activity = {
+    members: members.length,
+    activeNow: seenWithin(3600_000),
+    seen24h: seenWithin(86_400_000),
+  };
+  // A row lock serializes this clan's real projections, including a first
+  // roster. Identity, intervals and the projected stamp commit together.
+  await db.query(
+    `insert into clan (clan_tag, name, badge_id, last_seen_at) values ($1, $2, $3, $4)
+     on conflict (clan_tag) do nothing`,
+    [clanTag, payload.name, payload.badgeId ?? null, at],
+  );
+  const {
+    rows: [prior],
+  } = await db.query(
+    `select roster_recorded_all, roster_observed_at,
+            coalesce(coalesce(roster_observed_at,
+              (select last_admitted_at from poll_state
+                where subject_tag=$1 and endpoint='clan'))
+              >= $2::timestamptz, false) as stale
+       from clan where clan_tag=$1 for update`,
+    [clanTag, at],
+  );
+  // Before the first new projector runs, a legacy admission can reject an
+  // older replay. It is never copied into the positive membership clock.
+  if (prior.stale)
+    return {
+      ...activity,
+      skipped: "stale_roster",
+      joined: 0,
+      baselined: 0,
+      departed: 0,
+      roleChanged: 0,
+      facts: 0,
+    };
+  // During the expand window old rows have no projected stamp yet. Do not
+  // create an inverted bracket from a later, receipt-only admission.
+  windowStart = prior.roster_observed_at?.toISOString() ?? windowStart;
+  if (windowStart && Date.parse(windowStart) > atMs) windowStart = null;
 
   // Liveliness and departures read the whole roster; writes go only to
   // the members this clan records.
@@ -123,7 +148,56 @@ export async function ingestClanRoster(
     clanTag,
     members.map((m) => m.tag),
   );
-  const recorded = only ? members.filter((m) => only.has(m.tag)) : members;
+  // A shared clan is automatic even when nobody followed that clan. Keep
+  // current roster identity/role/membership, but leave rosterRecords narrow:
+  // the series, recorder, jobs and quota still need their explicit reasons.
+  const connected = only
+    ? (
+        await db.query(
+          `select exists (select 1 from claim own join account a using(account_id)
+            where own.player_tag=any($1::text[]) and own.status='verified'
+              and (own.is_primary or own.relationship in ('primary','alt'))
+              and a.kind='person' and a.status='approved') as yes`,
+          [members.map((m) => m.tag)],
+        )
+      ).rows[0].yes
+    : false;
+  const recordsAll = only === null || connected;
+  const retained = recordsAll
+    ? members
+    : members.filter((m) => only.has(m.tag));
+  const { rows: initiallyOpen } = await db.query(
+    `select player_tag from clan_membership
+      where clan_tag=$1 and left_observed_at is null`,
+    [clanTag],
+  );
+  const tags = [
+    ...new Set([
+      ...retained.map((m) => m.tag),
+      ...initiallyOpen.map((m) => m.player_tag),
+    ]),
+  ].sort();
+  // Clans overlap when a player moves. Lock the complete participant set
+  // in one stable order before reading foreign intervals or writing players.
+  // These transaction locks also work for a player not inserted yet.
+  await db.query(
+    `select pg_advisory_xact_lock(hashtext('clan_roster_member'),hashtext(held.player_tag))
+       from (select unnest($1::text[]) as player_tag order by player_tag) held
+      order by held.player_tag`,
+    [tags],
+  );
+  const { rows: newer } = await db.query(
+    `select m.player_tag from clan_membership m join clan c using(clan_tag)
+      where m.player_tag=any($1::text[])
+      group by m.player_tag
+     having max(case when m.left_observed_at is null
+                 then greatest(m.joined_observed_at,c.roster_observed_at)
+                 else greatest(m.joined_observed_at,m.left_observed_at) end)
+              >= $2::timestamptz`,
+    [tags, at],
+  );
+  const newerTags = new Set(newer.map((m) => m.player_tag));
+  const recorded = retained.filter((m) => !newerTags.has(m.tag));
 
   // One statement for the whole roster, tag-ordered (lock order), and
   // guarded: only when something moves. A roster is polled far more
@@ -157,24 +231,18 @@ export async function ingestClanRoster(
     ],
   );
 
-  const { rows: open } = await db.query(
+  const { rows: openRows } = await db.query(
     `select player_tag, joined_observed_at, role from clan_membership
      where clan_tag = $1 and left_observed_at is null`,
     [clanTag],
   );
+  const open = openRows.filter((m) => !newerTags.has(m.player_tag));
   const openByTag = new Map(open.map((r) => [r.player_tag, r]));
   const rosterTags = new Set(members.map((m) => m.tag));
   const firstSight = open.length === 0;
   // Did the previous read record every member? Null before 0207: assume
   // it recorded what this one does, as the rule was then.
-  const {
-    rows: [scope],
-  } = await db.query(
-    `select roster_recorded_all from clan where clan_tag = $1`,
-    [clanTag],
-  );
-  const recordsAll = only === null;
-  const prevAll = scope?.roster_recorded_all ?? recordsAll;
+  const prevAll = prior.roster_recorded_all ?? recordsAll;
   const seen = firstSight
     ? new Set()
     : await seenBefore(db, {
@@ -189,11 +257,6 @@ export async function ingestClanRoster(
       });
   /** The previous read could have seen this member: a change is news. */
   const observed = (tag) => !firstSight && (seen === null || seen.has(tag));
-  if (scope && scope.roster_recorded_all !== recordsAll)
-    await db.query(
-      `update clan set roster_recorded_all = $2 where clan_tag = $1`,
-      [clanTag, recordsAll],
-    );
   const evidence = (extra) => ({
     roster_size_before: open.length,
     roster_size_after: members.length,
@@ -290,17 +353,15 @@ export async function ingestClanRoster(
     }
   }
 
-  // Liveliness, from the game's own lastSeen stamps (2026-09-11): how
-  // many members were in the game within the last hour of this
-  // observation, and within the last day. The clan cadence reads it -
-  // a clan with nobody online cannot be joining, leaving or promoting.
-  const atMs = Date.parse(at);
-  const seenWithin = (ms) =>
-    members.filter(
-      (m) => m.gameLastSeen && atMs - Date.parse(m.gameLastSeen) <= ms,
-    ).length;
+  await db.query(
+    `update clan set roster_observed_at=$2, roster_recorded_all=$3,
+       name=$4, badge_id=coalesce($5,badge_id),
+       last_seen_at=greatest(last_seen_at,$2::timestamptz)
+      where clan_tag=$1`,
+    [clanTag, at, recordsAll, payload.name, payload.badgeId ?? null],
+  );
   return {
-    members: members.length,
+    ...activity,
     joined,
     // Memberships opened on a baseline read: first sightings, not joins.
     baselined,
@@ -309,7 +370,5 @@ export async function ingestClanRoster(
     // What this poll added to the record (0077): membership events and
     // member rows that moved (a name, a lastSeen, an hour-stale sighting).
     facts: joined + baselined + departed + roleChanged + playersChanged,
-    activeNow: seenWithin(3600_000),
-    seen24h: seenWithin(86_400_000),
   };
 }

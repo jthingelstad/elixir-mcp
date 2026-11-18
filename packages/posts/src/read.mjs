@@ -1,8 +1,14 @@
-/** Canonical member-post reads. The web app and digest share audience,
- * moderation, blocks and normalized attachments here; no service imports.
- * Delivery readers opt in to plain posts; the game-record timeline stays separate.
+/** Canonical member-post reads. The web app and digest share moderation,
+ * blocks and normalized attachments here; no service imports. Automatic
+ * clanmate feeds are a member-web opt-in, never a delivery default.
  */
-import { blockedSql } from "@elixir-mcp/claims";
+import {
+  blockedSql,
+  clanmatePlayersSql,
+  currentClanmates,
+  currentClanPlayersSql,
+  currentOwnClansSql,
+} from "@elixir-mcp/claims";
 import { classifyDeck, deckLink, postUrl } from "@elixir-mcp/contracts";
 import { cachedVocabulary } from "@elixir-mcp/ingest/card-roles";
 import { battlePostFacts } from "./battle.mjs";
@@ -66,11 +72,17 @@ async function readRows(
   db,
   where,
   params,
-  { plain = false, visibleOnly = false, limit = POSTS_PAGE } = {},
+  {
+    plain = false,
+    visibleOnly = false,
+    limit = POSTS_PAGE,
+    candidates = null,
+  } = {},
 ) {
   const { rows } = await db.query(
-    `select ${POST_COLS}
-       from account_post p
+    `${candidates ? `with candidates as materialized (${candidates})` : ""}
+     select ${POST_COLS}
+       from ${postSource(candidates)}
        ${POST_JOIN}
       where ${seen(plain, visibleOnly)} and ${where}
       order by p.created_at desc, p.post_id desc
@@ -79,6 +91,13 @@ async function readRows(
   );
   return rows;
 }
+
+const postSource = (candidates) =>
+  candidates
+    ? `candidates candidate cross join lateral (
+         select p.* from account_post p where p.post_id=candidate.post_id limit 1
+       ) p`
+    : "account_post p";
 
 /** A Home reader's audience condition: the post's player is one the
  *  reader follows now (the feed's own player subjects), its author an
@@ -91,32 +110,105 @@ const audienceSources = (players = "$2::text[]") => [
 ];
 const audience = (players) => `(${audienceSources(players).join(" or ")})`;
 
-/** The same three audience paths as indexed candidate IDs. Keep the
- * account-follow arm as a per-author probe; flattening it into a join can
- * walk every post before the reader's author set narrows it. No rows are
- * truncated here. The member reader still uses the direct predicate.
+// A stored Home week can name former clanmates. Only explicit player
+// subjects can authorize that audience arm; automatic connections are
+// re-resolved from the source for each member read that opts into them.
+const subjectTags = (subjects) =>
+  subjects
+    .filter((s) => s.kind === "player" && s.relationship !== "clanmate")
+    .map((s) => s.tag);
+const memberPlayers = (players, clanmates) =>
+  clanmates
+    ? `array(select unnest(${players}) union
+             select player_tag from (${clanmatePlayersSql("$1", { names: false })}) current_mates)`
+    : players;
+// Feed mute is separate from connection truth and named-item access.
+// Preserve it even when the linked account is also followed.
+const feedMute = (clanmates) =>
+  clanmates
+    ? ` and (p.account_id=$1::uuid or not exists (
+        select 1 from claim muted where muted.account_id=$1::uuid
+          and muted.player_tag=p.player_tag and muted.relationship='friend'
+          and not muted.notify))`
+    : "";
+
+/** Candidate IDs name only this reader's players, authors and clans.
+ * Full-window reads use keyed probes. Creation counts bind both time ends
+ * in an ordered range so the planner can batch small tables or use the
+ * player/time index without walking retained history. Only roster players
+ * with candidates pay the full current-peer proof. No candidates are capped
+ * before moderation, and UNION deduplicates overlapping audience paths.
  */
-const audiencePostIds = () =>
-  [
-    ...audienceSources()
-      .slice(0, 2)
-      .map(
-        (source) =>
-          `select p.post_id from account_post p where p.status = 'visible' and ${source}`,
-      ),
+const audiencePostIds = ({
+  players = "$2::text[]",
+  clanmates = false,
+  hiddenOwn = false,
+  createdFrom = null,
+  createdTo = null,
+} = {}) => {
+  const window = `${createdFrom ? ` and p.created_at >= ${createdFrom}` : ""}${createdTo ? ` and p.created_at <= ${createdTo}` : ""}`;
+  return [
+    `select p.post_id from account_post p where p.account_id=$1::uuid
+      and (p.status='visible'${hiddenOwn ? " or p.status='hidden'" : ""})${window}`,
+    createdFrom
+      ? `select named.post_id from (
+         select p.post_id from account_post p
+          where p.player_tag=any(${players}) and p.status='visible'${window}
+          order by p.player_tag,p.created_at desc offset 0
+       ) named`
+      : `select p.post_id from unnest(${players}) followed(player_tag)
+     cross join lateral (
+       select p.post_id from account_post p
+        where p.player_tag=followed.player_tag and p.status='visible'${window}
+        order by p.created_at desc offset 0
+     ) p`,
     `select p.post_id from account_follow f cross join lateral (
      select p.post_id from account_post p
-      where p.account_id = f.followed_account_id and p.status = 'visible'
+      where p.account_id = f.followed_account_id and p.status = 'visible'${window}
       order by p.created_at desc offset 0
    ) p where f.account_id = $1::uuid`,
+    ...(clanmates
+      ? [
+          createdFrom
+            ? `
+       select candidate.post_id from (
+         with named_clans as materialized (${currentOwnClansSql("$1")}),
+         roster_posts as materialized (
+           select p.post_id,p.player_tag from account_post p
+            where p.player_tag=any(array(select cm.player_tag from named_clans own
+              join clan_membership cm on cm.clan_tag=own.clan_tag and cm.left_observed_at is null))
+              and p.status='visible'${window}
+            order by p.player_tag,p.created_at desc offset 0
+         ), posters as materialized (select distinct player_tag from roster_posts),
+         permitted as materialized (
+           select poster.player_tag from posters poster
+           cross join lateral (
+             select 1 from (${clanmatePlayersSql("$1", { names: false })}) current_mates
+              where current_mates.player_tag=poster.player_tag offset 0
+           ) proof
+         )
+         select rp.post_id from roster_posts rp join permitted using(player_tag)
+       ) candidate`
+            : `
+       select p.post_id from (${clanmatePlayersSql("$1", { names: false })}) current_mates
+       cross join lateral (
+         select p.post_id from account_post p
+          where p.player_tag=current_mates.player_tag and p.status='visible'
+          order by p.created_at desc offset 0
+       ) p`,
+        ]
+      : []),
   ].join("\nunion\n");
+};
 
 /**
  * The posts in a reader's Home window (`fromMs` to `toMs`), as feed items:
  * their own, and those of the players and accounts they follow. `subjects`
  * are the feed's own (subjectsFor), so a follow with its notice off reads
  * the same as it does for the reader's other items. A post about a battle
- * shows from when its words last changed, as a highlight did.
+ * shows from when its words last changed, as a highlight did. Member web
+ * reads opt into current automatic clanmates with `clanmates: true`;
+ * explicit friend mutes still win. Named-item access is independent.
  */
 export async function readVisiblePosts(
   db,
@@ -131,16 +223,25 @@ export async function readVisiblePosts(
     createdOnly = false,
     questionsOnly = false,
     subjectsOnly = false,
+    clanmates = false,
     limit = 200,
   },
 ) {
-  const tags = subjects.filter((s) => s.kind === "player").map((s) => s.tag);
+  const tags = subjectTags(subjects);
+  const players = memberPlayers("$2::text[]", clanmates);
   const rows = await readRows(
     db,
-    `${audience()}${subjectsOnly ? " and p.player_tag = any($2::text[])" : ""} and ${createdOnly ? "p.created_at" : "coalesce(p.updated_at, p.created_at)"} >= $3
+    `${clanmates ? "true" : audience(players)}${feedMute(clanmates)}${subjectsOnly ? ` and p.player_tag = any(${players})` : ""} and ${createdOnly ? "p.created_at" : "coalesce(p.updated_at, p.created_at)"} >= $3
         and p.created_at ${createdOnly ? "<" : "<="} $4${plainOnly ? " and p.battle_id is null" : ""}${questionsOnly ? " and p.question" : ""}`,
     [readerId, tags, new Date(fromMs), new Date(toMs)],
-    { plain, visibleOnly, limit },
+    {
+      plain,
+      visibleOnly,
+      limit,
+      candidates: clanmates
+        ? audiencePostIds({ clanmates, hiddenOwn: !visibleOnly })
+        : null,
+    },
   );
   return postItems(db, rows, readerId);
 }
@@ -150,21 +251,30 @@ export async function readVisiblePosts(
  * millisecond precision served in JSON. Read one row beyond the page so
  * the caller can continue at the newest omitted instant; total includes
  * every matching post, without hydrating attachments beyond the page.
+ * The member-web `clanmates` opt-in is false for delivery callers.
  */
 export async function readVisiblePostPage(
   db,
   readerId,
-  { subjects, fromMs, toMs, basis = "observed", playerTag = null, limit = 150 },
+  {
+    subjects,
+    fromMs,
+    toMs,
+    basis = "observed",
+    playerTag = null,
+    clanmates = false,
+    limit = 150,
+  },
 ) {
   const size = Math.max(1, Math.min(200, Math.trunc(limit) || 150));
-  const tags = subjects.filter((s) => s.kind === "player").map((s) => s.tag);
+  const tags = subjectTags(subjects);
   const instant =
     basis === "occurred"
       ? "p.created_at"
       : "coalesce(p.updated_at, p.created_at)";
   const { rows } = await db.query(
     `with candidates as materialized (
-       ${audiencePostIds()}
+       ${audiencePostIds({ clanmates })}
      ), eligible as materialized (
        select p.*, count(*) over()::int as total, ${instant} as page_at
          from candidates candidate
@@ -172,7 +282,7 @@ export async function readVisiblePostPage(
            select p.* from account_post p ${POST_AUTHOR_JOIN}
             where p.post_id = candidate.post_id limit 1
          ) p
-        where ${seen(true, true)}
+        where ${seen(true, true)}${feedMute(clanmates)}
           and p.battle_id is null
           and ${instant} >= $3 and ${instant} < $4
           and ($5::text is null or p.player_tag = $5)
@@ -196,20 +306,37 @@ export async function readVisiblePostPage(
  * follows and own posts do not require a cached game week. Edits never count.
  * PostgreSQL microseconds are compared at the millisecond precision the
  * normalized item and its JSON watermark carry, so a read post stays read.
+ * Automatic clanmates are included only for member-web reads that opt in.
  */
 export async function countNewPosts(
   db,
   readerId,
   sinceMs,
-  { plain = false, nowMs = Date.now(), questionsOnly = false } = {},
+  {
+    plain = false,
+    nowMs = Date.now(),
+    questionsOnly = false,
+    clanmates = false,
+  } = {},
 ) {
   const players = `array(select c.player_tag from claim c
-                         where c.account_id = $1::uuid and c.notify)`;
+                          where c.account_id = $1::uuid and c.notify)`;
+  // Creation order makes this exact: posts at/before the JSON watermark
+  // cannot consume any of the newest 200 positions that could count New.
+  // Bound every named player/author probe before reading retained history.
+  const candidates = audiencePostIds({
+    players,
+    clanmates,
+    hiddenOwn: true,
+    createdFrom: "($2::timestamptz + interval '1 millisecond')",
+    createdTo: "$4::timestamptz",
+  });
   const { rows } = await db.query(
-    `select count(*)::int as fresh from (
-       select p.created_at from account_post p
-       ${POST_JOIN}
-       where ${seen(plain)} and ${audience(players)}${questionsOnly ? " and p.question" : ""}
+    `${candidates ? `with candidates as materialized (${candidates})` : ""}
+     select count(*)::int as fresh from (
+       select p.created_at from ${postSource(candidates)}
+       ${POST_AUTHOR_JOIN}
+       where ${seen(plain)} and ${clanmates ? "true" : audience(players)}${feedMute(clanmates)}${questionsOnly ? " and p.question" : ""}
          and coalesce(p.updated_at, p.created_at) >= $3
          and p.created_at <= $4
        order by p.created_at desc, p.post_id desc limit 200
@@ -234,7 +361,7 @@ async function postForReader(
   { plain = false, open = false, visibleOnly = false } = {},
   column = "item_id",
 ) {
-  const tags = subjects.filter((s) => s.kind === "player").map((s) => s.tag);
+  const tags = subjectTags(subjects);
   const key = `p.${column}`;
   const cast = column === "post_id" ? "::bigint" : "";
   const home = await readRows(
@@ -301,19 +428,9 @@ export async function readPublishedPost(db, postId, { plain = false } = {}) {
 /** Whether the reader's own player is in the clan a post's player is in
  *  now: Clan's Feed shows them that post, so they may report it. */
 async function inClanWith(db, readerId, playerTag) {
-  const { rows } = await db.query(
-    `select 1 from claim c
-       join clan_membership mine on mine.player_tag = c.player_tag
-                                and mine.left_observed_at is null
-       join clan_membership theirs on theirs.clan_tag = mine.clan_tag
-                                  and theirs.left_observed_at is null
-      where c.account_id = $1 and c.status = 'verified'
-        and (c.is_primary or c.relationship in ('primary', 'alt'))
-        and theirs.player_tag = $2
-      limit 1`,
-    [readerId, playerTag],
+  return (await currentClanmates(db, readerId, { tags: [playerTag] })).has(
+    playerTag,
   );
-  return rows.length > 0;
 }
 
 /** A player's posts a reader may see (their page and their account's
@@ -322,19 +439,26 @@ async function inClanWith(db, readerId, playerTag) {
 export async function postsBy(
   db,
   readerId,
-  { subjects, playerTag = null, accountId = null, plain = false },
+  {
+    subjects,
+    playerTag = null,
+    accountId = null,
+    plain = false,
+    clanmates = false,
+  },
 ) {
-  const tags = subjects.filter((s) => s.kind === "player").map((s) => s.tag);
+  const tags = subjectTags(subjects);
+  const players = memberPlayers("$2::text[]", clanmates);
   const rows = playerTag
     ? await readRows(
         db,
-        `(${audience()} or p.battle_id is not null) and p.player_tag = $3`,
+        `(${audience(players)} or p.battle_id is not null) and p.player_tag = $3`,
         [readerId, tags, playerTag],
         { plain },
       )
     : await readRows(
         db,
-        `(${audience()} or p.battle_id is not null) and p.account_id = $3::uuid`,
+        `(${audience(players)} or p.battle_id is not null) and p.account_id = $3::uuid`,
         [readerId, tags, accountId],
         { plain },
       );
@@ -342,9 +466,9 @@ export async function postsBy(
 }
 
 /** A clan's Feed: the posts of its members now, in the window, for a
- *  reader the Clan handler has proved is in the clan. */
-const clanPostWindow = `p.player_tag in (select player_tag from clan_membership
-                       where clan_tag = $2 and left_observed_at is null)
+ *  reader's current source membership is checked again here. */
+const clanPostWindow = `p.player_tag in (select player_tag from (${currentClanPlayersSql("$1")}) current_members
+                       where clan_tag = $2)
         and coalesce(p.updated_at, p.created_at) >= $3 and p.created_at <= $4`;
 
 /** Questions in the same current-clan audience, counted before the cap. */

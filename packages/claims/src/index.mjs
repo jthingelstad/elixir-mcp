@@ -1277,3 +1277,13 @@ export async function setAgentStatus(
     throw err;
   }
 }
+
+// Derived member-only relationships; never added to MCP or stored claims.
+export {
+  currentRosterSql,
+  currentOwnClansSql,
+  currentClanPlayersSql,
+  clanmatePlayersSql,
+  currentClanmates,
+  playerConnections,
+} from "./clanmates.mjs";

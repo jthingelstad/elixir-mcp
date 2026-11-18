@@ -11,6 +11,7 @@ import { followedMoment } from "../followed-moment.mjs";
 import { json } from "../http.mjs";
 import { peopleWithAvatars } from "../avatars.mjs";
 import { blockedPeople, withoutBlocked } from "../blocks.mjs";
+import { withPlayerConnections } from "../connections.mjs";
 import { panel } from "./home.mjs";
 import {
   battlePeople,
@@ -51,7 +52,11 @@ export function peopleRoutes({
         peopleWithAvatars(
           db,
           withoutBlocked(
-            await fn(db, account.accountId),
+            await withPlayerConnections(
+              db,
+              account.accountId,
+              await fn(db, account.accountId),
+            ),
             await blockedPeople(db, account.accountId, { enabled: blocks }),
           ),
         ),

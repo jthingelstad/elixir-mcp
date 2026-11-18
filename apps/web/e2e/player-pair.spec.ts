@@ -16,7 +16,13 @@ const PAGE = {
     clan_tag: null,
     clan_name: null,
   },
-  you: { ...ADA.you, following: true, relationship: "friend", pair: true },
+  you: {
+    ...ADA.you,
+    following: true,
+    relationship: "friend",
+    connection: "friend",
+    pair: true,
+  },
   timeline: [],
   moments: [],
 };

@@ -439,7 +439,11 @@ test("People to follow: why and the cost, game names, never anyone you claim", a
     "never a player you follow",
   );
   const clanmate = res.body.people.find((p) => p.tag === CLANMATE);
-  assert.deepEqual(clanmate?.why, [{ kind: "clan", clan_name: "Grove" }]);
+  assert.equal(
+    clanmate,
+    undefined,
+    "automatic clanmates need no recruiting suggestion",
+  );
   const picked = res.body.people.find((p) => p.tag === PICKED);
   assert.ok(picked, JSON.stringify(res.body.people));
   assert.equal(picked.why[0].kind, "followed_by");
@@ -496,10 +500,18 @@ test("Your clan: its members, each priced, yours left out", async () => {
     res.body.players.map((p) => p.player_tag),
     [CLANMATE],
   );
-  assert.deepEqual(res.body.yours, [PLAYER]);
+  assert.deepEqual(res.body.yours, []);
+  assert.equal(res.body.players[0].connection, "clanmate");
   assert.equal(res.body.players[0].role, "member");
   const none = await call("GET", "/api/me/people/clan", { who: "stranger" });
-  assert.deepEqual(none.body, { ok: true, clan: null });
+  assert.deepEqual(none.body, {
+    ok: true,
+    clan: null,
+    clans: [],
+    clanmate_count: 0,
+    players: [],
+    requires_verification: true,
+  });
 });
 
 test("the sources take turns, and a person in two is one row with both reasons", () => {

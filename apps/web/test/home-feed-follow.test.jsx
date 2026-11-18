@@ -1,11 +1,11 @@
 /**
- * Follow on a clan arrival you do not follow (design canvas 2026-11-13),
- * priced only when asked, and never on one you follow. Clan's Actions stay
+ * A clan arrival names its player's page without a default Friend prompt.
+ * Explicit friending lives on that page. Clan's Actions stay
  * in the bell (Jamie, 2026-11-13), so the feed draws none. Invented names
  * and tags only.
  */
 import { test, expect, vi, beforeEach, afterEach } from "vitest";
-import { screen, cleanup, fireEvent, waitFor } from "@testing-library/react";
+import { screen, cleanup } from "@testing-library/react";
 import { renderWithProviders } from "./helpers.jsx";
 import { HomeFeed } from "../src/home/Feed.jsx";
 
@@ -53,9 +53,7 @@ const arrival = (id, offer) => ({
 });
 
 let calls;
-let following;
 beforeEach(() => {
-  following = false;
   calls = [];
   HTMLDialogElement.prototype.showModal ??= function () {
     this.open = true;
@@ -71,7 +69,7 @@ beforeEach(() => {
     if (p === "/api/me/follow-cost")
       return reply({
         player_tag: "#00JQ201",
-        following,
+        following: false,
         free: true,
         used: 3,
         limit: 10,
@@ -97,33 +95,15 @@ test("the feed draws no Clan Action, even with one waiting", async () => {
   expect(document.querySelector(".kit-feed__item--decision")).toBeNull();
 });
 
-test("Follow sits on an arrival you do not follow, and prices only when asked", async () => {
+test("an arrival keeps its player's page reachable without an inline friend prompt", async () => {
   renderWithProviders(<HomeFeed />);
   await screen.findByText("Invented 2 joined Ada's Clan.");
-  const follows = screen.getAllByRole("button", { name: "Follow" });
-  expect(follows).toHaveLength(1);
-  expect(follows[0].closest("article").textContent).toContain(
-    "Invented 1 joined",
-  );
+  expect(
+    screen.queryByRole("button", { name: /^(Follow|Friend)$/ }),
+  ).toBeNull();
+  expect(
+    screen.getByRole("link", { name: "Invented 1" }).getAttribute("href"),
+  ).toBe("/home/player/00JQ201");
   expect(calls.some((c) => c.includes("/follow-cost"))).toBe(false);
-  fireEvent.click(follows[0]);
-  await waitFor(() =>
-    expect(screen.getByText(/Free · already recorded/)).toBeTruthy(),
-  );
-});
-
-test("one of your agents tracking them never stops your own follow (Codex on #871)", async () => {
-  following = true;
-  renderWithProviders(<HomeFeed />);
-  await screen.findByText("Invented 2 joined Ada's Clan.");
-  fireEvent.click(screen.getByRole("button", { name: "Follow" }));
-  await waitFor(() =>
-    expect(screen.getByText("Free · already recorded")).toBeTruthy(),
-  );
-  const dialog = document.querySelector("dialog[open]");
-  const confirm = [...dialog.querySelectorAll("button")].find(
-    (b) => b.textContent === "Follow",
-  );
-  fireEvent.click(confirm);
-  await waitFor(() => expect(calls).toContain("POST /api/claims"));
+  expect(calls.some((c) => c.startsWith("POST /api/claims"))).toBe(false);
 });

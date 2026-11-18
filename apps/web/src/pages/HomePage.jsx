@@ -74,8 +74,8 @@ export function HomePage() {
           sub={
             player
               ? ready
-                ? "Follow your friends and clanmates, then open your Timeline."
-                : "Follow your friends and clanmates while your battles arrive."
+                ? "Clanmates connect through your verified players. Open your Timeline or add friends."
+                : "Add friends while your battles arrive. Clanmates connect through your verified players."
               : "Add your player tag, and your battles show up here within about a minute."
           }
         />

@@ -38,7 +38,7 @@ import {
   usePlayerPage,
   useRefreshPlayerPage,
 } from "../lib/queries.js";
-import { normTag, tagFromPath } from "../lib/tag-url.js";
+import { normTag, tagFromPath, tagPath } from "../lib/tag-url.js";
 import { SessionGames } from "./SessionGames.jsx";
 import { Cheers, usePageCheered } from "./Cheers.jsx";
 import { BlockButton, UnblockButton } from "./Block.jsx";
@@ -50,8 +50,10 @@ import {
   sittingCard,
   sessionLink,
 } from "./Session.jsx";
-import { FollowAll, FollowButton } from "./follow.jsx";
+import { FollowButton } from "./follow.jsx";
+import { FollowClan } from "./FollowClan.jsx";
 import { CloseToggle } from "./close.jsx";
+import { ClanmateConnection, isClanmateConnection } from "./Connection.jsx";
 import { PlayerRecord } from "./PlayerRecord.jsx";
 import { PairGames } from "./PairGames.jsx";
 import { useAskOnOpen } from "../lib/own-refresh.js";
@@ -161,6 +163,7 @@ export function PlayerView({ page, initialTab = "timeline" }) {
     ),
   );
   const you = page.you;
+  const clanmate = isClanmateConnection(you);
   const commentsOn = useCommentsOn();
   // The account that verified this player: the one a block reaches.
   const owner = (page.claimants ?? []).find((c) => c.verified) ?? null;
@@ -182,7 +185,11 @@ export function PlayerView({ page, initialTab = "timeline" }) {
       : tab;
   const sub = [
     p.tag,
-    p.clan_name ?? (p.clan_tag ? p.clan_tag : "No clan"),
+    you.shared_clan?.name ??
+      you.shared_clan?.clan_tag ??
+      you.clanmate ??
+      p.clan_name ??
+      (p.clan_tag ? p.clan_tag : "No recorded clan"),
     p.trophies != null ? `${p.trophies.toLocaleString()} trophies` : null,
   ]
     .filter(Boolean)
@@ -231,6 +238,7 @@ export function PlayerView({ page, initialTab = "timeline" }) {
             <PassportRow summary={page.passport} own={you.own} />
           ) : null}
         </div>
+        <ClanmateConnection you={you} />
         <Counts page={page} onPick={setTab} />
         {/* Two actions at most (2026-11-13): where you stand with the
             player first (Following or Follow), their Stats second. Your
@@ -238,25 +246,33 @@ export function PlayerView({ page, initialTab = "timeline" }) {
             Copy Follow me link say it. Follow everyone in their clan is on
             the Follows tab. */}
         <nav className="kit-phead__actions" aria-label="More about this player">
-          {you.own ? null : you.blocked === true && commentsOn && owner ? (
+          {you.own ? null : you.blocked === true ? (
             // Your block of their owner (2026-11-16): only you see it, and
             // only Unblock is offered while it stands, as on the account
             // page (Codex on #1081).
-            <UnblockButton
-              account={owner.id}
-              name={owner.player?.name ?? p.name}
-            />
+            commentsOn && owner ? (
+              <UnblockButton
+                account={owner.id}
+                name={owner.player?.name ?? p.name}
+              />
+            ) : (
+              <span className="kit-phead__state">Blocked</span>
+            )
           ) : you.following ? (
             <Unfollow
               tag={p.tag}
               name={p.name}
               linked={page.badges?.verified_player === true}
+              clanmate={clanmate}
             />
           ) : (
-            <FollowButton tag={p.tag} name={p.name} />
+            <FollowButton tag={p.tag} name={p.name} clanmate={clanmate} />
           )}
           {/* Close friend (2026-11-16): a star by Following, yours alone. */}
-          {you.following && !you.own ? (
+          {you.following &&
+          you.connection === "friend" &&
+          !you.own &&
+          !you.blocked ? (
             <CloseToggle tag={p.tag} name={p.name} close={you.close === true} />
           ) : null}
           {you.own && !self ? (
@@ -315,7 +331,13 @@ export function PlayerView({ page, initialTab = "timeline" }) {
         ) : shown === "record" ? (
           <PlayerRecord tag={p.tag} />
         ) : (
-          <Follows page={page} player={p} own={you.own} />
+          <Follows
+            page={page}
+            player={p}
+            own={you.own}
+            clanmate={you.clanmate}
+            sharedClan={you.shared_clan}
+          />
         )}
       </div>
     </div>
@@ -395,7 +417,7 @@ function Identity({ page, own = false, blocked = false }) {
     );
   return (
     <p className="kit-tiny kit-player__identity">
-      <span className="kit-badge">Imported</span> Followed on Elixir. No account
+      <span className="kit-badge">Imported</span> Recorded on Elixir. No account
       has claimed this player.
     </p>
   );
@@ -674,26 +696,36 @@ function PlayerGames({ tag, item, onClose }) {
 /** Their clan, offered whole: Follow everyone in it, one question
  *  (moved here from the page's head on 2026-11-13, so the head holds two
  *  actions at most). */
-function FollowTheirClan({ player, own }) {
-  if (!player.clan_tag || own) return null;
+function FollowTheirClan({ player, own, clanmate, sharedClan }) {
+  if (own) return null;
+  const sharedTag = sharedClan?.clan_tag ?? clanmate;
+  if (sharedTag)
+    return (
+      <div className="kit-pfollows__clan">
+        <p className="m-0">
+          Clanmates in <TagText>{sharedClan?.name ?? sharedTag}</TagText>{" "}
+          connect automatically through your verified players.
+        </p>
+        <Link to={`/clan/${tagPath(sharedTag)}`} className="btn btn--sm">
+          Open your clan
+        </Link>
+      </div>
+    );
+  if (!player.clan_tag) return null;
   const clan = player.clan_name ?? player.clan_tag;
   return (
     <div className="kit-pfollows__clan">
       <p className="m-0">
         Everyone in <TagText>{clan}</TagText>
       </p>
-      <FollowAll
-        ask={{ clan_tag: player.clan_tag }}
-        label="Follow everyone"
-        title={`Follow everyone in ${clan}?`}
-      />
+      <FollowClan clanTag={player.clan_tag} clanName={clan} />
     </div>
   );
 }
 
 /** Who the account follows and who follows it, by game name and tag, and
  *  their clan to follow whole. */
-function Follows({ page, player, own }) {
+function Follows({ page, player, own, clanmate, sharedClan }) {
   if (!page.follows)
     return (
       <>
@@ -702,7 +734,12 @@ function Follows({ page, player, own }) {
           Follows belong to an account, and a page shows them for the player its
           account verified.
         </p>
-        <FollowTheirClan player={player} own={own} />
+        <FollowTheirClan
+          player={player}
+          own={own}
+          clanmate={clanmate}
+          sharedClan={sharedClan}
+        />
       </>
     );
   // A follower named by a claim it never verified (verified false) shows
@@ -795,7 +832,12 @@ function Follows({ page, player, own }) {
           </p>
         ) : null}
       </Panel>
-      <FollowTheirClan player={player} own={own} />
+      <FollowTheirClan
+        player={player}
+        own={own}
+        clanmate={clanmate}
+        sharedClan={sharedClan}
+      />
     </div>
   );
 }
@@ -804,28 +846,38 @@ function Follows({ page, player, own }) {
  *  first, as Settings' Players & following asks it. A Verified player's
  *  follow is its account's follow (linked follows, 2026-11-15), so
  *  unfollowing it ends the whole link, and the dialog says so. */
-function Unfollow({ tag, name, linked = false }) {
+function Unfollow({ tag, name, linked = false, clanmate = false }) {
   const invalidate = useInvalidate();
   const who = name ?? tag;
   return (
     <ConfirmAction
       label={
         <>
-          <Icon name="check" size={14} /> Following
+          <Icon name="check" size={14} /> {clanmate ? "Friend" : "Following"}
         </>
       }
       className="btn btn--sm btn--follow btn--following"
-      title={`Unfollow ${who}?`}
+      title={`${clanmate ? "Unfriend" : "Unfollow"} ${who}?`}
       body={
         <p className="m-0">
-          Elixir stops recording <TagText>{who}</TagText> for you. They are not
-          told.
+          {clanmate ? (
+            <>
+              Your friend connection with <TagText>{who}</TagText> ends. Your
+              clanmate connection stays while you share a clan. They are not
+              told.
+            </>
+          ) : (
+            <>
+              Elixir stops recording <TagText>{who}</TagText> for you. They are
+              not told.
+            </>
+          )}
           {linked
             ? " If you follow their account, you stop following it and all its verified players too."
             : null}
         </p>
       }
-      confirm="Unfollow"
+      confirm={clanmate ? "Unfriend" : "Unfollow"}
       run={() => api.claimAction({ player_tag: tag, action: "remove" })}
       onDone={() => invalidate()}
     />

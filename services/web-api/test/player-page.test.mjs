@@ -193,6 +193,8 @@ test("a verified player's page: record, badges, follows and followers by game na
     // The reader's own block of the verified owner (2026-11-16).
     blocked: false,
     clanmate: null,
+    connection: null,
+    shared_clan: null,
   });
   // Every non-self follow is a friend.
   assert.deepEqual(page.follows, {
