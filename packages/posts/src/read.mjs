@@ -1,6 +1,6 @@
 /** Canonical member-post reads. The web app and digest share audience,
  * moderation, blocks and normalized attachments here; no service imports.
- * Plain posts remain outside MCP and the game-record timeline.
+ * Delivery readers opt in to plain posts; the game-record timeline stays separate.
  */
 import { blockedSql } from "@elixir-mcp/claims";
 import { classifyDeck, deckLink, postUrl } from "@elixir-mcp/contracts";
@@ -39,10 +39,11 @@ const POST_COLS = `p.post_id::text as post_id, p.item_id, p.account_id,
        p.player_tag, p.body, p.question, p.deck, p.cards, p.status,
        p.battle_id, ts.share_id, p.revision, p.created_at, p.updated_at,
        pl.name as player_name, ap.passport_id as author_page`;
+const POST_AUTHOR_JOIN = `join account a on a.account_id = p.account_id
+                     and a.kind = 'person' and a.status = 'approved'`;
 const POST_JOIN = `left join timeline_share ts on ts.item_id = p.item_id
                      and ts.created_at >= now() - interval '1 year'
-       join account a on a.account_id = p.account_id
-                     and a.kind = 'person' and a.status = 'approved'
+       ${POST_AUTHOR_JOIN}
        left join player pl on pl.player_tag = p.player_tag
        left join account_passport ap on ap.account_id = p.account_id`;
 /** What a reader (`$1`) sees: visible posts, and their own while hidden
@@ -81,11 +82,33 @@ async function readRows(
 /** A Home reader's audience condition: the post's player is one the
  *  reader follows now (the feed's own player subjects), its author an
  *  account they follow, or the post is their own. `$2` the player tags. */
-const audience = (players = "$2::text[]") => `(p.account_id = $1::uuid
-          or p.player_tag = any(${players})
-          or exists (select 1 from account_follow f
-                      where f.account_id = $1::uuid
-                        and f.followed_account_id = p.account_id))`;
+const audienceSources = (players = "$2::text[]") => [
+  "p.account_id = $1::uuid",
+  `p.player_tag = any(${players})`,
+  `exists (select 1 from account_follow f where f.account_id = $1::uuid
+            and f.followed_account_id = p.account_id)`,
+];
+const audience = (players) => `(${audienceSources(players).join(" or ")})`;
+
+/** The same three audience paths as indexed candidate IDs. Keep the
+ * account-follow arm as a per-author probe; flattening it into a join can
+ * walk every post before the reader's author set narrows it. No rows are
+ * truncated here. The member reader still uses the direct predicate.
+ */
+const audiencePostIds = () =>
+  [
+    ...audienceSources()
+      .slice(0, 2)
+      .map(
+        (source) =>
+          `select p.post_id from account_post p where p.status = 'visible' and ${source}`,
+      ),
+    `select p.post_id from account_follow f cross join lateral (
+     select p.post_id from account_post p
+      where p.account_id = f.followed_account_id and p.status = 'visible'
+      order by p.created_at desc offset 0
+   ) p where f.account_id = $1::uuid`,
+  ].join("\nunion\n");
 
 /**
  * The posts in a reader's Home window (`fromMs` to `toMs`), as feed items:
@@ -137,15 +160,24 @@ export async function readVisiblePostPage(
       ? "p.created_at"
       : "coalesce(p.updated_at, p.created_at)";
   const { rows } = await db.query(
-    `select ${POST_COLS}, count(*) over()::int as total,
-            ${instant} as page_at
-       from account_post p ${POST_JOIN}
-      where ${seen(true, true)} and ${audience()}
-        and p.battle_id is null
-        and ${instant} >= $3 and ${instant} < $4
-        and ($5::text is null or p.player_tag = $5)
-      order by ${instant} desc, p.post_id desc
-      limit ${size + 1}`,
+    `with candidates as materialized (
+       ${audiencePostIds()}
+     ), eligible as materialized (
+       select p.*, count(*) over()::int as total, ${instant} as page_at
+         from candidates candidate
+         cross join lateral (
+           select p.* from account_post p ${POST_AUTHOR_JOIN}
+            where p.post_id = candidate.post_id limit 1
+         ) p
+        where ${seen(true, true)}
+          and p.battle_id is null
+          and ${instant} >= $3 and ${instant} < $4
+          and ($5::text is null or p.player_tag = $5)
+        order by ${instant} desc, p.post_id desc limit ${size + 1}
+     )
+     select ${POST_COLS}, p.total, p.page_at
+       from eligible p ${POST_JOIN}
+      order by p.page_at desc, p.post_id desc`,
     [readerId, tags, new Date(fromMs + 1), new Date(toMs + 1), playerTag],
   );
   return {

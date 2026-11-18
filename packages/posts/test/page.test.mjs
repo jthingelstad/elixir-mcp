@@ -2,7 +2,7 @@ import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
 import { scratchDb } from "../../ingest/test/helpers.mjs";
 import { readVisiblePostPage } from "../src/index.mjs";
-import { postFixture, AUTHOR_TAG } from "./fixture.mjs";
+import { postFixture, AUTHOR_TAG, STRANGER_TAG } from "./fixture.mjs";
 
 const T = Date.parse("2026-11-17T12:00:00Z");
 const iso = (ms) => new Date(ms).toISOString();
@@ -100,6 +100,56 @@ test("delivery excludes hidden own posts, reports and both block directions", as
     await ctx.db.query(
       `delete from account_block where account_id = $1 and blocked_account_id = $2`,
       [a, b],
+    );
+  }
+});
+
+test("delivery pages probe their audience before moderation and page hydration", async () => {
+  await ctx.db.query(
+    `insert into account_post (item_id, account_id, player_tag, body, question, created_at)
+     select 'tl_' || lpad(to_hex(1000 + i), 20, '0'),
+       case when i <= 100 then $1::uuid else $2::uuid end,
+       case when i <= 100 then $3 else $4 end, 'Synthetic post', true, $5
+       from generate_series(1, 10000) i`,
+    [people.author, people.stranger, AUTHOR_TAG, STRANGER_TAG, iso(T + 40_000)],
+  );
+  await ctx.db.query("analyze account_post");
+  await ctx.db.query("analyze account_follow");
+  const nodes = (node) => [node, ...(node.Plans ?? []).flatMap(nodes)];
+  for (const who of ["reader", "fan"]) {
+    const calls = [];
+    const tracked = {
+      query: async (sql, values) => {
+        calls.push({ sql, values });
+        return ctx.db.query(sql, values);
+      },
+    };
+    const page = await readVisiblePostPage(tracked, people[who], {
+      subjects: who === "reader" ? subjects : [],
+      fromMs: T + 21_000,
+      toMs: T + 60_000,
+      limit: 50,
+    });
+    assert.equal(page.items.length, 50);
+    assert.equal(page.more, 50);
+    const query = calls[0];
+    const result = await ctx.db.query(
+      `explain (analyze, buffers, format json) ${query.sql}`,
+      query.values,
+    );
+    const plan = result.rows[0]["QUERY PLAN"][0].Plan;
+    const work = nodes(plan)
+      .filter((node) => node["Relation Name"] === "account_post")
+      .reduce(
+        (sum, node) =>
+          sum +
+          ((node["Actual Rows"] ?? 0) + (node["Rows Removed by Filter"] ?? 0)) *
+            node["Actual Loops"],
+        0,
+      );
+    assert.ok(
+      work <= 600,
+      `${who} inspected ${work} post rows for its 100-post audience`,
     );
   }
 });
