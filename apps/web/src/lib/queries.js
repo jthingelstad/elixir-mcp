@@ -775,16 +775,26 @@ export const useMemberPost = (id) =>
  *  list of posts read again. */
 export function usePostsChanged() {
   const queryClient = useQueryClient();
-  return useCallback(() => {
-    queryClient.invalidateQueries({ queryKey: ["me", "followed-moment"] });
-    queryClient.invalidateQueries({ queryKey: ["me", "posts"] });
-    queryClient.invalidateQueries({ queryKey: ["me", "timeline-item"] });
-    queryClient.invalidateQueries({ queryKey: ["me", "comments"] });
-    queryClient.invalidateQueries({
-      queryKey: ["me", "clan", "record"],
-      predicate: (q) => q.queryKey[4] === "feed",
-    });
-    return queryClient.invalidateQueries({ queryKey: HOME_FEED_KEY });
+  return useCallback(async () => {
+    const affected = [
+      { queryKey: ["me", "followed-moment"] },
+      { queryKey: ["me", "posts"] },
+      { queryKey: ["me", "timeline-item"] },
+      { queryKey: ["me", "comments"] },
+      {
+        queryKey: ["me", "clan", "record"],
+        predicate: (q) => q.queryKey[4] === "feed",
+      },
+      { queryKey: keys.feed },
+      { queryKey: HOME_FEED_KEY },
+    ];
+    await Promise.all(
+      affected.map(async (filter) => {
+        // A first read already in flight may still carry the pre-write post.
+        await queryClient.cancelQueries(filter);
+        await queryClient.invalidateQueries(filter);
+      }),
+    );
   }, [queryClient]);
 }
 

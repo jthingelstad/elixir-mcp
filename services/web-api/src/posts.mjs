@@ -584,22 +584,23 @@ async function postRow(db, id) {
  * days as any removed comment is. `{ ok }` or `{ error }`.
  */
 export async function deletePost(db, account, id) {
-  const row = await postRow(db, id);
-  if (!row || row.status === "removed" || row.account_id !== account.accountId)
-    return { error: "not_found" };
-  await db.query(
-    `update timeline_comment
-        set status = 'removed', removed_by = 'owner', removed_at = now()
-      where item_id = $1 and status <> 'removed'`,
-    [row.item_id],
+  if (!POST_ID.test(String(id ?? ""))) return { error: "not_found" };
+  const { rowCount } = await db.query(
+    `with deleted_post as (
+       delete from account_post
+        where post_id = $1::bigint and account_id = $2 and status <> 'removed'
+        returning item_id
+     ), removed_comments as (
+       update timeline_comment
+          set status = 'removed', removed_by = 'owner', removed_at = now()
+        where item_id in (select item_id from deleted_post) and status <> 'removed'
+     ), removed_cheers as (
+       delete from timeline_cheer where item_id in (select item_id from deleted_post)
+     )
+     select item_id from deleted_post`,
+    [String(id), account.accountId],
   );
-  await db.query(`delete from timeline_cheer where item_id = $1`, [
-    row.item_id,
-  ]);
-  await db.query(`delete from account_post where post_id = $1::bigint`, [
-    row.post_id,
-  ]);
-  return { ok: true, deleted: true };
+  return rowCount ? { ok: true, deleted: true } : { error: "not_found" };
 }
 
 /** An admin removes a post: kept 30 days for review (sweepOperational),

@@ -639,6 +639,61 @@ test("the author deletes a post at once; nobody else can", async () => {
   assert.deepEqual(left, { posts: 0, cheers: 0, comments: 0 });
 });
 
+test("a failed delete keeps the post and its reactions intact for a retry", async () => {
+  const { db } = scratch;
+  const item = "tl_0000000000000000de1e";
+  const {
+    rows: [post],
+  } = await db.query(
+    `insert into account_post (item_id, account_id, player_tag, body)
+     values ($1, $2, $3, 'One more game') returning post_id`,
+    [item, AUTHOR, A],
+  );
+  await db.query(
+    `insert into timeline_comment (item_id, account_id, subject_tag, owner_account_id, body)
+     values ($1, $2, $3, $4, 'Well played')`,
+    [item, FOLLOWER, A, AUTHOR],
+  );
+  await db.query(
+    `insert into timeline_cheer (item_id, account_id, cheer) values ($1, $2, 'wow')`,
+    [item, FOLLOWER],
+  );
+  const state = async () =>
+    (
+      await db.query(
+        `select exists(select 1 from account_post where item_id = $1) as posted,
+            exists(select 1 from timeline_cheer where item_id = $1) as cheered,
+            status, removed_by from timeline_comment where item_id = $1`,
+        [item],
+      )
+    ).rows[0];
+  const remove = () => call(AUTHOR, "DELETE", `/api/me/posts/${post.post_id}`);
+  // A scratch-only foreign key makes PostgreSQL refuse this deletion.
+  await db.query(
+    "create table delete_guard (id bigint references account_post)",
+  );
+  await db.query("insert into delete_guard values ($1)", [post.post_id]);
+  try {
+    await assert.rejects(remove, { code: "23503" });
+    assert.deepEqual(await state(), {
+      posted: true,
+      cheered: true,
+      status: "visible",
+      removed_by: null,
+    });
+  } finally {
+    await db.query("drop table delete_guard");
+  }
+  assert.equal((await remove()).statusCode, 200);
+  assert.deepEqual(await state(), {
+    posted: false,
+    cheered: false,
+    status: "removed",
+    removed_by: "owner",
+  });
+  assert.equal((await remove()).statusCode, 404);
+});
+
 /** The record's readers of posts about battles (0292), each reading only
  *  rows with a battle. */
 const BATTLE_POST_READERS = [

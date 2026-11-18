@@ -1,6 +1,7 @@
 import { test, expect, vi, afterEach } from "vitest";
 import { screen, fireEvent, cleanup, waitFor } from "@testing-library/react";
 import { api } from "../src/api.js";
+import { keys, postsKey, usePosts } from "../src/lib/queries.js";
 import { BattlePosts } from "../src/views/BattlePosts.jsx";
 import { renderWithProviders } from "./helpers.jsx";
 
@@ -79,6 +80,40 @@ test("a verified player of yours posts about the battle, words optional, from th
       text: "Finally beat the cycle deck",
     }),
   );
+});
+
+test("posting from a battle refreshes a previously opened player page", async () => {
+  const player = { player: "#0CR" };
+  let posts = [];
+  const list = vi
+    .spyOn(api, "posts")
+    .mockImplementation(async () => ok({ posts }));
+  vi.spyOn(api, "postsOnBattle").mockImplementation(async () =>
+    ok({ battle_id: BATTLE.id, can_post_as: ["#0CR"], posts }),
+  );
+  vi.spyOn(api, "writeBattlePost").mockImplementation(async () => {
+    posts = [item({ text: "One more game" })];
+    return ok({ post: posts[0] });
+  });
+  function PlayerPosts() {
+    const query = usePosts(player);
+    return query.data ? (
+      <p>
+        {query.data.posts.map((it) => it.post.text).join() || "No posts yet"}
+      </p>
+    ) : null;
+  }
+  const { rerender, queryClient } = renderWithProviders(<PlayerPosts />);
+  await screen.findByText("No posts yet");
+  rerender(<BattlePosts battle={BATTLE} sides={SIDES} />);
+  queryClient.setQueryData(keys.feed, { timeline: [] });
+  fireEvent.click(await screen.findByRole("button", { name: "Post" }));
+  await screen.findByText("“One more game”");
+  expect(queryClient.getQueryState(keys.feed).isInvalidated).toBe(true);
+  rerender(<PlayerPosts />);
+  await screen.findByText("One more game");
+  expect(list).toHaveBeenCalledTimes(2);
+  expect(queryClient.getQueryData(postsKey(player)).posts).toEqual(posts);
 });
 
 test("a posted one shows its words as text, with Share and Edit words", async () => {

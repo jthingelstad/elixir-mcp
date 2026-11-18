@@ -795,7 +795,7 @@ test(
     });
     render(<App />);
     await screen.findByText("On the first page.");
-    expect(screen.getByText("1 of 2 shown")).toBeTruthy();
+    expect(screen.getByText("1 of 2 loaded")).toBeTruthy();
     expect(screen.queryByText("Read by More, older.")).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "More" }));
     await screen.findByText("Read by More, older.");

@@ -171,7 +171,12 @@ test("a mode with nothing in a busy week says so and offers All modes, not the q
 });
 
 test("a Show chip with nothing in the mode names both", async () => {
-  page = week([arrival("3")], { mode: "war", week_total: 9 });
+  page = week([arrival("3")], {
+    mode: "war",
+    week_total: 9,
+    total: 2,
+    next: "page2",
+  });
   renderWithProviders(<HomeFeed mode="war" setMode={() => {}} />);
   expect((await screen.findAllByText(/Invented 3/)).length).toBeGreaterThan(0);
   fireEvent.click(screen.getByRole("button", { name: /Friends/ }));
@@ -180,6 +185,26 @@ test("a Show chip with nothing in the mode names both", async () => {
       "Nothing from your friends in War in the last seven days.",
     ),
   ).toBeTruthy();
+});
+
+test("a friend on a later page is counted and can be found with More", async () => {
+  const first = Array.from({ length: 30 }, (_, i) => arrival(String(i)));
+  page = week(first, {
+    next: "page2",
+    total: 31,
+    counts: { everyone: 31, you: 30, friends: 1 },
+  });
+  renderWithProviders(<HomeFeed />);
+  fireEvent.click(await screen.findByRole("button", { name: /Friends/ }));
+  expect(
+    screen.getByText("No matches loaded yet. Choose More to keep looking."),
+  ).toBeTruthy();
+  expect(screen.getByText("30 of 31 loaded")).toBeTruthy();
+  page = week([{ ...arrival("31"), groups: ["friends"] }]);
+  fireEvent.click(screen.getByRole("button", { name: "More" }));
+  expect((await screen.findAllByText(/Invented 31/)).length).toBeGreaterThan(0);
+  expect(calls).toContain("/api/me/home/feed?cursor=page2");
+  expect(screen.queryByText(/No matches loaded/)).toBeNull();
 });
 
 test("a mode kept from before, in a quiet week, keeps its list so it can be cleared", async () => {
