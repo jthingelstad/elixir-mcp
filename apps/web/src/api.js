@@ -377,8 +377,8 @@ export const api = {
   // Your cheer on a timeline item (#765): one of six, or null to take it
   // back. The item's subject tags let the server find it in your feed.
   // Yours alone: never an agent's pages.
-  cheer: ({ item_id, cheer, subjects }) =>
-    request("PUT", "/api/me/cheers", { item_id, cheer, subjects }),
+  cheer: ({ item_id, cheer, subjects, item }) =>
+    request("PUT", "/api/me/cheers", { item_id, cheer, subjects, item }),
   // Which of a player page's or a battle page's items take your cheers.
   pageCheers: ({ player = null, battle = null }) =>
     request(
@@ -391,22 +391,23 @@ export const api = {
   // server rebuilds to find it in your feed; a post goes through the
   // check first. Yours alone, never an agent's pages; every one answers
   // 404 comments_off while comments are off.
-  comments: ({ item_id, subjects, before = null, around = null }) =>
+  comments: ({ item_id, subjects, item, before = null, around = null }) =>
     request(
       "GET",
       `/api/me/comments?${new URLSearchParams({
         item: item_id,
+        ...(item ? { item_ref: JSON.stringify(item) } : {}),
         ...(before ? { before } : {}),
         ...(around ? { around } : {}),
         subjects: (subjects ?? []).join(","),
       })}`,
     ),
-  postComment: ({ item_id, subjects, text }) =>
-    request("POST", "/api/me/comments", { item_id, subjects, text }),
-  deleteComment: (id) =>
-    request("DELETE", `/api/me/comments/${encodeURIComponent(id)}`),
-  reportComment: (id, reason, subjects = []) =>
-    request("POST", "/api/me/comment-reports", { id, reason, subjects }),
+  postComment: ({ item_id, subjects, text, item }) =>
+    request("POST", "/api/me/comments", { item_id, subjects, text, item }),
+  deleteComment: (id, target) =>
+    request("DELETE", `/api/me/comments/${encodeURIComponent(id)}`, target),
+  reportComment: (id, reason, subjects = [], item) =>
+    request("POST", "/api/me/comment-reports", { id, reason, subjects, item }),
   commentSetting: () => request("GET", "/api/me/comment-setting"),
   setCommentSetting: (who) =>
     request("PUT", "/api/me/comment-setting", { who }),

@@ -288,6 +288,11 @@ test("post replies coalesce with unread counts, distinguish answers and preserve
   await comment(question, "Hidden answer", 0, other, "hidden");
   await comment(normal, "A comment", 2);
   const game = { item_id: "tl_99999999999999999999" };
+  await scratch.db.query(
+    `insert into claim(account_id,player_tag,status,is_primary,relationship,verified_at)
+     values($1,$2,'verified',true,'primary',now())`,
+    [owner, TAG],
+  );
   await comment(game, "On your play", 3);
   await scratch.db.query(
     `insert into bell_seen(account_id,seen_at) values($1,now()-interval '10 minutes')`,
@@ -323,6 +328,10 @@ test("post replies coalesce with unread counts, distinguish answers and preserve
   assert.equal(
     bell.comments.items.find((c) => c.item_id === game.item_id).post_id,
     undefined,
+  );
+  await scratch.db.query(
+    `delete from claim where account_id=$1 and player_tag=$2`,
+    [owner, TAG],
   );
   await scratch.db.query(
     `update bell_seen set seen_at=now() where account_id=$1`,
@@ -418,7 +427,11 @@ test("a long thread anchors the notified visible reply and pages older without g
       [normal.item_id],
     )
   ).rows[0].id;
-  const item = { id: normal.item_id, subjects: [{ kind: "player", tag: TAG }] };
+  const item = {
+    id: normal.item_id,
+    kind: "post",
+    subjects: [{ kind: "player", tag: TAG }],
+  };
   const first = await commentsOnItem(db, owner, item, { around: anchor });
   assert.equal(first.anchored, true);
   assert.equal(first.comments.at(-1).id, anchor);

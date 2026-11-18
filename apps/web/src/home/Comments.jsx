@@ -20,8 +20,7 @@ import {
  * services/web-api/src/comments.mjs, its rules
  * docs/notes/2026-11-16-comments.md. Nothing draws while comments are off
  * (`/api/me` `features.comments`), under an agent's scope, or on an item
- * that takes none (`it.comments === null`: nobody verified the player it
- * is about).
+ * that takes none (`it.comments === null`).
  *
  * Home's feed hands each item `comments: { count, latest, open }`: the
  * card shows the newest two and the way in. A player page's or a battle
@@ -136,7 +135,7 @@ function Thread({ id, it, focus, entry }) {
       ) : read.isError && !data ? (
         <p className="kit-tiny" role="status">
           {read.error?.status === 404
-            ? `${word} show here for players in your feed.`
+            ? "This item is no longer available to you."
             : `${word} couldn't be read just now.`}
         </p>
       ) : (
@@ -221,6 +220,7 @@ export function Composer({ it, autoFocus = false, onPosted = null }) {
     const res = await api.postComment({
       item_id: it.id,
       subjects: itemSubjects(it),
+      item: it.item_ref,
       text,
     });
     setBusy(false);
@@ -324,7 +324,12 @@ function CommentRow({ c, it, id, fresh = false }) {
                 : "It goes for good."
             }
             confirm={ownerRemoves ? "Remove" : "Delete"}
-            run={() => api.deleteComment(c.id)}
+            run={() =>
+              api.deleteComment(c.id, {
+                item: it.item_ref,
+                subjects: itemSubjects(it),
+              })
+            }
             onDone={(out) => {
               if (out?.ok) changed(it.id);
             }}
@@ -358,6 +363,7 @@ function CommentRow({ c, it, id, fresh = false }) {
         <ReportForm
           id={c.id}
           subjects={itemSubjects(it)}
+          item={it.item_ref}
           onDone={() => {
             setReported(true);
             changed(it.id);
@@ -370,7 +376,7 @@ function CommentRow({ c, it, id, fresh = false }) {
 
 /** Why you report it: one reason. You stop seeing it at once; two reports
  *  hide it until an admin looks. Its writer is never told. */
-export function ReportForm({ id, subjects, onDone, run = null }) {
+export function ReportForm({ id, subjects, item, onDone, run = null }) {
   const [reason, setReason] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
@@ -381,7 +387,7 @@ export function ReportForm({ id, subjects, onDone, run = null }) {
     setBusy(true);
     const res = run
       ? await run(reason)
-      : await api.reportComment(id, reason, subjects);
+      : await api.reportComment(id, reason, subjects, item);
     setBusy(false);
     if (res.ok) onDone();
     else setError("Your report wasn't sent. Try again.");

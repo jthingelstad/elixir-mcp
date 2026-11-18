@@ -1,8 +1,9 @@
 /**
  * Cheers on the player page and the battle page, People to follow and
- * Find's sections (2026-11-12). Pinned here: a page's item takes cheers only
- * while it is in the reader's own feed, and a reader with none of it sees no
- * item and no count; signed out is refused; People to follow names game
+ * Find's sections (2026-11-12). A member game page's canonical battle
+ * posts share their counts and current moderation/block audience; its
+ * legacy subject transport still works for followers. Signed out is refused;
+ * People to follow names game
  * names only, never a nickname, never a player the reader already claims,
  * each with why and what it costs; From your battles counts meetings from
  * the log; Your clan prices its members. Synthetic names; the fixture's tag
@@ -46,7 +47,7 @@ const NICKNAME = "Private Nickname";
 let db, handler;
 const sent = [];
 const cookies = {};
-let ownerId, battleId, otherBattle, opponents;
+let ownerId, friendId, strangerId, postId, battleId, otherBattle, opponents;
 
 const request = (method, p, { body, who, contract = true } = {}) =>
   handler({
@@ -209,9 +210,9 @@ before(async () => {
   });
   ownerId = await account(OWNER);
   await claim(ownerId, PLAYER, "verified");
-  const friendId = await account(FRIEND);
+  friendId = await account(FRIEND);
   await claim(friendId, PLAYER, "friend");
-  await account(STRANGER);
+  strangerId = await account(STRANGER);
   // An opponent the owner follows, whose own account follows PICKED: the
   // friends-follow source.
   const voucherId = await account(VOUCHER);
@@ -233,6 +234,7 @@ before(async () => {
     body: { battle: battleId, text: "A comeback" },
   });
   assert.equal(made.status, 201, JSON.stringify(made.body));
+  postId = made.body.post.post.id;
 });
 
 after(async () => {
@@ -242,28 +244,30 @@ after(async () => {
 
 const q = encodeURIComponent;
 
-test("a player page's cheers: only what is in your feed, counts only", async () => {
+test("a player page's compatibility cheer read keeps canonical battle posts and shared counts", async () => {
   const friend = await call("GET", `/api/me/cheers?player=${q(PLAYER)}`, {
     who: "friend",
   });
   assert.equal(friend.status, 200, friend.raw);
-  const highlight = friend.body.items.find(
-    (it) => it.kind === "battle_highlight",
-  );
-  assert.ok(highlight, "the highlight is in the friend's feed");
+  const highlight = friend.body.items.find((it) => it.kind === "post");
+  assert.ok(highlight, "the visible battle post stays on the player page");
+  assert.equal(highlight.item_ref.source, "post");
+  assert.equal(highlight.item_ref.post_id, postId);
   assert.match(highlight.id, /^tl_[0-9a-f]{20}$/);
   assert.deepEqual(highlight.cheers, {});
   assert.equal(highlight.my_cheer, null);
   assert.deepEqual(friend.body.subjects, [PLAYER]);
   assert.ok(!friend.raw.includes(NICKNAME));
-  // Someone who follows neither the player nor the clan: nothing, no counts.
+  // A visible battle post is part of the signed-in game page audience.
   const stranger = await call("GET", `/api/me/cheers?player=${q(PLAYER)}`, {
     who: "stranger",
   });
   assert.equal(stranger.status, 200);
-  assert.deepEqual(stranger.body.items, []);
-  // A cheer sent with the read's follows is stored, and the stranger then
-  // still sees nothing of it.
+  assert.equal(
+    stranger.body.items.find((it) => it.id === highlight.id)?.kind,
+    "post",
+  );
+  // Existing clients can still send just their follows and the item id.
   const put = await call("PUT", "/api/me/cheers", {
     who: "friend",
     body: {
@@ -282,7 +286,11 @@ test("a player page's cheers: only what is in your feed, counts only", async () 
   const still = await call("GET", `/api/me/cheers?player=${q(PLAYER)}`, {
     who: "stranger",
   });
-  assert.deepEqual(still.body.items, []);
+  const shared = still.body.items.find((it) => it.id === highlight.id);
+  assert.deepEqual(shared.cheers, { royal: 1 });
+  assert.equal(shared.my_cheer, null);
+  assert.equal(shared.can_cheer, true);
+  assert.ok(!("account_id" in shared), "the count never lists who cheered");
 });
 
 test("a battle page's cheers: the items that battle proves, nothing else", async () => {
@@ -292,7 +300,7 @@ test("a battle page's cheers: the items that battle proves, nothing else", async
   assert.equal(on.status, 200, on.raw);
   assert.deepEqual(
     on.body.items.map((it) => it.kind),
-    ["battle_highlight"],
+    ["post"],
   );
   const short = await call(
     "GET",
@@ -307,11 +315,87 @@ test("a battle page's cheers: the items that battle proves, nothing else", async
   const stranger = await call("GET", `/api/me/cheers?battle=${battleId}`, {
     who: "stranger",
   });
-  assert.deepEqual(stranger.body.items, []);
+  const shown = stranger.body.items.find((it) => it.kind === "post");
+  assert.equal(shown.id, on.body.items[0].id);
+  assert.deepEqual(shown.cheers, { royal: 1 });
+  assert.equal(shown.my_cheer, null);
+  const set = await call("PUT", "/api/me/cheers", {
+    who: "stranger",
+    body: { item_id: shown.id, item: shown.item_ref, cheer: "well_played" },
+  });
+  assert.equal(set.status, 200, set.raw);
+  assert.deepEqual(set.body.cheers, { royal: 1, well_played: 1 });
+  assert.equal(set.body.my_cheer, "well_played");
+  const own = await call("GET", `/api/me/cheers?player=${q(PLAYER)}`, {
+    who: "stranger",
+  });
+  const same = own.body.items.find((it) => it.id === shown.id);
+  assert.deepEqual(same.cheers, set.body.cheers);
+  assert.equal(same.my_cheer, "well_played");
   const missing = await call("GET", `/api/me/cheers?battle=${"f".repeat(64)}`, {
     who: "friend",
   });
   assert.equal(missing.status, 404);
+});
+
+test("both compatibility reads retain canonical battle-post moderation and blocks", async () => {
+  const paths = [
+    `/api/me/cheers?player=${q(PLAYER)}`,
+    `/api/me/cheers?battle=${battleId}`,
+  ];
+  const itemId = (
+    await db.query("select item_id from account_post where post_id=$1", [
+      postId,
+    ])
+  ).rows[0].item_id;
+  const absent = async () => {
+    for (const p of paths) {
+      const res = await call("GET", p, { who: "stranger" });
+      assert.equal(res.status, 200, res.raw);
+      assert.ok(!res.body.items.some((it) => it.id === itemId), p);
+    }
+  };
+  for (const status of ["hidden", "removed"]) {
+    await db.query(
+      "update account_post set status=$2,removed_at=case when $2='removed' then now() end where post_id=$1",
+      [postId, status],
+    );
+    await absent();
+  }
+  await db.query(
+    "update account_post set status='visible',removed_at=null where post_id=$1",
+    [postId],
+  );
+  await db.query(
+    "insert into post_report(post_id,account_id,reason) values($1,$2,'other')",
+    [postId, strangerId],
+  );
+  try {
+    await absent();
+  } finally {
+    await db.query("delete from post_report where post_id=$1", [postId]);
+  }
+  for (const pair of [
+    [ownerId, strangerId],
+    [strangerId, ownerId],
+  ]) {
+    await db.query(
+      "insert into account_block(account_id,blocked_account_id) values($1,$2)",
+      pair,
+    );
+    try {
+      await absent();
+    } finally {
+      await db.query(
+        "delete from account_block where account_id=$1 and blocked_account_id=$2",
+        pair,
+      );
+    }
+  }
+  const restored = await call("GET", paths[0], { who: "stranger" });
+  const item = restored.body.items.find((it) => it.id === itemId);
+  assert.deepEqual(item.cheers, { royal: 1, well_played: 1 });
+  assert.equal(item.my_cheer, "well_played");
 });
 
 test("signed out there is no cheer read and no people read; bad asks are refused", async () => {

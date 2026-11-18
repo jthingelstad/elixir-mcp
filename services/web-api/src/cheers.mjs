@@ -16,32 +16,59 @@
  * items about its owner's player, never who, and never gives a cheer
  * (DECISIONS "Agents read the social layer and never write it").
  *
- * A cheer is stored only on an item in the person's own feed: the route
- * rebuilds the last seven days for the item's subjects the person follows
- * (one to a few subjects, not the whole feed) and finds the id there.
- * Taking a cheer back needs no such check.
- *
- * The player page and the battle page (2026-11-12) carry cheers by the same
- * rule: an item there takes cheers, and shows its counts, only while it is
- * in the reader's own feed, so a page never lets anyone cheer what Home
- * would not show them [engineering, 2026-11-12: the narrow reading].
- * `cheersOnPage` names those items; everything else on the page has none.
+ * A cheer is stored on an actual recorded Timeline item the person may
+ * read. Its source locator is resolved to the canonical identity and
+ * current audience; submitted facts grant nothing. The older subject-only
+ * transport retains its narrow current-feed read. Taking a cheer back
+ * needs no item read.
  */
 import { blockedSql } from "@elixir-mcp/claims";
 import { normalizeTag } from "@elixir-mcp/contracts";
 import { resolveBattleRef } from "@elixir-mcp/record/battle-links";
-import { buildTimeline, shownAt } from "@elixir-mcp/tools/activity/entries";
+import {
+  buildTimeline,
+  itemVisibility,
+  shownAt,
+} from "@elixir-mcp/tools/activity/entries";
 import {
   CHEER_KEYS,
   ITEM_ID_RE,
   cheerable,
   cheersFor,
-  withCheers,
+  withCheers as withRecordedCheers,
 } from "@elixir-mcp/tools/activity/cheers";
 import { proofOf } from "./feed.mjs";
+import { timelineItemRef } from "./timeline-item-ref.mjs";
 import { visiblePost } from "./posts.mjs";
+import {
+  visibleBattlePosts,
+  visiblePlayerBattlePosts,
+} from "@elixir-mcp/posts";
+import { blockedSocialItems, resolveMemberItem } from "./timeline-items.mjs";
 
-export { CHEER_KEYS, withCheers };
+export { CHEER_KEYS };
+/** Counts stay visible as game facts; a block or a non-person surface
+ * never receives an active social control in its first response. */
+export async function withCheers(
+  db,
+  items,
+  accountId,
+  { allowed = true } = {},
+) {
+  const counted = await withRecordedCheers(db, items, accountId);
+  const blocked =
+    accountId && allowed
+      ? await blockedSocialItems(db, accountId, counted)
+      : new Set();
+  return counted.map((it) =>
+    cheerable(it)
+      ? {
+          ...it,
+          can_cheer: Boolean(accountId && allowed && !blocked.has(it.id)),
+        }
+      : it,
+  );
+}
 const KEYS = new Set(CHEER_KEYS);
 
 /** Pages' cheer reads one person may make in an hour: one for each player
@@ -83,8 +110,10 @@ async function feedItemsFor(db, { accountId, tags, subjects }) {
  *  about nothing in the record only while `posts` are on. */
 export async function ownFeedItem(
   db,
-  { accountId, itemId, tags, subjects, posts = false },
+  { accountId, itemId, tags, subjects, posts = false, item = null },
 ) {
+  if (item !== null)
+    return resolveMemberItem(db, { accountId, itemId, item, subjects, posts });
   const post = await visiblePost(db, accountId, itemId, subjects, {
     plain: posts,
   });
@@ -92,14 +121,17 @@ export async function ownFeedItem(
   const { items } = await feedItemsFor(db, { accountId, tags, subjects });
   // A battle post's older game projection has the same id. It cannot
   // override a denied canonical post read, including an open report.
-  return (
+  const found =
     items.find(
       (it) =>
         it.id === itemId &&
         it.kind !== "post" &&
         it.kind !== "battle_highlight",
-    ) ?? null
-  );
+    ) ?? null;
+  return found &&
+    !(await blockedSocialItems(db, accountId, [found])).has(found.id)
+    ? found
+    : null;
 }
 
 /** Whether an item is about someone else: none of the players it names
@@ -173,8 +205,11 @@ export async function setCheer(db, accountId, itemId, cheer, item = null) {
 }
 
 /** The players a cheer on this item stamps: none for a post about
- *  nothing in the record. */
+ *  nothing in the record, private Clan/People facts, or a Drop game whose
+ *  current follower audience does not extend to game mail or push. */
 export function stampedTags(item) {
+  if (item.kind === "drop_game") return null;
+  if (!["public", "player"].includes(itemVisibility(item))) return null;
   if (item.kind === "post" && !item.post?.battle) return null;
   return itemSubjectTags(item);
 }
@@ -203,7 +238,7 @@ export function readCheerBody(body) {
   return { itemId, cheer, tags };
 }
 
-/** The page's items that are in the reader's feed now, each with its
+/** The actual recorded items visible on the member game page, each with its
  *  cheers: `{ items: [{ id, kind, at, text, cheers, my_cheer }], subjects }`
  *  (the sentence in game names, as the feed says it; never a nickname). `subjects` are
  *  the tags the page sends back with a cheer (the follows the items came
@@ -211,19 +246,21 @@ export function readCheerBody(body) {
  *  clan they are in now); a battle page for the battle's players and their
  *  clans, keeping only the items that battle proves or that post about it.
  *  Null when the page names nothing (an unknown battle). */
-export async function cheersOnPage(
-  db,
-  { accountId, subjects, player, battle },
-) {
+export async function cheersOnPage(db, { accountId, player, battle }) {
   let tags;
   let about;
+  const now = Date.now();
+  // Older items already carry social state on the main player response.
+  // Keep the legacy fallback at its existing week, avoiding a second month.
+  let fromMs = now - 7 * 86_400_000;
+  let toMs = now;
+  let postItems = [];
   if (player) {
-    const { rows } = await db.query(
-      `select clan_tag from clan_membership
-        where player_tag = $1 and left_observed_at is null limit 1`,
-      [player],
-    );
-    tags = [player, rows[0]?.clan_tag].filter(Boolean);
+    tags = [player];
+    postItems = await visiblePlayerBattlePosts(db, accountId, player, {
+      fromMs,
+      toMs,
+    });
     about = (it) =>
       it.subject_tag === player ||
       (it.subjects ?? []).some((s) => s.tag === player);
@@ -231,21 +268,45 @@ export async function cheersOnPage(
     const ids = await resolveBattleRef(db, battle, 2);
     if (ids.length !== 1) return null;
     const id = ids[0];
+    postItems = await visibleBattlePosts(db, accountId, id);
     const { rows } = await db.query(
-      `select bp.player_tag, bp.clan_tag, cm.clan_tag as clan_now
+      `select bp.player_tag, bp.battle_time, bp.clan_tag, cm.clan_tag as clan_now
          from battle_participant bp
          left join clan_membership cm on cm.player_tag = bp.player_tag
           and cm.left_observed_at is null
         where bp.battle_id = $1`,
       [id],
     );
-    tags = [
-      ...new Set(rows.flatMap((r) => [r.player_tag, r.clan_tag, r.clan_now])),
-    ].filter(Boolean);
+    tags = [...new Set(rows.map((r) => r.player_tag))];
+    const anchor = new Date(rows[0]?.battle_time).getTime();
+    if (!Number.isFinite(anchor)) return null;
+    fromMs = anchor - 2 * 86_400_000;
+    toMs = Math.min(now, anchor + 2 * 86_400_000);
     about = (it) => it.facts?.battle?.battle_id === id || proofOf(it) === id;
   }
-  const found = await feedItemsFor(db, { accountId, tags, subjects });
-  const items = await withCheers(db, found.items.filter(about), accountId);
+  const named = tags.map((tag) => ({ kind: "player", tag }));
+  const found = await buildTimeline(db, named, {
+    fromMs,
+    toMs,
+    basis: "occurred",
+    accountId: null,
+    accountLines: false,
+    lateCounts: false,
+    people: { accounts: [], players: true },
+    // The game page shows these record items to every member. Authored
+    // posts keep their separate live audience and cannot enter here via
+    // the older battle_highlight game projection.
+    filter: (it) =>
+      it.kind !== "battle_highlight" &&
+      it.kind !== "post" &&
+      ["public", "member"].includes(itemVisibility(it)) &&
+      about(it),
+  });
+  const items = await withCheers(
+    db,
+    [...found.timeline, ...postItems],
+    accountId,
+  );
   return {
     items: items.map((it) => ({
       id: it.id,
@@ -254,8 +315,10 @@ export async function cheersOnPage(
       text: String(it.text ?? ""),
       cheers: it.cheers,
       my_cheer: it.my_cheer,
+      can_cheer: it.can_cheer,
+      item_ref: timelineItemRef(it),
     })),
-    subjects: found.tags,
+    subjects: tags,
   };
 }
 

@@ -35,12 +35,7 @@ its figures and bar chart, and the deck played most. Tap it for the
 session's own page ([Your timeline](/docs/timeline)), which you can share
 with anyone ([Share a session](/docs/timeline#share-a-session)). Profile's Timeline tab is the same.
 
-An item on the Timeline or Moments tab takes a cheer, with its
-counts, while it is in your own feed: from the last seven days, about a
-player or clan you follow ([Cheers](/docs/timeline#cheers)). Older items,
-and items on the page of a player you do not follow, show no cheers. A
-post takes a cheer while it is in your Timeline or your clan's Feed
-([Posts about battles](/docs/timeline#posts-about-battles)).
+You can cheer a recorded item on the Timeline or Moments tab, including an older update from a player you haven't followed. A cheer or comment stays with that item wherever you see it. [Cheers and comments](/docs/timeline#cheers)
 
 **Profile** (`/home/you`) is your own [account page](/docs/verified-players#account-pages),
 with **Your stats**: [your season, read back](/docs/ladder). Each of your

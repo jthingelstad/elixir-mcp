@@ -3,12 +3,7 @@
  * publication, moderation, account status or the retained record.
  */
 import { normalizeTag } from "@elixir-mcp/contracts";
-import { blockedSql } from "@elixir-mcp/claims";
-import {
-  buildTimeline,
-  storyId,
-  subjectsFor,
-} from "@elixir-mcp/tools/activity/entries";
+import { storyId, subjectsFor } from "@elixir-mcp/tools/activity/entries";
 import { SITTINGS } from "@elixir-mcp/ui/session-story";
 import { readPublishedPost, readVisiblePost } from "@elixir-mcp/posts";
 import {
@@ -18,24 +13,11 @@ import {
   shareableItem,
 } from "@elixir-mcp/sharing";
 import { ITEM_ID, shareUrl } from "@elixir-mcp/sharing/paths";
-import { annotateFeed } from "./feed.mjs";
+import { itemPerson as person, readRecordedItem } from "./timeline-items.mjs";
 import { readSitting } from "./routes/player.mjs";
 import { readPublicBattle } from "./battle-page.mjs";
 
 const DAY = 86400_000;
-const PAGE_ID = /^[a-z0-9]{12}$/i;
-
-async function person(db, pageId, readerId = null) {
-  if (!PAGE_ID.test(String(pageId ?? ""))) return null;
-  const { rows } = await db.query(
-    `select a.account_id from account a
-       join account_passport ap on ap.account_id = a.account_id
-      where ap.passport_id = $1 and a.kind = 'person' and a.status = 'approved'
-        ${readerId ? `and not ${blockedSql("a.account_id", "$2::uuid")}` : ""}`,
-    readerId ? [pageId, readerId] : [pageId],
-  );
-  return rows[0]?.account_id ?? null;
-}
 
 /** Read by an exact story id before the cap, from one bounded scope. */
 async function canonicalItem(
@@ -80,31 +62,7 @@ async function canonicalItem(
     );
     return read && !read.error && read.shareable ? read.item : null;
   }
-  const subjects =
-    target.source === "game"
-      ? [
-          {
-            kind: target.subjectKind,
-            tag: target.subjectTag,
-            scope: "comprehensive",
-          },
-        ]
-      : [];
-  const account =
-    target.source === "people" ? await person(db, target.accountPageId) : null;
-  if (target.source === "people" && !account) return null;
-  const result = await buildTimeline(db, subjects, {
-    fromMs: at - 2 * DAY,
-    toMs: Math.min(now, at + 2 * DAY),
-    timezone: "UTC",
-    basis: "occurred",
-    accountLines: false,
-    people: account ? { accounts: [account], players: false } : null,
-    filter: (it) => it.id === target.itemId,
-  });
-  if (!result.timeline.length) return null;
-  const decorated = await annotateFeed(db, result.timeline, subjects);
-  return decorated.find((it) => it.id === target.itemId) ?? null;
+  return readRecordedItem(db, target, { now });
 }
 
 export async function createItemShare(db, accountId, input, options = {}) {

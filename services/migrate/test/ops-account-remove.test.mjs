@@ -92,6 +92,9 @@ before(async () => {
     [ids.person, ids.other],
   );
   await db.query(
+    `update claim set status='verified',verified_at=now() where is_primary`,
+  );
+  await db.query(
     `insert into account_clan (account_id, clan_tag, is_primary)
      values ($1, '#0CP08QUC', false), ($2, '#028RJP2U', true), ($3, '#028RJP2U', false)`,
     [ids.person, ids.agent, ids.other],
@@ -747,5 +750,108 @@ test("the run removes the person and their agent, keeps the game record, and lea
   assert.equal(
     (await accountRemoveOp(SCRATCH_URL, { email: ADDRESS })).error,
     "not_found",
+  );
+});
+
+test("account removal keeps reassigned game conversations and erases current-owned and account-owned conversations", async () => {
+  const people = (
+    await db.query(`insert into account(email_hash,status) values
+    ('remove-former-player-owner','approved'),('remove-current-player-owner','approved'),
+    ('remove-conversation-writer','approved') returning account_id`)
+  ).rows;
+  const [former, current, writer] = people.map((p) => p.account_id);
+  const tag = "#0QYC9U2P";
+  await db.query(
+    `insert into player(player_tag,name) values($1,'Invented Player')`,
+    [tag],
+  );
+  await db.query(
+    `insert into claim(account_id,player_tag,status,is_primary,relationship,verified_at)
+    values($1,$2,'verified',true,'primary',now())`,
+    [current, tag],
+  );
+  const post = "tl_00000000000000000cc1";
+  await db.query(
+    `insert into account_post(item_id,account_id,player_tag,body)
+    values($1,$2,$3,'Invented post')`,
+    [post, former, tag],
+  );
+  const comments = (
+    await db.query(
+      `insert into timeline_comment(item_id,account_id,subject_tag,owner_account_id,body)
+    values('tl_00000000000000000cc2',$1,$2,$3,'Game before claim transfer'),
+          ('tl_00000000000000000cc3',$1,$2,null,'Game before verification'),
+          ($4,$1,$2,$3,'Post stays with its author') returning comment_id::text,item_id`,
+      [writer, tag, former, post],
+    )
+  ).rows;
+  const before = (
+    await db.query(
+      `select comment_id::text,item_id,account_id,subject_tag,body,created_at::text,status from timeline_comment where comment_id=any($1::bigint[]) order by comment_id`,
+      [comments.map((c) => c.comment_id)],
+    )
+  ).rows;
+  const spec = { account_id: former };
+  const dry = await accountRemoveOp(SCRATCH_URL, spec);
+  assert.equal(
+    dry.removed.timeline_comment,
+    1,
+    "a former game-owner stamp confers no deletion rights",
+  );
+  assert.equal(dry.cleared_comment_owner_stamps, 1);
+  assert.equal(
+    (
+      await db.query(
+        `select owner_account_id from timeline_comment where comment_id=$1`,
+        [comments[0].comment_id],
+      )
+    ).rows[0].owner_account_id,
+    former,
+    "dry run changes no stamps",
+  );
+  const run = await accountRemoveOp(SCRATCH_URL, { ...spec, dry_run: false });
+  assert.equal(run.removed.timeline_comment, 1);
+  assert.equal(run.cleared_comment_owner_stamps, 1);
+  const kept = (
+    await db.query(
+      `select comment_id::text,item_id,account_id,subject_tag,body,created_at::text,status from timeline_comment where comment_id=any($1::bigint[]) order by comment_id`,
+      [comments.map((c) => c.comment_id)],
+    )
+  ).rows;
+  assert.deepEqual(
+    kept,
+    before.slice(0, 2),
+    "both game comments retain identity, text, author, time and status",
+  );
+  assert.equal(
+    (
+      await db.query(
+        `select owner_account_id from timeline_comment where comment_id=$1`,
+        [comments[0].comment_id],
+      )
+    ).rows[0].owner_account_id,
+    null,
+  );
+  const currentDry = await accountRemoveOp(SCRATCH_URL, {
+    account_id: current,
+  });
+  assert.equal(
+    currentDry.removed.timeline_comment,
+    2,
+    "the current owner removes prior ownerless comments too",
+  );
+  const currentRun = await accountRemoveOp(SCRATCH_URL, {
+    account_id: current,
+    dry_run: false,
+  });
+  assert.equal(currentRun.removed.timeline_comment, 2);
+  assert.equal(
+    (
+      await db.query(
+        `select count(*)::int as n from timeline_comment where subject_tag=$1`,
+        [tag],
+      )
+    ).rows[0].n,
+    0,
   );
 });

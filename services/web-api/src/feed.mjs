@@ -58,6 +58,7 @@
 import { battleLinks } from "@elixir-mcp/record/battle-links";
 import { masteryCard } from "@elixir-mcp/record/badge-names";
 import { verifiedAvatars } from "./avatars.mjs";
+import { timelineItemRef } from "./timeline-item-ref.mjs";
 import { proofOf } from "@elixir-mcp/tools/activity/bell";
 import { PEOPLE_KIND_SCHEMAS } from "@elixir-mcp/tools/activity/schemas";
 import {
@@ -357,6 +358,7 @@ export async function annotateFeed(db, timeline, subjects, close = null) {
       .map((name) => ({ id: cards.get(name), name }));
     return {
       ...it,
+      ...(timelineItemRef(it) ? { item_ref: timelineItemRef(it) } : {}),
       groups: groupsOf(it, subjects, close),
       ...(spark ? { spark } : {}),
       ...(scores ? { scores } : {}),

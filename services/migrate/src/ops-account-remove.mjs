@@ -167,6 +167,17 @@ async function removeAccount(db, { hash, accountId, dryRun }) {
     for (const { tag } of subjects)
       await db.query(`select pg_advisory_xact_lock(hashtext($1))`, [tag]);
 
+  // Comment ownership follows the current verified player, not a former
+  // owner's historical stamp. Capture this before the claim deletion.
+  const { rows: verified } = await db.query(
+    `select c.player_tag from claim c join account a on a.account_id=c.account_id
+      where c.account_id=any($1::uuid[]) and c.status='verified'
+        and (c.is_primary or c.relationship in ('primary','alt'))
+        and a.kind='person' and a.status='approved'`,
+    [ids],
+  );
+  const verifiedTags = verified.map((r) => r.player_tag);
+
   // Every personal row, deleted in an order the foreign keys accept:
   // the call and refusal logs before the tokens and grants they name,
   // tokens before their families, claim challenges with their claims.
@@ -209,14 +220,17 @@ async function removeAccount(db, { hash, accountId, dryRun }) {
       `timeline_feed_link where account_id = any($1::uuid[])`,
     ],
     // Comments (0282): their reports, their comments and every comment
-    // on their items (their reports go with the comments), their checks
+    // on their account-owned/current-player items (their reports go with
+    // the comments), their checks
     // and the words of their refused ones, their blocks either way and
     // their comment setting.
     ["comment_report", `comment_report where account_id = any($1::uuid[])`],
     [
       "timeline_comment",
       `timeline_comment where account_id = any($1::uuid[])
-          or owner_account_id = any($1::uuid[])`,
+          or (owner_is_account and owner_account_id = any($1::uuid[]))
+          or (not owner_is_account and subject_tag = any($2::text[]))`,
+      [ids, verifiedTags],
     ],
     ["comment_check", `comment_check where account_id = any($1::uuid[])`],
     // Posts (0285): their reports of posts, then their posts (the reports
@@ -317,6 +331,19 @@ async function removeAccount(db, { hash, accountId, dryRun }) {
     removed[table] = rows[0].n;
   }
 
+  // Keep other people's reassigned game conversations while removing the
+  // former owner's incidental stamp. A dry run reports the same scope.
+  const staleStamps = `not owner_is_account
+    and owner_account_id=any($1::uuid[]) and account_id <> all($1::uuid[])
+    and not coalesce(subject_tag=any($2::text[]),false)`;
+  const { rows: cleared } = await db.query(
+    dryRun
+      ? `select count(*)::int as n from timeline_comment where ${staleStamps}`
+      : `with cleared as (update timeline_comment set owner_account_id=null where ${staleStamps} returning 1)
+       select count(*)::int as n from cleared`,
+    [ids, verifiedTags],
+  );
+
   const { rows: requested } = await db.query(
     `select count(*)::int as n from recording
       where requested_by = any($1::uuid[])`,
@@ -355,6 +382,7 @@ async function removeAccount(db, { hash, accountId, dryRun }) {
   return {
     ...out,
     removed,
+    cleared_comment_owner_stamps: cleared[0].n,
     // A dry run names how many recordings were someone's reason; which of
     // them stop depends on who else wants each subject, which only the
     // run's reconcile can say.

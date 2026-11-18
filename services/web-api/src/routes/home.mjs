@@ -779,6 +779,7 @@ async function readFeed(
         db,
         await annotateFeed(db, page, week.subjects, close),
         account.accountId,
+        { allowed: person },
       ),
       account.kind === "person" ? account.accountId : null,
       { enabled: comments },

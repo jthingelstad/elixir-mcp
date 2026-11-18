@@ -28,9 +28,7 @@ function byDay(items, dayHeading) {
 /** The clan's timeline: its items, its members' moments and posts,
  *  newest first, as this reader reads them (`GET .../feed`), thirty items
  *  at a time, drawn by the Timeline's own components (2026-11-17) so the
- *  two cannot drift. Nothing opens in place here, and no item takes a
- *  cheer: cheers live on the reader's own Timeline, save a post's: a clanmate may
- *  cheer and answer it here. */
+ *  two use the same interactions on each item. */
 function ClanTimeline({ clan }) {
   const { dayHeading } = useClock();
   const { me } = useMe();
@@ -142,7 +140,10 @@ function ClanTimeline({ clan }) {
               {day.head ? <h4 className="kit-day__head">{day.head}</h4> : null}
               <FeedRows
                 rows={day.rows}
-                cheerWhere={{ key: keys.feed(clan.clan_tag), list: "items" }}
+                cheerWhere={{
+                  key: keys.feed(clan.clan_tag, view),
+                  list: "items",
+                }}
               />
             </section>
           ))}

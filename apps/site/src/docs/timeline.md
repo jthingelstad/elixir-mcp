@@ -197,8 +197,7 @@ Tap the card to open the session's own page. Back brings you here. It shows:
   or a new best in trophies;
 - **Post** on each battle when the session is your own verified
   player's, which opens the battle's page where you post about it.
-- **Cheers**, under the figures and chips, while the session is in your own feed
-  ([Cheers](#cheers)), with the same counts as on your Timeline.
+- **Cheers**, under the figures and chips, with the same counts wherever you see the session in Elixir ([Cheers](#cheers)).
 
 Only battles Elixir recorded are on the page. When the update counted more
 than Elixir recorded, the page says how many are missing. A long session
@@ -375,7 +374,7 @@ it. Each reads on its own, so the feed never waits for them.
 
 ## Cheers
 
-Any item about a player or clan you follow can take a cheer from you. A
+Open any recorded item on a member Timeline to cheer it. In a group of sessions or Card Mastery updates, expand the group and choose the item. A
 cheer is a glyph, with no words beside it, and there are twenty, all of
 them happy ones. There is nothing to boo with. You give one cheer per item.
 
@@ -432,12 +431,9 @@ The six that open first, then the rest in the order More shows them:
 
 The id is how an agent reads a kind (`elixir_cheers` counts by id).
 
-The same item takes cheers on a [player's page](/docs/player-page) and on
-its battle's page ([Battles](/docs/battles#cheers)), with the same counts,
-but only while it is in your own feed: an item from the last seven days
-about a player or clan you follow. An item older than that, or about
-someone you do not follow, shows no cheers and no counts there. A battle's
-page signed out shows neither.
+The same item keeps its cheers and comments on your Timeline, a [player's page](/docs/player-page), your clan's Timeline, and [the battle it comes from](/docs/battles#cheers). A dated quiet stretch has its own thread. A weekly total like “No battles this week” is a summary.
+
+Verify your player to comment. If a member owns the item, their comment settings apply. On an unclaimed player's update or a clan result, verified players with access to the item can comment. You can report a comment or block its author. Shared links show the item alone.
 
 A cheer stays in Elixir. It goes to no Discord channel or mail, and
 `elixir_timeline` does not carry it; an agent cannot cheer. Your own agent

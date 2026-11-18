@@ -138,10 +138,7 @@ The same display rule applies in the Timeline, posts, emails and shared pictures
 
 ### Cheers
 
-A member battle page has **In your feed** when your Timeline contains an
-item about it: a post, or a moment the battle proved. These items take
-cheers and show counts as on your Timeline. A battle with no such item for
-you shows none. Shared pages show no cheers or comments.
+A member battle page shows **Timeline items** when a visible post or recorded moment links to that battle. Open its thread or cheer it there. The same counts and comments appear wherever you see that item in Elixir. Shared pages show the battle alone.
 
 <a id="highlight-a-battle"></a>
 

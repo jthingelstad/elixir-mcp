@@ -138,12 +138,14 @@ test("feed: current members' posts about battles, drawn as the Timeline draws th
   assert.match(h.id, /^tl_[0-9a-f]{20}$/);
   assert.ok(Date.parse(h.at));
   for (const it of feed.items) {
-    // Home's own fields stay Home's: the reader's groups, the Follow
-    // offer and the timeline's section; cheers and comments too, but on
-    // a post, which a clanmate may cheer and answer here.
-    const own = ["groups", "offer_follow", "section"];
-    if (it.kind !== "post") own.push("cheers", "comments");
+    // Private Home choices stay there. Canonical source classification
+    // and social identity stay attached on Clan's normal Timeline too.
+    const own = ["groups", "offer_follow"];
     for (const k of own) assert.ok(!(k in it), `no ${k} on Clan's Feed`);
+    if (it.kind !== "post") assert.equal(typeof it.section, "string");
+    assert.deepEqual(it.cheers, {});
+    assert.equal(it.my_cheer, null);
+    assert.equal(it.item_ref.item_id, it.id);
   }
   // Newest first.
   const times = feed.items.map((it) => Date.parse(it.at)).filter(Boolean);

@@ -487,7 +487,11 @@ export function makeHandler({
       comments: comments?.enabled === true,
       posts: postsOn,
     }),
-    ...playerRoutes({ resolveAccount, live: liveRead }),
+    ...playerRoutes({
+      resolveAccount,
+      live: liveRead,
+      comments: comments?.enabled === true,
+    }),
     // Your own battles read now (2026-11-14): the same live lane, and the
     // stored week's wake once a read lands.
     ...refreshRoutes({ resolveAccount, live: liveRead, wake: homeWake }),

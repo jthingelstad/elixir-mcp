@@ -278,8 +278,6 @@ export function SessionView({
       ) : null}
 
       {item.id && !publicView ? (
-        // Comments on the session's item (2026-11-16), read when opened:
-        // only while it is in your own feed, as on Home.
         <Comments it={{ ...item, cheer_subjects: [player.tag] }} />
       ) : null}
 
@@ -396,15 +394,21 @@ export function SessionView({
   );
 }
 
-/** Cheers on a session's page (2026-11-17): the item takes your cheer
- *  here as on the Timeline, only while it is in your own feed (the player
- *  page's cheers read says so); otherwise nothing is drawn. */
+/** A recorded session keeps its Timeline reactions on its own page. */
 function SessionCheers({ item, tag }) {
-  const cheered = usePageCheered({ player: tag });
-  const it = cheered.of(item);
+  const inline = "cheers" in item;
+  const cheered = usePageCheered({ player: tag }, !inline);
+  const it = inline ? item : cheered.of(item);
   return it ? (
     <div className="kit-session__cheers">
-      <Cheers it={it} where={cheered.where} />
+      <Cheers
+        it={it}
+        where={
+          inline
+            ? { key: ["me", "player-session"], list: "item", exact: false }
+            : cheered.where
+        }
+      />
     </div>
   ) : null;
 }

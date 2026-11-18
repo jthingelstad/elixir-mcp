@@ -237,7 +237,10 @@ export function mergeAccountLines(lines, stamps) {
  *  (2026-11-16), newest first, grouped per post before the cap; game
  *  comments stay separate. Each names the latest author as the comment
  *  does (their account's primary player and its page) with a clip of the
- *  words. None from anyone in a block with you. This list is the one
+ *  words. None from anyone in a block with you. Canonical posts, public
+ *  game items and player-visible personal records retain receipts;
+ *  People and restricted Clan facts do not. A former player owner gets
+ *  none of that player's later receipts. This list is the one
  *  place comments reach you (DECISIONS "Comments, checked before they
  *  post"): the activity mail and push (tools activity/bell.mjs
  *  readAwayActivity) carry cheers and follows only. The words are hostile
@@ -253,6 +256,12 @@ async function readComments(db, accountId, seen) {
                        and a.kind = 'person' and a.status = 'approved'
          left join account_post p on p.item_id = tc.item_id
         where tc.owner_account_id = $1 and tc.account_id <> $1
+          and tc.receipt_allowed
+          and ((tc.owner_is_account and p.post_id is not null) or
+            (not tc.owner_is_account and exists (
+            select 1 from claim own where own.player_tag = tc.subject_tag
+              and own.account_id = $1 and own.status = 'verified'
+              and (own.is_primary or own.relationship in ('primary','alt')))))
           and tc.status = 'visible'
           and tc.created_at > now() - make_interval(days => $3)
           and (p.post_id is null or (p.status = 'visible' and p.account_id = $1))
