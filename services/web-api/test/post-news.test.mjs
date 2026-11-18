@@ -197,3 +197,80 @@ test("PostgreSQL microseconds do not count an already read post again", async ()
     1,
   );
 });
+
+test("Questions polls count only new visible questions before the cap and clear after refresh", async () => {
+  const now = Date.now();
+  await people.post({ at: new Date(now - 60_000) });
+  const first = body(
+    await call("reader", "/api/me/home/feed", { questions: "1" }),
+  );
+  await people.post({ at: new Date(now - 20_000), question: false });
+  await ctx.db.query(
+    `update home_feed set items=$2::jsonb where account_id=$1`,
+    [
+      people.reader,
+      JSON.stringify([
+        {
+          id: "game-new",
+          kind: "member_joined",
+          at: new Date(now - 20_000).toISOString(),
+        },
+      ]),
+    ],
+  );
+  const poll = (since) =>
+    call("reader", "/api/me/home/feed/new", { since, questions: "1" });
+  assert.equal(
+    body(
+      await call("reader", "/api/me/home/feed/new", { since: first.watermark }),
+    ).new,
+    2,
+  );
+  assert.equal(
+    body(await poll(first.watermark)).new,
+    0,
+    "ordinary posts and game items do not make a Questions notice",
+  );
+  const freshQuestion = await people.post({ at: new Date(now - 10_000) });
+  for (let n = 0; n < 205; n++)
+    await people.post({ at: new Date(now - 5_000), question: false });
+  assert.equal(
+    body(await poll(first.watermark)).new,
+    1,
+    "filter questions before the live-post cap",
+  );
+  const refreshed = body(
+    await call("reader", "/api/me/home/feed", { questions: "1" }),
+  );
+  assert.equal(refreshed.watermark, freshQuestion.created_at.toISOString());
+  assert.equal(body(await poll(refreshed.watermark)).new, 0);
+  await ctx.db.query(
+    `update account_post set answered_at=now(),revision=revision+1,updated_at=now() where post_id=$1`,
+    [freshQuestion.id],
+  );
+  assert.equal(
+    body(await poll(refreshed.watermark)).new,
+    0,
+    "answer state is an edit, not a newly created question",
+  );
+  assert.equal(
+    (
+      await call("reader", "/api/me/home/feed/new", {
+        since: first.watermark,
+        questions: "no",
+      })
+    ).statusCode,
+    400,
+  );
+  assert.equal(
+    (
+      await call(
+        "reader",
+        "/api/me/home/feed/new",
+        { since: first.watermark, questions: "1" },
+        off,
+      )
+    ).statusCode,
+    404,
+  );
+});

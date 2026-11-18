@@ -101,11 +101,19 @@ for (const width of [320, 390, 1280]) {
       post: { ...question.post, answered, edited: revision > 1 },
     });
     const requests: string[] = [];
+    const polls: string[] = [];
     await mockApi(
       page,
       homeApi({
         "GET /api/me": [200, on],
         "GET /api/me/home/needs": [200, { needs: { ok: true, state: "none" } }],
+        "GET /api/me/home/feed/new": (route) => {
+          polls.push(route.request().url());
+          const only = new URL(route.request().url()).searchParams.get(
+            "questions",
+          );
+          return [200, { new: only === "1" ? 0 : 1, built_at: at }];
+        },
         "GET /api/me/home/feed": (route) => {
           requests.push(route.request().url());
           const only = new URL(route.request().url()).searchParams.has(
@@ -173,6 +181,14 @@ for (const width of [320, 390, 1280]) {
         (url) => new URL(url).searchParams.get("questions") === "1",
       ),
     ).toBe(true);
+    await expect
+      .poll(() =>
+        polls.some((url) => new URL(url).searchParams.get("questions") === "1"),
+      )
+      .toBe(true);
+    await expect(
+      page.getByRole("button", { name: "Show 1 new item", exact: true }),
+    ).toHaveCount(0);
     await capture(page, "questions-before", width);
     const mark = await target(page, "Mark answered");
     await mark.focus();

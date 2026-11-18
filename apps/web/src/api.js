@@ -235,8 +235,11 @@ export const api = {
   },
   // Home's "N new" pill: how many items the stored week holds newer than
   // `since`, the newest the feed shows. One cheap statement (2026-11-14).
-  homeFeedNew: (since) =>
-    request("GET", `/api/me/home/feed/new?${new URLSearchParams({ since })}`),
+  homeFeedNew: (since, questionsOnly = false) =>
+    request(
+      "GET",
+      `/api/me/home/feed/new?${new URLSearchParams({ since, ...(questionsOnly ? { questions: "1" } : {}) })}`,
+    ),
   // One of Home's items' evidence, from the week the feed showed it in.
   homeFeedEvidence: (params) =>
     request("GET", `/api/me/home/feed?${new URLSearchParams(params)}`),

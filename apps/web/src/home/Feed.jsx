@@ -165,7 +165,10 @@ export function HomeFeed({
   const passport = useMyPassport(quiet);
   const shown = feedShown(items, show).filter((it) => !newOnly || isNew(it));
   const more = timeline?.timeline_more ?? 0;
-  const fresh = useHomeFeedNew(query.isSuccess ? feedSince(timeline) : null);
+  const fresh = useHomeFeedNew(
+    query.isSuccess ? feedSince(timeline) : null,
+    questionsOnly,
+  );
   const top = useRef(null);
   const pill =
     fresh.data > 0 && !query.isFetching ? (
