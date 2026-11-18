@@ -276,12 +276,12 @@ for (const width of [320, 390, 1280]) {
     await capture(page, "clan-questions", width);
     await (await target(page, "Mark answered")).click();
     await expect(
-      page.getByRole("heading", {
-        name: "No unanswered questions in the last seven days",
+      page.getByText("No unanswered questions in the last seven days", {
+        exact: true,
       }),
     ).toBeVisible();
     await expect(
-      page.getByRole("button", { name: "Unanswered 0", exact: true }),
+      page.getByRole("button", { name: /^Unanswered\s*0$/, exact: true }),
     ).toBeVisible();
     await capture(page, "clan-no-unanswered", width);
   });

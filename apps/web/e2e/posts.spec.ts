@@ -178,7 +178,9 @@ for (const width of [320, 390, 1280]) {
       // The words are plain text: no link, no markup.
       await expect(q).toContainText("<b>bold</b> https://example.com/deck");
       await expect(q.locator('a[href*="example.com"]')).toHaveCount(0);
-      await expect(q.getByRole("button", { name: "Answer" })).toBeVisible();
+      await expect(
+        q.getByRole("button", { name: "Answer", exact: true }),
+      ).toBeVisible();
       const c = page.locator("article", {
         hasText: "Who else levels these first?",
       });
