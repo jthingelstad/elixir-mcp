@@ -243,7 +243,7 @@ test("an allowed comment posts after the check, and its words are not kept in th
     asked[0].prompt,
     /<comment>\nthat Hog cycle was clean gg\n<\/comment>/,
   );
-  assert.match(asked[0].prompt, /A follower of the player/);
+  assert.match(asked[0].prompt, /A player with a verified Clash Royale player/);
   const [row] = await checks(READER);
   assert.equal(row.verdict, "allow");
   assert.equal(row.stage, "model");
@@ -258,7 +258,14 @@ test("an allowed comment posts after the check, and its words are not kept in th
 });
 
 test("the feed's cards carry the count, the latest two and whether the reader may add one", async () => {
-  const items = [{ id: ITEM, subjects: [{ kind: "player", tag: V }] }];
+  const items = [
+    {
+      id: ITEM,
+      kind: "personal_record",
+      section: "attested",
+      subjects: [{ kind: "player", tag: V }],
+    },
+  ];
   const [card] = await withComments(scratch.db, items, READER, {
     enabled: true,
   });
@@ -269,7 +276,7 @@ test("the feed's cards carry the count, the latest two and whether the reader ma
     enabled: false,
   });
   assert.equal(off.comments, undefined, "off leaves the items as they are");
-  // A clan's news, or a player nobody verified, takes no comments.
+  // An unrecognized shape is never enough to admit a thread.
   const [news] = await withComments(
     scratch.db,
     [
@@ -463,7 +470,7 @@ test("reports: two hide a comment, the reporter stops seeing it at once, the aut
 test("a block is silent, ends the follows and hides each side's comments from the other", async () => {
   next = () => ({ allow: true, category: "none" });
   assert.equal((await post(FAN, "great push")).statusCode, 201);
-  // The owner's bell names comments on their item, READER's among them.
+  // The owner's bell names player-visible personal-record comments.
   const bell = data(await call(OWNER, "GET", "/api/me/bell"));
   assert.ok(bell.comments.items.some((c) => c.text === "great push"));
   assert.ok(bell.comments.items.some((c) => c.text.startsWith("that Hog")));
@@ -497,7 +504,14 @@ test("a block is silent, ends the follows and hides each side's comments from th
   assert.ok(ownerSees.every((c) => c.author.player_tag !== R));
   const [card] = await withComments(
     scratch.db,
-    [{ id: ITEM, subjects: [{ kind: "player", tag: V }] }],
+    [
+      {
+        id: ITEM,
+        kind: "personal_record",
+        section: "attested",
+        subjects: [{ kind: "player", tag: V }],
+      },
+    ],
     OWNER,
     { enabled: true },
   );
@@ -506,7 +520,14 @@ test("a block is silent, ends the follows and hides each side's comments from th
   // hold, and they may not comment on the owner's items.
   const [theirCard] = await withComments(
     scratch.db,
-    [{ id: ITEM, subjects: [{ kind: "player", tag: V }] }],
+    [
+      {
+        id: ITEM,
+        kind: "personal_record",
+        section: "attested",
+        subjects: [{ kind: "player", tag: V }],
+      },
+    ],
     READER,
     { enabled: true },
   );

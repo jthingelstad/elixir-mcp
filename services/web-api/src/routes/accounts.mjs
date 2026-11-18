@@ -68,6 +68,7 @@ export function accountsRoutes({ resolveAccount, blocks = false }) {
         Date.now(),
         {
           blocks,
+          comments: blocks,
         },
       );
       if (!page) return notFound();

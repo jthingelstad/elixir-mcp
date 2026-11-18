@@ -3,12 +3,8 @@ import { Cheers, usePageCheered } from "../home/Cheers.jsx";
 import { Comments } from "../home/Comments.jsx";
 
 /**
- * Cheers on a battle's page (2026-11-12): the items in your own feed that
- * this battle proves or that post about it (a post about it, a moment it
- * proved), each with its cheers. Signed-in members only: the page draws
- * this only for them, and a reader with no such item sees nothing at all,
- * no panel and no counts. Anyone signed out sees neither the cheers nor how
- * many there are.
+ * The recorded Timeline items this battle proves, with their member-only
+ * interactions. A battle without a visible item has no thread of its own.
  */
 export function BattleCheers({ battle }) {
   const cheered = usePageCheered({ battle: battle.id });
@@ -17,7 +13,7 @@ export function BattleCheers({ battle }) {
   if (items.length === 0) return null;
   return (
     <section className="panel" aria-label="Cheers">
-      <div className="panel__head">In your feed</div>
+      <div className="panel__head">Timeline items</div>
       <div className="panel__body kit-battle-cheers">
         {items.map((c) => {
           const it = cheered.of(c);

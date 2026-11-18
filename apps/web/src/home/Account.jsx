@@ -226,6 +226,7 @@ export function AccountView({ page, actions = null, noPlayers = null }) {
           items={page.timeline}
           empty={`Nothing in the last ${page.window_days} days.`}
           more={page.timeline_more}
+          where={{ key: ["me", "account", a.id], list: "timeline" }}
           accountLinks={false}
         />
       </section>

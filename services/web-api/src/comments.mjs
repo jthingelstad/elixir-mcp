@@ -5,17 +5,18 @@
  * before they post".
  *
  * A comment is a few words of plain text (280 characters, no links, no
- * images, mentioning nobody) on one timeline item about a player whose
- * owner is a verified account. One level, no threads.
+ * images, mentioning nobody) on one recorded Timeline item the reader
+ * may see. One level, no threads.
  *
  * Who may comment: a signed-in person with a Verified player of their
- * own, on an item in their own feed now, as the item's owner's comment
+ * own, on an actual item their current source audience permits, as its owner's comment
  * setting allows: "followers" (the default: they follow the owner's
  * account or one of the owner's players), "following" (the owner follows
  * them), or "nobody". The owner may always comment on their own items.
- * Items with no verified owner (a clan's news, a player nobody has
- * verified) take no comments: nobody could set who may comment, remove
- * a comment or block on that player's behalf [engineering, 2026-11-16].
+ * An admitted game item with no verified player owner takes comments
+ * from verified, unsuspended players. Source access keeps private Clan
+ * facts in their original audience. Posts and people activity belong
+ * to their canonical account, independently of its current player claim.
  * Agents never comment, and nothing over MCP reads or writes one.
  *
  * Who sees them: the readers of the item, in the feed and on its pages,
@@ -26,12 +27,18 @@
  * filters, then the model. Rate limits and a cooldown after repeated
  * refusals are counted from the checks.
  *
- * Who may remove one: its author (deleted at once), the owner of the
- * player the item is about (removed, kept for admins 30 days), an admin.
+ * Who may remove one: its author (deleted at once), its canonical account
+ * owner or current verified player owner with source access (removed,
+ * kept for admins 30 days), an admin.
  * Two reports from different accounts hide it until an admin decides.
  */
 import { blockedSql, blockedWith } from "@elixir-mcp/claims";
 import { ITEM_ID_RE } from "@elixir-mcp/tools/activity/cheers";
+import { itemVisibility } from "@elixir-mcp/tools/activity/entries";
+import {
+  PEOPLE_KIND_SCHEMAS,
+  TIMELINE_KIND_SCHEMAS,
+} from "@elixir-mcp/tools/activity/schemas";
 import { checkComment, REFUSAL_WORDS } from "./comment-check.mjs";
 import { tidyComment } from "./comment-filter.mjs";
 import { ID_RE } from "./http.mjs";
@@ -79,6 +86,17 @@ async function hasVerifiedPlayer(db, accountId) {
   return rows.length > 0;
 }
 
+/** Shared by owned and ownerless items; ownership never waives a pause. */
+async function eligibleCommenter(db, accountId) {
+  if (!(await hasVerifiedPlayer(db, accountId))) return false;
+  const { rows } = await db.query(
+    `select suspended_until > now() as suspended from comment_setting
+      where account_id = $1`,
+    [accountId],
+  );
+  return rows[0]?.suspended !== true;
+}
+
 /** An account's comment setting: `{ who, suspended_until }`. */
 export async function commentSettingOf(db, accountId) {
   const { rows } = await db.query(
@@ -118,16 +136,10 @@ async function openOwners(db, readerId, ownerIds) {
   const out = new Map();
   const owners = [...new Set(ownerIds.filter(Boolean))];
   if (owners.length === 0) return out;
-  if (!(await hasVerifiedPlayer(db, readerId))) {
+  if (!(await eligibleCommenter(db, readerId))) {
     for (const o of owners) out.set(o, false);
     return out;
   }
-  const { rows: mine } = await db.query(
-    `select suspended_until > now() as suspended from comment_setting
-      where account_id = $1`,
-    [readerId],
-  );
-  const suspended = mine[0]?.suspended === true;
   const blocked = await blockedWith(db, readerId);
   const { rows: settings } = await db.query(
     `select account_id, who from comment_setting where account_id = any($1::uuid[])`,
@@ -163,10 +175,10 @@ async function openOwners(db, readerId, ownerIds) {
   const followsMe = new Set(back.map((r) => r.id));
   for (const o of owners) {
     if (o === readerId) {
-      out.set(o, !suspended);
+      out.set(o, true);
       continue;
     }
-    if (suspended || blocked.has(o)) {
+    if (blocked.has(o)) {
       out.set(o, false);
       continue;
     }
@@ -200,18 +212,43 @@ async function ownersOf(db, tags) {
   return new Map(rows.map((r) => [r.player_tag, r.account_id]));
 }
 
-/** A post and its answers belong to its author, even after its player
- * claim changes. Game items keep the player's current verified owner. */
-async function ownersForItems(db, items) {
-  const game = items.filter((it) => it?.kind !== "post");
-  const players = await ownersOf(db, game.map(itemPlayer));
-  const owners = new Map(
-    game
-      .filter((it) => it?.id)
-      .map((it) => [it.id, players.get(itemPlayer(it))]),
+/** These items already passed the source reader's audience check. A
+ * canonical post or people account never falls back to player ownership.
+ * Game ownership follows the current verified claim, including comments
+ * left before anybody verified that player. */
+async function targetsForItems(db, items) {
+  const valid = items.filter(
+    (it) =>
+      it?.id &&
+      ITEM_ID_RE.test(it.id) &&
+      it.section !== "account" &&
+      it.kind !== "account" &&
+      !String(it.kind).startsWith("account_"),
   );
-  const posts = items
-    .filter((it) => it?.kind === "post" && it.id)
+  const game = valid.filter(
+    (it) =>
+      it.kind !== "post" &&
+      it.kind !== "battle_highlight" &&
+      it.section !== "people" &&
+      Object.hasOwn(TIMELINE_KIND_SCHEMAS, it.kind) &&
+      (it.subjects ?? []).some(
+        (s) => ["player", "clan"].includes(s?.kind) && s.tag,
+      ),
+  );
+  const players = await ownersOf(db, game.map(itemPlayer));
+  const targets = new Map(
+    game.map((it) => [
+      it.id,
+      {
+        owner: players.get(itemPlayer(it)) ?? null,
+        tag: itemPlayer(it),
+        account: false,
+        receipt: ["public", "player"].includes(itemVisibility(it)),
+      },
+    ]),
+  );
+  const posts = valid
+    .filter((it) => it.kind === "post" || it.kind === "battle_highlight")
     .map((it) => it.id);
   if (posts.length) {
     const { rows } = await db.query(
@@ -219,9 +256,61 @@ async function ownersForItems(db, items) {
       where item_id=any($1::text[]) and status <> 'removed'`,
       [posts],
     );
-    for (const row of rows) owners.set(row.item_id, row.account_id);
+    for (const row of rows) {
+      const item = valid.find((it) => it.id === row.item_id);
+      targets.set(row.item_id, {
+        owner: row.account_id,
+        tag: itemPlayer(item),
+        account: true,
+        receipt: true,
+      });
+    }
   }
-  return owners;
+  const people = valid.filter(
+    (it) =>
+      it.section === "people" && Object.hasOwn(PEOPLE_KIND_SCHEMAS, it.kind),
+  );
+  const pages = [
+    ...new Set(people.map((it) => it.facts?.account_id).filter(Boolean)),
+  ];
+  if (pages.length) {
+    const { rows } = await db.query(
+      `select ap.passport_id,a.account_id from account_passport ap
+        join account a on a.account_id=ap.account_id
+          and a.kind='person' and a.status='approved'
+        where ap.passport_id=any($1::text[])`,
+      [pages],
+    );
+    const accounts = new Map(rows.map((r) => [r.passport_id, r.account_id]));
+    for (const it of people) {
+      const owner = accounts.get(it.facts?.account_id);
+      if (owner)
+        targets.set(it.id, {
+          owner,
+          tag: itemPlayer(it),
+          account: true,
+          receipt: false,
+        });
+    }
+  }
+  return targets;
+}
+
+async function openTargets(db, readerId, targets) {
+  const owners = await openOwners(
+    db,
+    readerId,
+    [...targets.values()].map((t) => t.owner),
+  );
+  const unowned = [...targets.values()].some((t) => !t.owner)
+    ? await eligibleCommenter(db, readerId)
+    : false;
+  return new Map(
+    [...targets].map(([id, t]) => [
+      id,
+      t.owner ? owners.get(t.owner) === true : unowned,
+    ]),
+  );
 }
 
 const COMMENT_COLS = `tc.comment_id::text as comment_id, tc.item_id, tc.body,
@@ -244,7 +333,7 @@ export const commentSeenSql = (r) => `(tc.status = 'visible'
                          where cr.comment_id = tc.comment_id
                            and cr.account_id = ${r} and cr.resolved_at is null)`;
 
-function shape(row, { readerId, isAdmin = false }) {
+function shape(row, { readerId, ownerId = null, isAdmin = false }) {
   const mine = row.account_id === readerId;
   return {
     id: row.comment_id,
@@ -258,7 +347,7 @@ function shape(row, { readerId, isAdmin = false }) {
       verified: row.author_verified === true,
     },
     mine,
-    can_delete: mine || row.owner_account_id === readerId || isAdmin,
+    can_delete: mine || ownerId === readerId || isAdmin,
     can_report: !mine,
     can_block: !mine,
   };
@@ -270,15 +359,13 @@ function shape(row, { readerId, isAdmin = false }) {
  * reader can see, the newest CARD_LATEST (oldest first, as they read),
  * and whether the reader may add one. Read live for the page, one
  * windowed statement plus the access reads, never stored, so a count is
- * never staler than the page. Items no verified owner stands behind
- * carry `comments: null`. `enabled` false leaves the items as they are.
+ * never staler than the page. Unsupported account/unknown items carry
+ * `comments: null`. `enabled` false leaves the items as they are.
  */
 export async function withComments(db, items, readerId, { enabled = false }) {
   if (!enabled || !readerId) return items;
-  const owners = await ownersForItems(db, items);
-  const ids = items
-    .filter((it) => it?.id && ITEM_ID_RE.test(it.id) && owners.get(it.id))
-    .map((it) => it.id);
+  const targets = await targetsForItems(db, items);
+  const ids = [...targets.keys()];
   const found = new Map();
   if (ids.length) {
     const { rows } = await db.query(
@@ -296,22 +383,23 @@ export async function withComments(db, items, readerId, { enabled = false }) {
     );
     for (const r of rows) {
       const one = found.get(r.item_id) ?? { count: r.n, latest: [] };
-      one.latest.push(shape(r, { readerId }));
+      one.latest.push(
+        shape(r, { readerId, ownerId: targets.get(r.item_id)?.owner }),
+      );
       found.set(r.item_id, one);
     }
   }
-  const open = await openOwners(db, readerId, [...owners.values()]);
+  const open = await openTargets(db, readerId, targets);
   return items.map((it) => {
     if (!it?.id || it.section === "account") return it;
-    const owner = owners.get(it.id);
-    if (!owner) return { ...it, comments: null };
+    if (!targets.has(it.id)) return { ...it, comments: null };
     const got = found.get(it.id);
     return {
       ...it,
       comments: {
         count: got?.count ?? 0,
         latest: got?.latest ?? [],
-        open: open.get(owner) === true,
+        open: open.get(it.id) === true,
       },
     };
   });
@@ -325,8 +413,9 @@ export async function commentsOnItem(
   item,
   { before = null, around = null } = {},
 ) {
-  const owner = (await ownersForItems(db, [item])).get(item.id) ?? null;
-  if (!owner)
+  const targets = await targetsForItems(db, [item]);
+  const target = targets.get(item.id);
+  if (!target)
     return {
       item_id: item.id,
       comments: [],
@@ -363,13 +452,15 @@ export async function commentsOnItem(
           JSON.stringify({ at: last.cursor_at, id: last.comment_id }),
         ).toString("base64url")
       : null;
-  const open = await openOwners(db, readerId, [owner]);
-  const comments = page.reverse().map((r) => shape(r, { readerId }));
+  const open = await openTargets(db, readerId, targets);
+  const comments = page
+    .reverse()
+    .map((r) => shape(r, { readerId, ownerId: target.owner }));
   return {
     item_id: item.id,
     comments,
     count: comments.length,
-    open: open.get(owner) === true,
+    open: open.get(item.id) === true,
     next_before: next,
     anchored: Boolean(anchor),
   };
@@ -442,9 +533,9 @@ async function repeated(db, accountId, body) {
 export async function postComment(db, account, item, raw, comments) {
   if (!comments?.enabled) return { error: "comments_off" };
   const readerId = account.accountId;
-  const tag = itemPlayer(item);
-  const owner = (await ownersForItems(db, [item])).get(item.id) ?? null;
-  if (!owner)
+  const targets = await targetsForItems(db, [item]);
+  const target = targets.get(item.id);
+  if (!target)
     return {
       error: "not_open",
       message: "This one doesn't take comments.",
@@ -454,8 +545,8 @@ export async function postComment(db, account, item, raw, comments) {
       error: "not_verified",
       message: "Verify your player to comment.",
     };
-  const open = await openOwners(db, readerId, [owner]);
-  if (!open.get(owner))
+  const open = await openTargets(db, readerId, targets);
+  if (!open.get(item.id))
     return {
       error: "not_open",
       message: "You can't comment on this one.",
@@ -477,14 +568,14 @@ export async function postComment(db, account, item, raw, comments) {
       message: "Your last comment is still being checked. Try again soon.",
     };
   try {
-    return await postChecked(db, readerId, item, raw, comments, tag, owner);
+    return await postChecked(db, readerId, item, raw, comments, target);
   } finally {
     await db.query("select pg_advisory_unlock(hashtext($1))", [key]);
   }
 }
 
 /** The rest of postComment, under the account's post lock. */
-async function postChecked(db, readerId, item, raw, comments, tag, owner) {
+async function postChecked(db, readerId, item, raw, comments, target) {
   const slow = await throttled(db, readerId);
   if (slow?.error === "cooldown")
     return {
@@ -504,7 +595,7 @@ async function postChecked(db, readerId, item, raw, comments, tag, owner) {
     itemId: item.id,
     body,
     about: String(item.text ?? ""),
-    own: owner === readerId,
+    own: target.owner === readerId,
   });
   if (verdict.verdict === "paused")
     return { error: "paused", message: REFUSAL_WORDS.paused };
@@ -516,26 +607,45 @@ async function postChecked(db, readerId, item, raw, comments, tag, owner) {
       category: verdict.category,
       message: REFUSAL_WORDS[verdict.category] ?? REFUSAL_WORDS.harassment,
     };
+  if (comments.canSee && !(await comments.canSee()))
+    return { error: "not_open", message: "You can't comment on this one." };
+  // A claim, block, pause or audience setting can change while the model
+  // is checking. Use the current owner and permission at the write too.
+  const current = await targetsForItems(db, [item]);
+  target = current.get(item.id);
+  if (!target || !(await openTargets(db, readerId, current)).get(item.id))
+    return { error: "not_open", message: "You can't comment on this one." };
   const { rows } = await db.query(
     `insert into timeline_comment
-       (item_id, account_id, subject_tag, owner_account_id, body)
-     values ($1, $2, $3, $4, $5)
+       (item_id, account_id, subject_tag, owner_account_id, body, owner_is_account, receipt_allowed)
+     values ($1, $2, $3, $4, $5, $6, $7)
      returning comment_id`,
-    [item.id, readerId, tag, owner, body],
+    [
+      item.id,
+      readerId,
+      target.tag,
+      target.owner,
+      body,
+      target.account,
+      target.receipt,
+    ],
   );
   const { rows: back } = await db.query(
     `select ${COMMENT_COLS} from timeline_comment tc ${AUTHOR_JOIN}
       where tc.comment_id = $1`,
     [rows[0].comment_id],
   );
-  return { ok: true, comment: shape(back[0], { readerId }) };
+  return {
+    ok: true,
+    comment: shape(back[0], { readerId, ownerId: target.owner }),
+  };
 }
 
 /** One comment's row, or null. */
 async function commentRow(db, id) {
   if (!/^[1-9][0-9]{0,18}$/.test(String(id ?? ""))) return null;
   const { rows } = await db.query(
-    `select comment_id::text as comment_id, account_id, owner_account_id,
+    `select comment_id::text as comment_id, account_id, owner_account_id, owner_is_account,
             status, item_id, subject_tag
        from timeline_comment where comment_id = $1::bigint`,
     [String(id)],
@@ -545,7 +655,7 @@ async function commentRow(db, id) {
 
 /** Delete or remove a comment: the author's own goes at once; the item
  *  owner's removal keeps it for admins. `{ ok }` or `{ error }`. */
-export async function deleteComment(db, account, id) {
+export async function deleteComment(db, account, id, { canSee = null } = {}) {
   const row = await commentRow(db, id);
   if (!row || row.status === "removed") return { error: "not_found" };
   if (row.account_id === account.accountId) {
@@ -555,7 +665,10 @@ export async function deleteComment(db, account, id) {
     );
     return { ok: true, deleted: true };
   }
-  if (row.owner_account_id === account.accountId) {
+  const owner = row.owner_is_account
+    ? row.owner_account_id
+    : (await ownersOf(db, [row.subject_tag])).get(row.subject_tag);
+  if (owner === account.accountId && (!canSee || (await canSee(row)))) {
     await removeComment(db, row.comment_id, "owner");
     return { ok: true, removed: true };
   }

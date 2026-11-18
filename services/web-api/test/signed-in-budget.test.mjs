@@ -835,7 +835,9 @@ test("Home's week, built, never counts late captures", async () => {
     "/api/me/home/feed (built)",
     "/api/me/home/feed",
     {},
-    { statements: TIMELINE_STATEMENTS + 6, buffers: 42000 },
+    // +1: one page-wide block gate for initial social controls, not an
+    // item/owner query per card. The record and buffer bounds stay fixed.
+    { statements: TIMELINE_STATEMENTS + 7, buffers: 42000 },
   );
   assert.ok(
     !built.seen.some((s) => LATE_ANY.test(s.text)),

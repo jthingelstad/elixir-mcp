@@ -609,7 +609,7 @@ function MomentBody({ it, text }) {
 /** A short session as one line (2026-11-17): who and when, what happened
  *  with its trophies, and its cheers on the right. The line opens the
  *  session's page, as the card did; no deck art. */
-function SessionLine({ it, inGroup = false }) {
+function SessionLine({ it, inGroup = false, cheerWhere }) {
   const who = subjectOf(it);
   const f = it.facts ?? {};
   const name = who?.kind === "player" ? (who.name ?? who.tag) : null;
@@ -655,7 +655,7 @@ function SessionLine({ it, inGroup = false }) {
           <p className="kit-line__go">{said}</p>
         )}
       </div>
-      {"cheers" in it ? <Cheers it={it} compact /> : null}
+      {"cheers" in it ? <Cheers it={it} where={cheerWhere} compact /> : null}
       {"comments" in it ? <Comments it={it} /> : null}
       <ItemShare it={it} />
     </article>
@@ -665,7 +665,7 @@ function SessionLine({ it, inGroup = false }) {
 /** A small moment as one line (2026-11-17): who and when, a small mark
  *  (the card's own art when it names one), the sentence without the name
  *  the row already shows, and its cheers on the right. */
-function MomentLine({ it, inGroup = false }) {
+function MomentLine({ it, inGroup = false, cheerWhere }) {
   const who = subjectOf(it);
   const card = momentCardOf(it);
   return (
@@ -706,7 +706,8 @@ function MomentLine({ it, inGroup = false }) {
           </span>
         </p>
       </div>
-      {"cheers" in it ? <Cheers it={it} compact /> : null}
+      {"cheers" in it ? <Cheers it={it} where={cheerWhere} compact /> : null}
+      {"comments" in it ? <Comments it={it} /> : null}
       <ItemShare it={it} />
     </article>
   );
@@ -714,7 +715,7 @@ function MomentLine({ it, inGroup = false }) {
 
 /** Small moments in a row, as one row that opens in place (2026-11-17),
  *  as short sessions fold: each moment inside keeps its own cheer. */
-function MomentGroup({ rows }) {
+function MomentGroup({ rows, cheerWhere }) {
   const [open, setOpen] = useState(false);
   const bodyId = useId();
   const items = rows.map((r) => r.it);
@@ -749,7 +750,12 @@ function MomentGroup({ rows }) {
       <div id={bodyId} className="kit-group__body" hidden={!open}>
         {open
           ? rows.map(({ it }, i) => (
-              <MomentLine key={it.id ?? i} it={it} inGroup />
+              <MomentLine
+                key={it.id ?? i}
+                it={it}
+                inGroup
+                cheerWhere={cheerWhere}
+              />
             ))
           : null}
       </div>
@@ -761,7 +767,7 @@ function MomentGroup({ rows }) {
  *  The group itself takes no cheer: each session inside keeps its own, by
  *  its own id, once the group is open. Closed, it says how many cheers its
  *  sessions have between them, counts only. */
-function SessionGroup({ rows }) {
+function SessionGroup({ rows, cheerWhere }) {
   const [open, setOpen] = useState(false);
   const bodyId = useId();
   const items = rows.map((r) => r.it);
@@ -804,7 +810,12 @@ function SessionGroup({ rows }) {
       <div id={bodyId} className="kit-group__body" hidden={!open}>
         {open
           ? rows.map(({ it }, i) => (
-              <SessionLine key={it.id ?? i} it={it} inGroup />
+              <SessionLine
+                key={it.id ?? i}
+                it={it}
+                inGroup
+                cheerWhere={cheerWhere}
+              />
             ))
           : null}
       </div>
@@ -838,13 +849,13 @@ export function FeedRows({
   return feedRows(rows).map((row, i) => (
     <div key={row.it.id ?? i}>
       {row.type === "group" ? (
-        <SessionGroup rows={row.rows} />
+        <SessionGroup rows={row.rows} cheerWhere={cheerWhere} />
       ) : row.type === "line" ? (
-        <SessionLine it={row.it} />
+        <SessionLine it={row.it} cheerWhere={cheerWhere} />
       ) : row.type === "moments" ? (
-        <MomentGroup rows={row.rows} />
+        <MomentGroup rows={row.rows} cheerWhere={cheerWhere} />
       ) : row.type === "moment" ? (
-        <MomentLine it={row.it} />
+        <MomentLine it={row.it} cheerWhere={cheerWhere} />
       ) : (
         <FeedItem
           it={row.it}

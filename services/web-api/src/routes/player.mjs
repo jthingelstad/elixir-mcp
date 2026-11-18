@@ -32,6 +32,7 @@ import { proofOf, scoresOf, sparkOf } from "../feed.mjs";
 import { claimantsOf } from "../account-page.mjs";
 import { json } from "../http.mjs";
 import { homeClan } from "./clans.mjs";
+import { withTimelineSocial } from "../timeline-social.mjs";
 
 /**
  * The player page (slice 6, #764) and the follows it starts.
@@ -310,6 +311,7 @@ export async function readSessionPage(
   tag,
   { id, at, offset = 0, expectedVersion } = {},
   now = Date.now(),
+  { comments = false } = {},
 ) {
   const read = await readSitting(
     db,
@@ -330,6 +332,12 @@ export async function readSessionPage(
     [account.accountId, tag],
   );
   const claim = claims[0] ?? null;
+  const [item] = await withTimelineSocial(
+    db,
+    [read.item],
+    account.kind === "agent" ? null : account.accountId,
+    { comments },
+  );
   return {
     player: read.player,
     you: {
@@ -342,7 +350,7 @@ export async function readSessionPage(
       // page (battle-posts.mjs battleFor asks the same).
       can_post: claim?.status === "verified",
     },
-    item: read.item,
+    item,
     games: read.games,
     marks: read.marks,
     // Sharing is an explicit capability request, never an enumerable URL.
@@ -351,7 +359,13 @@ export async function readSessionPage(
 }
 
 /** The whole page, for one signed-in reader. */
-async function readPlayerPage(db, account, tag, now = Date.now()) {
+async function readPlayerPage(
+  db,
+  account,
+  tag,
+  now = Date.now(),
+  { comments = false } = {},
+) {
   const { rows } = await db.query(
     `select p.player_tag, p.name, cm.clan_tag, cl.name as clan_name,
             exists (select 1 from recording r where r.subject_type = 'player'
@@ -379,16 +393,21 @@ async function readPlayerPage(db, account, tag, now = Date.now()) {
   // A post about a battle (what was a highlight, 0292) is the page's
   // Posts list's, read as the post it is (GET /api/me/posts?player=), so
   // the record's own line for it is left out here: one item, not two.
-  const timeline = (built.timeline ?? [])
-    .map((it, i) => {
-      if (it.kind === "battle_highlight") return null;
-      const item = pageItem(it);
-      const link = proofs[i] ? links.get(proofs[i]) : null;
-      return link && !item.battle_url
-        ? { ...item, battle_url: link.url }
-        : item;
-    })
-    .filter(Boolean);
+  const timeline = await withTimelineSocial(
+    db,
+    (built.timeline ?? [])
+      .map((it, i) => {
+        if (it.kind === "battle_highlight") return null;
+        const item = pageItem(it);
+        const link = proofs[i] ? links.get(proofs[i]) : null;
+        return link && !item.battle_url
+          ? { ...item, battle_url: link.url }
+          : item;
+      })
+      .filter(Boolean),
+    account.kind === "agent" ? null : account.accountId,
+    { comments },
+  );
   // The verified account's badges, follows and followers: the one reader
   // players_follows serves too (@elixir-mcp/tools/social). No verified
   // account, nothing to show: follows are an account's.
@@ -663,7 +682,11 @@ const named = (r) =>
       })
     : json(400, { error: "invalid_tag" });
 
-export function playerRoutes({ resolveAccount, live = null }) {
+export function playerRoutes({
+  resolveAccount,
+  live = null,
+  comments = false,
+}) {
   const liveRead = live ?? makeLive({ enqueue: enqueueJob });
   const rate = (db, account) =>
     checkRateLimit(db, {
@@ -680,7 +703,9 @@ export function playerRoutes({ resolveAccount, live = null }) {
       if (!tag) return json(400, { error: "invalid_tag" });
       if (!(await rate(db, account)))
         return json(429, { error: "rate_limited" });
-      const page = await readPlayerPage(db, account, tag);
+      const page = await readPlayerPage(db, account, tag, Date.now(), {
+        comments,
+      });
       if (!page)
         return json(404, {
           error: "not_found",
@@ -743,12 +768,19 @@ export function playerRoutes({ resolveAccount, live = null }) {
       if (!q.id) return json(400, { error: "invalid_item" });
       if (!(await rate(db, account)))
         return json(429, { error: "rate_limited" });
-      const page = await readSessionPage(db, account, tag, {
-        id: String(q.id),
-        at: q.at,
-        offset: q.offset === undefined ? 0 : Number(q.offset),
-        expectedVersion: q.expected_evidence_version,
-      });
+      const page = await readSessionPage(
+        db,
+        account,
+        tag,
+        {
+          id: String(q.id),
+          at: q.at,
+          offset: q.offset === undefined ? 0 : Number(q.offset),
+          expectedVersion: q.expected_evidence_version,
+        },
+        Date.now(),
+        { comments },
+      );
       if (!page)
         return json(404, {
           error: "not_found",

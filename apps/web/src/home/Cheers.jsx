@@ -212,7 +212,7 @@ export function Cheers({ it, where, compact = false }) {
     keepInside(el, t.left + t.width / 2 - r.left);
   }, [tip]);
 
-  if (scope) {
+  if (scope || it.can_cheer === false) {
     const all = foldCounts(shown.cheers);
     return all.shown.length || all.rest ? (
       <p
@@ -536,14 +536,9 @@ export function Cheers({ it, where, compact = false }) {
   );
 }
 
-/**
- * A player page's, a session page's or a battle page's cheers
- * (2026-11-12): an item there takes cheers, and shows its counts, only
- * while it is in your own feed (the server's `cheersOnPage` says which:
- * `items`). `of(item)` is the item ready for <Cheers>, or null for one that
- * has none; `where` is the list it lives in. Signed out, or before the read
- * answers, nothing has cheers.
- */
+/** Battle pages read the visible items the battle proves. Player and
+ * session pages with inline reactions skip this lookup. A page without
+ * inline reactions can match the read's items by their canonical IDs. */
 export function usePageCheered(ask, enabled = true) {
   const read = usePageCheers(ask, enabled);
   const byId = new Map((read.data?.items ?? []).map((c) => [c.id, c]));
@@ -555,6 +550,7 @@ export function usePageCheered(ask, enabled = true) {
       return c
         ? {
             ...it,
+            ...c,
             cheers: c.cheers ?? {},
             my_cheer: c.my_cheer ?? null,
             cheer_subjects: read.data.subjects ?? [],

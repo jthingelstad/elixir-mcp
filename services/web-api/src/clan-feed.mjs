@@ -1,7 +1,6 @@
 import { buildTimeline, shownAt } from "@elixir-mcp/tools/activity/entries";
 import { feedOrder } from "@elixir-mcp/tools/activity/home-feed";
-import { withCheers } from "./cheers.mjs";
-import { withComments } from "./comments.mjs";
+import { withTimelineSocial } from "./timeline-social.mjs";
 import { annotateFeed } from "./feed.mjs";
 import { clanPosts, clanQuestionCounts } from "./posts.mjs";
 import { ATTESTED_FACT_TYPES } from "@elixir-mcp/contracts";
@@ -53,7 +52,7 @@ export const isClanNews = (it) =>
  *  Follow offer, cheers, comments; only a post carries its cheers and
  *  comments, since a clanmate may cheer and answer it here), and `at` is
  *  the instant it sorts by. */
-const HOME_ONLY = ["groups", "offer_follow", "section"];
+const HOME_ONLY = ["groups", "offer_follow"];
 const feedItem = (it) => {
   const out = {
     ...it,
@@ -137,23 +136,22 @@ export async function readClanFeed(
           plain: posts,
         })
       : null;
-  const extra = found.length
-    ? await withComments(
-        db,
-        await withCheers(db, found, account.accountId),
-        account.accountId,
-        { enabled: comments },
-      )
-    : [];
-  const items = extra.length
-    ? [...(built.timeline ?? []), ...extra].sort(feedOrder)
+  const items = found.length
+    ? [...(built.timeline ?? []), ...found].sort(feedOrder)
     : (built.timeline ?? []);
   return {
     clan_tag: clanTag,
     view,
     window_days: FEED_DAYS,
     question_counts: questionCounts,
-    items: (await annotateFeed(db, items, [])).map(feedItem),
+    items: (
+      await withTimelineSocial(
+        db,
+        await annotateFeed(db, items, []),
+        account.kind === "person" ? account.accountId : null,
+        { comments },
+      )
+    ).map(feedItem),
     // The builder also bounds member moments before its final cap. Those
     // discarded moments are not omitted Clan news. Its dropped rows let
     // this source count only the view that was requested.

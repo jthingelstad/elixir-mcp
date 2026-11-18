@@ -2,7 +2,7 @@
  *  @elixir-mcp/claims blocks.mjs do the work.
  *
  *  - `GET /api/me/comments?item=<id>&subjects=<tag,…>`: one item's
- *    comments, for an item in the reader's own feed now.
+ *    comments, for an actual recorded item the member may read.
  *  - `POST /api/me/comments` `{ item_id, subjects, text }`: post one,
  *    after the check (comment-check.mjs).
  *  - `DELETE /api/me/comments/<id>`: the author's own goes; the item
@@ -31,6 +31,7 @@ import { normalizeTag } from "@elixir-mcp/contracts";
 import { ITEM_ID_RE } from "@elixir-mcp/tools/activity/cheers";
 import { subjectsFor } from "@elixir-mcp/tools/activity/entries";
 import { ownFeedItem } from "../cheers.mjs";
+import { readItemRef } from "../timeline-item-ref.mjs";
 import {
   commentQueue,
   commentSettingOf,
@@ -108,7 +109,7 @@ export function commentsRoutes({
       return { refused: json(403, { error: "not_entitled" }) };
     return { account };
   };
-  const feedItem = async (db, account, itemId, tags) =>
+  const feedItem = async (db, account, itemId, tags, item = null) =>
     ITEM_ID_RE.test(itemId)
       ? ownFeedItem(db, {
           accountId: account.accountId,
@@ -116,6 +117,7 @@ export function commentsRoutes({
           tags,
           subjects: await subjectsFor(db, account.accountId),
           posts,
+          item,
         })
       : null;
 
@@ -137,6 +139,7 @@ export function commentsRoutes({
         account,
         String(q.item ?? ""),
         tagsOf(q.subjects),
+        q.item_ref === undefined ? null : (readItemRef(q.item_ref) ?? {}),
       );
       if (!item) return notFound();
       const before = q.before ? readCommentCursor(q.before) : null;
@@ -165,13 +168,26 @@ export function commentsRoutes({
         account,
         String(body?.item_id ?? ""),
         tagsOf(body?.subjects),
+        body?.item ?? null,
       );
       if (!item)
         return json(404, {
           error: "not_found",
-          message: "That item is not in your feed now.",
+          message: "That Timeline item is not available.",
         });
-      const out = await postComment(db, account, item, body.text, comments);
+      const out = await postComment(db, account, item, body.text, {
+        ...comments,
+        // Moderation can outlast a membership, role, block or source
+        // change. Re-admit the original locator immediately before write.
+        canSee: async () =>
+          (await feedItem(
+            db,
+            account,
+            item.id,
+            tagsOf(body?.subjects),
+            body?.item ?? null,
+          )) !== null,
+      });
       if (out.ok) return json(201, { comment: out.comment });
       const status =
         out.error === "refused"
@@ -184,11 +200,20 @@ export function commentsRoutes({
       return json(status, out);
     },
 
-    "DELETE /api/me/comments/*": async (db, event) => {
+    "DELETE /api/me/comments/*": async (db, event, body) => {
       const { account, refused } = await person(db, event, true);
       if (refused) return refused;
       if (!enabled) return off();
-      const out = await deleteComment(db, account, event.pathParam);
+      const out = await deleteComment(db, account, event.pathParam, {
+        canSee: async (row) =>
+          (await feedItem(
+            db,
+            account,
+            row.item_id,
+            [row.subject_tag, ...tagsOf(body?.subjects)],
+            body?.item ?? null,
+          )) !== null,
+      });
       return out.error ? notFound() : json(200, out);
     },
 
@@ -211,12 +236,16 @@ export function commentsRoutes({
         // The item's subjects as the reader's card names them (a clan as
         // well as its member), as the list and the post take them; a
         // comment stores its player alone (Codex on #1082). They only
-        // narrow: the item is rebuilt from the reader's own follows.
+        // narrow. A source locator is re-read under its current audience;
+        // older subject-only callers keep the current-follow fallback.
         async (row) =>
-          (await feedItem(db, account, row.item_id, [
-            row.subject_tag,
-            ...tagsOf(body?.subjects),
-          ])) !== null,
+          (await feedItem(
+            db,
+            account,
+            row.item_id,
+            [row.subject_tag, ...tagsOf(body?.subjects)],
+            body?.item ?? null,
+          )) !== null,
       );
       if (out.error === "invalid_reason")
         return json(400, { error: "invalid_reason" });

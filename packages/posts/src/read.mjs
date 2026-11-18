@@ -382,6 +382,32 @@ export async function clanPosts(
   return postItems(db, rows, readerId);
 }
 
+/** Visible posts about one named battle, the same member game audience
+ * as postsBy. Hidden, reported and blocked posts are never overlaid. */
+export async function visibleBattlePosts(db, readerId, battleId) {
+  const rows = await readRows(db, "p.battle_id = $2", [readerId, battleId], {
+    visibleOnly: true,
+  });
+  return postItems(db, rows, readerId);
+}
+
+/** The player cheer compatibility read's battle posts: the same visible
+ * member audience, bounded to its existing occurred window and page cap. */
+export async function visiblePlayerBattlePosts(
+  db,
+  readerId,
+  playerTag,
+  { fromMs, toMs },
+) {
+  const rows = await readRows(
+    db,
+    "p.player_tag = $2 and p.created_at > $3::timestamptz and p.created_at <= $4::timestamptz",
+    [readerId, playerTag, new Date(fromMs), new Date(toMs)],
+    { visibleOnly: true },
+  );
+  return postItems(db, rows, readerId);
+}
+
 /** The reader's own posts about one battle (the battle page's panel). */
 export async function ownPostsOn(db, readerId, battleId) {
   const rows = await readRows(

@@ -137,8 +137,8 @@ export function moderationRequest(text, { about = "", own = false } = {}) {
     prompt: [
       `<item>${item || "A Clash Royale timeline item."}</item>`,
       own
-        ? "<author>The player the item is about, replying on their own item.</author>"
-        : "<author>A follower of the player the item is about.</author>",
+        ? "<author>The owner of this Timeline item, replying on their own item.</author>"
+        : "<author>A player with a verified Clash Royale player in Elixir.</author>",
       `<comment>\n${text.replace(/<\/?comment>/gi, "")}\n</comment>`,
     ].join("\n"),
     tool: VERDICT_TOOL,

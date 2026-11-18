@@ -534,13 +534,16 @@ const CHEER_FEED_KEY = HOME_FEED_KEY;
 const cheerWrites = new Map();
 let cheerTaps = 0;
 
-export function useCheer({ key = CHEER_FEED_KEY, list = "timeline" } = {}) {
+export function useCheer({
+  key = CHEER_FEED_KEY,
+  list = "timeline",
+  exact = key !== CHEER_FEED_KEY,
+} = {}) {
   const queryClient = useQueryClient();
   // Home's feed is one copy per mode (homeFeedKey): each takes the change.
   const put = (item) =>
-    queryClient.setQueriesData(
-      { queryKey: key, exact: key !== CHEER_FEED_KEY },
-      (old) => mapItems(old, list, (it) => (it.id === item.id ? item : it)),
+    queryClient.setQueriesData({ queryKey: key, exact }, (old) =>
+      mapItems(old, list, (it) => (it.id === item.id ? item : it)),
     );
   // Every other copy of the item (Home's feed, a player page's or a battle
   // page's cheers read) takes what the server confirmed too, so a stale
@@ -555,6 +558,15 @@ export function useCheer({ key = CHEER_FEED_KEY, list = "timeline" } = {}) {
     );
     queryClient.setQueriesData({ queryKey: ["me", "cheers"] }, (old) =>
       mapItems(old, "items", patch),
+    );
+    queryClient.setQueriesData({ queryKey: ["me", "account"] }, (old) =>
+      mapItems(old, "timeline", patch),
+    );
+    queryClient.setQueriesData({ queryKey: ["me", "player"] }, (old) =>
+      mapItems(mapItems(old, "timeline", patch), "moments", patch),
+    );
+    queryClient.setQueriesData({ queryKey: ["me", "player-session"] }, (old) =>
+      mapItems(mapItems(old, "item", patch), "marks", patch),
     );
     // A post's other copies: player/account lists, its member destination,
     // and Clan's Feed. Singular and listed copies share this mutator.
@@ -580,17 +592,8 @@ export function useCheer({ key = CHEER_FEED_KEY, list = "timeline" } = {}) {
         const res = await api.cheer({
           item_id: item.id,
           cheer: next,
-          // The item's subjects, so the server rebuilds only their days to
-          // find it (feed.mjs reads the same two fields). A page's item
-          // carries the follows its cheers read came through instead.
-          subjects: item.cheer_subjects ?? [
-            ...new Set(
-              [
-                item.subject_tag,
-                ...(item.subjects ?? []).map((s) => s.tag),
-              ].filter(Boolean),
-            ),
-          ],
+          subjects: itemSubjects(item),
+          item: item.item_ref,
         });
         if (!res.ok) throw new Error(res.data?.message ?? "Not saved");
         return res.data;
@@ -612,7 +615,7 @@ export function useCheer({ key = CHEER_FEED_KEY, list = "timeline" } = {}) {
       cheerWrites.set(item.id, w);
       void queryClient.cancelQueries({
         queryKey: key,
-        exact: key !== CHEER_FEED_KEY,
+        exact,
       });
       put(shown);
       return { tap };
@@ -671,6 +674,7 @@ export const useItemComments = (it, enabled = true, around = null) => {
         .comments({
           item_id: it.id,
           subjects: itemSubjects(it),
+          item: it.item_ref,
           before: pageParam,
           around: pageParam ? null : around,
         })
@@ -760,6 +764,8 @@ export function useCommentsChanged() {
         return queryClient.invalidateQueries({ queryKey: keys.me });
       if (itemId)
         queryClient.invalidateQueries({ queryKey: commentsKey(itemId) });
+      for (const surface of ["account", "player", "player-session", "cheers"])
+        queryClient.invalidateQueries({ queryKey: ["me", surface] });
       queryClient.invalidateQueries({ queryKey: ["me", "posts"] });
       queryClient.invalidateQueries({
         queryKey: ["me", "clan", "record"],

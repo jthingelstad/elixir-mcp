@@ -91,6 +91,12 @@ test("the model's request: small, low effort, the comment fenced as data", () =>
   );
   assert.ok(!r.prompt.includes("<b>"));
   assert.equal((r.prompt.match(/<comment>/g) ?? []).length, 1);
+  assert.match(r.prompt, /A player with a verified Clash Royale player/);
+  assert.doesNotMatch(r.prompt, /follower/);
+  assert.match(
+    moderationRequest("Good game", { own: true }).prompt,
+    /The owner of this Timeline item/,
+  );
 });
 
 test("a verdict is read strictly; anything else fails closed", () => {

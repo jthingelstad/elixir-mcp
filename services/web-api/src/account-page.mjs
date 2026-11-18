@@ -34,6 +34,7 @@ import {
 } from "@elixir-mcp/tools/activity/entries";
 import { verifiedAvatars, withAvatar } from "./avatars.mjs";
 import { HANDLE, normalizeHandle } from "./handle.mjs";
+import { withTimelineSocial } from "./timeline-social.mjs";
 
 /** Page ids are twelve letters and digits with no look-alikes (0269). */
 export const PAGE_ID = /^[a-km-np-z2-9]{12}$/;
@@ -233,7 +234,7 @@ export async function readAccountPage(
   reader,
   id,
   now = Date.now(),
-  { blocks = false } = {},
+  { blocks = false, comments = false } = {},
 ) {
   const account = await accountByPageId(db, id);
   if (!account) return null;
@@ -287,7 +288,12 @@ export async function readAccountPage(
     },
     passport: await readAccountPassport(db, account.account_id),
     window_days: ACCOUNT_PAGE_DAYS,
-    timeline: built.timeline ?? [],
+    timeline: await withTimelineSocial(
+      db,
+      built.timeline ?? [],
+      reader.kind === "agent" ? null : reader.accountId,
+      { comments },
+    ),
     timeline_more: built.timeline_more ?? 0,
   };
 }

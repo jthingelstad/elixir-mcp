@@ -7940,6 +7940,17 @@ a.kit-mbattle:hover {
 .kit-feed__item--line > .kit-cheers ~ * {
   grid-column: 1 / -1;
 }
+/* Give a narrow moment its full sentence before the action buttons. */
+@media (max-width: 359px) {
+  .kit-feed__item--moment .kit-line__main {
+    grid-column: 2 / -1;
+  }
+  .kit-feed__item--moment > .kit-cheers > .kit-cheers__row:first-child {
+    grid-column: 1 / -1;
+    grid-row: auto;
+    justify-content: flex-start;
+  }
+}
 .kit-line__main {
   display: grid;
   min-width: 0;

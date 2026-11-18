@@ -32,7 +32,6 @@ import { statsHref } from "../stats/stats.js";
 import { followMeHref, playerHref } from "../lib/player.js";
 import {
   useInvalidate,
-  usePageCheers,
   usePlayerEvidence,
   usePlayerPage,
   useRefreshPlayerPage,
@@ -86,11 +85,8 @@ export function PlayerPage() {
   const { pathname, search } = useLocation();
   const tag = tagFromPath(pathname.replace(/\/$/, "").split("/")[3] ?? "");
   const query = usePlayerPage(tag);
-  // The page's cheers and the viewer's clans need only the address's tag,
-  // so they are asked beside the page, not after it answers (2026-11-13).
   // A tag spelled other than the server spells it waits, as before.
   const canonical = Boolean(tag) && normTag(tag) === tag;
-  usePageCheers({ player: tag }, canonical);
   useClansOfViewer(canonical);
   // An address that names no tag reads nothing: the query never runs.
   if (!tag) return <Empty title="That is not a player tag" />;
@@ -150,9 +146,12 @@ export function PlayerView({ page, initialTab = "timeline" }) {
     OWN_TABS.has(initialTab) ? initialTab : "timeline",
   );
   const p = page.player;
-  // Cheers only on what is in your own feed now: a player you follow, or
-  // your clan's member, in the last week.
-  const cheered = usePageCheered({ player: p.tag });
+  const cheered = usePageCheered(
+    { player: p.tag },
+    [...(page.timeline ?? []), ...(page.moments ?? [])].some(
+      (it) => !("cheers" in it),
+    ),
+  );
   const you = page.you;
   const commentsOn = useCommentsOn();
   // The account that verified this player: the one a block reaches.
@@ -286,6 +285,7 @@ export function PlayerView({ page, initialTab = "timeline" }) {
               empty={`Nothing recorded in the last ${page.window_days} days.`}
               more={page.timeline_more}
               cheered={cheered}
+              where={{ key: ["me", "player", p.tag], list: "timeline" }}
               tag={p.tag}
             />
           </>
@@ -294,6 +294,7 @@ export function PlayerView({ page, initialTab = "timeline" }) {
             items={page.moments}
             empty={`No moments in the last ${page.window_days} days.`}
             cheered={cheered}
+            where={{ key: ["me", "player", p.tag], list: "moments" }}
           />
         ) : shown === "record" ? (
           <PlayerRecord tag={p.tag} />
@@ -462,6 +463,7 @@ export function ItemList({
   empty,
   more = 0,
   cheered,
+  where,
   tag,
   accountLinks = true,
 }) {
@@ -479,7 +481,7 @@ export function ItemList({
           {d.at ? <h2 className="kit-day__head">{dayHeading(d.at)}</h2> : null}
           {d.rows.map((it, i) => {
             const battle = battlePath(it);
-            const withCheers = cheered?.of(it);
+            const withCheers = "cheers" in it ? it : cheered?.of(it);
             // A sitting draws as Home draws it (G7): its sparkline, its
             // numbers and its games, read in place.
             const sitting = SITTINGS.has(it.kind);
@@ -531,7 +533,10 @@ export function ItemList({
                 (accountLinks && accountOf(it)) ? (
                   <footer className="kit-feed__foot">
                     {withCheers ? (
-                      <Cheers it={withCheers} where={cheered.where} />
+                      <Cheers
+                        it={withCheers}
+                        where={"cheers" in it ? where : cheered.where}
+                      />
                     ) : null}
                     <span className="share-actions kit-feed__links">
                       {games ? (
@@ -577,14 +582,14 @@ export function ItemList({
 }
 
 /** The Moments tab: sunken tiles, a medal each (canvas Player moments). */
-function Moments({ items, empty, cheered }) {
+function Moments({ items, empty, cheered, where }) {
   const { when, feedWhen } = useClock();
   if (items.length === 0) return <p className="kit-week__quiet">{empty}</p>;
   return (
     <ul className="kit-moments">
       {items.map((it, i) => {
         const battle = battlePath(it);
-        const withCheers = cheered?.of(it);
+        const withCheers = "cheers" in it ? it : cheered?.of(it);
         return (
           <li key={it.id ?? i} className="kit-moment">
             <Medal kind={it.kind} tile={false} />
@@ -603,7 +608,10 @@ function Moments({ items, empty, cheered }) {
                 </Link>
               ) : null}
               {withCheers ? (
-                <Cheers it={withCheers} where={cheered.where} />
+                <Cheers
+                  it={withCheers}
+                  where={"cheers" in it ? where : cheered.where}
+                />
               ) : null}
               {withCheers ? <Comments it={withCheers} /> : null}
             </div>

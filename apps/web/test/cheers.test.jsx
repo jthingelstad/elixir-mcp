@@ -815,6 +815,14 @@ test("a refused take-back goes back to what the server last confirmed", async ()
   );
 });
 
+test("an item with read-only reactions shows counts without offering a write", () => {
+  renderWithProviders(
+    <Cheers it={{ ...ITEM, can_cheer: false, cheers: { royal: 2 } }} />,
+  );
+  expect(screen.queryByRole("button")).toBeNull();
+  expect(screen.getByRole("img", { name: /Royal 2/ })).toBeTruthy();
+});
+
 test("on an agent's pages the counts show and nothing can be pressed", () => {
   global.fetch = vi.fn(async () => reply({}));
   renderWithProviders(
