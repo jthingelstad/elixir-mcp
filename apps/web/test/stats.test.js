@@ -127,7 +127,7 @@ const CLAIMS = [
     is_primary: true,
     relationship: "primary",
   },
-  { player_tag: "#WATCHED", relationship: "watching" },
+  { player_tag: "#WATCHED", relationship: "friend" },
 ];
 
 test("the players are yours alone, primary first", () => {
@@ -149,7 +149,7 @@ test("?player picks one of yours, and anything else reads your primary", () => {
   expect(pickPlayer([], "X")).toBe(null);
 });
 
-test("?player opens a player you follow, and never a watched one or a stranger", () => {
+test("?player opens a player you follow, including another friend, and excludes a stranger", () => {
   // Jamie, 2026-11-12: "Stats opens for the players you follow".
   const friend = statsPlayers(CLAIMS, "friend1");
   expect(friend.map((p) => p.player_tag)).toEqual([
@@ -160,7 +160,9 @@ test("?player opens a player you follow, and never a watched one or a stranger",
   expect(pickPlayer(friend, "friend1").player_tag).toBe("#FRIEND1");
   expect(isOwnClaim(pickPlayer(friend, "friend1"))).toBe(false);
   expect(isFollowedClaim(CLAIMS[0])).toBe(true);
-  for (const tag of ["WATCHED", "STRANGER"]) {
+  const another = statsPlayers(CLAIMS, "WATCHED");
+  expect(pickPlayer(another, "WATCHED").player_tag).toBe("#WATCHED");
+  for (const tag of ["STRANGER"]) {
     const players = statsPlayers(CLAIMS, tag);
     expect(players.map((p) => p.player_tag)).toEqual([
       "#20JJJ2CCRU",

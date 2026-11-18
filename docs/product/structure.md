@@ -1,5 +1,9 @@
 # Structure
 
+> Updated direction, 2026-11-17: Watching has retired into ordinary friend
+> follows. The Watching labels and exclusions below are superseded by
+> [Watching retires](../notes/2026-11-18-friend-follows.md).
+
 *No longer the structure record, 2026-11-12: `VISION.md` steers Elixir's
 structure and this page is the record of the 2026-11-05 redesign
 (DECISIONS "`VISION.md` steers Elixir's structure; `docs/product/structure.md`

@@ -128,15 +128,15 @@ recording stops only when no account follows it.
 One every-member clan watch already records about fifty players, so following
 fifty individually costs the service exactly what a single every-member slot
 costs. And most of them are already recorded anyway: **a recording
-is shared by everyone watching it**, so a player slot is spent only when
+is shared by everyone following it**, so a player slot is spent only when
 Elixir records the player because of you. A member of a clan recorded in
 full, or a player another account already follows, is free ([What a player
 slot costs](/docs/recording#what-a-player-slot-costs)).
 
 That is also what makes relationships worth having. Each player you follow is your
-**primary** (you), an **alt** (also you, another tag), a **friend** you follow,
-or someone you're **watching**, and "how are my friends playing?" is only a
-question worth asking if there is room to keep friends in.
+**primary** (you), an **alt** (also you, another tag), or a **friend** you follow.
+"How are my friends playing?" is only a question worth asking if there is room
+to keep friends in.
 
 So player slots are deliberately not a rung on the ladder. The roles differ
 where cost actually scales: clan watches, daily calls, the live lane.

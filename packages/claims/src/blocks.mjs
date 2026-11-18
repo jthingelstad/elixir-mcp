@@ -33,6 +33,21 @@ export const blockedSql = (a, b) =>
             where (ab.account_id = ${a} and ab.blocked_account_id = ${b})
                or (ab.account_id = ${b} and ab.blocked_account_id = ${a}))`;
 
+/** A current, visible player follow from a qualified claim alias. The
+ * recording may survive a block (for example an imported old watch), but
+ * it is no social association while a block with its verified owner stands.
+ * Public follows, social discovery and derived Stamps eligibility use this
+ * one rule. Saved recording controls and quota still read the held claim. */
+export const visibleFriendSql = (claim) =>
+  `(${claim}.relationship = 'friend' and not ${claim}.is_primary
+    and not exists (
+      select 1 from claim visible_friend_owner
+       where visible_friend_owner.player_tag = ${claim}.player_tag
+         and visible_friend_owner.status = 'verified'
+         and (visible_friend_owner.is_primary
+              or visible_friend_owner.relationship in ('primary', 'alt'))
+         and ${blockedSql(`${claim}.account_id`, "visible_friend_owner.account_id")}))`;
+
 /** Whether two accounts are in a block, either way. */
 export async function blockedEitherWay(db, a, b) {
   if (!a || !b || a === b) return false;

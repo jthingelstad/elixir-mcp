@@ -40,6 +40,13 @@ test("/api/v1 serves exactly the sign-in surface: GET /me", () => {
   ]);
 });
 
+test("player relationships are primary, alt and friend, without Watching", () => {
+  const relationship =
+    contract.components.schemas.MeResponse.properties.data.properties.players
+      .items.properties.relationship;
+  assert.deepEqual(relationship.enum, ["primary", "alt", "friend"]);
+});
+
 test("the door answers the contract's one operation and no other path", () => {
   assert.equal(v1Operation("GET", "/api/v1/me"), "me");
   for (const [method, path] of [

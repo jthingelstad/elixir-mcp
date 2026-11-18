@@ -41,7 +41,6 @@ const HOW = {
   primary: "Your main player",
   alt: "Your alt",
   friend: "You follow them",
-  watching: "You watch them",
 };
 
 const WHY_FREE = {
@@ -63,11 +62,11 @@ function howFollowed(p) {
 function Stop({ p }) {
   const invalidate = useInvalidate();
   const who = p.name ?? p.player_tag;
-  if (p.yours === "friend" || p.yours === "watching") {
+  if (p.yours === "friend") {
     const still = (p.agents ?? []).length > 0;
     return (
       <ConfirmAction
-        label={p.yours === "watching" ? "Stop watching" : "Unfollow"}
+        label="Unfollow"
         title={`Unfollow ${who}?`}
         body={
           <p className="m-0">

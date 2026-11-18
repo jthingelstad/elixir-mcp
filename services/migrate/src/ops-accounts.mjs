@@ -597,8 +597,8 @@ export async function accountFollowOp(databaseUrl, spec) {
   const primaryTag = normalizeTag(String(spec?.primary_tag ?? ""));
   const playerTag = normalizeTag(String(spec?.player_tag ?? ""));
   const relationship = spec?.relationship ?? "alt";
-  if (!["alt", "friend", "watching"].includes(relationship))
-    return { error: "relationship must be alt, friend or watching" };
+  if (!["alt", "friend"].includes(relationship))
+    return { error: "relationship must be alt or friend" };
   if (primaryTag === playerTag)
     return { error: "player_tag is already the account's primary" };
   const db = new pg.Client({ connectionString: databaseUrl });

@@ -256,19 +256,12 @@ test(
 );
 
 test(
-  "a watched player's tag in ?player never opens their Stats",
+  "a stranger's tag in ?player never opens their Stats",
   { timeout: 20000 },
   async () => {
     me = {
       ...ME,
-      claims: [
-        ...ME.claims,
-        {
-          player_tag: "#WW2299",
-          name: "Slate Heron",
-          relationship: "watching",
-        },
-      ],
+      claims: [...ME.claims],
     };
     window.history.pushState({}, "", "/home/you/stats?player=WW2299");
     render(<App />);

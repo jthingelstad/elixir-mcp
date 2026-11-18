@@ -244,7 +244,7 @@ async function present(
 }
 
 /** Only a claim that says "this is me" can be proven: the primary or an
- *  alt (Jamie, 2026-09-12). A friend or a watched player is somebody
+ *  alt (Jamie, 2026-09-12). A friend or a followed player is somebody
  *  else's to verify. */
 function eligibleClaim(claim) {
   return claim.is_primary === true || claim.relationship === "alt";

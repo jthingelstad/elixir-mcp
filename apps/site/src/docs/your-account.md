@@ -179,7 +179,7 @@ The lines are:
   verified player's game name and tag, or by the player they say they are
   but haven't verified yet, marked **Not verified** and with no gold mark.
   Accounts with no player at all are counted, not named. A named one has
-  **Follow back**, unless you already follow, watch or own that player: it
+  **Follow back**, unless you already follow or own that player: it
   asks first, with what it costs, like every Follow.
 - **Answers to your feedback**: each answer the maintainer gave in the last
   thirty days, and any you have not read; it opens the answer in Settings ›
@@ -228,22 +228,21 @@ The players on your account each say who they are to you:
 | primary | you: what every tool means when no player is named | Your main player |
 | alt | also you, under another tag | Also you |
 | friend | someone you follow on purpose | under Friends |
-| watching | anyone else you added | under Watching |
 
 Your first player is your primary, which the pages call your main player.
 **Make main player** on another player's page moves it there, and the old
-primary becomes watching. Your primary
+primary becomes a friend. Your primary
 cannot be removed while you follow other players: make another one
 primary first. Your primary and your alts are the players you can
 [prove are yours](/docs/verify), and the ones your own part of the digest and
 Clan go by. A player another account has verified cannot be your
-primary or an alt; you can still follow it as a friend or watch it. If
+primary or an alt; you can still follow it as a friend. If
 another account verifies a player that was your primary or an alt, it
 leaves your account, your timeline says so, and an ended primary leaves
 you with none: Players says so until you make another player your main
-player or add yours. Friends and watched players are covered in
+player or add yours. Friends are covered in
 [Follow a friend](/docs/follow-a-friend) and
-[Watch any player](/docs/watch-a-player).
+[Follow any player](/docs/watch-a-player).
 
 Players are added under **Settings › Players & following**, and following a player is
 recording it: see [What Elixir records](/docs/recording).

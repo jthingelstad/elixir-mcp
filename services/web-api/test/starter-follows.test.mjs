@@ -121,7 +121,7 @@ before(async () => {
   );
   await db.query(
     `insert into claim (account_id, player_tag, relationship)
-     values ($1, $2, 'watching')`,
+     values ($1, $2, 'friend')`,
     [ownerId, WATCHED],
   );
   // Another account follows RECORDED: Elixir records them already, so
@@ -254,7 +254,7 @@ test("offered on every visit while fewer than five follows played, finished welc
   let res = await call("/api/me/people/starter");
   assert.equal(res.body.offer, true);
   // Four follows: still offered, and those four are never suggested.
-  const followed = [LADDER, FOE_A, FOE_B, TEAMMATE];
+  const followed = [LADDER, FOE_A, TEAMMATE];
   for (const tag of followed)
     await db.query(
       `insert into claim (account_id, player_tag, relationship) values ($1, $2, 'friend')`,

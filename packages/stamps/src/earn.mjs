@@ -26,6 +26,7 @@
  * (services/web-api bell.mjs), one line per Stamp per pass, at its
  * highest level. Nothing here writes an event, a feed item or mail.
  */
+import { visibleFriendSql } from "@elixir-mcp/claims";
 import { createHash } from "node:crypto";
 import { CLANMATE_TYPES, FRIENDLY_TYPES } from "@elixir-mcp/contracts";
 import { FACT_CAPS } from "./catalog.mjs";
@@ -243,10 +244,9 @@ export async function friendlyBattles(
         where account_id = $1::uuid and status = 'verified'
           and (is_primary or relationship in ('primary', 'alt'))),
      followed as (
-       select player_tag from claim
-        where account_id = $1::uuid and relationship = 'friend'
-          and not is_primary
-          and player_tag not in (select player_tag from own))
+       select c.player_tag from claim c
+        where c.account_id = $1::uuid and ${visibleFriendSql("c")}
+          and c.player_tag not in (select player_tag from own))
      select m.battle_id, m.battle_time, b.cursor::text as cursor,
             (b.created_at <= $3::timestamptz - make_interval(secs => $8::int))
               as settled

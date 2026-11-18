@@ -114,9 +114,9 @@ before(async () => {
   await claim(reader, SHARED, "friend");
   await claim(reader, CLANNED, "friend");
   await claim(reader, FIRST, "friend");
-  await claim(reader, WATCHED, "watching");
-  await claim(agent, SHARED, "watching");
-  await claim(agent, AGENTS, "watching");
+  await claim(reader, WATCHED, "friend");
+  await claim(agent, SHARED, "friend");
+  await claim(agent, AGENTS, "friend");
 });
 after(async () => scratch?.drop());
 
@@ -159,7 +159,7 @@ test("the meter's numbers are the Follow dialogs' numbers, player by player", as
       [SHARED]: ["used", null, "friend"],
       [CLANNED]: ["free", "in_recorded_clan", "friend"],
       [FIRST]: ["free", "followed_by_others", "friend"],
-      [WATCHED]: ["used", null, "watching"],
+      [WATCHED]: ["used", null, "friend"],
       [AGENTS]: ["used", null, null],
     },
   );
@@ -167,7 +167,7 @@ test("the meter's numbers are the Follow dialogs' numbers, player by player", as
   assert.equal(row[PAID].name, "Pinecone");
   // The reader's agent, by its name; the other account, never.
   assert.deepEqual(row[AGENTS].agents, [
-    { public_id: "agslots1", name: "Scout Bot", relationship: "watching" },
+    { public_id: "agslots1", name: "Scout Bot", relationship: "friend" },
   ]);
   assert.deepEqual(
     row[SHARED].agents.map((a) => a.name),

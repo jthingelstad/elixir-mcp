@@ -1098,7 +1098,7 @@ test("Stats opens for your own players and the players you follow, and refuses t
   await db.query(
     `insert into claim (account_id, player_tag, is_primary, relationship, status)
      values ($1, $2, false, 'friend', 'unverified'),
-            ($1, $3, false, 'watching', 'unverified')`,
+            ($1, $3, false, 'friend', 'unverified')`,
     [acct.account_id, FOLLOWED, WATCHED],
   );
   const {
@@ -1110,7 +1110,7 @@ test("Stats opens for your own players and the players you follow, and refuses t
   const stats = (tool, args) =>
     handler(event({ path: "/api/me/stats", cookie, body: { tool, args } }));
 
-  for (const tag of [own?.player_tag, FOLLOWED].filter(Boolean)) {
+  for (const tag of [own?.player_tag, FOLLOWED, WATCHED].filter(Boolean)) {
     const ok = await stats("battles_query", { player_tag: tag });
     assert.equal(ok.statusCode, 200, `${tag} opens`);
     assert.equal(parse(ok).is_error, false);
@@ -1121,7 +1121,7 @@ test("Stats opens for your own players and the players you follow, and refuses t
   });
   assert.equal(loose.statusCode, 200);
 
-  for (const tag of [WATCHED, STRANGER]) {
+  for (const tag of [STRANGER]) {
     const refused = await stats("battles_query", { player_tag: tag });
     assert.equal(refused.statusCode, 403, `${tag} is refused`);
     assert.equal(parse(refused).error, "not_followed");

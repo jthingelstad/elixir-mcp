@@ -32,6 +32,7 @@
  * The mark is the reader's own. This read answers only the reader, and
  * nothing in it reaches another member, the bell, mail or MCP.
  */
+import { visibleFriendSql } from "@elixir-mcp/claims";
 import { notBoatDefense } from "@elixir-mcp/record/boat-defense-sql";
 import { gameWeekStartMs } from "@elixir-mcp/record/form";
 import { shownAt } from "@elixir-mcp/tools/activity/entries";
@@ -78,7 +79,7 @@ async function friendsWeek(db, accountId, { fromMs, timezone }) {
           where bp.player_tag = c.player_tag
             and bp.battle_time >= $2::timestamptz
             and ${notBoatDefense("bp", { lookupByKey: true })}) w
-      where c.account_id = $1 and c.close
+      where c.account_id = $1 and c.close and ${visibleFriendSql("c")}
       order by c.player_tag`,
     [accountId, new Date(fromMs).toISOString(), timezone],
   );
@@ -167,7 +168,7 @@ async function suggestions(db, accountId) {
                                  and f.followed_account_id = $1)
                       or exists (select 1 from claim back
                                   where back.account_id = v.account_id
-                                    and back.relationship = 'friend'
+                                    and ${visibleFriendSql("back")}
                                     and back.player_tag in (select player_tag from own)))
             ) as follows_you,
             ($2::text is not null and p.clan_tag = $2::text) as clanmate
@@ -175,8 +176,7 @@ async function suggestions(db, accountId) {
        cross join lateral (
          select p.name, p.last_known_clan_tag as clan_tag from player p
           where p.player_tag = c.player_tag limit 1) p
-      where c.account_id = $1 and c.relationship = 'friend'
-        and not c.is_primary and not c.close
+      where c.account_id = $1 and ${visibleFriendSql("c")} and not c.close
       order by follows_you desc, clanmate desc, lower(p.name), c.player_tag
       limit ${SUGGEST_MAX}`,
     [accountId, home?.clan_tag ?? null],

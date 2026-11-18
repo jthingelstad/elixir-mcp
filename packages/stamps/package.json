@@ -17,6 +17,7 @@
   },
   "dependencies": {
     "@elixir-mcp/auth": "0.1.0",
+    "@elixir-mcp/claims": "0.1.0",
     "@elixir-mcp/contracts": "0.1.0"
   },
   "devDependencies": {

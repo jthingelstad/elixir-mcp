@@ -225,15 +225,12 @@ export async function buildFriendsWeek({
   const primary = players.find((e) => e.relationship === "primary");
   const alts = players.filter((e) => e.relationship === "alt").map(one);
   const friends = players.filter((e) => e.relationship === "friend").map(one);
-  // The cards: friends first, then the players watched, busiest first.
+  // Followed friends with play this week, in the timeline's order.
   const ctx = { db, account, live: null, notifyOwner: async () => {} };
   const window = { from: week.from.toISOString(), to: week.to.toISOString() };
-  const played = [
-    ...players.filter((e) => e.relationship === "friend"),
-    ...players
-      .filter((e) => e.relationship === "watching")
-      .sort((a, b) => b.battles.played - a.battles.played),
-  ].filter((e) => e.battles.played > 0);
+  const played = players.filter(
+    (e) => e.relationship === "friend" && e.battles.played > 0,
+  );
   const cards = new Map();
   for (const e of played.slice(0, CARD_CAP)) {
     if (within && !within()) break;
@@ -250,47 +247,6 @@ export async function buildFriendsWeek({
       }),
     );
   for (const f of friends) Object.assign(f, cards.get(f.tag) ?? {});
-  const watching = players
-    .filter((e) => e.relationship === "watching")
-    .map((e) => {
-      const bits = [];
-      if (e.battles.played)
-        bits.push(
-          `${e.battles.played} battle${e.battles.played === 1 ? "" : "s"}, ${e.battles.won}W-${e.battles.lost}L${e.battles.by_mode ? ` (${modesText(e.battles.by_mode)})` : ""}`,
-        );
-      else bits.push("no recorded battles");
-      for (const n of e.notables ?? []) {
-        if (n.kind === "returned")
-          bits.push(`back after ${n.after_days} quiet days`);
-        else if (n.kind === "clan_joined") bits.push(`joined ${n.clan_name}`);
-        else if (n.kind === "clan_left") bits.push(`departed ${n.clan_name}`);
-        else if (n.kind === "arena_changed")
-          bits.push(`reached ${n.to ?? "a new arena"}`);
-        else if (n.kind === "ranked_promotion")
-          bits.push(`promoted to ${n.to}`);
-      }
-      return {
-        tag: e.subject_tag,
-        name: e.name ?? e.subject_tag,
-        line: bits.join("; "),
-        battles: e.battles.played,
-        wins: e.battles.won,
-        losses: e.battles.lost,
-        mode_records: e.battles.mode_records,
-        delta:
-          e.trophies?.from != null && e.trophies?.to != null
-            ? e.trophies.to - e.trophies.from
-            : null,
-        trophies:
-          e.trophies?.from != null && e.trophies?.to != null
-            ? { from: e.trophies.from, to: e.trophies.to }
-            : null,
-        moments: momentsFor(e.subject_tag),
-        progress: progressOf(e),
-        ...(cards.get(e.subject_tag) ?? {}),
-      };
-    })
-    .sort((a, b) => (b.battles ?? 0) - (a.battles ?? 0));
   const clanRows = clans.map((e) => {
     const parts = clanSummaryParts(e, tz);
     return {
@@ -313,7 +269,6 @@ export async function buildFriendsWeek({
       : null,
     alts,
     friends,
-    watching,
     clans: clanRows,
     quiet: quiet.map((q) => ({
       tag: q.tag,

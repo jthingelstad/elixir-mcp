@@ -73,7 +73,7 @@ const STATS_TOOLS = new Set([
 
 /**
  * Whether Stats may open `tag` for this account: one of its own players or
- * one it follows (a friend claim). A watched player, or anyone else, is not.
+ * one it follows (a friend claim). A followed player, or anyone else, is not.
  * One tag per read, by equality; never a list.
  */
 async function statsOpens(db, accountId, tag) {

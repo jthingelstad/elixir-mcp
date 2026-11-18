@@ -169,6 +169,41 @@ test("Drop's sign-in read: who the person is, their account id, their players an
   assert.deepEqual(wire(tool.body.players), listed);
 });
 
+test("the sign-in read names every non-self follow as friend (JSON API 6.0.0)", async () => {
+  const tag = "#0JQ0JQ8";
+  await db.query(
+    "insert into player(player_tag,name) values ($1,'Invented Juniper')",
+    [tag],
+  );
+  await db.query(
+    "insert into claim(account_id,player_tag,relationship,notify) values ($1,$2,'friend',false)",
+    [person, tag],
+  );
+  try {
+    const token = await grant(drop, "cr:read");
+    const response = await call("GET", "/api/v1/me", token);
+    assert.equal(response.statusCode, 200, response.body);
+    const players = data(response).data.players;
+    const friend = players.find((p) => p.player_tag === tag);
+    assert.equal(friend.relationship, "friend");
+    assert.equal(friend.is_primary, false);
+    assert.equal(friend.notify, false);
+    assert.equal(friend.claim_status, "unverified");
+    assert.ok(
+      players.every((p) =>
+        ["primary", "alt", "friend"].includes(p.relationship),
+      ),
+    );
+    assert.deepEqual(players, wire(await myPlayers(db, person)));
+  } finally {
+    await db.query("delete from claim where account_id=$1 and player_tag=$2", [
+      person,
+      tag,
+    ]);
+    await db.query("delete from player where player_tag=$1", [tag]);
+  }
+});
+
 test("the profile image: null until chosen, then the card, its art and Elixir's crop (5.1.0)", async () => {
   const token = await grant(drop, "cr:read");
   const before = data(await call("GET", "/api/v1/me", token)).data;

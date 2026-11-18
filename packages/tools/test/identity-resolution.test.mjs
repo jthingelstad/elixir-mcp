@@ -229,8 +229,7 @@ test("#556: a person with players but no primary is told so, not that they have 
     grouped: {
       primary: [],
       alt: [],
-      friend: [],
-      watching: [{ player_tag: OTHER, name: "King Thing" }],
+      friend: [{ player_tag: OTHER, name: "King Thing" }],
     },
   });
   assert.match(

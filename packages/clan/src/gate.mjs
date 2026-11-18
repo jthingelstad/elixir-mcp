@@ -46,8 +46,8 @@ export function normalizeTag(value) {
 
 const SELF = new Set(["primary", "alt"]);
 
-/** A claim of the person's own: their primary or an alt, never a friend
- *  or a watched player. A row with no relationship is the person's. */
+/** A claim of the person's own: their primary or an alt, never a friend.
+ *  A row with no relationship is the person's. */
 const isSelf = (id) => !id.relationship || SELF.has(id.relationship);
 
 /** The role a claim acts as here: its in-game role once verified, a
@@ -59,7 +59,7 @@ const actingRole = (id) =>
 export function clansOf(identities, principal) {
   const byClan = new Map();
   for (const id of identities) {
-    // Only "you" and your alts act here; friends and watching never do.
+    // Only "you" and your alts act here; friends never do.
     if (!id.clan_tag || !id.role || !isSelf(id)) continue;
     byClan.set(id.clan_tag, [...(byClan.get(id.clan_tag) ?? []), id]);
   }

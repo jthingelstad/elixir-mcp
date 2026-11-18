@@ -443,9 +443,9 @@ test.describe("Stats signed in", () => {
               FRIEND,
               {
                 player_tag: "#00VVGLJ",
-                name: "A Watched One",
+                name: "Another Friend",
                 is_primary: false,
-                relationship: "watching",
+                relationship: "friend",
               },
             ],
           },
@@ -503,8 +503,10 @@ test.describe("Stats signed in", () => {
     ).toContainText("A Friend");
     await expect(page.getByRole("tablist", { name: "Profile" })).toHaveCount(0);
 
-    // A watched player or a stranger reads your primary instead.
-    for (const tag of ["00VVGLJ", "9VVV2Q"]) {
+    // Every friend is eligible; a stranger reads your primary instead.
+    await page.goto("/home/you/stats?player=00VVGLJ");
+    await expect(select).toHaveValue("#00VVGLJ");
+    for (const tag of ["9VVV2Q"]) {
       await page.goto(`/home/you/stats?player=${tag}`);
       await expect(select).toHaveValue("#20JJJ2CCRU");
     }

@@ -30,11 +30,11 @@ your slots, unless Elixir already records the player for another reason
 are taken at your word (`claim_status: unverified`) until
 [Verify](/docs/verify) proves one, and several accounts may follow the same
 player and share one recording. A verified player is its owner's alone: no
-other account may hold it as its primary or an alt (a friend or watching is
+other account may hold it as its primary or an alt (a friend is
 fine), and such a claim ends when the player is verified.
 
 **relationship**: who a followed player is to you: `primary` (you; exactly
-one), `alt` (also you, another tag), `friend`, or `watching` (the default).
+one), `alt` (also you, another tag), or `friend` (the default for later additions).
 The primary is what omitting `player_tag` means on a personal connection,
 and its current clan is what omitting `clan_tag` means. It is never
 reassigned for you: removing it is refused while you follow other players

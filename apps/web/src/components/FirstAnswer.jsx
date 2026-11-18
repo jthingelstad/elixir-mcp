@@ -8,7 +8,7 @@ const n = (v) => (Number.isFinite(v) ? v.toLocaleString() : "unknown");
 const hasBattles = hasBattleEvidence;
 
 /** Only a player who is you (your primary or an alt) can be proved
- *  yours; a friend or a watched player has nothing to verify. */
+ *  yours; a friend has nothing to verify. */
 const provable = (p) =>
   !p || p.is_primary !== false || p.relationship === "alt";
 

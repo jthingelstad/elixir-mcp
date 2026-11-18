@@ -913,7 +913,7 @@ test("a self claim on a tag another account verified is refused on every shape o
   const plain = await addPlayer(db, alice, { tag: A, via: "test" });
   assert.equal(plain.ok, true);
   assert.deepEqual(await relOf(alice, A), {
-    relationship: "watching",
+    relationship: "friend",
     is_primary: false,
   });
   // Making it primary, or an alt, is still refused, and B stays primary.
@@ -929,7 +929,7 @@ test("a self claim on a tag another account verified is refused on every shape o
     relationship: "alt",
   });
   assert.deepEqual(alt, { ok: false, ...VERIFIED_ELSEWHERE });
-  assert.equal((await relOf(alice, A)).relationship, "watching");
+  assert.equal((await relOf(alice, A)).relationship, "friend");
   const friend = await setRelationship(db, alice, {
     tag: A,
     relationship: "friend",
@@ -937,7 +937,7 @@ test("a self claim on a tag another account verified is refused on every shape o
   assert.deepEqual(friend, { ok: true, relationship: "friend" });
 });
 
-test("a first player named friend or watching on a verified tag is added as that, never the primary", async () => {
+test("a first player named friend on a verified tag is added as that, never the primary", async () => {
   await addPlayer(db, bob, { tag: A, via: "test" });
   await verify(bob, A);
   const r = await addPlayer(db, alice, {
@@ -956,15 +956,15 @@ test("a first player named friend or watching on a verified tag is added as that
   assert.equal(next.isPrimary, false);
 });
 
-test("a first player named friend or watching stays that, and the account has no player of its own", async () => {
-  for (const relationship of ["friend", "watching"]) {
+test("a first player named friend stays that, and the account has no player of its own", async () => {
+  for (const relationship of ["friend"]) {
     const who = await account(`first-${relationship}@example.com`);
     const r = await addPlayer(db, who, { tag: A, relationship, via: "test" });
     assert.equal(r.ok, true);
     assert.equal(r.isPrimary, false);
     assert.equal(r.noOwnPlayer, true);
     assert.deepEqual(await relOf(who, A), { relationship, is_primary: false });
-    // Only naming one makes it theirs: an unnamed next add is watching.
+    // Only naming one makes it theirs: an unnamed next add is a friend.
     const next = await addPlayer(db, who, { tag: C, via: "test" });
     assert.equal(next.isPrimary, false);
     const own = await addPlayer(db, who, {
@@ -1011,7 +1011,7 @@ test("the verified owner's own re-add, make primary, alt and re-verify are unaff
   assert.deepEqual(await events(bob, "claim_ended"), []);
 });
 
-test("verifying ends every other account's primary or alt on the tag, keeps friends and watchers, and promotes nothing", async () => {
+test("verifying ends every other account's primary or alt on the tag, keeps friends, and promotes nothing", async () => {
   const carol = await account(`carol-${Math.random()}`, { slots: 10 });
   const dave = await account(`dave-${Math.random()}`, { slots: 10 });
   // Alice holds A as her primary and also tracks C; Carol holds A as an
@@ -1270,7 +1270,7 @@ test("slots: a suspended agent's follow is no reason, so it makes nothing free",
     [C],
   );
   await db.query(
-    `insert into claim (account_id, player_tag, relationship) values ($1, $2, 'watching')`,
+    `insert into claim (account_id, player_tag, relationship) values ($1, $2, 'friend')`,
     [row.account_id, C],
   );
   assert.equal((await playerCost(db, alice.accountId, C)).free, false);
