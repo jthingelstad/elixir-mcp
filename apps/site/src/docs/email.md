@@ -63,8 +63,8 @@ chooses what to say, and the timeline keeps everything.
   earlier than your last digest, so nothing is told twice. It tells what
   the record learned in that time, so a battle recorded late still
   arrives, once.
-- **From people you follow:** each friend and watched player who played
-  or posted, friends first, up to twelve with the rest counted. Each has
+- **From people you follow:** each friend who played
+  or posted, up to twelve with the rest counted. Each has
   their sessions, then their battles and record, their trophies, and up to
   three things:
   their [posts and questions](/docs/timeline#posts), including

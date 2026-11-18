@@ -249,15 +249,14 @@ export function FollowedRecord({ me, refresh, navigate, tag }) {
                 ) : (
                   <span key="value" className="st-actions">
                     <select
-                      className="select"
+                      className="select select--hit"
                       aria-label="Relationship"
-                      value={claim.relationship ?? "watching"}
+                      value={claim.relationship ?? "friend"}
                       onChange={(ev) =>
                         only(relationship)(wanted, ev.target.value)
                       }
                     >
                       <option value="friend">Friend</option>
-                      <option value="watching">Watching</option>
                       <option value="alt">Also you</option>
                     </select>
                     {/* Choosing a new one is how the current main player

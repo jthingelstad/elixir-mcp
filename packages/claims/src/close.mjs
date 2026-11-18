@@ -11,8 +11,8 @@
  * has of that account's Verified players, and a player the link follows
  * later takes the mark the others carry (settleCloseLink).
  *
- * Only a friend follow carries it. Your own players and the players you
- * watch are not friends, and 0281's check refuses the mark on them; a
+ * Only a friend follow carries it. Your own players are not friends, and
+ * 0281's check refuses the mark on them; a
  * relationship change away from friend clears it (index.mjs).
  *
  * No account_event is written: the account's own lines reach its bell and

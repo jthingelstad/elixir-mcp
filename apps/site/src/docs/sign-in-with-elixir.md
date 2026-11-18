@@ -133,8 +133,9 @@ an `x-request-id` header. `data` holds:
 - `principal`: who they are to Elixir, as an MCP `initialize` says it;
   its `subject` is their primary player;
 - `players`: the players they follow, with each one's tag, name, clan
-  and who it is to them. The one with `is_primary` true is who they play
-  as, and `claim_status` is `verified` once they proved it is theirs;
+  and relationship: `primary` (them), `alt` (also them), or `friend`
+  (every other follow, since JSON API 6.0.0). The one with `is_primary` true
+  is who they play as, and `claim_status` is `verified` once they proved it is theirs;
   its `name` is that player's game name as Elixir last recorded it;
 - `avatar`: their profile image, or `null` when they chose none (below);
 - `email`: only for a family app holding `account:email`.

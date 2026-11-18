@@ -59,7 +59,7 @@ test("gate: an account that only follows friends has no player of its own", asyn
       player({ relationship: "friend", is_primary: false }),
       player({
         player_tag: "#0RJL",
-        relationship: "watching",
+        relationship: "friend",
         is_primary: false,
       }),
     ],
@@ -357,7 +357,7 @@ test("gate: a door failure is an error, not a refusal", async () => {
   assert.equal(g.status, 401);
 });
 
-test("clansOf: friends and watching never make a clan, even if the row says verified; an unverified alt is a member", () => {
+test("clansOf: friends never make a clan, even if the row says verified; an unverified alt is a member", () => {
   const clans = clansOf(
     [
       {

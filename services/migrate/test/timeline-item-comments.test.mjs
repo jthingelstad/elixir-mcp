@@ -137,7 +137,12 @@ test("0300 preserves comment history, classifies receipts by source and normaliz
         )
       ).rows;
     const before = await snapshot();
-    const result = await migrate({ databaseUrl: url, migrationsDir });
+    const commentMigration = "0300_timeline_item_comments.sql";
+    await cp(
+      path.join(migrationsDir, commentMigration),
+      path.join(dir, commentMigration),
+    );
+    const result = await migrate({ databaseUrl: url, migrationsDir: dir });
     assert.equal(result.ran, 1);
     assert.deepEqual(
       await snapshot(),

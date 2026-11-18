@@ -211,8 +211,8 @@ export async function followAccountLinked(
 
 /**
  * Stop following an account: the account follow and each follow of its
- * Verified players. A player the reader watches (recorded, not followed)
- * or claims as their own is left alone. Idempotent. Returns
+ * Verified players. A player the reader claims as their own is left alone.
+ * Idempotent. Returns
  * `{ ok, account_removed, unfollowed: [tag] }`.
  */
 export async function unfollowAccountLinked(

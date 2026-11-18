@@ -178,10 +178,10 @@ test("a watched player who leads is no ground: only the person's own players", a
     `select is_primary, relationship from claim where account_id = $1 and player_tag = $2`,
     [a.accountId, Q],
   );
-  assert.deepEqual(rows[0], { is_primary: false, relationship: "watching" });
+  assert.deepEqual(rows[0], { is_primary: false, relationship: "friend" });
   await addClan(db, a, { tag: CLAN, scope: "activity", via: "test" });
   await membership(Q, CLAN, "leader");
-  // Even verified, a 'watching' claim is somebody else.
+  // Even verified, a 'friend' claim is somebody else.
   await verify(a, Q);
   assert.equal(await tier(a), "member");
 });

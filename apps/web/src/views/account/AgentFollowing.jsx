@@ -22,7 +22,7 @@ const of = (slot) =>
  *
  * The clan it ACTS FOR is marked and cannot be removed; any other of its
  * clans can be made that one instead, which is how an agent is re-pointed.
- * Its players are watched, never "me". Everything here spends the person's
+ * Its players are followed, never "me". Everything here spends the person's
  * places, one pool across them and their agents, so the counts are the
  * pool's.
  */

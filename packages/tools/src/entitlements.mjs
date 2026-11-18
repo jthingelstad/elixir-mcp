@@ -124,7 +124,7 @@ async function resolveEntitlements(db, account) {
     // with the "Your clan is" sentence and never slides to an alt's.
     primaryClan: claims.find((c) => c.is_primary)?.clan_tag ?? null,
     // The recorded clans of the person's ALTS only: the other players who
-    // are also them. A friend's or a watched player's clan is never
+    // are also them. A friend's clan is never
     // offered as "yours" (DECISIONS: refuse rather than choose).
     altClans: [
       ...new Set(
@@ -312,7 +312,7 @@ export async function resolveSubject(
     } else {
       // Still is_primary, not relationship: 0055 is the EXPAND half, and
       // forty-odd readers plus every test fixture still write the boolean.
-      // relationship carries the new information (alt / friend / watching);
+      // relationship carries the new information (alt / friend);
       // a contract migration switches the reads and drops the column once
       // nothing sets it. Writers set both, so they cannot disagree.
       const { rows } = await db.query(
@@ -392,7 +392,7 @@ export async function resolveEntitledClan(db, account, inputTag) {
   }
   // A person's default is the PRIMARY player's clan and nothing else
   // (3.18.0; DECISIONS "refuse rather than choose", 2026-09-25): never an
-  // alt's, a friend's or a watched player's clan, for the owner too.
+  // alt's or a friend's clan, for the owner too.
   if ((account.kind ?? "person") === "person") {
     const alts = ent.altClans.length
       ? ` (your alts' recorded clans: ${ent.altClans.join(", ")})`

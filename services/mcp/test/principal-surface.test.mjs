@@ -186,7 +186,7 @@ test("a person is told who they are, and told not to look it up", async () => {
         { player_tag: "#0GVUURQ0", name: "Dove Sunny", is_primary: true },
       ],
       alt: [{ player_tag: "#0C2LVVR0", name: "Rapid Clear" }],
-      watching: [{ player_tag: "#09YY2UU9", name: "Gecko Silver" }],
+      friend: [{ player_tag: "#09YY2UU9", name: "Gecko Silver" }],
     },
     clans: [{ clan_tag: "#J2RGCRVG", name: "POAP KINGS" }],
     // "Your clan" is the primary player's current clan (2026-09-25).
@@ -201,7 +201,7 @@ test("a person is told who they are, and told not to look it up", async () => {
 
   assert.match(text, /YOU ARE Dove Sunny #0GVUURQ0/);
   assert.match(text, /Also you, under another tag: Rapid Clear #0C2LVVR0/);
-  assert.match(text, /watching: Gecko Silver #09YY2UU9/);
+  assert.match(text, /Friends you follow: Gecko Silver #09YY2UU9/);
   assert.match(text, /Your clan is POAP KINGS #J2RGCRVG/);
   assert.match(text, /OMIT player_tag and clan_tag/);
 });

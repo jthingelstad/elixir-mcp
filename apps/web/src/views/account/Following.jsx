@@ -172,7 +172,7 @@ function AddPlayer({ refresh, navigate, input, first }) {
           <input
             ref={input}
             id="add-player-tag"
-            className="mono-tag"
+            className="mono-tag input--hit"
             placeholder="#0PJCLJYP"
             aria-describedby="add-player-tag-hint"
             aria-invalid={err ? "true" : undefined}
@@ -190,12 +190,11 @@ function AddPlayer({ refresh, navigate, input, first }) {
           <label>
             Add as
             <select
-              className="select"
+              className="select select--hit"
               value={relationship}
               onChange={(ev) => setRelationship(ev.target.value)}
             >
               <option value="friend">Friend</option>
-              <option value="watching">Watching</option>
               <option value="alt">Also you</option>
             </select>
           </label>
@@ -249,10 +248,6 @@ function Players({ me, refresh, navigate, hash }) {
   const friends = claims.filter(
     (c) => !c.is_primary && c.relationship === "friend",
   );
-  const watching = claims.filter(
-    (c) =>
-      !c.is_primary && c.relationship !== "friend" && c.relationship !== "alt",
-  );
   const group = (title, note, list) =>
     list.length ? (
       <Panel
@@ -289,8 +284,7 @@ function Players({ me, refresh, navigate, hash }) {
         first={claims.length === 0}
       />
       {group("You", null, you)}
-      {group("Friends", "First in your digest", friends)}
-      {group("Watching", "In your digest when they played or posted", watching)}
+      {group("Friends", "In your Timeline and digest", friends)}
       <HomeClanOffer />
     </>
   );

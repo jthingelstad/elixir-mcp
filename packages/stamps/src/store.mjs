@@ -18,6 +18,7 @@
  * Date objects, so every day leaves SQL through to_char and every count
  * through ::int, and every parameter is cast where it is used.
  */
+import { visibleFriendSql } from "@elixir-mcp/claims";
 import { createHash, randomInt } from "node:crypto";
 import {
   CATALOG_VERSION,
@@ -616,8 +617,7 @@ export async function readSnapshot(db, accountId, { now }) {
               where ps.subject_tag = c.player_tag
                 and ps.endpoint = 'player_battlelog') as battle_log_read_at
        from claim c
-      where c.account_id = $1::uuid and c.relationship = 'friend'
-        and not c.is_primary`,
+      where c.account_id = $1::uuid and ${visibleFriendSql("c")}`,
     [accountId, at],
   );
   const {
@@ -630,13 +630,12 @@ export async function readSnapshot(db, accountId, { now }) {
         and (v.is_primary or v.relationship in ('primary', 'alt'))
        join account va on va.account_id = v.account_id
         and coalesce(va.kind, 'person') = 'person'
-      where mine.account_id = $1::uuid and mine.relationship = 'friend'
-        and not mine.is_primary and v.account_id <> $1::uuid
+      where mine.account_id = $1::uuid and ${visibleFriendSql("mine")} and v.account_id <> $1::uuid
         and exists (
           select 1 from claim back
             join claim mine2 on mine2.player_tag = back.player_tag
            where back.account_id = v.account_id
-             and back.relationship = 'friend' and not back.is_primary
+             and ${visibleFriendSql("back")}
              and mine2.account_id = $1::uuid and mine2.status = 'verified'
              and (mine2.is_primary or mine2.relationship in ('primary', 'alt')))`,
     [accountId],

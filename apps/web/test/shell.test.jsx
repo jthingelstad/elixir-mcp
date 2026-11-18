@@ -30,7 +30,7 @@ test("the menu's players are your own: a friend or a watch is not one", () => {
         { player_tag: "#A", name: "Ada", is_primary: true },
         { player_tag: "#B", name: "Alt", relationship: "alt" },
         { player_tag: "#C", name: "Friend", relationship: "friend" },
-        { player_tag: "#D", name: "Watch", relationship: "watching" },
+        { player_tag: "#D", name: "Watch", relationship: "friend" },
       ],
     },
     () => {},

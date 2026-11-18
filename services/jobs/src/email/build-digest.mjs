@@ -376,7 +376,7 @@ export async function buildDigest({
         tag: it.subject_tag,
         relationship: it.post.mine
           ? (ownRelations.get(it.subject_tag) ?? "primary")
-          : "watching",
+          : "friend",
         nickname: null,
       },
     ]),
@@ -516,15 +516,12 @@ export async function buildDigest({
     })),
   ];
   const followed = players
-    .filter((e) => e.relationship === "friend" || e.relationship === "watching")
+    .filter((e) => e.relationship === "friend")
     .map(person)
     .filter((p) => p.battles > 0 || p.items.length > 0)
-    // Friends first, then whoever has the most to tell, then the
-    // busiest.
+    // Whoever has the most to tell, then the busiest.
     .sort(
       (a, b) =>
-        (a.relationship === "friend" ? 0 : 1) -
-          (b.relationship === "friend" ? 0 : 1) ||
         b.items.length + b.more_items - (a.items.length + a.more_items) ||
         b.battles - a.battles,
     );

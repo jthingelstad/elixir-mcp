@@ -25,7 +25,7 @@ export type PrincipalKind = "person" | "agent";
  *
  * The two follow tools (named track until 12.0.0) left this list at 7.1.0
  * (Jamie, 2026-09-23: a clan agent may be asked to follow a competitive
- * clan). An agent follows with an agent's meaning: its players are watched,
+ * clan). An agent follows with an agent's meaning: its players are followed,
  * never "me", its clans spend its owner's pooled slots, and it keeps the
  * clan it acts for.
  *

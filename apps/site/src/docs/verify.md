@@ -27,7 +27,7 @@ the challenge.
 
 1. Pick the player, under **Settings › Players & following › Verify**. The page lists your
    primary player and your alts, the claims that are yours to prove; a
-   friend or a player you merely watch is theirs. Players are added under
+   friend is theirs. Players are added under
    Players & following; Verify only proves them.
 2. Elixir names eight cards and shows them the way the game lays a deck
    out: two rows of four. The eight are **your own deck**: the one you
@@ -87,7 +87,7 @@ player, which is its primary) is refused, on the website and through an
 agent alike, with the answer this page gives:
 another account has verified this player; if that player is yours, sign
 in to the account that verified it, or tell us through the feedback form.
-Following a verified player as a friend, or watching it, stays open to
+Following a verified player as a friend stays open to
 anyone; that is not a claim to be them.
 
 If another account had already added the player as its primary or an alt
@@ -95,7 +95,7 @@ before you verified it, that claim ends the moment your verification
 succeeds. That account's timeline says so, naming the player and never
 your account; if it was their primary, they are left with no primary
 until they choose one, and Settings › Players & following says so, and the clan Elixir followed
-for that player is unfollowed, as when a primary moves. Their friend or watching
+for that player is unfollowed, as when a primary moves. Their friend
 claim on the player stays.
 
 If another account has already verified a player you try to verify, the

@@ -243,7 +243,7 @@ test("an agent never claims a player as itself, but can watch one", async () => 
       where account_id = $1 and player_tag = '#20JJJ2CCRU'`,
     [agent.account_id],
   );
-  assert.deepEqual(claim[0], { relationship: "watching", is_primary: false });
+  assert.deepEqual(claim[0], { relationship: "friend", is_primary: false });
   await db.query(`delete from claim where account_id = $1`, [agent.account_id]);
 });
 

@@ -93,8 +93,8 @@ and `clans_my_view`, which need a self. Omit `clan_tag` anywhere and it means th
 An agent can follow clans and players as well: a rival clan it is
 asked to watch, the other clans of a family, a player worth following.
 `elixir_follow_clan` and `elixir_follow_player` work for it the way they work
-for you, with an agent's meaning. Its players are `watching`, never
-`primary`, `alt` or `friend`, because those say "me". Every clan and player
+for you, with an agent's meaning. Its players are `friend`, never
+`primary` or `alt`, because those say "me". Every clan and player
 it follows spends **your** recording slots: they are one pool across you and
 all your agents, a subject counts once however many of you follow it, and a
 clan counts once at the widest scope any of you gives it. So making agents

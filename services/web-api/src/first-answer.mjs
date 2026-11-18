@@ -1,3 +1,4 @@
+import { visibleFriendSql } from "@elixir-mcp/claims";
 import { dailySql } from "@elixir-mcp/record/daily-sql";
 import { recentCompleteness } from "@elixir-mcp/tools/coverage";
 import { STARTER_HIDDEN_DAYS } from "./people.mjs";
@@ -129,8 +130,7 @@ export async function firstAnswer(db, accountId, playerTag = null) {
                 and not is_primary) as following,
             (select count(*)::int from (
                select 1 from claim c
-                where c.account_id = $1 and c.relationship = 'friend'
-                  and not c.is_primary
+                where c.account_id = $1 and ${visibleFriendSql("c")}
                   and exists (
                     select 1 from battle_participant bp
                      where bp.player_tag = c.player_tag

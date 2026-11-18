@@ -130,8 +130,8 @@ Subscriptions are implicit; nothing to configure.
 
 | Reader | Subjects | On the timeline |
 |---|---|---|
-| a person | every player they follow with notify on (primary, alts, friends, watching); every clan they added with notify on | each player's sessions and moments; each clan's roster, war and members' moments |
-| an agent | every clan it follows with notify on (the clan it acts for, and any other); every player it follows with notify on, always `watching`, never "me" | each clan's roster, war and members' moments; each player's sessions and moments. A clan's members appear **on the clan's timeline**, never as subjects of their own |
+| a person | every player they follow with notify on (primary, alts and friends); every clan they added with notify on | each player's sessions and moments; each clan's roster, war and members' moments |
+| an agent | every clan it follows with notify on (the clan it acts for, and any other); every player it follows with notify on, always `friend`, never "me" | each clan's roster, war and members' moments; each player's sessions and moments. A clan's members appear **on the clan's timeline**, never as subjects of their own |
 
 The entry's shape follows the subject, not the account: a person who adds a
 clan gets the same clan entry an agent gets. `notify_off` on a subject

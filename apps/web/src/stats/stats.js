@@ -293,7 +293,7 @@ export const isFollowedClaim = (c) =>
 /** The players Stats can show: the reader's own, primary first, then alts,
  *  and, when `?player=` names one, a player the reader follows (Jamie,
  *  2026-11-12: "Stats opens for the players you follow", from their player
- *  page). A watched player or a stranger is never listed, and the server
+ *  page). A followed player or a stranger is never listed, and the server
  *  refuses their reads (`POST /api/me/stats`). */
 export function statsPlayers(claims, param) {
   const own = (claims ?? []).filter((c) => c?.player_tag && isOwnClaim(c));

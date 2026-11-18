@@ -9,7 +9,7 @@
  *   - `verified_tags`: tags some account has verified
  *   - `colliding_tags`: of those, tags another account also claims
  *   - `by_relationship`: the other accounts' claims on verified tags, by
- *     what the claim says (`primary`, `alt`, `friend`, `watching`), each
+ *     what the claim says (`primary`, `alt`, `friend`), each
  *     as claims, distinct tags and distinct accounts
  *   - `self`: the `primary` and `alt` ones together, the collisions the
  *     rule concerns, with the accounts whose primary it is
@@ -20,7 +20,7 @@
 
 import pg from "pg";
 
-const RELATIONSHIPS = ["primary", "alt", "friend", "watching"];
+const RELATIONSHIPS = ["primary", "alt", "friend"];
 
 export async function verifiedTagCensusOp(databaseUrl, spec = {}) {
   if (spec?.dry_run !== true)

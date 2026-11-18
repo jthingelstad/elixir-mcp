@@ -99,7 +99,7 @@ in one place: a meter of the slots in use out of your limit, the same
 number every Follow says, then the players using a slot because of you
 (each with who follows them: you, or an agent of yours by name) and,
 apart from them, the free follows with why each is free. A player you
-follow or watch has **Unfollow** there; your own players open on
+follow has **Unfollow** there; your own players open on
 Players & following, and a player only your agent follows opens that agent's
 page. A player your agent also follows keeps its slot until the agent stops
 too.
@@ -188,8 +188,7 @@ record holds).
 ## Relationships, primary, nicknames
 
 Each player you follow is your `primary` (exactly one: the first you add unless you name
-them a friend or watching, or whichever you mark `relationship: "primary"`), an `alt`, a `friend`, or
-someone you are `watching` (the default). The primary is what "omit
+them a friend, or whichever you mark `relationship: "primary"`), an `alt`, or a `friend` (the default for later additions). The primary is what "omit
 `player_tag`" means on your connection, and its current clan is what an
 omitted `clan_tag` means. Removing your primary is refused while you follow
 other players, because Elixir will not choose who "you" are: make another
@@ -200,8 +199,7 @@ primary until you add one. Claims are taken at your word
 (`claim_status: unverified`) until [Verify](/docs/verify) proves one;
 several accounts may follow the same player and share the recording. A
 player another account has verified is theirs: making it your primary or
-an alt is refused (`not_entitled`, with what to do), while `friend` and
-`watching` are not, and a first player named `friend` or `watching` is
+an alt is refused (`not_entitled`, with what to do), while a `friend` follow is not, and a first player named `friend` is
 added as that and is not made your primary. If you held a player as your
 primary or an alt when another account verified it, your claim ends and
 your timeline says so; an ended primary leaves you with none until you
@@ -214,7 +212,7 @@ roster, its members coming and going, its river races), as soon as a read
 of your player's profile shows which clan they are in. That is what puts
 your clan's news in your digest. The rules:
 
-- **Only your primary.** An alt, a friend or a player you watch never
+- **Only your primary.** An alt or a friend never
   brings their clan with them.
 - **Only a player in a clan.** A primary in no clan follows nothing, and
   a primary who leaves their clan leaves your follows as they were.

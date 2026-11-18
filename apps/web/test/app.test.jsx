@@ -1201,7 +1201,7 @@ describe("an agent's pages in Settings", () => {
               {
                 player_tag: "#022YGRRL",
                 name: "Rival Star",
-                relationship: "watching",
+                relationship: "friend",
                 notify: true,
               },
             ],
