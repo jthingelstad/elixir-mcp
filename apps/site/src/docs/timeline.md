@@ -215,6 +215,8 @@ Timeline or history. **Create an account** and **Sign in** invite the reader
 into Elixir. Shared pages carry no comments, cheers, private nicknames,
 account notices or private Clan state. Player names are plain game names.
 
+After signing in or creating an account, you return to the shared item. Choose **Follow** for its author or player, or choose players on a shared battle. Elixir shows the cost before you confirm.
+
 After the link is ready, **Share image** opens its picture and **Copy for a
 post** copies a linked picture. A clipboard or Share sheet interruption
 leaves the link available to select and copy.

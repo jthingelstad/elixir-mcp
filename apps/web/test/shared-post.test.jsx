@@ -87,6 +87,14 @@ test("signed-in viewers still see public names without reader aliases or verifie
   expect(screen.queryByRole("link", { name: "Create an account" })).toBeNull();
 });
 
+test("a returning member can choose to follow the author of a shared battle post", () => {
+  renderWithProviders(
+    <SharedItem read={{ item }} me={{ authenticated: true, claims: [] }} />,
+  );
+  const link = screen.getByRole("link", { name: `Follow ${HOSTILE}` });
+  expect(link.getAttribute("href")).toBe(`/home/follow/${TAG.slice(1)}`);
+});
+
 test("a shared 2v2 battle preserves four decks but no history or member actions", () => {
   const read = structuredClone(BATTLE);
   delete read.battle.url;
