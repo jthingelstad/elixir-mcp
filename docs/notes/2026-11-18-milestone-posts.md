@@ -41,3 +41,10 @@ member/MCP/RSS/digest audiences; share preview and web rendering retain the
 attachment and escape hostile names. Screenshots and keyboard/accessibility checks
 cover 320, 390 and 1280 with reduced motion. Production behavior remains unverified
 until the coordinating deployment and natural acceptance.
+
+The catalogue docs audit permits only the conditional elixir_timeline item_ref
+field when an acceptance window has no person-visible milestone post. A quiet
+clan-agent fixture reproduced the missing-field failure before the allowance;
+unrelated invented fields and other tools remain rejected. The actual field is
+covered by the real saved-post MCP integration fixture. No production post or
+synthetic captured bite is manufactured for acceptance.
