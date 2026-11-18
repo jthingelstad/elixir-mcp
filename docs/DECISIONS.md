@@ -442,6 +442,7 @@ plain words.
 ## Schema and migrations
 
 - Follower Notifications, mail and push use the time the person began following. Deploy these readers before converting Watching so the conversion can preserve silent follows. [engineering, 2026-11-17; Jamie approved the relationship conversion, 2026-11-17]
+- The Watching conversion keeps legacy writers compatible atomically with its narrower check: stamp first, then normalize Watching to Friend without a follow event, and retain the normalizer through the old Lambda invocation window. [engineering, 2026-11-18; production 0301 confirmed unapplied; `docs/notes/2026-11-18-friend-follows-cutover.md`]
 
 - **The migrate Lambda is the only applier** — at deploy, never at handler start or by hand; only `{}` migrates, and an unknown op key is refused (`unknown_op`). [Jamie, 2026-09-25; engineering: the only applier, at deploy, 2026-09-21]
 - **Expand-and-contract** — drop a column or table only after no deployed reader uses it. [engineering, 2026-09-21]

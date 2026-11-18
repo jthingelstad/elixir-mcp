@@ -12,7 +12,9 @@ let scratch, reader, handler, token;
 before(async () => {
   scratch = await scratchDb("circle_friend_blocks");
   const { db } = scratch;
-  await db.query(`alter table claim drop constraint claim_relationship_check;
+  await db.query(`drop trigger if exists claim_watching_compat on claim;
+    drop function if exists normalize_legacy_watching_claim();
+    alter table claim drop constraint claim_relationship_check;
     alter table claim add constraint claim_relationship_check
       check (relationship in ('primary','alt','friend','watching'))`);
   const person = async (hash, tag) => {
