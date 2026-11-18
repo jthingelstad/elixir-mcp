@@ -2,6 +2,7 @@
  * names or submitted facts belong in their URLs. The server re-reads the
  * exact canonical item and its current audience on every visit. */
 const ITEM_ID = /^tl_[a-f0-9]{20}$/;
+export const MEMBER_ITEM_PATH = /^\/home\/item\/tl_[a-f0-9]{20}$/;
 const COMMENT_ID = /^[1-9][0-9]{0,18}$/;
 const PAGE_ID = /^[a-z0-9]{12}$/i;
 const TAG = /^#[0289PYLQGRJCUV]{3,15}$/;
@@ -65,14 +66,17 @@ function locator(input) {
   return ref;
 }
 
+/** @param {object} itemRef
+ * @param {{commentId?: string|null, after?: string|null, afterId?: string|null}} [options] */
 export function memberItemPath(
   itemRef,
-  { commentId = null, after = null } = {},
+  { commentId = null, after = null, afterId = null } = {},
 ) {
   const ref = locator(itemRef);
   if (!ref) return null;
   const query = new URLSearchParams({ ref: JSON.stringify(ref) });
   if (COMMENT_ID.test(String(commentId))) query.set("reply", String(commentId));
+  if (COMMENT_ID.test(String(afterId))) query.set("after_id", String(afterId));
   if (
     after === "all" ||
     (typeof after === "string" && Number.isFinite(Date.parse(after)))
@@ -91,6 +95,9 @@ export function readMemberItemPath(id, search) {
     return {
       ref,
       entry: {
+        ...(COMMENT_ID.test(String(search.after_id))
+          ? { afterId: String(search.after_id) }
+          : {}),
         reply: COMMENT_ID.test(String(search.reply))
           ? String(search.reply)
           : null,
