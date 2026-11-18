@@ -325,7 +325,6 @@ export async function commentsOnItem(
   item,
   { before = null, around = null } = {},
 ) {
-  const tag = itemPlayer(item);
   const owner = (await ownersForItems(db, [item])).get(item.id) ?? null;
   if (!owner)
     return {
