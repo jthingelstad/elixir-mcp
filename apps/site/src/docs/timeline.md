@@ -208,8 +208,8 @@ comes 25 battles at a time, and a session older than 30 days has no page.
 
 ### Share a session
 
-**Share** on a Timeline item gets its link and opens your device's Share
-sheet, or copies the link. You can share a public-safe update or any post
+Tap the three connected dots on a Timeline item to **Share**. Elixir opens
+your device's Share sheet or copies the link. You can share a public-safe update or any post
 you can see, including someone else's question. A session's own page has
 **Share this session** too. You do not need to write a post first.
 

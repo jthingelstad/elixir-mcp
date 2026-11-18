@@ -38,7 +38,12 @@ afterEach(() => {
 test("one tap copies only the canonical URL and later taps reuse its capability", async () => {
   window.history.replaceState({}, "", "/timeline?nickname=private#secret");
   render(<ItemShare it={item} />);
-  fireEvent.click(screen.getByRole("button", { name: "Share", exact: true }));
+  const share = screen.getByRole("button", { name: "Share", exact: true });
+  expect(share.textContent).toBe("");
+  expect(
+    share.querySelector("svg.lucide-share-2")?.getAttribute("aria-hidden"),
+  ).toBe("true");
+  fireEvent.click(share);
   await screen.findByRole("button", { name: "Link copied" });
   expect(copy).toHaveBeenCalledWith(URL);
   expect(api.shareItem).toHaveBeenCalledWith(

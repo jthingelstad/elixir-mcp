@@ -93,25 +93,26 @@ function ShareAction({ it, battle, onReady }) {
       busy.current = false;
     }
   };
+  const feedback = {
+    pending: "Getting link…",
+    copied: "Link copied",
+    shared: "Shared",
+  }[state];
   return (
     <span className="kit-item-share">
       <button
         type="button"
-        className="btn btn--quiet btn--sm"
+        className="btn btn--quiet btn--sm kit-item-share__action"
+        aria-label={feedback ? undefined : "Share"}
+        title={feedback ? undefined : "Share"}
         disabled={state === "pending"}
         onClick={run}
       >
         <Icon
           name={state === "copied" || state === "shared" ? "check" : "share-2"}
-          size={16}
+          size={20}
         />
-        {state === "pending"
-          ? "Getting link…"
-          : state === "copied"
-            ? "Link copied"
-            : state === "shared"
-              ? "Shared"
-              : "Share"}
+        {feedback}
       </button>
       {state === "error" ? (
         <span role="status" className="kit-tiny">

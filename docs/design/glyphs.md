@@ -93,6 +93,7 @@ kid-safe: no thumbs-down, anger, skull, mocking or romantic kinds.
 | `x` | Closes a sheet or a panel |
 | `star` (filled) | Yours: your clan, your close friend |
 | `check` | Done (a step, a perfect attendance) |
+| `share-2` | Share a Timeline item, session or battle. The button is named “Share”. |
 | `copy`, `link-2` | Copy, a link (sharing a session or a battle) |
 | `external-link`, `arrow-up-right` | Leaves Elixir |
 | `user-plus` | Follow |
