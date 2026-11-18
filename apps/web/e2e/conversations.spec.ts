@@ -10,7 +10,7 @@ const at = "2026-11-18T10:00:00.000Z";
 const ref = {
   source: "game",
   item_id: ITEM,
-  kind: "card_mastery_step",
+  kind: "badge_earned",
   at,
   subject: { kind: "player", tag: "#0PGQ2UYL" },
 };
@@ -227,4 +227,92 @@ test("an entirely filtered conversation page offers its continuation", async ({
       () => document.documentElement.scrollWidth - innerWidth,
     ),
   ).toBeLessThanOrEqual(0);
+});
+
+test("a Notifications conversation opens its exact item at the first unread reply", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  let reads = 0;
+  await mockApi(
+    page,
+    homeApi({
+      "GET /api/me": [200, { ...BELL_ME, features: { comments: true } }],
+      "GET /api/me/bell": [200, EMPTY_BELL],
+      "PUT /api/me/bell/seen": [200, { seen_at: at }],
+      "GET /api/me/conversations": [
+        200,
+        { items: [rows[0]], next_before: null },
+      ],
+      [`GET /api/me/timeline-items/${ITEM}`]: [
+        200,
+        {
+          item: {
+            id: ITEM,
+            kind: "badge_earned",
+            section: "badges",
+            at,
+            subject_tag: ref.subject.tag,
+            subjects: [{ ...ref.subject, name: "Birch Lantern" }],
+            facts: { badge: "MasteryKnight", level: 10 },
+            text: rows[0].title,
+            item_ref: ref,
+            cheers: {},
+            my_cheer: null,
+            can_cheer: true,
+            comments: { count: 2, latest: [], open: true },
+          },
+        },
+      ],
+      "GET /api/me/comments": (route) => {
+        reads++;
+        const q = new URL(route.request().url()).searchParams;
+        expect(q.get("item")).toBe(ITEM);
+        expect(q.get("around")).toBe("42");
+        expect(JSON.parse(q.get("item_ref")!)).toEqual(ref);
+        return [
+          200,
+          {
+            item_id: ITEM,
+            count: 1,
+            open: true,
+            anchored: true,
+            next_before: null,
+            comments: [
+              {
+                id: "42",
+                text: "First unread fixture reply",
+                at: "2026-11-18T10:00:00.000001Z",
+                author: { name: "Invented Moss" },
+                mine: false,
+                unread: true,
+              },
+            ],
+          },
+        ];
+      },
+    }),
+  );
+  await page.goto("/timeline?bell");
+  const dialog = page.getByRole("dialog", { name: "Notifications" });
+  await dialog
+    .getByRole("button", { name: "My conversations", exact: true })
+    .click();
+  await dialog
+    .getByRole("link", { name: /Birch Lantern.*2 new replies/ })
+    .click();
+  await expect(
+    page.getByRole("heading", { level: 1, name: "Timeline update" }),
+  ).toBeVisible();
+  const reply = page
+    .getByRole("listitem")
+    .filter({ hasText: "First unread fixture reply" });
+  await expect(reply).toBeFocused();
+  await expect(reply).toContainText("New comment");
+  expect(reads).toBe(1);
+  if (process.env.CONVERSATIONS_SHOTS)
+    await page.screenshot({
+      path: `${process.env.CONVERSATIONS_SHOTS}/conversations-first-unread-390.png`,
+      fullPage: true,
+    });
 });
