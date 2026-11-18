@@ -1,3 +1,4 @@
+import { MomentArt } from "./FeedItem.jsx";
 import { PlayerName } from "@elixir-mcp/ui";
 import { useState } from "react";
 import { useLocation } from "@tanstack/react-router";
@@ -494,7 +495,11 @@ export function ItemList({
                 className={`kit-feed__item kit-pitem${CLAN_KINDS.has(it.kind) ? " kit-feed__item--clan" : ""}`}
               >
                 <div className="kit-pitem__body">
-                  <Medal kind={it.kind} />
+                  {it.kind === "drop_game" ? (
+                    <MomentArt it={it} />
+                  ) : (
+                    <Medal kind={it.kind} />
+                  )}
                   <div className="kit-pitem__main">
                     {card ? null : (
                       <p className="kit-feed__text">

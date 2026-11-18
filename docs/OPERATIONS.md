@@ -810,3 +810,7 @@ A longer loop belongs in a script that reads each answer's cursor and
 stops at `remaining: 0` (`-- ./backfill.sh`). Say in the pull
 request when a batch starts and roughly when it ends, and keep a batch
 to the work: a deploy waits behind it.
+
+### Drop game ingestion
+
+Drop writes one event alongside a verified player's finished game. Its minute publisher keeps the pending row until SQS accepts the send. Elixir owns `elixir-drop-games`; Timeline Sync processes its messages individually and checks the current verified claim. A duplicate or stale claim is acknowledged. Malformed records and transient failures retry, then move to `elixir-drop-games-dlq`. Inspect the queue depths and the worker's `drop_game_received` outcomes. Redrive failed messages after their cause is fixed. The game ID makes a redelivery safe.

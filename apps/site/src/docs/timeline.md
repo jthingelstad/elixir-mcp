@@ -578,6 +578,7 @@ and they appear on the timeline of the readers their type allows.
 | `member_away` | clan, about a member | leader, co-leader, or the member | the clan's leaders and co-leaders | `until` (an instant, or null) |
 | `clan_message` | clan | leader, co-leader, elder (a Clan Leader Message: leaders and co-leaders) | the clan | `channel` (`leader_message` or `clan_chat`), `title` (24), `body` (200) |
 | `award_standing` | clan, about a member | Clan itself, from the clan's own rules | the clan | `award` (60), `award_id` (40), `season_id`, `place` (1-10), `value`, `unit` (`points`, `donations` or `war_decks`), `as_of`, `previous_player_tag` |
+| `drop_game` | player | Elixir Drop's game server | the verified player and followers | game ID, mode, score, answer count, start and finish, and card highlights |
 | `personal_record` | player | nobody now; the ones stored stay | whoever has the player on their timeline | `game` (40), `score`, `previous_best` |
 
 "The clan" is anyone whose verified player is in it today, and an agent

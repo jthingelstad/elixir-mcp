@@ -703,6 +703,33 @@ export function itemText(it, timeZone = "UTC") {
       return f.channel === "leader_message"
         ? `${by(f)} sent ${subj} a Clan Leader Message${f.title ? `, "${f.title}"` : ""}: "${f.body}"`
         : `${by(f)} said in ${subj}'s clan chat: "${f.body}"`;
+    case "drop_game": {
+      const mode = {
+        surge: "Surge",
+        trade: "Trade",
+        survival: "Survival",
+        rain: "Rain",
+        "higher-lower": "Higher or Lower",
+        practice: "Practice",
+        "exact-ten": "Exact Ten",
+      }[f.mode];
+      const c = f.cards?.[0];
+      if (f.mode === "exact-ten")
+        return `${subj} solved Exact Ten in Elixir Drop with ${f.cards.map((c) => `${c.name} (${c.cost})`).join(" + ")}.`;
+      const result = ["surge", "trade"].includes(f.mode)
+        ? `${(f.score / 1000).toFixed(3)}s`
+        : f.mode === "practice"
+          ? `${f.score}% accuracy`
+          : `${plural(f.score, f.mode === "rain" ? "clear" : "correct read")}`;
+      const highlight = !c
+        ? ""
+        : c.reason === "first-read"
+          ? ` Read ${c.name} on the first try.`
+          : c.reason === "recovered"
+            ? ` Recovered on ${c.name}.`
+            : ` Featured ${c.name}.`;
+      return `${subj} finished ${mode} in Elixir Drop with ${result}.${highlight}`;
+    }
     case "personal_record":
       return `${subj} set a new personal best in ${f.game}: ${num(f.score)}${typeof f.previous_best === "number" ? ` (was ${num(f.previous_best)})` : ""}${via(f)}.`;
     case "award_standing": {

@@ -166,7 +166,7 @@ const pageTimeline = (
   timezone,
   now,
   window = null,
-  { publicOnly = false } = {},
+  { publicOnly = false, pageGameReader = null } = {},
 ) =>
   buildTimeline(
     db,
@@ -177,15 +177,17 @@ const pageTimeline = (
       fromMs: window?.fromMs ?? now - PAGE_DAYS * 86_400_000,
       toMs: window?.toMs ?? now,
       timezone,
-      // No account: none of the reader's own items, and no attested fact,
-      // which has its own reader rules. The page is the public record.
+      // The page excludes account administration. A signed-in follower
+      // also sees this player's completed Drop games.
       accountId: null,
+      pageGameReader,
       basis: "occurred",
       // Its verification on Elixir, told on its page too (2026-11-15).
       people: { accounts: [], players: true },
       // Signed out (the public session page, 2026-11-17): what anyone
       // with the link may read, never a member's.
       filter: (it) =>
+        (pageGameReader && it.kind === "drop_game") ||
         (publicOnly ? ["public"] : ["public", "member"]).includes(
           itemVisibility(it),
         ),
@@ -366,7 +368,9 @@ async function readPlayerPage(db, account, tag, now = Date.now()) {
   const p = rows[0];
   if (!p) return null;
   const timezone = account.timezone ?? "UTC";
-  const built = await pageTimeline(db, tag, timezone, now);
+  const built = await pageTimeline(db, tag, timezone, now, null, {
+    pageGameReader: account.accountId,
+  });
   // A moment the record proved names its battle, as Home's feed links it
   // (feed.mjs proofOf): one statement for the page's proofs, and no link
   // where the record does not know the battle.

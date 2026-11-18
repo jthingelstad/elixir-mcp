@@ -460,6 +460,23 @@ Resources:
   # timeline-sync/ object, one per account a minute, held a minute
   # (DelaySeconds) so a burst of admissions is one sync. The sync is a
   # VPC Lambda; its event source mapping needs no route to SQS.
+  DropGamesDlq:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: elixir-drop-games-dlq
+      SqsManagedSseEnabled: true
+      MessageRetentionPeriod: 1209600
+  DropGamesQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: elixir-drop-games
+      SqsManagedSseEnabled: true
+      VisibilityTimeout: 1080
+      MessageRetentionPeriod: 604800
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt DropGamesDlq.Arn
+        maxReceiveCount: 5
+
   TimelineSyncQueue:
     Type: AWS::SQS::Queue
     Properties:
@@ -930,6 +947,7 @@ Resources:
                   - !GetAtt TimelineSyncQueue.Arn
                   - !GetAtt TimelineHoldQueue.Arn
                   - !GetAtt TimelineEditorQueue.Arn
+                  - !GetAtt DropGamesQueue.Arn
               - Effect: Allow
                 Action: [s3:GetObject, s3:PutObject, s3:DeleteObject]
                 Resource: !Sub arn:aws:s3:::elixir-mcp-outbox-${AWS::AccountId}/timeline-sync/*
@@ -1905,6 +1923,7 @@ Resources:
           DATABASE_URL: !Sub "postgres://elixir:{{resolve:secretsmanager:${AppSecretName}:SecretString:db_password}}@${Database.Endpoint.Address}:5432/elixir_mcp?sslmode=verify-full"
           NODE_EXTRA_CA_CERTS: /var/task/certificates/rds.pem
           SECRET_EPOCH: !Ref SecretEpoch
+          DROP_GAMES_QUEUE_ARN: !GetAtt DropGamesQueue.Arn
           PGAPPNAME: elixir-mcp-timeline-sync
           PGOPTIONS: "-c statement_timeout=50s -c idle_in_transaction_session_timeout=60s"
           OUTBOX_BUCKET: !Ref OutboxBucket
@@ -1915,6 +1934,15 @@ Resources:
 
   # Two at once: wakes for different accounts run side by side, and the
   # sync's row lock keeps one account to one at a time.
+  DropGamesEventSource:
+    Type: AWS::Lambda::EventSourceMapping
+    Properties:
+      FunctionName: !Ref TimelineSyncFunction
+      EventSourceArn: !GetAtt DropGamesQueue.Arn
+      BatchSize: 10
+      ScalingConfig: { MaximumConcurrency: 2 }
+      FunctionResponseTypes: [ReportBatchItemFailures]
+
   TimelineSyncEventSource:
     Type: AWS::Lambda::EventSourceMapping
     Properties:

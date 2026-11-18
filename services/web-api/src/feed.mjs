@@ -169,6 +169,7 @@ export const KIND_MODES = {
   member_away: NO_MODE,
   clan_message: NO_MODE,
   personal_record: NO_MODE,
+  drop_game: NO_MODE,
   // People items, an account's own news, are about no mode. Named from
   // their schemas so this file never names a Stamp (the stamps package's
   // boundary test).
