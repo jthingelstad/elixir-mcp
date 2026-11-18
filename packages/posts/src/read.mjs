@@ -199,7 +199,7 @@ export async function countNewPosts(
   db,
   readerId,
   sinceMs,
-  { plain = false, nowMs = Date.now() } = {},
+  { plain = false, nowMs = Date.now(), questionsOnly = false } = {},
 ) {
   const players = `array(select c.player_tag from claim c
                          where c.account_id = $1::uuid and c.notify)`;
@@ -207,7 +207,7 @@ export async function countNewPosts(
     `select count(*)::int as fresh from (
        select p.created_at from account_post p
        ${POST_JOIN}
-       where ${seen(plain)} and ${audience(players)}
+       where ${seen(plain)} and ${audience(players)}${questionsOnly ? " and p.question" : ""}
          and coalesce(p.updated_at, p.created_at) >= $3
          and p.created_at <= $4
        order by p.created_at desc, p.post_id desc limit 200

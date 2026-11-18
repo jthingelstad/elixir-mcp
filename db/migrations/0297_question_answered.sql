@@ -13,6 +13,10 @@ set local lock_timeout = '5s';
 alter table account_post add column answered_at timestamptz;
 comment on column account_post.answered_at is
   'When its author last marked this question answered (0297); null means unanswered. Replies stay open.';
+comment on column account_post.revision is
+  '0297: 1 when posted, one more when authored words or question answer state change. No-op writes and replies leave it unchanged. The timeline item''s revision.';
+comment on column account_post.updated_at is
+  '0297: when authored words or question answer state last changed; null before the first edit. No-op writes and replies leave it unchanged.';
 
 create function timeline_comment_post_owner() returns trigger language plpgsql as $$
 declare post_author uuid;

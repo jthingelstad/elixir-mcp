@@ -17,7 +17,9 @@ Questions is a source filter in Timeline and Clan. Clan also has Unanswered,
 filtered before the cap, with full permitted counts for both chips. A
 question remains unanswered until its author marks it Answered. The shared posts reader
 filters SQL before its caps, after the same audience, moderation and block
-checks. Questions cursors and query keys are distinct. Clan skips game
+checks. Questions cursors, polling counts and query keys are distinct. Its new-item
+poll counts only question creation, filtering before the live-post cap;
+ordinary posts and game items cannot leave a stuck Questions notice. Clan skips game
 synthesis for Questions; membership and all private Clan permissions stay
 at the existing boundary. All activity remains the default.
 
@@ -47,7 +49,9 @@ that table is declared.
 The nullable answered column is metadata only, no rewrite or backfill. Production
 read-only preflight reported account_post at one page, approximately eight
 live rows and 8 KiB heap. Migration has a five-second local lock timeout,
-sha256 pin and fresh scratch-schema fingerprint. Migration 0297 follows the follow-event clock preparation 0296 and legacy-table cleanup 0295.
+sha256 pin and fresh scratch-schema fingerprint. Catalog descriptions for
+revision and updated_at cover word edits and actual answer-state changes,
+with no-op writes and replies left quiet. Migration 0297 follows the follow-event clock preparation 0296 and legacy-table cleanup 0295.
 
 Coverage pins source filtering before caps; paging and cursor mismatch;
 owner-only, idempotent mark/unmark with unchanged chronology and new counts;

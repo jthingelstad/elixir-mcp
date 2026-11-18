@@ -48,7 +48,11 @@ beforeEach(() => {
   global.fetch = vi.fn(async (path, init) => {
     const url = new URL(String(path), "https://elixir.test");
     const key = `${init?.method ?? "GET"} ${url.pathname}`;
-    calls.push({ key, since: url.searchParams.get("since") });
+    calls.push({
+      key,
+      since: url.searchParams.get("since"),
+      questions: url.searchParams.get("questions"),
+    });
     const body =
       key === "GET /api/me/home/feed"
         ? feed
@@ -235,4 +239,52 @@ test("you asked (the chip or the button): the feed is read again and your battle
   fireEvent.click(screen.getByRole("button", { name: "Ask" }));
   expect(await screen.findByText("Invented 2 won a battle.")).toBeTruthy();
   expect(count("GET /api/me/home/feed")).toBe(2);
+});
+
+test("Questions polls use their own source and cache and return to Everyone's poll", async () => {
+  const originalFetch = global.fetch;
+  global.fetch = vi.fn(async (path, init) => {
+    const url = new URL(String(path), "https://elixir.test");
+    if (url.pathname === "/api/me")
+      return {
+        ok: true,
+        text: async () =>
+          JSON.stringify({
+            authenticated: true,
+            features: { posts: true, comments: true },
+          }),
+      };
+    return originalFetch(path, init);
+  });
+  feed = page([
+    item(1, 30, {
+      kind: "post",
+      post: {
+        id: "7",
+        text: "An old question",
+        question: true,
+        author: { name: "Invented Ada", player_tag: "#00JQ20" },
+      },
+    }),
+  ]);
+  fresh = 0;
+  renderWithProviders(<HomeFeed />);
+  const questions = await screen.findByRole("button", {
+    name: "Questions",
+    exact: true,
+  });
+  await vi.waitFor(() => expect(count("GET /api/me/home/feed/new")).toBe(1));
+  fireEvent.click(questions);
+  await vi.waitFor(() =>
+    expect(
+      calls.filter(
+        (c) => c.key === "GET /api/me/home/feed/new" && c.questions === "1",
+      ),
+    ).toHaveLength(1),
+  );
+  expect(
+    calls.filter((c) => c.key === "GET /api/me/home/feed/new"),
+  ).toHaveLength(2);
+  fireEvent.click(screen.getByRole("button", { name: /^Everyone/ }));
+  expect(screen.queryByRole("button", { name: /Show .* new/ })).toBeNull();
 });

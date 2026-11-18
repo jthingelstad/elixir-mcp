@@ -1133,7 +1133,13 @@ export function homeRoutes({
     "GET /api/me/home/feed/new": async (db, event) => {
       const account = await resolveAccount(db, event);
       if (!account) return json(401, { error: "unauthenticated" });
-      const since = Date.parse(event.queryStringParameters?.since ?? "");
+      const q = event.queryStringParameters ?? {};
+      if (q.questions !== undefined && q.questions !== "1")
+        return json(400, { error: "invalid_questions" });
+      const questionsOnly = q.questions === "1";
+      if (questionsOnly && (!posts || !comments || account.kind !== "person"))
+        return json(404, { error: "not_found" });
+      const since = Date.parse(q.since ?? "");
       const now = Date.now();
       if (
         !Number.isFinite(since) ||
@@ -1141,12 +1147,15 @@ export function homeRoutes({
         since < now - 2 * FEED_DAYS_MS
       )
         return json(400, { error: "invalid_since" });
-      const row = await countHomeNew(db, account.accountId, since);
+      const row = questionsOnly
+        ? null
+        : await countHomeNew(db, account.accountId, since);
       const live =
         account.kind === "person"
           ? await countNewPosts(db, account.accountId, since, {
               plain: posts,
               nowMs: now,
+              questionsOnly,
             })
           : 0;
       return json(200, {

@@ -439,11 +439,11 @@ export const HOME_FEED_NEW_KEY = ["me", "home", "feed-new"];
  *  minute while Home is open, and when the tab comes back; TanStack holds
  *  the interval while the tab is hidden (refetchIntervalInBackground is
  *  off). A failed count is no pill, never an error. */
-export const useHomeFeedNew = (since) =>
+export const useHomeFeedNew = (since, questionsOnly = false) =>
   useQuery({
-    queryKey: [...HOME_FEED_NEW_KEY, since],
+    queryKey: [...HOME_FEED_NEW_KEY, since, questionsOnly],
     queryFn: async () => {
-      const r = await api.homeFeedNew(since);
+      const r = await api.homeFeedNew(since, questionsOnly);
       return r.ok ? (r.data?.new ?? 0) : 0;
     },
     enabled: Boolean(since),
