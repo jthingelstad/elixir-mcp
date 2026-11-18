@@ -72,3 +72,16 @@ usual eligibility on reconciliation. Earned Stamps remain append-only and
 are not revoked. Mixed historical watched/friend fixtures cover both block
 directions, ordinary mutual eligibility, recorded play and earned-row
 preservation. No new Stamp kind, event, mail or push was introduced.
+
+Draft review found the same assumption in Circle's suggestions. Circle's
+suggested and marked rows now use the same visible-friend predicate while
+the saved claim and private close mark remain intact. The follow-based
+People source applies it on both graph edges before choosing `why.via`
+or counting other follows: a blocked intermediary cannot explain a third
+person's suggestion, and an intermediary's blocked recording is not a
+public following fact. Home's active-follow onboarding gate uses it in
+both the starter source and first-answer, so five retained blocked
+recordings cannot end the offer. The owner's saved-player and recording
+totals stay intact. Source regressions seed historical watched rows,
+apply the real conversion, and cover both block directions, both graph
+edges, normal unblocked behavior and preserved saved rows and marks.

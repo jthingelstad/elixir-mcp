@@ -21,6 +21,7 @@ import {
   poolLimits,
   poolOwner,
   pooledUsage,
+  visibleFriendSql,
 } from "@elixir-mcp/claims";
 import { CLANMATE_TYPES, FRIENDLY_TYPES } from "@elixir-mcp/contracts";
 import { readNearYou, readPlayerMap } from "@elixir-mcp/auth/clan-context";
@@ -131,8 +132,8 @@ async function clanmates(db, clanTag, exclude, { lastBattle = false } = {}) {
 async function followedByFriends(db, accountId, exclude) {
   const { rows } = await db.query(
     `with friends as (
-       select player_tag from claim
-        where account_id = $1 and relationship = 'friend' and not is_primary),
+       select c.player_tag from claim c
+        where c.account_id = $1 and ${visibleFriendSql("c")}),
      theirs as (
        select distinct on (v.account_id) v.account_id, v.player_tag as via_tag
          from claim v join account a on a.account_id = v.account_id
@@ -150,7 +151,7 @@ async function followedByFriends(db, accountId, exclude) {
        join theirs t on t.account_id = f.account_id
        left join player p on p.player_tag = f.player_tag
        left join player vp on vp.player_tag = t.via_tag
-      where f.relationship = 'friend' and not f.is_primary
+      where ${visibleFriendSql("f")}
         and f.player_tag <> all($2::text[])
       group by f.player_tag, p.name
       order by count(distinct t.account_id) desc,
@@ -355,8 +356,7 @@ export async function starterSet(db, accountId) {
     `select a.starter_hidden_at > now() - make_interval(days => $2) as hidden,
             (select count(*)::int from (
                select 1 from claim c
-                where c.account_id = a.account_id and c.relationship = 'friend'
-                  and not c.is_primary
+                where c.account_id = a.account_id and ${visibleFriendSql("c")}
                   and exists (
                     select 1 from battle_participant bp
                      where bp.player_tag = c.player_tag

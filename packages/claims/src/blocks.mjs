@@ -36,7 +36,8 @@ export const blockedSql = (a, b) =>
 /** A current, visible player follow from a qualified claim alias. The
  * recording may survive a block (for example an imported old watch), but
  * it is no social association while a block with its verified owner stands.
- * Public follow reads and derived Stamps eligibility use this one rule. */
+ * Public follows, social discovery and derived Stamps eligibility use this
+ * one rule. Saved recording controls and quota still read the held claim. */
 export const visibleFriendSql = (claim) =>
   `(${claim}.relationship = 'friend' and not ${claim}.is_primary
     and not exists (
