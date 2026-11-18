@@ -138,9 +138,11 @@ export function withMode(pathname, search, mode) {
   return s ? `${pathname}?${s}` : pathname;
 }
 
-/** What a mode's empty week says, as facts. */
+/** What an empty week says for its selected audience and game mode. */
 export function modeQuiet(mode, show) {
-  const where = modeWord(mode);
+  const where = mode
+    ? ` ${mode === "ladder" ? "on" : "in"} ${modeWord(mode)}`
+    : "";
   const who =
     show === "close"
       ? " from your close friends"
@@ -151,7 +153,7 @@ export function modeQuiet(mode, show) {
           : show === "you"
             ? " of yours"
             : "";
-  return `Nothing${who} ${mode === "ladder" ? "on" : "in"} ${where} in the last seven days.`;
+  return `Nothing${who}${where} in the last seven days.`;
 }
 
 /** A close friend's week in one short line, as facts: how many battles on

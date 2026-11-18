@@ -1,10 +1,9 @@
 import { useEffect, useId, useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
 import { useWrite } from "../client/index.ts";
 import { ConfirmAction, WriteError } from "@elixir-mcp/ui";
 import { ItemShare } from "../home/ItemShare.jsx";
 import { api } from "../api.js";
-import { HOME_FEED_KEY, keys, useBattlePosts } from "../lib/queries.js";
+import { useBattlePosts, usePostsChanged } from "../lib/queries.js";
 import { useAskOnOpen } from "../lib/own-refresh.js";
 
 /**
@@ -19,11 +18,11 @@ import { useAskOnOpen } from "../lib/own-refresh.js";
  */
 
 const WORDS_MAX = 500;
-const FEED = [...keys.me, "feed"];
 const count = (s) => [...s].length;
 
 export function BattlePosts({ battle, sides }) {
   const query = useBattlePosts(battle.id);
+  const invalidate = usePostsChanged();
   const data = query.data;
   // A session page's Post lands here (#post, 2026-11-16; #highlight from
   // a link made before): once the panel has drawn, it scrolls into view.
@@ -40,7 +39,6 @@ export function BattlePosts({ battle, sides }) {
   const nameOf = (tag) =>
     sides.flatMap((s) => s.players).find((p) => p.player_tag === tag)?.name ??
     tag;
-  const invalidate = [keys.battlePosts(battle.id), FEED, HOME_FEED_KEY];
   return (
     <section id="post" className="panel" aria-label="Post about this battle">
       <div className="panel__head">Post about this battle</div>
@@ -152,11 +150,6 @@ function Compose({ battle, players, nameOf, invalidate }) {
 }
 
 function Posted({ it, p, name, invalidate }) {
-  const client = useQueryClient();
-  const shared = () => {
-    for (const queryKey of invalidate)
-      void client.invalidateQueries({ queryKey });
-  };
   const id = useId();
   const [editing, setEditing] = useState(false);
   const [words, setWords] = useState(p.text);
@@ -207,7 +200,7 @@ function Posted({ it, p, name, invalidate }) {
       <WriteError error={remove.error} />
       {!editing && (
         <div className="highlight-posted__actions">
-          {p.status !== "hidden" && <ItemShare it={it} onReady={shared} />}
+          {p.status !== "hidden" && <ItemShare it={it} onReady={invalidate} />}
           <button
             className="btn btn--sm"
             type="button"

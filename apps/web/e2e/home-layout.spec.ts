@@ -110,7 +110,7 @@ for (const [label, width, tallest] of [
     await page.goto("/home");
     const items = page.locator(".kit-feed .kit-feed__item");
     await expect(items).toHaveCount(PAGE);
-    await expect(page.getByText(`30 of ${TOTAL} shown`)).toBeVisible();
+    await expect(page.getByText(`30 of ${TOTAL} loaded`)).toBeVisible();
     await expect(page.getByText("23–14")).toBeVisible();
 
     const main = await box(page, ".kit-home__main");
@@ -129,6 +129,6 @@ for (const [label, width, tallest] of [
     // More draws the next thirty of the same week, and only those.
     await page.getByRole("button", { name: "More" }).click();
     await expect(items).toHaveCount(2 * PAGE);
-    await expect(page.getByText(`60 of ${TOTAL} shown`)).toBeVisible();
+    await expect(page.getByText(`60 of ${TOTAL} loaded`)).toBeVisible();
   });
 }

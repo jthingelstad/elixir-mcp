@@ -117,8 +117,9 @@ kept card first and swaps in a fresh one when it is ready, so an older card
 
 The feed shows the newest thirty items, and **More** reads the next thirty of
 the same week, so an item never appears twice or goes missing between pages.
-The counts on the chips are the whole week's, in the mode you chose; the
-chips filter what is loaded. The **N new** button below counts every mode. If the feed doesn't load (the read took too long or the connection
+Each chip counts the week in your chosen mode and filters the items already
+loaded. If no loaded item matches and a later page might, choose **More**
+to keep looking. The **N new** button below counts every mode. If the feed doesn't load (the read took too long or the connection
 dropped), it says so and offers **Try again**. It never asks again on its own,
 and the panels beside it read on regardless.
 

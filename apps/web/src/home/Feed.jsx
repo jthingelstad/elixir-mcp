@@ -291,11 +291,15 @@ export function HomeFeed({
   // on a later place (the page marked it), count what is loaded instead, so
   // the chip and the items it filters agree (Codex on #800).
   const countedFrom = timeline.counts?.new_since ?? null;
-  const newCount =
-    timeline.counts?.new !== undefined &&
+  const weekNewCount =
     (countedFrom ? Date.parse(countedFrom) : null) === openedMs
-      ? timeline.counts.new
-      : items.filter(isNew).length;
+      ? timeline.counts?.new
+      : undefined;
+  const newCount = weekNewCount ?? items.filter(isNew).length;
+  const mayMatchNextPage =
+    query.hasNextPage &&
+    timeline.counts?.[show] !== 0 &&
+    (!newOnly || weekNewCount !== 0);
   const total = timeline.total ?? items.length;
   const chips = (
     <FeedFilters>
@@ -350,17 +354,13 @@ export function HomeFeed({
       {composer}
       {days.length === 0 ? (
         <p className="kit-week__quiet">
-          {newOnly
-            ? "Nothing new here since your last visit."
-            : mode
-              ? modeQuiet(mode, show)
-              : show === "close"
-                ? "Nothing from your close friends in the last seven days."
-                : show === "friends"
-                  ? "Nothing from your friends in the last seven days."
-                  : show === "clan"
-                    ? "Nothing from your clan in the last seven days."
-                    : "Nothing of yours in the last seven days."}
+          {mayMatchNextPage
+            ? "No matches loaded yet. Choose More to keep looking."
+            : more > 0
+              ? "No matches in the available items this week."
+              : newOnly
+                ? "Nothing new here since your last visit."
+                : modeQuiet(mode, show)}
         </p>
       ) : (
         days.map((d) => (
@@ -402,7 +402,7 @@ export function HomeFeed({
           <span className="kit-tiny">
             {query.isFetchNextPageError
               ? "The next items didn’t load. Try again."
-              : `${items.length} of ${total.toLocaleString("en-US")} shown`}
+              : `${items.length} of ${total.toLocaleString("en-US")} loaded`}
           </span>
         </div>
       ) : null}
