@@ -122,6 +122,11 @@ test("a post edit refreshes its words without counting new since the last visit"
     );
     const feed = body(await call("reader", "/api/me/home/feed"));
     assert.equal(feed.counts.new, 0);
+    assert.equal(
+      feed.watermark,
+      post.created_at.toISOString(),
+      "an edit must not advance the creation-based post watermark",
+    );
     assert.ok(feed.timeline.some((it) => it.post?.text === "Updated words"));
   } finally {
     await ctx.db.query(

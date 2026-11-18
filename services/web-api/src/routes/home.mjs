@@ -16,6 +16,7 @@ import {
   countHomeNew,
   feedAfter,
   feedWatermark,
+  feedNewsAt,
   feedOrder,
   homeAccount,
   readHomeWeek,
@@ -793,12 +794,7 @@ async function readFeed(
     let fresh = 0;
     for (const it of all) {
       for (const g of groupsOf(it, week.subjects, close)) counts[g] += 1;
-      if (
-        seenMs !== null &&
-        Date.parse(it.kind === "post" ? it.at : (it.observed_at ?? it.at)) >
-          seenMs
-      )
-        fresh += 1;
+      if (seenMs !== null && feedNewsAt(it) > seenMs) fresh += 1;
     }
     out.counts = { ...counts, new: fresh, new_since: seen_to };
     // Where the "N new" pill counts from: the newest change among the

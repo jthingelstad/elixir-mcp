@@ -40,7 +40,7 @@ Member readers keep their existing direct audience predicate; bounded
 external pages derive indexed candidate IDs from the same audience paths
 and run status/report/block checks before their count and cap. No schema
 migration or game read is added. The MCP environment uses the existing
-combined Posts/Comments condition. The app's New count stays creation-only,
+combined Posts/Comments condition. The app's New count and watermark stay creation-only,
 as does the existing digest's send window; neither treats edits as new.
 
 Defaults decided in engineering: the person-only grant, followers scope,

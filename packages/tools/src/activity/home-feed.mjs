@@ -243,6 +243,13 @@ export const changedAt = (it) =>
     Date.parse(it.observed_at ?? it.at) || 0,
   );
 
+/** The app's New policy: a post counts once at creation; game stories
+ * can become new when they grow or are learned later. Both the mark and
+ * count use this instant, so an edit cannot advance past an unread post.
+ */
+export const feedNewsAt = (it) =>
+  it.kind === "post" ? Date.parse(it.at) || 0 : changedAt(it);
+
 /** Items read live over the stored week, never stored or counted. */
 export const liveItem = (it) =>
   it.kind === "battle_highlight" || it.section === "attested";
@@ -252,7 +259,7 @@ export const liveItem = (it) =>
 export function feedWatermark(items) {
   let best = 0;
   for (const it of items)
-    if (!liveItem(it)) best = Math.max(best, changedAt(it));
+    if (!liveItem(it)) best = Math.max(best, feedNewsAt(it));
   return best > 0 ? new Date(best).toISOString() : null;
 }
 
