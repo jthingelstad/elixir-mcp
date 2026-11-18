@@ -13,10 +13,14 @@ import { onboardingPeopleRoutes } from "../src/routes/onboarding-people.mjs";
 const OWN = "#00092VJ2";
 const CLAN = "#0U082URG";
 let ctx, db, accountId, live;
+const clientsEnded = [];
 
 before(async () => {
   ctx = await scratchDb("onboarding_people");
   db = new pg.Pool({ connectionString: ctx.url, max: 2 });
+  db.on("connect", (client) => {
+    clientsEnded.push(new Promise((resolve) => client.once("end", resolve)));
+  });
   const {
     rows: [account],
   } = await db.query(
@@ -43,6 +47,8 @@ before(async () => {
 });
 after(async () => {
   await db?.end();
+  // A pool can finish before its idle clients have disconnected from Postgres.
+  await Promise.all(clientsEnded);
   await ctx?.drop();
 });
 beforeEach(async () => {
