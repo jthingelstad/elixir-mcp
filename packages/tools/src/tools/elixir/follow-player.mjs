@@ -158,7 +158,7 @@ export const elixir_follow_player = {
       added: r.added,
       recording: "active",
       recording_started: r.recordingStarted,
-      notify: true,
+      notify: r.notify,
       slot: {
         took: slot.took,
         free: slot.free,
@@ -180,7 +180,7 @@ export const elixir_follow_player = {
       applied: appliedBlock({
         player_tag: tag,
         action,
-        relationship: r.isPrimary ? "primary" : (args.relationship ?? "friend"),
+        relationship: r.relationship,
       }),
       notes: notes(
         r.recordingStarted

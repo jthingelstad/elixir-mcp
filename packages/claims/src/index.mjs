@@ -1,4 +1,5 @@
 export { createPrincipal, normalizePrincipalName } from "./principals.mjs";
+import { blockedSql } from "./blocks.mjs";
 import { readMembershipCapture } from "@elixir-mcp/record/membership-capture";
 import {
   COUNTS,
@@ -132,6 +133,21 @@ export async function verifiedElsewhere(db, accountId, tag) {
   return rows.length > 0;
 }
 
+/** A person's follow may not cross a block with the verified owner.
+ * Callers hold the subject lock; the refusal never reveals the block. */
+async function blockedPlayerFollow(db, accountId, tag) {
+  const { rows } = await db.query(
+    `select 1 from claim c
+      where c.player_tag = $2 and c.status = 'verified'
+        and (c.is_primary or c.relationship in ('primary', 'alt'))
+        and c.account_id <> $1
+        and ${blockedSql("$1::uuid", "c.account_id")}
+      limit 1`,
+    [accountId, tag],
+  );
+  return rows.length > 0;
+}
+
 /**
  * Make the recording match the reasons to record.
  *
@@ -245,8 +261,8 @@ export async function reconcileRecording(
  * Returns {ok:false, error:"quota_exceeded", limit, used, role, message},
  * {ok:false, error:"verified_elsewhere", message} (a self claim on a tag
  * another account has verified, #556) or
- * {ok:true, added, isPrimary, recordingStarted, slot}. `added` is false on
- * a re-add, which stays idempotent. `slot` is what the follow costs (#760):
+ * {ok:true, added, isPrimary, relationship, notify, recordingStarted, slot}.
+ * `added` is false on a re-add, which stays idempotent. `slot` is what the follow costs (#760):
  * {took, free, reason, used, limit}; `took` is true only when this add
  * spent a slot, `used` the pool's count after it.
  */
@@ -307,31 +323,12 @@ export async function addPlayer(
       }
     }
 
-    // A block, either way, with the account that verified this player
-    // means no follow (blocks.mjs, 2026-11-16). Said as not found: the
-    // reader is never told of a block.
-    if (relationship === "friend" && !agent) {
-      const { rows: barred } = await db.query(
-        `select 1 from claim c
-          where c.player_tag = $2 and c.status = 'verified'
-            and (c.is_primary or c.relationship in ('primary', 'alt'))
-            and c.account_id <> $1
-            and exists (
-              select 1 from account_block ab
-               where (ab.account_id = $1 and ab.blocked_account_id = c.account_id)
-                  or (ab.account_id = c.account_id and ab.blocked_account_id = $1))
-          limit 1`,
-        [account.accountId, tag],
-      );
-      if (barred.length) {
-        await db.query("rollback");
-        return { ok: false, error: "not_found" };
-      }
-    }
-
     const { rows: counted } = await db.query(
-      `select count(*)::int as n from claim where account_id = $1`,
-      [account.accountId],
+      `select count(*)::int as n,
+              max(relationship) filter (where player_tag = $2) as relationship,
+              bool_or(is_primary) filter (where player_tag = $2) as is_primary
+         from claim where account_id = $1`,
+      [account.accountId, tag],
     );
     // A person's first player is them; an agent never has a primary.
     const first = counted[0].n === 0 && !agent;
@@ -350,6 +347,36 @@ export async function addPlayer(
     if (owned && self) {
       await db.query("rollback");
       return { ok: false, ...VERIFIED_ELSEWHERE };
+    }
+
+    // A first player is the person only when nothing says otherwise: a friend
+    // named on the way in stays that (2026-11-06), and the
+    // account has no player of its own until it names one.
+    const wantPrimary =
+      !agent &&
+      !owned &&
+      !follow &&
+      (makePrimary === true ||
+        (first &&
+          (!relationship || SELF_RELATIONSHIPS.includes(relationship))));
+
+    const insertRelationship = wantPrimary
+      ? "primary"
+      : (relationship ?? "friend");
+    // ON CONFLICT keeps an existing claim unless this explicitly moves the
+    // primary. Block protection follows that resulting state, including an
+    // unnamed later add's friend default and idempotent self-claim repeats.
+    const resultingRelationship =
+      wantPrimary || counted[0].is_primary
+        ? "primary"
+        : (counted[0].relationship ?? insertRelationship);
+    if (
+      resultingRelationship === "friend" &&
+      !agent &&
+      (await blockedPlayerFollow(db, account.accountId, tag))
+    ) {
+      await db.query("rollback");
+      return { ok: false, error: "not_found" };
     }
 
     // A follow takes a slot only when Elixir would record this player
@@ -379,17 +406,6 @@ export async function addPlayer(
       [tag],
     );
 
-    // A first player is the person only when nothing says otherwise: a friend
-    // named on the way in stays that (2026-11-06), and the
-    // account has no player of its own until it names one.
-    const wantPrimary =
-      !agent &&
-      !owned &&
-      !follow &&
-      (makePrimary === true ||
-        (first &&
-          (!relationship || SELF_RELATIONSHIPS.includes(relationship))));
-
     // Clear the old primary BEFORE inserting the new one. Inserting a
     // second is_primary row first is what tripped the partial unique
     // index, so the switch never happened and the whole add failed (#8).
@@ -414,12 +430,7 @@ export async function addPlayer(
       `insert into claim (account_id, player_tag, status, is_primary, relationship)
        values ($1, $2, 'unverified', $3, $4)
        on conflict (account_id, player_tag) do nothing`,
-      [
-        account.accountId,
-        tag,
-        wantPrimary,
-        wantPrimary ? "primary" : (relationship ?? "friend"),
-      ],
+      [account.accountId, tag, wantPrimary, insertRelationship],
     );
     // An explicit make_primary on a tag already claimed still switches.
     if (claimed === 0 && makePrimary === true) {
@@ -440,15 +451,15 @@ export async function addPlayer(
         via,
       });
     }
-    // An existing self claim keeps its identity when followed again.
-    let current = null;
-    if (follow) {
-      const { rows } = await db.query(
-        `select relationship from claim where account_id = $1 and player_tag = $2`,
-        [account.accountId, tag],
-      );
-      current = rows[0]?.relationship ?? null;
-    }
+    // Read the stored choice while the account/subject locks still hold.
+    // A re-add reports what stayed stored, including a muted self claim.
+    const {
+      rows: [current],
+    } = await db.query(
+      `select case when is_primary then 'primary' else relationship end as relationship,
+              is_primary, notify from claim where account_id = $1 and player_tag = $2`,
+      [account.accountId, tag],
+    );
 
     const { started } = await reconcileRecording(
       db,
@@ -487,11 +498,12 @@ export async function addPlayer(
       ok: true,
       slot,
       added: claimed > 0,
-      isPrimary: wantPrimary,
-      noOwnPlayer: first && !wantPrimary,
+      isPrimary: current.is_primary,
+      relationship: current.relationship,
+      notify: current.notify,
+      noOwnPlayer: first && !current.is_primary,
       recordingStarted: started,
       clanFollowed: clan?.followed ?? null,
-      ...(follow ? { relationship: current } : {}),
     };
   } catch (err) {
     await db.query("rollback").catch(() => {});
@@ -526,6 +538,14 @@ export async function setRelationship(db, account, { tag, relationship }) {
     ) {
       await db.query("rollback");
       return { ok: false, ...VERIFIED_ELSEWHERE };
+    }
+    if (
+      relationship === "friend" &&
+      acct?.kind !== "agent" &&
+      (await blockedPlayerFollow(db, account.accountId, tag))
+    ) {
+      await db.query("rollback");
+      return { ok: false, error: "not_found" };
     }
     const { rowCount } = await db.query(
       // A close friend made an alt is no longer a friend: the

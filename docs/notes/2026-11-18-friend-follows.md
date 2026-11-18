@@ -13,6 +13,11 @@ keep verified-account linking. All friends have the same Timeline filter,
 Stats eligibility and current follower-list visibility. Shared social reads
 keep two-way blocks in force, including watched recordings a block had left
 intact; the conversion never revives a blocked social association.
+The writer checks a block against the actual resulting relationship,
+including unnamed later additions and explicit relationship changes.
+Idempotent additions return the stored relationship and notification choice
+from the canonical writer, so MCP never reports a muted primary or alt as
+an unmuted friend.
 
 Follower notices previously read claim creation dates. Simply changing the
 relationship would have manufactured notifications for recently watched
