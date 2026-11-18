@@ -76,7 +76,10 @@ test("a member post updates its count and selected cheer without refetching, the
     });
   }
   await page.keyboard.press("Escape");
-  await cheer.focus();
+  await expect(picker).toHaveAttribute("aria-expanded", "false");
+  await expect(picker).toBeFocused();
+  await page.keyboard.press("Shift+Tab");
+  await expect(cheer).toBeFocused();
   await page.keyboard.press("Enter");
   await expect.poll(() => sent).toEqual(["well_played", null]);
   await expect(cheer).toHaveAttribute("aria-pressed", "false");

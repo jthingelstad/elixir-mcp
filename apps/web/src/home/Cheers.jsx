@@ -232,7 +232,9 @@ export function Cheers({ it, where, compact = false }) {
   const close = (focus) => {
     setLevel(0);
     setTip(null);
-    if (focus) requestAnimationFrame(() => focus.current?.focus());
+    // Both return targets stay mounted when the picker closes. Delaying
+    // focus can steal the next Tab or Enter from the chosen control.
+    focus?.current?.focus();
   };
 
   // A name shows on focus only when the focus came from the keyboard: a
