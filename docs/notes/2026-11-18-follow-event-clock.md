@@ -7,3 +7,5 @@ Migration 0296 gives each follow an event time in `claim.followed_at`. Existing 
 This release goes to production while both relationship types still exist. The Watching conversion can then preserve claims with no follow event across a rolling Lambda deployment. An earlier Lambda invocation can finish with either version during this release because every existing relationship still has its original meaning.
 
 Production table statistics estimated 122 claims on two heap pages. The migration bounds lock acquisition at five seconds and the statement at twenty. The migration runner vacuums the table after commit. The scratch regression checks the original claim data and all original friend dates on 122 fixtures. Another regression exercises an old claim, a new follow, and the three alert readers. Production verification uses deployment receipts and read-only diagnostics.
+
+MCP 13.12.0 and JSON API 5.1.0.
