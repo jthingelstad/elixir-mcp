@@ -5,6 +5,7 @@ import { Link, PageHead, Panel, useClock } from "@elixir-mcp/ui";
 import { api } from "../api.js";
 import { answered } from "../client/index.ts";
 import { useMe } from "../App.jsx";
+import { followMeHref } from "../lib/player.js";
 import { BattleView } from "./Battle.jsx";
 import { FeedItem } from "../home/FeedItem.jsx";
 import { memberPostKey, useMemberPost } from "../lib/queries.js";
@@ -29,6 +30,28 @@ export function SharedItemPage() {
       retry={() => query.refetch()}
       me={me}
     />
+  );
+}
+
+/** A post speaks for its author. A game item names its player subjects.
+ * Use the member Follow page for the price, permissions and confirmation. */
+function SharedFollow({ item, claims }) {
+  if (!item) return null;
+  const candidates =
+    item.kind === "post"
+      ? [{ tag: item.post?.author?.player_tag, name: item.post?.author?.name }]
+      : (item.subjects ?? []).filter((subject) => subject.kind === "player");
+  const held = new Set((claims ?? []).map((claim) => claim.player_tag));
+  const fresh = new Map();
+  for (const { tag, name } of candidates)
+    if (tag && !held.has(tag)) fresh.set(tag, name || tag);
+  if (!fresh.size) return null;
+  return (
+    <Link className="btn btn--gold" to={followMeHref([...fresh.keys()])}>
+      {fresh.size === 1
+        ? `Follow ${fresh.values().next().value}`
+        : "Choose players to follow"}
+    </Link>
   );
 }
 
@@ -81,17 +104,27 @@ export function SharedItem({
           )}
         </>
       )}
-      <section className="kit-cta" aria-label="See more on Elixir">
-        <h2 className="kit-cta__title">See more on Elixir</h2>
-        <p className="kit-cta__text">
-          Follow your friends and your clan, see how they play, and cheer them
-          on.
-        </p>
+      <section
+        className="kit-cta"
+        aria-label={me?.authenticated ? "Next steps" : "See more on Elixir"}
+      >
+        {!me?.authenticated && (
+          <>
+            <h2 className="kit-cta__title">See more on Elixir</h2>
+            <p className="kit-cta__text">
+              Follow your friends and your clan, see how they play, and cheer
+              them on.
+            </p>
+          </>
+        )}
         <div className="share-actions">
           {me?.authenticated ? (
-            <Link className="btn btn--gold" to="/timeline">
-              Open your Timeline
-            </Link>
+            <>
+              <SharedFollow item={read?.item} claims={me.claims} />
+              <Link className="btn" to="/timeline">
+                Open your Timeline
+              </Link>
+            </>
           ) : (
             <>
               <a
