@@ -351,7 +351,7 @@ export function FeedItem({
       {!publicView ? (
         <footer className="kit-feed__foot">
           {"cheers" in it ? <Cheers it={it} where={cheerWhere} /> : null}
-          <span className="share-actions kit-feed__links">
+          <span className="kit-feed__links">
             {links}
             <ItemShare it={it} />
           </span>

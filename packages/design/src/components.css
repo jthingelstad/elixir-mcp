@@ -12662,6 +12662,9 @@ button.kit-written__card:focus-visible {
   gap: var(--s-1);
   max-width: 100%;
 }
+.kit-item-share__action {
+  min-width: var(--hit);
+}
 .kit-share-link {
   display: grid;
   gap: var(--s-1);

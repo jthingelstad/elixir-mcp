@@ -320,7 +320,10 @@ for (const width of [320, 390, 1280]) {
     const share = page.getByRole("region", { name: "Share this session" });
     const button = share.getByRole("button", { name: "Share", exact: true });
     await expect(button).toBeVisible();
-    expect((await button.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+    await expect(button.locator("svg.lucide-share-2")).toBeVisible();
+    const box = (await button.boundingBox())!;
+    expect(box.width).toBeGreaterThanOrEqual(44);
+    expect(box.height).toBeGreaterThanOrEqual(44);
     await button.focus();
     await page.keyboard.press("Enter");
     const link = share.getByLabel("Share link");

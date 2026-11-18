@@ -41,6 +41,8 @@ plain words.
 
 ## Interface
 
+- Share on a Timeline item is a single Lucide glyph. The three connected dots (`share-2`) carry the accessible name “Share”. Once tapped, the control says when the link is ready. [Jamie, 2026-11-17, glyph in place of the repeated label] [engineering, 2026-11-17, glyph and feedback]
+
 - **Questions are conversations in the existing audience** — Timeline and Clan offer a Questions source view before caps. Clan also offers Unanswered, meaning the asker has not marked it Answered, with permitted question and unanswered counts before caps. Every question shows its answer count, including zero. The post author owns its answers and settings even after a player claim changes; game-item ownership keeps the current verified-player rule. Its author can mark it Answered or unanswered, reversibly, without changing its words, creation chronology, new-post count, digest entry or ability to receive answers. A real state change is an edit of that post: one revision increment and an updated_at stamp, so MCP/RSS observed polls see its current state. No-op repeats stay quiet; replies do not edit the post. Post replies coalesce per post in Notifications, distinguish new replies, name the latest author and open that post at the notified visible reply. The thread marks only others' visible replies after the original bell cutoff New, and pages older replies with stable cursors. Reply text and author names remain in-app; no new external delivery is added. [Jamie, 2026-11-17, build-session go-ahead; Codex, 2026-11-18, engineering defaults]
 
 - Closing the cheer picker restores keyboard focus immediately so the next keystroke acts on the selected control. [engineering, 2026-11-17]
