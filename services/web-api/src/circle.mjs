@@ -32,13 +32,12 @@
  * The mark is the reader's own. This read answers only the reader, and
  * nothing in it reaches another member, the bell, mail or MCP.
  */
-import { visibleFriendSql } from "@elixir-mcp/claims";
+import { clanmatePlayersSql, visibleFriendSql } from "@elixir-mcp/claims";
 import { notBoatDefense } from "@elixir-mcp/record/boat-defense-sql";
 import { gameWeekStartMs } from "@elixir-mcp/record/form";
 import { shownAt } from "@elixir-mcp/tools/activity/entries";
 import { readHomeWeek } from "@elixir-mcp/tools/activity/home-feed";
 import { verifiedAvatars } from "./avatars.mjs";
-import { homeClan } from "./routes/clans.mjs";
 
 /** A sitting: Home's session card draws these kinds. */
 const SITTINGS = new Set(["battle_session", "session_standout"]);
@@ -154,9 +153,10 @@ export function circleOrder(a, b) {
  * clanmates, then the rest in name order. One statement.
  */
 async function suggestions(db, accountId) {
-  const home = await homeClan(db, accountId);
   const { rows } = await db.query(
-    `with own as (${OWN})
+    `with own as (${OWN}), mates as materialized (
+       ${clanmatePlayersSql("$1", { names: false })}
+     )
      select c.player_tag, p.name,
             exists (
               select 1 from claim v
@@ -171,15 +171,16 @@ async function suggestions(db, accountId) {
                                     and ${visibleFriendSql("back")}
                                     and back.player_tag in (select player_tag from own)))
             ) as follows_you,
-            ($2::text is not null and p.clan_tag = $2::text) as clanmate
+            mates.player_tag is not null as clanmate
        from claim c
+       left join mates on mates.player_tag = c.player_tag
        cross join lateral (
-         select p.name, p.last_known_clan_tag as clan_tag from player p
+         select p.name from player p
           where p.player_tag = c.player_tag limit 1) p
       where c.account_id = $1 and ${visibleFriendSql("c")} and not c.close
       order by follows_you desc, clanmate desc, lower(p.name), c.player_tag
       limit ${SUGGEST_MAX}`,
-    [accountId, home?.clan_tag ?? null],
+    [accountId],
   );
   return rows.map((r) => ({
     tag: r.player_tag,

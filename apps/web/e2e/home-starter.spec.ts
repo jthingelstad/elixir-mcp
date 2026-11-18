@@ -14,7 +14,7 @@ import { HOME, homeApi, ownerPassport } from "./home-fixture.ts";
  */
 // Every journey here runs under one pinned clock, Wednesday noon in the
 // reader's zone (ME.timezone, America/Chicago), and the fixture's times
-// are minutes before it. Against the real clock a clanmate who played 30
+// are minutes before it. Against the real clock a player who played 30
 // minutes ago "played yesterday" in the half hour after Central midnight,
 // so the first-screen test failed main's CI at 00:21 Central on
 // 2026-11-15 (docs/notes/2026-11-15-e2e-reader-clock.md).
@@ -29,9 +29,18 @@ const PEOPLE = [
   {
     tag: "#00JRG2RU",
     name: "Amber",
-    why: [{ kind: "clan", clan_name: "Grove", recorded: true }],
+    why: [
+      {
+        kind: "battles",
+        against: 1,
+        with_you: 0,
+        friendly: 1,
+        clanmate_battles: 0,
+        days: 30,
+      },
+    ],
     free: true,
-    reason: "comprehensive_clan",
+    reason: "recorded",
   },
   {
     tag: "#0YP8U0Y0",
@@ -68,8 +77,17 @@ const PEOPLE = [
   ...["#02G2PJC0", "#08VP8VYY", "#0J9YCYL2", "#09VURCVC", "#0VJLCPJ0"].map(
     (tag, i) => ({
       tag,
-      name: `Invented Clanmate ${i + 1}`,
-      why: [{ kind: "clan", clan_name: "Grove", last_battle: AGO(30 + i) }],
+      name: `Invented Player ${i + 1}`,
+      why: [
+        {
+          kind: "battles",
+          against: 1,
+          with_you: 0,
+          friendly: 1,
+          clanmate_battles: 0,
+          days: 30,
+        },
+      ],
       free: false,
       reason: null,
     }),
@@ -150,14 +168,18 @@ for (const [label, width, height] of [
       await inView(await rows.nth(i).boundingBox());
       await expect(rows.nth(i).locator(".kit-people__why")).not.toBeEmpty();
     }
-    await expect(rows.nth(0)).toContainText("In your clan, already in Elixir");
+    await expect(rows.nth(0)).toContainText(
+      "You played a friendly battle in the last 30 days",
+    );
     await expect(rows.nth(1)).toContainText(
       "You played a friendly battle in the last 30 days",
     );
     await expect(rows.nth(2)).toContainText(
       "Your 2v2 teammate twice in the last 30 days",
     );
-    await expect(rows.nth(3)).toContainText("In your clan, played today");
+    await expect(rows.nth(3)).toContainText(
+      "You played a friendly battle in the last 30 days",
+    );
     await noSideways(page);
     if (label !== "desktop")
       await page.screenshot({
@@ -195,7 +217,7 @@ test("a hostile name is text; untick, then one confirmed follow of the ticked", 
   // Every row ticked; untick two.
   await set.getByRole("checkbox", { name: "Follow Elm" }).uncheck();
   await set
-    .getByRole("checkbox", { name: "Follow Invented Clanmate 1" })
+    .getByRole("checkbox", { name: "Follow Invented Player 1" })
     .uncheck();
   await expect(set.getByRole("status")).toContainText(
     "6 players · uses 5 of your 50 follows",
@@ -297,7 +319,9 @@ test("nobody to suggest: one line pointing to Find, never an empty box", async (
   await mockApi(page, home(NEW, offer([])));
   await page.goto("/home");
   const set = page.locator(".kit-starter");
-  await expect(set).toContainText("Nobody to suggest yet");
+  await expect(set).toContainText(
+    "Clanmates connect automatically through your verified players",
+  );
   await expect(
     set.getByRole("link", {
       name: "Search by name or tag, or send your Follow me link",

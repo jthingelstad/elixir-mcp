@@ -20,7 +20,6 @@ import {
   momentsSaid,
   shownAt,
 } from "./logic.js";
-import { FollowButton } from "./follow.jsx";
 import {
   evidenceWord,
   sessionHeadline,
@@ -325,11 +324,6 @@ export function FeedItem({
           />
           <When it={it} />
         </div>
-        {!publicView && it.offer_follow && who?.kind === "player" ? (
-          // A clan arrival you do not follow (canvas .ih .follow): the one
-          // Follow, asked first, priced when its dialog opens.
-          <FollowButton tag={who.tag} name={who.name} lazy />
-        ) : null}
       </header>
       {post ? (
         <PostBody it={it} />

@@ -394,7 +394,12 @@ test("rate limits: one a minute, five a day", async () => {
 
 test("the audience: the author, followers of the player or the account; not a stranger", async () => {
   const mine = await feedPosts(AUTHOR);
-  assert.equal(mine.length, 5);
+  assert.equal(mine.filter((it) => it.post.mine).length, 5);
+  assert.equal(
+    mine.length,
+    7,
+    "own posts plus the current clanmate's two posts",
+  );
   assert.equal((await feedPosts(FOLLOWER)).length, 5);
   assert.equal((await feedPosts(ACCOUNT_FAN)).length, 5);
   assert.deepEqual(await feedPosts(STRANGER), []);
@@ -423,6 +428,23 @@ test("the audience: the author, followers of the player or the account; not a st
 });
 
 test("clanmates see the posts in Clan's Feed, and may cheer them there", async () => {
+  const page = (
+    await scratch.db.query(
+      `select passport_id from account_passport where account_id=$1`,
+      [AUTHOR],
+    )
+  ).rows[0].passport_id;
+  for (const selector of [{ player: A }, { account: page }]) {
+    const response = await call(
+      CLANMATE,
+      "GET",
+      "/api/me/posts",
+      null,
+      selector,
+    );
+    assert.equal(response.statusCode, 200, response.body);
+    assert.equal(data(response).posts.length, 5);
+  }
   const feed = await readClanFeed(
     scratch.db,
     { accountId: CLANMATE, kind: "person", timezone: "UTC" },

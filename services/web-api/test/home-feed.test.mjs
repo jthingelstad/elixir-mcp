@@ -8,7 +8,6 @@ import assert from "node:assert/strict";
 import {
   annotateFeed,
   groupsOf,
-  offersFollow,
   proofModeOf,
   scoresOf,
   sparkBars,
@@ -342,26 +341,32 @@ test("a moment's proving battle names its mode for the line under it", () => {
   assert.equal(proofModeOf({ facts: {} }), null);
 });
 
-test("a clan arrival offers Follow only for a player you do not follow", () => {
-  const subjects = [
-    { kind: "player", tag: "#00JQ20", relationship: "friend" },
-    { kind: "clan", tag: "#0QC8RCGY" },
-  ];
-  const joined = (tag) => ({
-    kind: "member_joined",
-    facts: { player_tag: tag },
+test("a Clanmate post belongs to Clan, and an explicit friend's post can belong to both chips", async () => {
+  const mates = new Set([MEMBER, FRIEND]);
+  const post = (tag) => ({
+    kind: "post",
+    subject_tag: tag,
+    subjects: [{ kind: "player", tag }],
+    post: { mine: false },
   });
-  assert.equal(offersFollow(joined("#0URPC0"), subjects), true);
-  assert.equal(offersFollow(joined("#00JQ20"), subjects), false);
-  assert.equal(
-    offersFollow({ kind: "member_joined", facts: {} }, subjects),
-    false,
+  assert.deepEqual(groupsOf(post(MEMBER), SUBJECTS, null, mates), ["clan"]);
+  assert.deepEqual(groupsOf(post(FRIEND), SUBJECTS, null, mates), [
+    "friends",
+    "clan",
+  ]);
+  assert.deepEqual(groupsOf(post(FRIEND), SUBJECTS), ["friends"]);
+  const [joined] = await annotateFeed(
+    { query: async () => ({ rows: [] }) },
+    [
+      {
+        kind: "member_joined",
+        subjects: [{ kind: "clan", tag: CLAN }],
+        facts: { player_tag: MEMBER },
+      },
+    ],
+    SUBJECTS,
+    null,
+    mates,
   );
-  assert.equal(
-    offersFollow(
-      { kind: "member_left", facts: { player_tag: "#0URPC0" } },
-      subjects,
-    ),
-    false,
-  );
+  assert.equal(joined.offer_follow, undefined);
 });

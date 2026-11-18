@@ -64,6 +64,11 @@ before(async () => {
     `insert into player(player_tag,name) values($1,'Invented Author')`,
     [TAG],
   );
+  await db.query(
+    `insert into claim(account_id,player_tag,status,is_primary,relationship)
+     values($1,$2,'verified',true,'primary')`,
+    [owner, TAG],
+  );
   await db.query(`insert into clan(clan_tag,name) values($1,'Invented Clan')`, [
     CLAN,
   ]);
@@ -290,7 +295,8 @@ test("post replies coalesce with unread counts, distinguish answers and preserve
   const game = { item_id: "tl_99999999999999999999" };
   await scratch.db.query(
     `insert into claim(account_id,player_tag,status,is_primary,relationship,verified_at)
-     values($1,$2,'verified',true,'primary',now())`,
+     values($1,$2,'verified',true,'primary',now())
+     on conflict(account_id,player_tag) do update set verified_at=excluded.verified_at`,
     [owner, TAG],
   );
   await comment(game, "On your play", 3);

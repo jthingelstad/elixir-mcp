@@ -117,15 +117,17 @@ player slots ([What a player slot costs](/docs/recording#what-a-player-slot-cost
 Nothing is followed until you confirm. Once you follow a player, the button
 reads **Following**; tap it to **Unfollow**, asked first too.
 
-A player in a clan also offers **Follow everyone** in that clan, at the foot
+A shared clan shows **Clanmate** and the clan’s name. Choose **Friend** to
+add them as a friend. **Unfriend** returns them to Clanmate while you share
+a clan. [How Clanmates work](/docs/follow-a-friend#clanmates).
+
+A player in another clan can offer **Follow everyone** in that clan, at the foot
 of the **Follows** tab: one question
 for the clan's current members (at most 50), saying how many are free and how
 many take a slot, against the slots you have left. Past your limit it is
 refused whole, and says why; nobody is followed in part. One that needs no
 slot always goes ahead. Your own players are left out, and the question says
-so. The same **Follow everyone** is over the roster in [Clan ›
-Members](/docs/bring-your-clan), for every member; past your limit it stays
-shut there, with the reason beside it. A player only your agent
+so. In your own clan, [Clan › Members](/docs/bring-your-clan) opens each clanmate’s page. A player only your agent
 follows is not one you follow yet: following them is free, since Elixir
 records them for you already.
 

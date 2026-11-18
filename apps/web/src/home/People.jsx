@@ -24,7 +24,9 @@ import {
   usePeople,
 } from "../lib/queries.js";
 import { PLACE_HREF } from "../lib/passport.js";
+import { SETTINGS } from "../lib/settings.js";
 import { FollowAll, FollowButton, followPlanLine } from "./follow.jsx";
+import { ClanmateState, isClanmateConnection } from "./Connection.jsx";
 import {
   costMark,
   FREE_HINT,
@@ -65,7 +67,7 @@ const priced = (p, used, limit) => ({
   limit,
 });
 
-function Person({ p, detail, used, limit }) {
+function Person({ p, detail, used, limit, roster = false }) {
   const tag = p.tag ?? p.player_tag;
   return (
     <Row
@@ -87,7 +89,14 @@ function Person({ p, detail, used, limit }) {
       }
       detail={detail}
       right={
-        p.following ? (
+        isClanmateConnection(p) ? (
+          <ClanmateState
+            friend={p.connection === "friend"}
+            close={p.close === true}
+          />
+        ) : roster ? (
+          <span className="kit-tiny">Clan member</span>
+        ) : p.following ? (
           <span className="kit-following">Following</span>
         ) : (
           <FollowButton
@@ -106,7 +115,7 @@ function WhyCost({ p, dayHeading }) {
   return (
     <>
       <span className="kit-people__why">{whyLines(p.why, { dayHeading })}</span>
-      <FreeMark p={p} />
+      {isClanmateConnection(p) ? null : <FreeMark p={p} />}
     </>
   );
 }
@@ -211,7 +220,7 @@ export function FindSuggested({ onSearch, onLink }) {
       <Panel pad className="kit-findsuggest" aria-label="Suggested">
         <p className="kit-week__quiet">
           Nobody to suggest yet. Friendly battles, 2v2 teammates, the players
-          your follows follow and your clan show up here.
+          your follows follow show up here. Clanmates connect automatically.
         </p>
         <div className="kit-findsuggest__ways">
           <button type="button" className="btn btn--sm" onClick={onSearch}>
@@ -256,11 +265,9 @@ export function FindSuggested({ onSearch, onLink }) {
         </div>
       ) : null}
       <p className="kit-tiny kit-people__slots">
-        From your battles in the last {data.days} days, the players your follows
-        follow, and your clan. Never ranked.
-        {all && data.more > 0
-          ? " More are in From your battles and Your clan."
-          : ""}
+        From your battles in the last {data.days} days and the players your
+        follows follow. Clanmates connect automatically. Never ranked.
+        {all && data.more > 0 ? " More are in From your battles." : ""}
       </p>
     </Panel>
   );
@@ -407,7 +414,7 @@ export function FromYourBattles() {
 }
 
 /** Find's Your clan: your player's clan now, everyone in it with what
- *  following them costs, and Follow my clan. */
+ *  their automatic connection. Friending is a voluntary player-page action. */
 export function YourClanPeople() {
   const query = usePeople("clan");
   const data = query.data;
@@ -424,43 +431,67 @@ export function YourClanPeople() {
         </ErrorState>
       </Panel>
     );
-  if (!data.clan)
+  const clans = data.clans ?? [];
+  if (clans.length === 0)
     return (
-      <Empty title="Your player isn’t in a clan right now">
-        Join one in the game and your clanmates show up here.
+      <Empty
+        title={
+          data.requires_verification
+            ? "Verify your player to connect with clanmates"
+            : "No clanmates connected yet"
+        }
+        action={
+          data.requires_verification ? (
+            <Link to={`${SETTINGS}/players/verify`} className="btn btn--sm">
+              Verify your player
+            </Link>
+          ) : null
+        }
+      >
+        {data.requires_verification
+          ? "Clanmates connect through your verified players. Verify the player you play as to see its clanmates here."
+          : "Clanmates appear after Elixir reads a current roster for one of your verified players."}
       </Empty>
     );
-  const clanName = data.clan.name ?? data.clan.clan_tag;
-  const others = data.players;
-  const plan = followPlanLine(data);
-  const members = others.length + (data.yours?.length ?? 0);
-  const followed = others.filter((p) => p.following).length;
+  return (
+    <div className="kit-clanpeople-list">
+      <p className="kit-tiny kit-people__slots">
+        Clanmates connect automatically through your verified players.
+        Membership comes from Clash Royale.
+      </p>
+      {clans.map((clan) => (
+        <ClanPeoplePanel
+          key={clan.clan_tag}
+          clan={clan}
+          players={data.players ?? []}
+        />
+      ))}
+    </div>
+  );
+}
+
+function ClanPeoplePanel({ clan, players }) {
+  const clanName = clan.name ?? clan.clan_tag;
+  const others = players.filter(
+    (p) => p.shared_clan?.clan_tag === clan.clan_tag,
+  );
   return (
     <Panel className="kit-panel--mine kit-clanpeople" aria-label={clanName}>
       <div className="kit-clanpeople__head">
-        <Avatar name={clanName} tag={data.clan.clan_tag} clan />
+        <Avatar name={clanName} tag={clan.clan_tag} clan />
         <div className="kit-clanpeople__who">
           <h2 className="kit-clanpeople__name">
             <TagText>{clanName}</TagText>
           </h2>
           <p className="kit-clanpeople__line">
-            {members.toLocaleString()} {members === 1 ? "member" : "members"} ·
-            you follow {followed.toLocaleString()}
+            {others.length.toLocaleString()}{" "}
+            {others.length === 1 ? "clanmate" : "clanmates"} connected
           </p>
         </div>
-        {data.to_follow > 0 ? (
-          <FollowAll
-            ask={{ clan_tag: data.clan.clan_tag }}
-            label="Follow my clan"
-            title={`Follow everyone in ${clanName}?`}
-            className="btn btn--follow"
-          />
-        ) : null}
       </div>
-      {plan ? <p className="kit-tiny kit-people__slots">{plan}</p> : null}
       {others.length === 0 ? (
         <p className="kit-week__quiet kit-people__quiet">
-          Nobody else in your clan yet.
+          Nobody else connected from this clan right now.
         </p>
       ) : (
         <Rows>
@@ -468,14 +499,12 @@ export function YourClanPeople() {
             <Person
               key={p.player_tag}
               p={p}
-              used={data.used}
-              limit={data.limit}
+              roster
               detail={
                 <>
                   {roleLabel(p.role) ? (
                     <span className="kit-people__why">{roleLabel(p.role)}</span>
                   ) : null}
-                  <FreeMark p={p} />
                 </>
               }
             />
@@ -599,7 +628,7 @@ export function StarterSet({ query, onOpenTimeline, onFollowed }) {
         <p className="kit-starter__lead">
           {followed.size
             ? "Find more people in Find. "
-            : "Nobody to suggest yet: friendly battles, 2v2 teammates and your clan show up here. "}
+            : "Clanmates connect automatically through your verified players. New friends from friendly battles and 2v2 teammates show up here. "}
           <Link to="/home/find">
             Search by name or tag, or send your Follow me link
           </Link>

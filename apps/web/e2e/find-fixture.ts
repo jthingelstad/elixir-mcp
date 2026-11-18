@@ -11,7 +11,7 @@ const battles = (o: Record<string, number>) => [
     ...o,
   },
 ];
-const CLANMATES = [
+const OTHER_PLAYERS = [
   "#02G2PJC0",
   "#08VP8VYY",
   "#0J9YCYL2",
@@ -50,10 +50,10 @@ const PEOPLE = [
     free: true,
     reason: "recorded",
   },
-  ...CLANMATES.map((tag, i) => ({
+  ...OTHER_PLAYERS.map((tag, i) => ({
     tag,
-    name: `Invented Clanmate ${i + 1}`,
-    why: [{ kind: "clan", clan_name: "Grove" }],
+    name: `Invented Player ${i + 1}`,
+    why: battles({ against: 1, friendly: 1 }),
     free: false,
     reason: null,
   })),

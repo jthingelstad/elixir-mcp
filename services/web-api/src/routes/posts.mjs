@@ -181,6 +181,7 @@ export function postsRoutes({
       const items = await postsBy(db, account.accountId, {
         subjects,
         plain,
+        clanmates: true,
         ...by,
       });
       return json(200, {

@@ -18,6 +18,10 @@
  */
 import {
   playerCosts,
+  currentClanmates,
+  currentOwnClansSql,
+  clanmatePlayersSql,
+  playerConnections,
   poolLimits,
   poolOwner,
   pooledUsage,
@@ -26,7 +30,6 @@ import {
 import { CLANMATE_TYPES, FRIENDLY_TYPES } from "@elixir-mcp/contracts";
 import { readNearYou, readPlayerMap } from "@elixir-mcp/auth/clan-context";
 import { MAP_ATTRIBUTION, placeName, resolvePlace } from "./player-places.mjs";
-import { homeClan } from "./routes/clans.mjs";
 import { FOLLOW_ALL_MAX, followPlan } from "./routes/player.mjs";
 
 /** The side panel's window and size. */
@@ -99,29 +102,6 @@ async function metInBattles(db, accountId, days, exclude) {
                (count(*) filter (where o.side = m.side) > 0) desc,
                count(*) desc, max(m.battle_time) desc, o.player_tag`,
     [accountId, days, exclude, FRIENDLY_TYPES, CLANMATE_TYPES],
-  );
-  return rows;
-}
-
-/** The home clan's members now who are not the account's, nor claimed by
- *  it, in name order. With `lastBattle`, each carries their last battle
- *  time: one probe of the member's own player/time cover, never the
- *  clan's whole history. */
-async function clanmates(db, clanTag, exclude, { lastBattle = false } = {}) {
-  const { rows } = await db.query(
-    `select cm.player_tag, p.name, cm.role${
-      lastBattle
-        ? `,
-            (select max(bp.battle_time) from battle_participant bp
-              where bp.player_tag = cm.player_tag) as last_battle`
-        : ""
-    }
-       from clan_membership cm
-       left join player p on p.player_tag = cm.player_tag
-      where cm.clan_tag = $1 and cm.left_observed_at is null
-        and cm.player_tag <> all($2::text[])
-      order by lower(coalesce(p.name, cm.player_tag)), cm.player_tag`,
-    [clanTag, exclude],
   );
   return rows;
 }
@@ -202,38 +182,35 @@ const metWhy = (r, days) => ({
 /** Who shows you know them: a friendly battle, or your 2v2 teammate. */
 const knownFromBattles = (r) => r.friendly > 0 || r.with_you > 0;
 
-/**
- * The people sources every suggestion reads (2026-11-13: one
- * implementation for Home's side panel, Find's Suggested and the starter
- * set): the account's claimed players, left out of every source; the
- * players its own players met in the last `days` (metInBattles, the
- * friendly battles and 2v2 teammates first); its home clan's current
- * members; and, with `friends`, the players followed by the accounts that
- * verified the players it follows.
- */
+/** Recruiting excludes current automatic connections before source counts
+ * and caps, alongside the reader's saved players. */
 async function peopleSources(
   db,
   accountId,
-  { days, friends = true, lastBattle = false },
+  { days, friends = true, automatic = null },
 ) {
   const { rows: claimed } = await db.query(CLAIMED_SQL, [accountId]);
-  const exclude = claimed.map((r) => r.player_tag);
-  const met = await metInBattles(db, accountId, days, exclude);
-  const home = await homeClan(db, accountId);
-  const clan = home
-    ? await clanmates(db, home.clan_tag, exclude, { lastBattle })
-    : [];
-  const followed = friends
-    ? await followedByFriends(db, accountId, exclude)
-    : [];
-  return { met, home, clan, followed };
+  const mateTags = automatic
+    ? [...automatic.keys()]
+    : (
+        await db.query(
+          `select player_tag from (${clanmatePlayersSql("$1", { names: false })}) current`,
+          [accountId],
+        )
+      ).rows.map((r) => r.player_tag);
+  const exclude = [
+    ...new Set([...claimed.map((r) => r.player_tag), ...mateTags]),
+  ];
+  return {
+    met: await metInBattles(db, accountId, days, exclude),
+    followed: friends ? await followedByFriends(db, accountId, exclude) : [],
+  };
 }
 
 /**
- * Suggestions taken in turn from three sources so no one source fills the
- * list: players your own players met (`met` keeps which), players followed
- * by the accounts that verified the players you follow, and your clan's
- * members. A player in more than one source is listed once, with every
+ * Suggestions alternate between familiar battle players and players
+ * followed by the accounts that verified your Friends. Automatic clanmates
+ * are already connected and excluded before this list is formed. A player in more than one source is listed once, with every
  * reason; each is priced from the read itself.
  */
 async function suggest(db, accountId, { days, max, keep }) {
@@ -252,12 +229,7 @@ async function suggest(db, accountId, { days, max, keep }) {
       others: Math.max(0, r.friends - 1),
     },
   }));
-  const clan = s.clan.map((r) => ({
-    tag: r.player_tag,
-    name: r.name ?? null,
-    why: { kind: "clan", clan_name: s.home?.name ?? null },
-  }));
-  const all = interleave([met, friends, clan], Infinity);
+  const all = interleave([met, friends], Infinity);
   const people = all.slice(0, max);
   const slots = await slotsOf(db, accountId);
   const costs = await costsOf(
@@ -276,7 +248,7 @@ async function suggest(db, accountId, { days, max, keep }) {
 /**
  * Home's People to follow: up to SUGGEST_MAX players from the last week
  * (met twice or more, a friendly battle, or your 2v2 teammate), players
- * your follows' accounts follow, and your clan, in turn.
+ * your Friends' accounts follow, in turn. Automatic clanmates are excluded.
  */
 export async function suggestedPeople(db, accountId) {
   const out = await suggest(db, accountId, {
@@ -298,7 +270,7 @@ const FIND_MAX = 30;
 /**
  * Find's Suggested: up to FIND_MAX players from the last month's battles
  * (a friendly battle, your 2v2 teammate, or met twice or more), the players
- * your follows' accounts follow, and your clan, in turn; `more` counts the
+ * your Friends' accounts follow, in turn; `more` counts the
  * rest the sources held.
  */
 export async function findPeople(db, accountId) {
@@ -326,31 +298,9 @@ const PLAYED_DAYS = 7;
 /** How long "Not now" keeps the set off Home's top. */
 export const STARTER_HIDDEN_DAYS = 30;
 
-/**
- * The starter set (2026-11-13): who an account following few players is
- * offered to follow at the top of Home, on every visit until it follows
- * more (Jamie, 2026-11-13: "if someone isn't following players (or a super
- * small amount) that we should bring the suggested user list even if it
- * isn't their first login"), from facts Elixir already has, in this order:
- *
- *  1. clanmates Elixir records already, free to follow (playerCosts), not
- *     counted against the cap;
- *  2. people from your own players' battles of the last BATTLES_DAYS:
- *     friendly-battle opponents, then 2v2 teammates, then clanmates you
- *     battled in clan chat (the battle's own type, FRIENDLY_TYPES and
- *     CLANMATE_TYPES); a free one is not counted against the cap;
- *  3. your other current clanmates, the most recently active first (their
- *     last battle), to fill what is left.
- *
- * At most STARTER_SLOTS that would take a slot (fewer when fewer are
- * left), and STARTER_MAX in all. Offered while the account follows fewer
- * than STARTER_UNDER players who played in the last PLAYED_DAYS and has
- * not said "Not now" in the last
- * STARTER_HIDDEN_DAYS (`account.starter_hidden_at`); an offer may hold
- * nobody, and Home then says where to look instead. Nothing here follows
- * anyone: the set is a list the person ticks and confirms through the one
- * follow-all.
- */
+/** Optional Friend suggestions from recorded familiar battles. Current
+ * clanmates connect automatically and are returned separately, including
+ * when the person has dismissed the voluntary starter offer. */
 export async function starterSet(db, accountId) {
   const { rows: gate } = await db.query(
     `select a.starter_hidden_at > now() - make_interval(days => $2) as hidden,
@@ -369,53 +319,39 @@ export async function starterSet(db, accountId) {
        from account a where a.account_id = $1`,
     [accountId, STARTER_HIDDEN_DAYS, PLAYED_DAYS, STARTER_UNDER],
   );
-  // `played` is counted only to STARTER_UNDER: a long follow list stops
-  // probing battles once the gate is decided.
+  // The connection summary is independent of recruiting eligibility.
+  const automatic = await currentClanmates(db, accountId);
+  const summary = {
+    clanmate_count: automatic.size,
+    clanmates: [...automatic.values()].map((p) => ({
+      tag: p.player_tag,
+      name: p.name ?? null,
+      connection: p.connection,
+      clanmate: p.clanmate,
+      shared_clan: p.shared_clan,
+      close: p.close,
+    })),
+  };
   const g = gate[0];
   if (!g || g.hidden || g.played >= STARTER_UNDER)
-    return { offer: false, people: [] };
-  if (g.own === 0) return { offer: true, people: [] };
+    return { offer: false, people: [], ...summary };
+  if (g.own === 0) return { offer: true, people: [], ...summary };
   const s = await peopleSources(db, accountId, {
     days: BATTLES_DAYS,
     friends: false,
-    lastBattle: true,
+    automatic,
   });
   const met = s.met.filter(
     (r) => knownFromBattles(r) || r.clanmate_battles > 0,
   );
   const slots = await slotsOf(db, accountId);
-  const costs = await costsOf(db, slots.owner.account_id, [
-    ...new Set([
-      ...s.clan.map((r) => r.player_tag),
-      ...met.map((r) => r.player_tag),
-    ]),
-  ]);
-  const clanName = s.home?.name ?? null;
+  const costs = await costsOf(
+    db,
+    slots.owner.account_id,
+    met.map((r) => r.player_tag),
+  );
   const freeOf = (tag) => Boolean(costs.get(tag)?.free);
-  const recent = (r) => (r.last_battle ? Date.parse(r.last_battle) : -Infinity);
-  const candidates = [
-    ...s.clan
-      .filter((r) => freeOf(r.player_tag))
-      .map((r) => ({
-        r,
-        why: { kind: "clan", clan_name: clanName, recorded: true },
-      })),
-    ...met.map((r) => ({ r, why: metWhy(r, BATTLES_DAYS) })),
-    ...s.clan
-      .filter((r) => !freeOf(r.player_tag))
-      .sort(
-        (a, b) =>
-          recent(b) - recent(a) || (a.player_tag < b.player_tag ? -1 : 1),
-      )
-      .map((r) => ({
-        r,
-        why: {
-          kind: "clan",
-          clan_name: clanName,
-          last_battle: iso(r.last_battle),
-        },
-      })),
-  ];
+  const candidates = met.map((r) => ({ r, why: metWhy(r, BATTLES_DAYS) }));
   const cap =
     slots.limit == null
       ? STARTER_SLOTS
@@ -446,6 +382,7 @@ export async function starterSet(db, accountId) {
     used: slots.used,
     limit: slots.limit,
     slots_cap: cap,
+    ...summary,
   };
 }
 
@@ -483,12 +420,11 @@ export function interleave(sources, max) {
 export async function battlePeople(db, accountId) {
   const rows = await metInBattles(db, accountId, BATTLES_DAYS, []);
   const shown = rows.slice(0, BATTLES_MAX);
-  const { rows: follows } = await db.query(
-    `select player_tag from claim
-      where account_id = $1 and relationship = 'friend' and not is_primary`,
-    [accountId],
+  const connections = await playerConnections(
+    db,
+    accountId,
+    shown.map((r) => r.player_tag),
   );
-  const following = new Set(follows.map((r) => r.player_tag));
   const slots = await slotsOf(db, accountId);
   const costs = await costsOf(
     db,
@@ -507,7 +443,8 @@ export async function battlePeople(db, accountId) {
       losses: r.losses,
       draws: r.draws,
       last_met: iso(r.last_met),
-      following: following.has(r.player_tag),
+      following: connections.get(r.player_tag)?.connection === "friend",
+      ...connections.get(r.player_tag),
       ...costs.get(r.player_tag),
     })),
     more: Math.max(0, rows.length - shown.length),
@@ -516,24 +453,41 @@ export async function battlePeople(db, accountId) {
   };
 }
 
-/** Find's Your clan: your primary player's clan now, its members priced as
- *  follow-my-clan prices them. No clan: none. */
+/** Current automatic peers across every verified own player's clan. */
 export async function clanPeople(db, accountId) {
-  const home = await homeClan(db, accountId);
-  if (!home) return { clan: null };
-  const members = await clanmates(db, home.clan_tag, []);
-  const plan = await followPlan(
-    db,
-    accountId,
-    members.map((m) => m.player_tag),
+  const { rows: clans } = await db.query(
+    currentOwnClansSql() + " order by cm.clan_tag",
+    [accountId],
   );
-  const role = new Map(members.map((m) => [m.player_tag, m.role ?? null]));
+  if (!clans.length) {
+    const { rows } = await db.query(
+      `select exists(select 1 from claim where account_id=$1 and status='verified'
+                      and (is_primary or relationship in ('primary','alt'))) as verified`,
+      [accountId],
+    );
+    return {
+      clan: null,
+      clans: [],
+      clanmate_count: 0,
+      players: [],
+      requires_verification: !rows[0].verified,
+    };
+  }
+  const members = await currentClanmates(db, accountId);
+  const clan = { clan_tag: clans[0].clan_tag, name: clans[0].name ?? null };
+  const plan = await followPlan(db, accountId, [...members.keys()], {
+    connections: members,
+  });
   return {
-    clan: { clan_tag: home.clan_tag, name: home.name ?? null },
+    clan,
+    clans: clans.map((c) => ({ clan_tag: c.clan_tag, name: c.name ?? null })),
+    clanmate_count: members.size,
+    requires_verification: false,
     ...plan,
+    shared_clan: clan,
     players: plan.players.map((p) => ({
       ...p,
-      role: role.get(p.player_tag) ?? null,
+      role: members.get(p.player_tag)?.role ?? null,
     })),
   };
 }

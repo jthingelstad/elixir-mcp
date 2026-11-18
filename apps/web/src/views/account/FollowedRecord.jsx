@@ -164,6 +164,7 @@ export function FollowedRecord({ me, refresh, navigate, tag }) {
   const stop = (
     <StopFollowing
       name={plainName}
+      friend={!isClan && claim.relationship === "friend"}
       run={() => only(remove)(isClan)}
       busy={busy}
       onDone={() => navigate(backTo)}

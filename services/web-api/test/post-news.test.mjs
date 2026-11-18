@@ -5,6 +5,7 @@ import { scratchDb } from "../../../packages/ingest/test/helpers.mjs";
 import {
   postFixture,
   AUTHOR_TAG,
+  STRANGER_TAG,
 } from "../../../packages/posts/test/fixture.mjs";
 import { makeHandler } from "../src/handler.mjs";
 let ctx, people, handler, off, cookies;
@@ -273,4 +274,42 @@ test("Questions polls count only new visible questions before the cap and clear 
     ).statusCode,
     404,
   );
+});
+
+test("a Clanmate's question enters the Clan chip and new count, then leaves both on departure", async () => {
+  const clan = "#0PPPG9";
+  const since = new Date(Date.now() - 60_000).toISOString();
+  await ctx.db.query(
+    "insert into clan(clan_tag,name) values($1,'Fixture clan')",
+    [clan],
+  );
+  try {
+    await ctx.db.query(
+      "insert into clan_membership(clan_tag,player_tag,role,joined_observed_at) select $1,tag,'member',now()-interval '2 days' from unnest($2::text[]) tag",
+      [clan, [STRANGER_TAG, AUTHOR_TAG]],
+    );
+    const post = await people.post({ question: true });
+    const feed = () =>
+      call("stranger", "/api/me/home/feed", { questions: "1" }).then(body);
+    const news = () =>
+      call("stranger", "/api/me/home/feed/new", { questions: "1", since }).then(
+        body,
+      );
+    const joined = await feed();
+    assert.equal(joined.counts.clan, 1);
+    assert.equal(joined.counts.friends, 0);
+    assert.equal(joined.counts.you, 0);
+    assert.equal(joined.timeline[0].post.id, post.id);
+    assert.deepEqual(joined.timeline[0].groups, ["clan"]);
+    assert.equal((await news()).new, 1);
+    await ctx.db.query(
+      "update clan_membership set left_observed_at=now() where clan_tag=$1 and player_tag=$2",
+      [clan, STRANGER_TAG],
+    );
+    assert.equal((await feed()).timeline.length, 0);
+    assert.equal((await news()).new, 0);
+  } finally {
+    await ctx.db.query("delete from clan_membership where clan_tag=$1", [clan]);
+    await ctx.db.query("delete from clan where clan_tag=$1", [clan]);
+  }
 });

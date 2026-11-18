@@ -26,18 +26,27 @@ function asMember(extra: Parameters<typeof signedIn>[0] = {}) {
 }
 
 const PLAN = {
+  shared_clan: { clan_tag: "#0QC8RCGY", name: "Example Clan" },
   clan_tag: "#0QC8RCGY",
   players: [
     {
       player_tag: "#02QQPCYQQ",
       name: "Ben",
-      following: false,
+      connection: "friend",
+      clanmate: "#0QC8RCGY",
+      shared_clan: { clan_tag: "#0QC8RCGY", name: "Example Clan" },
+      close: false,
+      following: true,
       free: true,
       reason: "followed_by_others",
     },
     {
       player_tag: "#M1",
       name: "Zed",
+      connection: "clanmate",
+      clanmate: "#0QC8RCGY",
+      shared_clan: { clan_tag: "#0QC8RCGY", name: "Example Clan" },
+      close: false,
       following: false,
       free: false,
       reason: null,
@@ -89,15 +98,16 @@ async function noSideways(page: Page) {
 }
 
 for (const [label, width] of [
-  ["desktop", 1180],
+  ["desktop", 1280],
   ["phone", 390],
+  ["small phone", 320],
 ] as const) {
   test.describe(label, () => {
     test.beforeEach(async ({ page }) => {
       await page.setViewportSize({ width, height: 844 });
     });
 
-    test("Follow everyone shows its cost first, and follows in one act", async ({
+    test("clanmates connect without bulk or per-row friend prompts", async ({
       page,
     }) => {
       const posted: unknown[] = [];
@@ -107,114 +117,54 @@ for (const [label, width] of [
           "GET /api/me/follow-plan": [200, PLAN],
           "POST /api/me/follow-all": (route) => {
             posted.push(route.request().postDataJSON());
-            return [
-              200,
-              {
-                ok: true,
-                followed: ["#02QQPCYQQ", "#M1"],
-                clan_tag: "#0QC8RCGY",
-              },
-            ];
+            return [200, { ok: true }];
+          },
+          "POST /api/claims": (route) => {
+            posted.push(route.request().postDataJSON());
+            return [201, { ok: true }];
           },
         }),
       );
       await page.goto(`${base}/members`);
       const roster = page.getByRole("region", { name: "3 members" });
-      await expect(roster).toContainText("You follow 0");
+      await expect(roster).toContainText("Clanmates connect automatically");
+      await expect(
+        roster.getByRole("button", { name: /Follow|Friend/ }),
+      ).toHaveCount(0);
+      const row = (name: string) =>
+        roster.getByRole("row").filter({ hasText: name });
+      await expect(row("Ada").getByRole("button")).toHaveCount(0);
+      await expect(
+        row("Ben").locator(".kit-connection-state__primary"),
+      ).toHaveText("Friend");
+      await expect(
+        row("Zed").locator(".kit-connection-state__primary"),
+      ).toHaveText("Clanmate");
+      if (width < 700) {
+        const name = await row("Ben")
+          .getByRole("link", { name: "Ben", exact: true })
+          .boundingBox();
+        const trophies = await row("Ben")
+          .locator(".roster-table__trophies")
+          .boundingBox();
+        const connection = await row("Ben")
+          .locator(".kit-connection-state")
+          .boundingBox();
+        expect(name!.x + name!.width + 8).toBeLessThanOrEqual(trophies!.x);
+        expect(connection!.y).toBeGreaterThanOrEqual(name!.y + name!.height);
+      }
+      await expect(
+        row("Ben").getByRole("link", { name: "Ben", exact: true }),
+      ).toHaveAttribute("href", "/home/player/02QQPCYQQ");
       await expect(
         roster.getByRole("link", { name: "Clan map" }),
       ).toHaveAttribute("href", `${base}/members/map`);
       await noSideways(page);
-      await accessible(page, `members head ${label}`);
-
-      await roster.getByRole("button", { name: "Follow everyone" }).click();
-      const dialog = page.getByRole("dialog", {
-        name: "Follow everyone in Example Clan?",
+      await accessible(page, `connected clan members ${label}`);
+      await page.screenshot({
+        path: test.info().outputPath(`connected-members-${width}.png`),
       });
-      await expect(dialog).toContainText(
-        "2 players · uses 1 of your 50 follows. Your own player is left out.",
-      );
-      await accessible(page, `follow everyone dialog ${label}`);
-      await dialog.getByRole("button", { name: "Follow everyone" }).click();
-      await expect(dialog).toHaveCount(0);
-      expect(posted).toEqual([{ clan_tag: "#0QC8RCGY" }]);
-    });
-
-    test("Follow everyone is refused past the limit, and says why", async ({
-      page,
-    }) => {
-      const posted: unknown[] = [];
-      await mockApi(
-        page,
-        asMember({
-          "GET /api/me/follow-plan": [
-            200,
-            { ...PLAN, free: 0, slots: 2, used: 49, fits: false },
-          ],
-          "POST /api/me/follow-all": (route) => {
-            posted.push(route.request().postDataJSON());
-            return [429, { error: "quota_exceeded" }];
-          },
-        }),
-      );
-      await page.goto(`${base}/members`);
-      const roster = page.getByRole("region", { name: "3 members" });
-      await expect(
-        roster.getByRole("button", { name: "Follow everyone" }),
-      ).toBeDisabled();
-      await expect(roster.getByRole("status")).toContainText(
-        "Only 1 of your 50 player slots are left, so nobody would be followed.",
-      );
-      await noSideways(page);
-      await accessible(page, `follow everyone refused ${label}`);
       expect(posted).toEqual([]);
-    });
-
-    test("a row's Follow shows its cost first and follows that one player", async ({
-      page,
-    }) => {
-      const posted: unknown[] = [];
-      await mockApi(
-        page,
-        asMember({
-          "GET /api/me/follow-plan": [
-            200,
-            {
-              ...PLAN,
-              players: [
-                { ...PLAN.players[0], following: true },
-                PLAN.players[1],
-              ],
-              to_follow: 1,
-              following: 1,
-            },
-          ],
-          "POST /api/claims": (route) => {
-            posted.push(route.request().postDataJSON());
-            return [
-              201,
-              { ok: true, player_tag: "#M1", relationship: "friend" },
-            ];
-          },
-        }),
-      );
-      await page.goto(`${base}/members`);
-      const roster = page.getByRole("region", { name: "3 members" });
-      const row = (name: string) =>
-        roster.getByRole("row").filter({ hasText: name });
-      // Your own player has no Follow; one you follow says so.
-      await expect(row("Ada").getByRole("button")).toHaveCount(0);
-      await expect(row("Ben")).toContainText("Following");
-      await expect(row("Ben").getByRole("button")).toHaveCount(0);
-      await noSideways(page);
-      await accessible(page, `row follow ${label}`);
-
-      await row("Zed").getByRole("button", { name: "Follow" }).click();
-      const dialog = page.getByRole("dialog", { name: "Follow Zed?" });
-      await expect(dialog).toContainText("Uses 1 of your 50 follows · 3 used");
-      await dialog.getByRole("button", { name: "Follow" }).click();
-      await expect(dialog).toHaveCount(0);
-      expect(posted).toEqual([{ player_tag: "#M1", relationship: "friend" }]);
     });
 
     test("the clan map opens from Members, with your place on it", async ({
@@ -262,11 +212,11 @@ for (const [label, width] of [
       );
       await page.goto(`${base}/members`);
       const roster = page.getByRole("region", { name: "3 members" });
-      // Everyone followed already: the head says so and offers nothing.
-      await expect(
-        roster.getByRole("button", { name: "Following everyone" }),
-      ).toBeDisabled();
-      await expect(roster).toContainText("You follow 2");
+      // Automatic membership needs no follow action before opening the map.
+      await expect(roster.getByRole("button", { name: /Follow/ })).toHaveCount(
+        0,
+      );
+      await expect(roster).toContainText("Clanmates connect automatically");
       await roster.getByRole("link", { name: "Clan map" }).click();
       await expect(page).toHaveURL(new RegExp(`${base}/members/map$`));
       await expect(page.getByText("1 of 3 members on the map")).toBeVisible();

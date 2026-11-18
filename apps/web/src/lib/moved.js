@@ -1,4 +1,6 @@
 import { CLAN, appPath, tagOf } from "../clan/lib/base.js";
+import { HOME, TIMELINE } from "./home-paths.js";
+export { HOME, SIGN_IN, TIMELINE } from "./home-paths.js";
 
 /**
  * The addresses that forward, read by the root route (and the server
@@ -20,13 +22,6 @@ import { CLAN, appPath, tagOf } from "../clan/lib/base.js";
  * (services/web-api/src/app-pages.mjs); this is the fallback for an
  * address the router reaches without a request.
  */
-
-export const SIGN_IN = "/signin";
-/** The prefix the pages under Home keep: Find, Profile, players, sessions,
- *  accounts. Not a page of its own any more. */
-export const HOME = "/home";
-/** The feed, the Timeline tab (2026-11-17). */
-export const TIMELINE = "/timeline";
 
 /** Where a pathname now lives, or null when it stays put. A trailing slash
  *  means the same address. */

@@ -24,8 +24,8 @@
  *     changes were not recorded before the record's own first live read,
  *     since the imported roster history carries tenure only), the two
  *     reads disagree, or the interval's role events do not chain (an
- *     older roster admitted after a newer one leaves an inverted or
- *     out-of-order pair, and nothing then says which order was real).
+ *     inverted or out-of-order pair retained from an older projector
+ *     leaves the order uncertain).
  */
 
 const ms = (v) =>

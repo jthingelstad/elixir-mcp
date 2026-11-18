@@ -130,7 +130,8 @@ const PLAYER_PAGE = {
   // 916 cold here, nearly all the battle posts' decks.
   "/api/me/posts": { statements: 12, buffers: 1500 },
   "/api/clan/me": { statements: 15, buffers: 300 },
-  "/api/me/follow-plan": { statements: 9, buffers: 500 },
+  // +1: one batch of current member relationships, independent of row count.
+  "/api/me/follow-plan": { statements: 10, buffers: 500 },
   // +1: who verified the player, for linked follows (2026-11-15).
   "/api/me/follow-cost": { statements: 5, buffers: 250 },
   players_summary: { statements: 28, buffers: 3500 },
@@ -353,7 +354,8 @@ const FIND = {
   "/api/me/people/suggested": { statements: 11, buffers: 600 },
   "/api/me/people/battles": { statements: 9, buffers: 1300 },
   "/api/me/people/clan": { statements: 12, buffers: 700 },
-  "/api/me/follow-plan": { statements: 9, buffers: 500 },
+  // +1: one batch of current member relationships, independent of row count.
+  "/api/me/follow-plan": { statements: 10, buffers: 500 },
   "/api/me/clans": { statements: 6, buffers: 300 },
   "/api/me/home/clan": { statements: 9, buffers: 300 },
 };
@@ -458,7 +460,8 @@ test("the search sheet's reads stay in their budgets", async () => {
     ran.push(...r.seen);
     assert.equal(r.status, 200);
     assert.ok(
-      r.seen.length <= 6 + verificationBudget(r.body),
+      r.seen.length <= 7 + verificationBudget(r.body),
+      // +1 batch for member-only current connection labels.
       `players_search: ${r.seen.length}`,
     );
     const planned = await plans(seed.db, r.seen);
@@ -624,7 +627,7 @@ const latestBattle = async () =>
  * a post reads its battle as the battle page does.
  */
 const BATTLE = {
-  "/api/me": { statements: 11, buffers: 900 },
+  "/api/me": { statements: 12, buffers: 900 },
   // The formerly anonymous read now checks one approved-person session.
   // Its game-record budget stays 21 statements, with the same buffer ceiling.
   "/api/me/battles": { statements: 22, buffers: 500 },

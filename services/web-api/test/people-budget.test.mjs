@@ -31,7 +31,8 @@ const BUDGET = {
   "/api/me/people/clan": 12,
   // #768: the session, the seam's one read, and Near you's follow prices.
   "/api/me/people/near": 7,
-  "/api/me/player-map": 4,
+  // One batch of current member relationships for the map's visible rows.
+  "/api/me/player-map": 5,
 };
 
 // Invented: a friendly opponent and a 2v2 teammate's pair of opponents.
@@ -222,15 +223,17 @@ test("the people reads stay in their budgets and read the person's battles by ra
   }
 });
 
-test("the seeded starter set puts the friendly and the teammate before the clan's fill", async (t) => {
+test("the seeded starter set keeps the friendly and separates automatic clanmates", async (t) => {
   t.mock.method(console, "info", () => {});
   const r = await call("/api/me/people/starter");
   assert.equal(r.body.offer, true);
   const tags = r.body.people.map((p) => p.tag);
   assert.ok(tags.includes(FRIEND));
   for (const foe of FOES) assert.ok(!tags.includes(foe), foe);
-  // The seeded clan is recorded whole, so every clanmate is free and
-  // comes first; the friendly follows them.
+  // Clanmates are automatic connections, so the voluntary starter choices
+  // contain the friendly opponent and never a clan recruiting fill.
+  assert.ok(r.body.clanmate_count > 0);
+  assert.ok(!r.body.people.some((p) => p.clanmate));
   const firstPaid = r.body.people.findIndex((p) => !p.free);
   assert.equal(r.body.people[firstPaid]?.tag, FRIEND);
 });

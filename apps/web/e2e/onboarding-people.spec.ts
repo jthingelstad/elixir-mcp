@@ -24,19 +24,46 @@ const PEOPLE = [
     tag: "#00JRG2RU",
     name: "Amber",
     free: true,
-    why: [{ kind: "clan", clan_name: "Grove", recorded: true }],
+    why: [
+      {
+        kind: "battles",
+        against: 1,
+        with_you: 0,
+        friendly: 1,
+        clanmate_battles: 0,
+        days: 30,
+      },
+    ],
   },
   {
     tag: "#0LJR0G22",
     name: "Birch",
     free: false,
-    why: [{ kind: "clan", clan_name: "Grove" }],
+    why: [
+      {
+        kind: "battles",
+        against: 0,
+        with_you: 1,
+        friendly: 0,
+        clanmate_battles: 0,
+        days: 30,
+      },
+    ],
   },
   {
     tag: "#02G2PJC0",
     name: "Cedar",
     free: false,
-    why: [{ kind: "clan", clan_name: "Grove" }],
+    why: [
+      {
+        kind: "battles",
+        against: 0,
+        with_you: 1,
+        friendly: 0,
+        clanmate_battles: 0,
+        days: 30,
+      },
+    ],
   },
 ];
 const progress = {

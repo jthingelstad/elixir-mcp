@@ -40,10 +40,7 @@ const SUGGESTED = {
     {
       tag: "#0JYQYV0",
       name: "Hedy",
-      why: [
-        { kind: "battles", against: 2, with_you: 0, days: 7 },
-        { kind: "clan", clan_name: "Ada's Clan" },
-      ],
+      why: [{ kind: "battles", against: 2, with_you: 0, friendly: 2, days: 7 }],
       free: false,
       reason: null,
     },
@@ -86,7 +83,14 @@ const ADA = {
     trophies: 9400,
     recorded: true,
   },
-  you: { own: false, following: true, relationship: "friend", clanmate: null },
+  you: {
+    own: false,
+    following: true,
+    relationship: "friend",
+    connection: "friend",
+    clanmate: null,
+    shared_clan: null,
+  },
   badges: { verified_player: true, discord: false },
   follows: { count: 0, players: [] },
   followers: { count: 1, players: [], unnamed: 1 },
@@ -156,7 +160,7 @@ for (const [label, width] of [
         panel.getByRole("link", { name: "Hedy", exact: true }),
       ).toHaveAttribute("href", "/home/player/0JYQYV0");
       await expect(
-        panel.getByText("You played them twice this week · In your clan"),
+        panel.getByText("You played 2 friendly battles this week"),
       ).toBeVisible();
       // A row says only when a follow is free (2026-11-13).
       await expect(panel.getByText("Uses a slot")).toHaveCount(0);
@@ -368,10 +372,14 @@ for (const [label, width] of [
             {
               ok: true,
               clan: { clan_tag: "#0QC8RCGY", name: "Ada's Clan" },
+              clans: [{ clan_tag: "#0QC8RCGY", name: "Ada's Clan" }],
               players: [
                 {
                   player_tag: "#0JYQYV0",
                   name: "Hedy",
+                  connection: "clanmate",
+                  clanmate: "#0QC8RCGY",
+                  shared_clan: { clan_tag: "#0QC8RCGY", name: "Ada's Clan" },
                   following: false,
                   free: false,
                   reason: null,
@@ -380,6 +388,9 @@ for (const [label, width] of [
                 {
                   player_tag: "#00C298UC",
                   name: "Ada",
+                  connection: "friend",
+                  clanmate: "#0QC8RCGY",
+                  shared_clan: { clan_tag: "#0QC8RCGY", name: "Ada's Clan" },
                   following: true,
                   free: true,
                   reason: null,
@@ -470,11 +481,19 @@ for (const [label, width] of [
       await find.getByRole("tab", { name: "Search" }).click();
       await expect(page.getByLabel("Follow by player tag")).toBeVisible();
 
-      // Your clan: its members, what each costs, and Follow my clan.
+      // Your clan: automatic connections, with voluntary friend management on player pages.
       await find.getByRole("tab", { name: "Your clan" }).click();
       await expect(
         page.getByRole("button", { name: "Follow my clan" }),
-      ).toBeVisible();
+      ).toHaveCount(0);
+      await expect(page.locator(".kit-clanpeople-list")).toContainText(
+        "2 clanmates connected",
+      );
+      await expect(
+        page
+          .locator(".kit-clanpeople-list")
+          .getByRole("button", { name: /Follow|Friend/ }),
+      ).toHaveCount(0);
       await expect(
         page.getByRole("link", { name: "Hedy", exact: true }),
       ).toBeVisible();

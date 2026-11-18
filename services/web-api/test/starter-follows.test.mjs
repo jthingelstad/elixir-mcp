@@ -1,8 +1,7 @@
 /**
  * Home's starter set (2026-11-13): who a new account is offered to follow,
- * from facts Elixir already has. Pinned here: the order (clanmates Elixir
- * records already, free; then friendly-battle opponents, 2v2 teammates and
- * clanmates battled in clan chat; then the most recently active clanmates),
+ * from facts Elixir already has. Pinned here: friendly-battle opponents
+ * and 2v2 teammates to add voluntarily, automatic clanmates separately,
  * the cap on players that would take a slot, every row's reason and cost,
  * game names only, never a player the account claims, and the offer on
  * every visit while fewer than five of its follows played this week, unless
@@ -170,39 +169,24 @@ after(async () => {
   await dropScratch(name);
 });
 
-test("the starter set: free clanmates, then friendlies, teammates and clan battles, then the active clan", async (t) => {
+test("the starter set offers familiar battle players and reports automatic clanmates separately", async (t) => {
   t.mock.method(console, "info", () => {});
   const res = await call("/api/me/people/starter");
   assert.equal(res.status, 200, res.raw);
   assert.equal(res.body.ok, true);
   assert.equal(res.body.offer, true);
   const tags = res.body.people.map((p) => p.tag);
-  assert.deepEqual(tags, [
-    RECORDED,
-    FRIEND,
-    TEAMMATE,
-    CLAN_BATTLED,
-    ACTIVE,
-    QUIET,
-  ]);
+  assert.deepEqual(tags, [FRIEND, TEAMMATE]);
+  assert.equal(res.body.clanmate_count, 5);
+  assert.deepEqual(
+    res.body.clanmates.map((p) => p.tag).sort(),
+    [RECORDED, CLAN_BATTLED, ACTIVE, QUIET, WATCHED].sort(),
+  );
   const by = Object.fromEntries(res.body.people.map((p) => [p.tag, p]));
-  assert.deepEqual(by[RECORDED].why, [
-    { kind: "clan", clan_name: "Grove", recorded: true },
-  ]);
-  assert.equal(by[RECORDED].free, true);
   assert.equal(by[FRIEND].why[0].kind, "battles");
   assert.equal(by[FRIEND].why[0].friendly, 1);
   assert.equal(by[TEAMMATE].why[0].with_you, 1);
   assert.equal(by[TEAMMATE].why[0].friendly, 0);
-  // A clan-chat friendly, and the clan's own reason beside it.
-  assert.equal(by[CLAN_BATTLED].why[0].clanmate_battles, 1);
-  assert.equal(by[CLAN_BATTLED].why[1].kind, "clan");
-  // The fill: most recently active first, with when.
-  assert.ok(by[ACTIVE].why[0].last_battle);
-  assert.ok(
-    Date.parse(by[ACTIVE].why[0].last_battle) >
-      Date.parse(by[QUIET].why[0].last_battle),
-  );
   for (const p of res.body.people) {
     assert.equal(typeof p.free, "boolean");
     for (const k of ["trophies", "wins", "losses", "level", "rank", "score"])
@@ -219,23 +203,32 @@ test("the starter set: free clanmates, then friendlies, teammates and clan battl
 
 test("the starter set takes no more slots than are left; free ones are not counted", async (t) => {
   t.mock.method(console, "info", () => {});
-  // The owner's own player and the one they watch take slots already:
-  // leave room for two more.
+  // The owner's own player and their saved friend take slots already:
+  // leave one paid slot. A familiar battle opponent recorded for another
+  // person stays free; the teammate can use that last slot.
+  await db.query(
+    "insert into claim(account_id,player_tag,relationship)select account_id,$1,'friend' from account where email_hash='starter-other'",
+    [FRIEND],
+  );
   const { used } = (await call("/api/me/people/starter")).body;
   assert.ok(Number.isInteger(used));
   await db.query(
     `update account set max_player_recordings = $2 where account_id = $1`,
-    [ownerId, used + 2],
+    [ownerId, used + 1],
   );
   try {
     const res = await call("/api/me/people/starter");
-    assert.equal(res.body.slots_cap, 2);
+    assert.equal(res.body.slots_cap, 1);
     assert.deepEqual(
       res.body.people.map((p) => p.tag),
-      [RECORDED, FRIEND, TEAMMATE],
+      [FRIEND, TEAMMATE],
     );
-    assert.equal(res.body.people.filter((p) => !p.free).length, 2);
+    assert.equal(res.body.people.filter((p) => !p.free).length, 1);
   } finally {
+    await db.query(
+      "delete from claim where player_tag=$1 and account_id=(select account_id from account where email_hash='starter-other')",
+      [FRIEND],
+    );
     await db.query(
       `update account set max_player_recordings = null where account_id = $1`,
       [ownerId],
@@ -270,7 +263,9 @@ test("offered on every visit while fewer than five follows played, finished welc
     [ownerId, FRIEND],
   );
   res = await call("/api/me/people/starter");
-  assert.deepEqual(res.body, { ok: true, offer: false, people: [] });
+  assert.equal(res.body.offer, false);
+  assert.deepEqual(res.body.people, []);
+  assert.equal(res.body.clanmate_count, 5);
   await db.query(
     `delete from claim where account_id = $1 and relationship = 'friend'`,
     [ownerId],
@@ -306,7 +301,9 @@ test("follows who have not played in seven days do not end the offer (#1016)", a
       [ownerId, tag],
     );
   res = await call("/api/me/people/starter");
-  assert.deepEqual(res.body, { ok: true, offer: false, people: [] });
+  assert.equal(res.body.offer, false);
+  assert.deepEqual(res.body.people, []);
+  assert.equal(res.body.clanmate_count, 5);
   await db.query(
     `delete from claim where account_id = $1 and relationship = 'friend'`,
     [ownerId],
@@ -360,7 +357,13 @@ test("an account with no player of its own is offered the list, empty", async (t
     "/api/me/people/starter",
     `__Host-elixir_session=${s.token}`,
   );
-  assert.deepEqual(res.body, { ok: true, offer: true, people: [] });
+  assert.deepEqual(res.body, {
+    ok: true,
+    offer: true,
+    people: [],
+    clanmate_count: 0,
+    clanmates: [],
+  });
 });
 
 test("signed out there is no starter read and no Not now", async () => {

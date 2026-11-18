@@ -155,7 +155,8 @@ export function FollowButton({
   tag,
   name = null,
   onDone,
-  label = "Follow",
+  label = null,
+  clanmate = false,
   cost: known = null,
   className = "btn btn--sm btn--follow",
   lazy = false,
@@ -173,10 +174,10 @@ export function FollowButton({
   const who = name ?? tag;
   return (
     <ConfirmAction
-      label={label}
+      label={label ?? (clanmate ? "Friend" : "Follow")}
       className={className}
       danger={false}
-      title={`Follow ${who}?`}
+      title={`${clanmate ? "Friend" : "Follow"} ${who}?`}
       body={
         <>
           <p className="m-0">
@@ -187,8 +188,9 @@ export function FollowButton({
             ) : (
               <Tag tag={tag} />
             )}
-            . If they verified their player on Elixir, their bell shows a new
-            follower. Their sessions start in your feed.
+            {clanmate
+              ? ". Clanmates' posts and questions appear in your Timeline automatically. A friend connection includes game activity and stays if either of you leaves the clan."
+              : ". If they verified their player on Elixir, their bell shows a new follower. Their sessions start in your feed."}
           </p>
           {lazy && !known ? (
             <PricedOnOpen tag={tag} />
@@ -197,7 +199,7 @@ export function FollowButton({
           )}
         </>
       }
-      confirm="Follow"
+      confirm={clanmate ? "Friend" : "Follow"}
       disabled={full}
       run={() => api.claimAction({ player_tag: tag, relationship: "friend" })}
       onDone={(answer) => {

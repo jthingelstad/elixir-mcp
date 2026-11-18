@@ -3,6 +3,7 @@ import { playerHref } from "../lib/player.js";
 import { SETTINGS_RAIL } from "../lib/settings.js";
 import { HASH_RE, WEEK_RE, normTag, tagPath } from "../lib/tag-url.js";
 import { DOC_LINKS } from "./doc-links.js";
+import { isClanmateConnection } from "../home/Connection.jsx";
 
 /**
  * The search sheet's thinking, with no React in it. What is local (you, your
@@ -51,13 +52,20 @@ export function readable(q) {
 }
 
 /** What the sheet knows without asking: the session and two cached reads. */
-export function searchSources({ me, clans, roster, cards }) {
+export function searchSources({ me, clans, clanmates, cards }) {
   const claims = me?.claims ?? [];
   const home = clans?.home_clan ?? null;
-  const mates = new Map((roster?.members ?? []).map((m) => [m.player_tag, m]));
+  const mates = new Map(
+    (clanmates?.players ?? [])
+      .filter((p) => isClanmateConnection(p) && !p.blocked)
+      .map((p) => [p.player_tag, p]),
+  );
   return {
     own: claims.filter((c) => c.is_primary || c.relationship === "alt"),
-    following: claims.filter((c) => !c.is_primary && c.relationship !== "alt"),
+    following: claims.filter(
+      (c) =>
+        !c.is_primary && c.relationship === "friend" && c.connection !== null,
+    ),
     home,
     staff: me?.is_admin === true,
     mates,
@@ -67,6 +75,15 @@ export function searchSources({ me, clans, roster, cards }) {
 }
 
 const nameOf = (p) => p.nickname ?? p.name ?? p.player_tag;
+const connectionOf = (p) =>
+  Object.hasOwn(p ?? {}, "connection")
+    ? {
+        connection: p.connection,
+        clanmate: p.clanmate,
+        shared_clan: p.shared_clan,
+        close: p.close,
+      }
+    : {};
 
 /** A searched player's row detail: tag, clan and trophies (#764), so two
  *  players with one name can be told apart. */
@@ -86,19 +103,28 @@ export function playerDetail(p) {
 /** The one door for a player, whichever way they were found: their player
  *  page. `detail` is what the row says on its right when the player is
  *  nobody to you. */
-export function doorFor(tag, s, name = tag, detail = null) {
+export function doorFor(tag, s, name = tag, detail = null, current = null) {
   const href = playerHref(tag);
   if (s.own.some((c) => c.player_tag === tag))
     return { t: name, d: "You", href };
   const mate = s.mates.get(tag);
-  if (mate && s.home)
+  const friend = s.following.find((c) => c.player_tag === tag);
+  const state = Object.hasOwn(current ?? {}, "connection")
+    ? current
+    : (mate ?? friend);
+  if (isClanmateConnection(state))
     return {
       t: name,
-      d: s.home.name ?? "Clan",
-      role: ROLE[mate.role] ?? null,
+      d:
+        detail ??
+        state.shared_clan?.name ??
+        state.shared_clan?.clan_tag ??
+        state.clanmate,
+      role: ROLE[state.role] ?? null,
+      ...connectionOf(state),
       href,
     };
-  if (s.following.some((c) => c.player_tag === tag))
+  if (friend && state?.connection !== null)
     return { t: name, d: detail ?? "Following", href };
   return { t: name, d: detail ?? tag, href };
 }
@@ -222,6 +248,7 @@ export const accountRows = (accounts) =>
     t: `@${a.handle}`,
     d: a.player?.name ?? "Elixir account",
     href: accountHref(a.id),
+    ...connectionOf(a),
   }));
 
 export function typedGroups(raw, s, found = null) {
@@ -230,7 +257,34 @@ export function typedGroups(raw, s, found = null) {
     .toLowerCase();
   if (!q) return beforeTyping(s);
   const match = hits(q);
-  const { you, mates, following, clans } = people(s);
+  // A current named read wins over the sheet's cached peer/claim rows.
+  // This removes departed or blocked associations without hiding public game facts.
+  const latest = new Map(
+    (found?.players ?? [])
+      .filter((p) => Object.hasOwn(p, "connection"))
+      .map((p) => [p.player_tag, p]),
+  );
+  const current = latest.size
+    ? {
+        ...s,
+        mates: new Map(
+          [...s.mates]
+            .filter(
+              ([tag]) =>
+                !latest.has(tag) || isClanmateConnection(latest.get(tag)),
+            )
+            .map(([tag, p]) => [tag, { ...p, ...latest.get(tag) }]),
+        ),
+        following: s.following
+          .filter(
+            (p) =>
+              !latest.has(p.player_tag) ||
+              latest.get(p.player_tag).connection === "friend",
+          )
+          .map((p) => ({ ...p, ...latest.get(p.player_tag) })),
+      }
+    : s;
+  const { you, mates, following, clans } = people(current);
   const youRows = you.filter(
     (r, i) => match(r.t) || match(s.own[i]?.player_tag),
   );
@@ -248,7 +302,7 @@ export function typedGroups(raw, s, found = null) {
   const fresh = [];
   for (const p of found?.players ?? []) {
     const label = p.label ?? nameOf(p);
-    const row = doorFor(p.player_tag, s, label, playerDetail(p));
+    const row = doorFor(p.player_tag, current, label, playerDetail(p), p);
     if (seen.has(row.href)) continue;
     seen.add(row.href);
     fresh.push(row);
@@ -352,6 +406,7 @@ export async function readSearch(raw, call, seen = () => {}) {
             clan_name: player.clan?.name ?? null,
             clan_tag: player.clan?.clan_tag ?? null,
             trophies: player.trophies ?? null,
+            ...connectionOf(player),
           },
         ],
       };

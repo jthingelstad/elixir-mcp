@@ -195,7 +195,7 @@ const tagsOf = (it) =>
 /** Which chips an item sits under, from the account's own subjects. An
  *  item about nobody the account follows is the account's own (its
  *  administration, a feedback answer), so it is yours. */
-export function groupsOf(it, subjects, close = null) {
+export function groupsOf(it, subjects, close = null, clanmates = null) {
   const own = new Set();
   const friends = new Set();
   const clans = new Set();
@@ -213,23 +213,16 @@ export function groupsOf(it, subjects, close = null) {
   // A people item is about another account unless it names your own
   // player: a followed account's news is Friends, never You, even when
   // you follow none of its players.
+  const fromClanmate = clanmates?.has(it.subject_tag);
+  const accountPost = it.kind === "post" && it.post?.mine === false;
   const person = it.section === "people" && !any(own);
-  if (!person && (any(own) || ![...tags].some((t) => all.has(t))))
+  if (!person && !accountPost && !fromClanmate && (any(own) || !any(all)))
     groups.push("you");
-  if (person || any(friends)) groups.push("friends");
-  if (any(clans)) groups.push("clan");
+  if (person || any(friends) || (accountPost && !fromClanmate))
+    groups.push("friends");
+  if (fromClanmate || any(clans)) groups.push("clan");
   if (close?.size && any(close)) groups.push("close");
   return groups;
-}
-
-/** The players the reader marked close friends (0281), as a set of tags.
- *  The account's own read only: never another member's, never MCP. */
-export async function closeTags(db, accountId) {
-  const { rows } = await db.query(
-    `select player_tag from claim where account_id = $1 and close`,
-    [accountId],
-  );
-  return new Set(rows.map((r) => r.player_tag));
 }
 
 /** A sitting's battles as the sparkline draws them: "w", "l" or "d", and
@@ -252,18 +245,6 @@ export function sparkBars(spark) {
 /** A sitting's score facts (the widest win, the three-crown wins): the
  *  tools' one function, which the digest reads too (2026-11-16). */
 export { scoresOf };
-
-/** Whether a clan arrival offers Follow (design canvas 2026-11-13): a
- *  member who joined a clan you follow, and whom you do not follow, from the
- *  subjects the read already holds. A player followed with notify off is
- *  not among them, and Follow's own write answers for them as everywhere
- *  else. */
-export function offersFollow(it, subjects) {
-  if (it.kind !== "member_joined") return false;
-  const tag = it.facts?.player_tag;
-  if (!tag) return false;
-  return !subjects.some((s) => s.kind === "player" && s.tag === tag);
-}
 
 /** The player an item's avatar draws, as Home's feed picks it: its first
  *  player subject, else the player its facts name; null for a clan's item
@@ -333,7 +314,13 @@ const badgeArtOf = (key, held) =>
   key ? badgeArtPath(held.get(`${key.name}|${key.level}`)) : null;
 
 /** The timeline's items with Home's fields added. */
-export async function annotateFeed(db, timeline, subjects, close = null) {
+export async function annotateFeed(
+  db,
+  timeline,
+  subjects,
+  close = null,
+  clanmates = null,
+) {
   const items = timeline ?? [];
   const proofs = items.map(proofOf);
   const links = await battleLinks(db, proofs.filter(Boolean));
@@ -359,14 +346,13 @@ export async function annotateFeed(db, timeline, subjects, close = null) {
     return {
       ...it,
       ...(timelineItemRef(it) ? { item_ref: timelineItemRef(it) } : {}),
-      groups: groupsOf(it, subjects, close),
+      groups: groupsOf(it, subjects, close, clanmates),
       ...(spark ? { spark } : {}),
       ...(scores ? { scores } : {}),
       ...(deck ? { deck } : {}),
       ...(versus ? { versus } : {}),
       ...(link ? { battle_url: link.url } : {}),
       ...(proofMode ? { proof_mode: proofMode } : {}),
-      ...(offersFollow(it, subjects) ? { offer_follow: true } : {}),
       ...(mastery[i] && cards.has(mastery[i])
         ? { moment_card: { id: cards.get(mastery[i]), name: mastery[i] } }
         : {}),

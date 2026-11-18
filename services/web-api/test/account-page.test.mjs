@@ -247,6 +247,10 @@ test("following an account: yourself refused, idempotent, counted, undone", asyn
     assert.deepEqual(data(r), {
       ok: true,
       following: true,
+      connection: "friend",
+      clanmate: null,
+      shared_clan: null,
+      close: false,
       followed: [],
       skipped: [],
     });
@@ -287,7 +291,15 @@ test("following an account: yourself refused, idempotent, counted, undone", asyn
   assert.equal(off.statusCode, 200, off.body);
   // Linked follows: unfollowing the account unfollows its Verified
   // player V, which READER followed.
-  assert.deepEqual(data(off), { ok: true, following: false, unfollowed: [V] });
+  assert.deepEqual(data(off), {
+    ok: true,
+    following: false,
+    unfollowed: [V],
+    connection: null,
+    clanmate: null,
+    shared_clan: null,
+    close: false,
+  });
   const missing = await call(READER, "POST", "/api/me/account-follows", {
     id: "abcdefghjkmn",
   });

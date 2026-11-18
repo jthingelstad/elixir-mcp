@@ -60,7 +60,14 @@ const PLAYER = {
     recorded: true,
     avatar_card_id: 26000021,
   },
-  you: { own: false, following: true, relationship: "friend", clanmate: null },
+  you: {
+    own: false,
+    following: true,
+    relationship: "friend",
+    connection: "friend",
+    clanmate: null,
+    shared_clan: null,
+  },
   badges: { verified_player: true, discord: false },
   follows: {
     count: 2,

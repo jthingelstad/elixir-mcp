@@ -155,13 +155,10 @@ Below it, the tabs:
   role it needs, and Elixir refuses its reads to them. A name opens that
   player's [page](/docs/player-page), and its **Open in Clan** opens their
   page in this clan; your own has **Away** beside it when the clan lets
-  members mark themselves away. Over the roster, every member reads how
-  many members there are, how many of them you follow, **Follow everyone**
-  and **Clan map** (when the map is on and you are verified here). **Follow
-  everyone** is the player page's: it asks first, saying how many are free
-  and how many take one of your player slots, leaves your own players out,
-  and is refused whole past your limit with the reason beside it
-  ([Following players](/docs/player-page#following-from-the-page)).
+  members mark themselves away. The members of your own clan are already
+  [Clanmates](/docs/follow-a-friend#clanmates). Open a player’s page if you
+  want to add them as a friend. **Clan map** opens the map when it is on and
+  you are verified here.
 - **Policy**: [the policy](/docs/clan-policy) in every member's words: what
   the clan counts, its minimums, how Elder is earned and the removal clock,
   with Elder's weights, the version and who saved it. Anyone in the

@@ -89,9 +89,9 @@ Elixir account to Clash Royale player.
 
 ## Finding people and clans
 
-- **Your clan:** one click to see everyone in it and follow them, or
-  "follow my clan", which keeps following whoever is in it as members
-  come and go.
+- **Your clan:** people who share a current clan with one of your verified
+  players are automatically Clanmates. You can become friends independently.
+  When someone leaves, the shared-clan connection ends and friendships carry on.
 - **Search:** players who exist in Elixir, meaning everyone someone has
   followed.
 - **Your battle log:** follow a notable opponent from it.

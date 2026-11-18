@@ -33,8 +33,8 @@ const PlayerMap = lazy(() =>
 
 /**
  * Find (slice 7, #765; its sections 2026-11-12): where you go to find people
- * and be found. Your clan lists its members with what following each costs,
- * and Follow my clan, then Bring your clanmates (moved from Stats' Season,
+ * and be found. Your clan lists its automatically connected members,
+ * then Bring your clanmates (moved from Stats' Season,
  * Jamie 2026-11-12: "Bring your clanmates moves to Find"); Search opens
  * the sheet every page has, and a tag
  * follows a friend; From your battles lists the players you met; the clan

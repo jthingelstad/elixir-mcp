@@ -58,6 +58,17 @@ test("membership projection uses admitted source observations, surviving uncache
       state: "member",
       observed_at: "2026-09-01T12:00:00.000Z",
     });
+    const clanEvidence = async () =>
+      (
+        await db.query(
+          "select clan_tag, clan_observed_at=observed_at as current from player_profile_membership where player_tag=$1",
+          [tag],
+        )
+      ).rows[0];
+    assert.deepEqual(await clanEvidence(), {
+      clan_tag: profile.clan.tag,
+      current: true,
+    });
     const absent = { ...profile };
     delete absent.clan;
     await put("2026-09-02T12:00:00Z", absent);
@@ -76,6 +87,7 @@ test("membership projection uses admitted source observations, surviving uncache
       profile.clan.tag,
       "retained tag is not current membership evidence",
     );
+    assert.deepEqual(await clanEvidence(), { clan_tag: null, current: true });
     await put("2026-09-02T13:00:00Z", absent);
     assert.equal(
       (await evidence()).observed_at,
@@ -109,6 +121,19 @@ test("membership projection uses admitted source observations, surviving uncache
       "unknown",
       "redelivery cannot settle a conflict",
     );
+    const sameInstant = "2026-09-05T18:00:00Z";
+    await put(sameInstant, profile);
+    await put(
+      sameInstant,
+      { ...profile, clan: { ...profile.clan, tag: "#0PPPG9" } },
+      second.gateway_id,
+    );
+    assert.equal(
+      (await evidence()).state,
+      "unknown",
+      "two different named clans at the same instant conflict",
+    );
+    assert.deepEqual(await clanEvidence(), { clan_tag: null, current: true });
     await put("2026-09-06T12:00:00Z", { ...absent, clan: null });
     assert.equal((await evidence()).state, "none");
     await db.query("delete from api_payload");

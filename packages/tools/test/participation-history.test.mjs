@@ -181,8 +181,7 @@ before(async () => {
     [E, "elder"],
   ];
   await read(R8, s8, { windowStart: R7 });
-  // The older payload admitted after the newer one: its window runs
-  // backwards (the previous admitted read is the newer one).
+  // A late admission is retained as a receipt without changing current roles.
   await read(R8_OLDER, s7, { windowStart: R8 });
   await read(R9, s8, { windowStart: R8 });
   await read(R10, s8, { windowStart: R9 });
@@ -363,19 +362,39 @@ test("a change between the reads around a finish is unknown at that finish, neve
   assert.equal(d.role_at_war_finish[5], "elder");
 });
 
-test("an older roster admitted after a newer one leaves the role unknown rather than wrong", async () => {
+test("an older roster arriving late preserves the role and its observed history", async () => {
   const { rows } = await db.query(
     `select count(*)::int as n from clan_event
       where clan_tag = $1 and player_tag = $2 and window_start > window_end`,
     [CLAN, E],
   );
-  assert.equal(rows[0].n, 1, "the fixture has its inverted window");
+  assert.equal(rows[0].n, 0, "a late admission cannot invert an event window");
   const body = await participation();
   const e = row(body, E);
   assert.equal(e.role, "elder");
   assert.equal(e.in_clan_at_war_finish[5], true);
-  assert.equal(e.role_at_war_finish[5], null);
-  assert.equal(e.role_changes.length, 3, "all three observations are served");
+  assert.equal(e.role_at_war_finish[5], "elder");
+  assert.equal(e.role_changes.length, 1, "one confirmed promotion");
+});
+
+test("an inverted role event retained from an older projector leaves historical roles unknown", () => {
+  const out = atWarFinishes({
+    memberships: [
+      { joined_observed_at: R0, left_observed_at: null, role: "elder" },
+    ],
+    roleEvents: [
+      {
+        event_id: 1,
+        window_start: R8,
+        window_end: R8_OLDER,
+        role_before: "member",
+        role_after: "elder",
+      },
+    ],
+    finishes: [{ finish: F5, prev: R9, next: R10 }],
+    roleSince: R0,
+  });
+  assert.deepEqual(out, { in_clan: [true], role: [null] });
 });
 
 test("compact keeps the finish columns and drops role_changes", async () => {

@@ -685,8 +685,8 @@ export function quietFeed(follows) {
   if (follows.following === 0)
     return {
       key: "none",
-      title: "Your feed is waiting for friends",
-      body: "Follow your friends and clanmates, and their battles show up here.",
+      title: "Nothing on your Timeline this week",
+      body: "Clanmates’ posts appear here. Add a friend to see their battles.",
     };
   if ((follows.unknown ?? 0) > 0 || (follows.active ?? 0) > 0)
     return {

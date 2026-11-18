@@ -46,7 +46,9 @@ for (const [label, width] of [
       "Your 2v2 teammate twice in the last 30 days",
     );
     await expect(rows.nth(2)).toContainText("Free");
-    await expect(rows.nth(3)).toContainText("In your clan");
+    await expect(rows.nth(3)).toContainText(
+      "You played a friendly battle in the last 30 days",
+    );
     await expect(
       list.getByRole("link", { name: "Juniper", exact: true }),
     ).toHaveAttribute("href", "/home/player/0G2ULUJP");
@@ -70,9 +72,7 @@ for (const [label, width] of [
     // Show more: the rest of the list, and where more are.
     await list.getByRole("button", { name: "Show more (2)" }).click();
     await expect(rows).toHaveCount(12);
-    await expect(list).toContainText(
-      "More are in From your battles and Your clan.",
-    );
+    await expect(list).toContainText("More are in From your battles.");
     await list.getByRole("button", { name: "Show fewer" }).click();
     await expect(rows).toHaveCount(10);
   });
