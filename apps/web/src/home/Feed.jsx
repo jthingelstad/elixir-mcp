@@ -40,6 +40,7 @@ import {
   feedSince,
   quietFeed,
   timelineDays,
+  timelineNewAt,
 } from "./logic.js";
 import { FeedRows } from "./FeedItem.jsx";
 import { SessionGames } from "./SessionGames.jsx";
@@ -145,7 +146,7 @@ export function HomeFeed({
     [query.data],
   );
   const isNew = (it) =>
-    openedMs !== null && Date.parse(it.observed_at ?? it.at) > openedMs;
+    openedMs !== null && Date.parse(timelineNewAt(it)) > openedMs;
   // Q8 keeps the State chips; the four Show chips replace its Who chips
   // (Jamie, 2026-11-12).
   // The passport is Home's read already (the profile list's); a quiet feed

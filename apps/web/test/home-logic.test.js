@@ -238,6 +238,19 @@ describe("Timeline days", () => {
     const days = timelineDays(items, { day, openedMs: null });
     expect(days.flatMap((d) => d.rows).some((r) => r.isNew)).toBe(false);
   });
+  test("post edits stay read while game items learned later remain new", () => {
+    const old = "2026-11-05T06:00:00Z";
+    const learned = "2026-11-05T12:00:00Z";
+    const rows = timelineDays(
+      [
+        { id: 1, kind: "post", at: old, observed_at: learned },
+        { id: 2, kind: "pol_league", at: old, observed_at: learned },
+      ],
+      { day, openedMs: Date.parse("2026-11-05T08:00:00Z") },
+    ).flatMap((d) => d.rows);
+    expect(rows.map((r) => r.isNew)).toEqual([false, true]);
+    expect(rows.map((r) => r.newLine)).toEqual([false, true]);
+  });
 });
 
 describe("One recorded game in words", () => {

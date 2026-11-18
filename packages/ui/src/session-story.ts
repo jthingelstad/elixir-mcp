@@ -288,3 +288,13 @@ export function sessionPathOf(it: Item | null | undefined) {
     ? sessionPath(tag, it.id, at)
     : null;
 }
+
+/** Home counts a post when it was created; changing words or answer state
+ * is an edit of that same post. Game items still count when learned. */
+export function timelineNewAt(item: {
+  kind?: string;
+  at?: string;
+  observed_at?: string | null;
+}) {
+  return item.kind === "post" ? item.at : (item.observed_at ?? item.at);
+}

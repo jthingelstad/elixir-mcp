@@ -84,6 +84,42 @@ test("the pill counts from the newest change: a sitting by its last battle, a la
   expect(feedSince(empty)).toBe(empty.window.to);
 });
 
+test("the poll fallback ignores post edits while retaining newly learned game items", () => {
+  const post = item(1, 180, { kind: "post", observed_at: AGO(1) });
+  const game = item(2, 30);
+  expect(feedSince(page([game, post]))).toBe(game.at);
+});
+
+test("an edited post agrees with New zero and has no new-row marker", async () => {
+  const text = "Reworded after the previous visit";
+  const post = item(1, 180, {
+    kind: "post",
+    observed_at: AGO(1),
+    text,
+    post: {
+      id: "7",
+      text,
+      question: true,
+      deck: null,
+      cards: [],
+      author: { name: "Invented Ada", player_tag: "#00JQ20" },
+    },
+  });
+  feed = page([post]);
+  feed.counts = { new: 0, new_since: feed.seen_to };
+  fresh = 0;
+  renderWithProviders(<HomeFeed />);
+  expect(await screen.findByText(text)).toBeTruthy();
+  expect(screen.queryByText("New since your last visit")).toBeNull();
+  fireEvent.click(
+    screen.getByRole("button", { name: "New since your last visit: 0" }),
+  );
+  expect(screen.queryByText(text)).toBeNull();
+  expect(
+    screen.getByText("Nothing new here since your last visit."),
+  ).toBeTruthy();
+});
+
 test("new items wait behind the pill; the tap reads the first page again", async () => {
   feed = page([item(1, 30)]);
   fresh = 0;
