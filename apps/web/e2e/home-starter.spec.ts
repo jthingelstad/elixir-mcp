@@ -130,23 +130,47 @@ async function noSideways(page: Page) {
   expect(over).toBeLessThanOrEqual(0);
 }
 
-for (const [label, width, height] of [
-  ["phone", 390, 844],
-  ["small phone", 375, 667],
-  ["desktop", 1180, 844],
+for (const [label, width, height, fallback] of [
+  ["narrow phone", 320, 844, false],
+  ["phone", 390, 844, false],
+  ["small phone", 375, 667, false],
+  ["small phone with wide fallback", 375, 667, true],
+  ["desktop", 1280, 844, false],
 ] as const) {
   test(`${label}: the first screen holds Follow these and three rows with their reasons`, async ({
     page,
   }) => {
     await page.setViewportSize({ width, height });
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    if (fallback)
+      await page.route("**/assets/fonts/**", (route) => route.abort());
     await mockApi(page, home(NEW, offer()));
     await page.goto("/home");
+    if (fallback)
+      await page.addStyleTag({
+        content: ":root { --font: monospace; --font-display: monospace; }",
+      });
     const set = page.locator(".kit-starter");
     await expect(
       set.getByRole("heading", { name: "People you know" }),
     ).toBeVisible();
     const go = set.getByRole("button", { name: "Follow these (8)" });
     await expect(go).toBeVisible();
+    await page.evaluate(async () => {
+      await document.fonts.ready;
+      await new Promise<void>((done) =>
+        requestAnimationFrame(() => requestAnimationFrame(() => done())),
+      );
+    });
+    await page.screenshot({
+      path: process.env.STARTER_SHOTS
+        ? `${process.env.STARTER_SHOTS}/${label.replaceAll(" ", "-")}-${width}.png`
+        : test
+            .info()
+            .outputPath(
+              `home-starter-${label.replaceAll(" ", "-")}-${width}.png`,
+            ),
+    });
     // Above the profile list and the feed.
     const top = await set.boundingBox();
     const list = await page.locator(".kit-profile").boundingBox();
@@ -167,19 +191,16 @@ for (const [label, width, height] of [
     for (let i = 0; i < 3; i++) {
       await inView(await rows.nth(i).boundingBox());
       await expect(rows.nth(i).locator(".kit-people__why")).not.toBeEmpty();
+      const tick = await rows.nth(i).locator("label").boundingBox();
+      expect(tick!.width).toBeGreaterThanOrEqual(44);
+      expect(tick!.height).toBeGreaterThanOrEqual(44);
     }
-    await expect(rows.nth(0)).toContainText(
-      "You played a friendly battle in the last 30 days",
-    );
-    await expect(rows.nth(1)).toContainText(
-      "You played a friendly battle in the last 30 days",
-    );
+    await expect(rows.nth(0)).toContainText("Friendly battle · last 30 days");
+    await expect(rows.nth(1)).toContainText("Friendly battle · last 30 days");
     await expect(rows.nth(2)).toContainText(
-      "Your 2v2 teammate twice in the last 30 days",
+      "2v2 teammate twice · last 30 days",
     );
-    await expect(rows.nth(3)).toContainText(
-      "You played a friendly battle in the last 30 days",
-    );
+    await expect(rows.nth(3)).toContainText("Friendly battle · last 30 days");
     await noSideways(page);
     if (label !== "desktop")
       await page.screenshot({
@@ -236,6 +257,38 @@ test("a hostile name is text; untick, then one confirmed follow of the ticked", 
       ),
     },
   ]);
+});
+
+test("small phone: enlarged text reflows and keeps the starter controls usable", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 375, height: 667 });
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await mockApi(page, home(NEW, offer()));
+  await page.goto("/home");
+  await page.addStyleTag({ content: "html { zoom: 1.25; }" });
+  const set = page.locator(".kit-starter");
+  const elm = set.getByRole("checkbox", { name: "Follow Elm" });
+  await expect(elm).toBeVisible();
+  await page.evaluate(() => document.fonts.ready);
+  await set.locator(".kit-starter__row").nth(2).scrollIntoViewIfNeeded();
+  await expect(set.locator(".kit-starter__row").nth(2)).toBeInViewport({
+    ratio: 1,
+  });
+  await expect(set).toContainText("2v2 teammate twice · last 30 days");
+  const tick = await elm.locator("..").boundingBox();
+  expect(tick!.width).toBeGreaterThanOrEqual(44);
+  expect(tick!.height).toBeGreaterThanOrEqual(44);
+  await elm.focus();
+  await page.keyboard.press("Space");
+  await expect(elm).not.toBeChecked();
+  await expect(set.getByRole("status")).toContainText("7 players");
+  await noSideways(page);
+  await page.screenshot({
+    path: process.env.STARTER_SHOTS
+      ? `${process.env.STARTER_SHOTS}/text-125-percent-375.png`
+      : test.info().outputPath("home-starter-text-125-percent.png"),
+  });
 });
 
 test("offered to an account following few after its profile list is done, and Not now puts it aside", async ({

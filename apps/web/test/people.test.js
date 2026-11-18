@@ -19,6 +19,34 @@ import {
 import { FIND_SECTIONS, findSections } from "../src/home/Find.jsx";
 
 describe("why a person is suggested", () => {
+  test("starter reasons keep counts and time windows in compact copy", () => {
+    const b = { kind: "battles", days: 30, against: 1, friendly: 1 };
+    expect(whyLine(b, { compact: true })).toBe(
+      "Friendly battle · last 30 days",
+    );
+    expect(
+      whyLine(
+        { ...b, against: 0, friendly: 0, with_you: 2 },
+        { compact: true },
+      ),
+    ).toBe("2v2 teammate twice · last 30 days");
+    expect(
+      whyLine(
+        {
+          ...b,
+          days: 7,
+          against: 4,
+          friendly: 2,
+          clanmate_battles: 1,
+          with_you: 2,
+        },
+        { compact: true },
+      ),
+    ).toBe(
+      "2 friendly battles and Clan friendly, plus once more · 2v2 teammate twice · this week",
+    );
+    expect(whyLine(b)).toBe("You played a friendly battle in the last 30 days");
+  });
   test("from your battles: friendlies first, then teammates, then how often", () => {
     const b = (o) => ({
       kind: "battles",
