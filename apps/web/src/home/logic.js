@@ -1,7 +1,11 @@
 import { tagPath } from "../lib/tag-url.js";
 import { SETTINGS } from "../lib/settings.js";
 import { TIMELINE_MODES } from "@elixir-mcp/contracts";
-import { modeChips, modeWord } from "@elixir-mcp/ui/session-story";
+import {
+  modeChips,
+  modeWord,
+  timelineNewAt,
+} from "@elixir-mcp/ui/session-story";
 
 /** What Home works out on its own, away from the drawing. */
 
@@ -217,7 +221,7 @@ export const panelOf = (query, key) =>
 
 // The game's names for the mode groups, shared with mail
 // (@elixir-mcp/ui/session-story).
-export { modeWord };
+export { modeWord, timelineNewAt };
 
 /** Your week's chips: Casual always (Q6), Events only with battles in it
  *  (A34), and the names the game uses: Trophy Road and Ranked. */
@@ -513,7 +517,7 @@ function ordinal(n) {
  *  which marks nothing new. */
 export function timelineDays(items, { day, openedMs }) {
   const isNew = (it) =>
-    openedMs !== null && Date.parse(it.observed_at ?? it.at) > openedMs;
+    openedMs !== null && Date.parse(timelineNewAt(it)) > openedMs;
   const lastNew = items.reduce((at, it, i) => (isNew(it) ? i : at), -1);
   const days = [];
   items.forEach((it, i) => {
@@ -545,7 +549,7 @@ export function feedSince(page) {
   for (const it of page.timeline ?? []) {
     const ms = Math.max(
       Date.parse(shownAt(it)) || 0,
-      Date.parse(it.observed_at ?? it.at) || 0,
+      Date.parse(timelineNewAt(it)) || 0,
     );
     if (ms > 0 && (best === null || ms > best)) best = ms;
   }

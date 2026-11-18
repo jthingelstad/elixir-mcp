@@ -49,6 +49,10 @@ and run status/report/block checks before their count and cap. No schema
 migration or game read is added. The MCP environment uses the existing
 combined Posts/Comments condition. The app's New count and watermark stay creation-only,
 as does the existing digest's send window; neither treats edits as new.
+The client uses that same post-creation policy for its New filter, row
+markers and fallback poll cursor. Game items retain their existing
+learned-time markers. Client regressions and browser journeys cover an
+already-read post whose wording changed later, including New showing zero.
 
 Defaults decided in engineering: the person-only grant, followers scope,
 no publication permission, allowlisted DTO and member destinations. These
