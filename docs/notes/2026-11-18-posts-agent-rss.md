@@ -12,7 +12,11 @@ person principal. A clan agent receives none, even with `on_behalf_of`.
 The delivery DTO carries words, question/answered flags, player name/tag,
 normalized deck/cards and the signed-in member destination. No comment
 text/counts, nickname, author account machinery, web permissions or public
-share URL is included. The output schema allows only these post facts.
+share URL is included. The output schema allows only these post facts and standard item fields.
+Its post/record union uses the registry validator’s supported `anyOf`,
+`enum` and `pattern` keywords. Regressions call that validator directly
+and reject injected comments, editing controls, nicknames, public-share
+fields and publication permission.
 `visibility: followers` and `publishable: false` keep a person-scoped read
 out of existing publication consumers. No capability is created.
 

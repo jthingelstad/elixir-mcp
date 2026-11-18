@@ -673,6 +673,169 @@ const POST_FACTS = closed({
   },
 });
 
+const TIMELINE_ITEM_BASE = {
+  type: "object",
+  properties: {
+    id: {
+      type: "string",
+      description:
+        "9.15.0: the story this item tells, opaque and stable across reads and windows. 11.8.0: a read serves each id once; a story about a followed player and their clan is one item naming both in subjects, and a sitting that is also a standout is served as the session_standout. Tell a story once per id.",
+    },
+    revision: {
+      type: "integer",
+      minimum: 1,
+      description:
+        "9.15.0: how far the story has grown; 1 for a moment; a late proof changes evidence.version while the story revision stays 1. A sitting's is its battles the record holds so far, so a higher revision under a told id is the same story grown: update it, never retell it.",
+    },
+    at: {
+      ...ISO,
+      description:
+        "When it happened; what that means per kind is the kind's schema (docs: timeline, The facts keys by kind). A sitting's at is its first battle.",
+    },
+    sort_at: {
+      ...ISO,
+      description:
+        "11.8.0: the instant the feed is ordered by and an occurred window selects on: a sitting's last battle, else at.",
+    },
+    at_unix: {
+      type: "integer",
+      description:
+        "11.8.0: sort_at in Unix seconds (at until 11.17.0), for a renderer's own clock (Discord: <t:at_unix:f> or <t:at_unix:R>), so the time shown is the order served.",
+    },
+    local: {
+      type: "object",
+      description:
+        "11.8.0: sort_at on the reader's clock (timezone; at until 11.17.0): date YYYY-MM-DD, time HH:MM, weekday, tz.",
+      properties: {
+        date: { type: "string" },
+        time: { type: "string" },
+        weekday: { type: "string" },
+        tz: { type: "string" },
+      },
+      required: ["date", "time", "weekday", "tz"],
+    },
+    observed_at: {
+      ...ISO,
+      description:
+        "6.25.0: when the record observed the moment, which selects it into an observed window; at is when it happened.",
+    },
+    late: {
+      type: "boolean",
+      description:
+        "11.8.0: an observed read learned this in its window but it happened before from (sort_at at or before from). Always false on an occurred read.",
+    },
+    subject_tag: { type: ["string", "null"] },
+    subject_name: {
+      type: ["string", "null"],
+      description:
+        "The subject's in-game name (11.8.0: never the reader's nickname, which is its own field).",
+    },
+    nickname: {
+      type: "string",
+      description:
+        "11.8.0: the reader's private nickname for the subject player, when they set one. Never publish it.",
+    },
+    subjects: {
+      type: "array",
+      description:
+        "11.8.0: every player and clan the story is about, players first. Empty for the account's own administration.",
+      items: {
+        type: "object",
+        properties: {
+          tag: TAG,
+          kind: { type: "string", enum: ["player", "clan"] },
+          name: { type: ["string", "null"] },
+        },
+        required: ["tag", "kind", "name"],
+      },
+    },
+    kind: { type: "string" },
+    schema: {
+      type: "string",
+      description:
+        "11.8.0: <kind>/<version>, the facts shape this item follows (docs: timeline). A kind's version moves when its facts or the meaning of its at change.",
+    },
+    section: { type: "string" },
+    text: {
+      type: "string",
+      description:
+        "One sentence a person can read, time-free since 11.8.0: render the time from at_unix or local.",
+    },
+    visibility: {
+      type: "string",
+      enum: ["public", "clan", "player", "leaders", "owner", "followers"],
+      description:
+        "Who may see it. public is the game record; clan, player and leaders are an attested fact's rule; owner is the account's own administration; followers is a plain post in the person's current follow audience, never a clan-agent grant.",
+    },
+    publishable: {
+      type: "boolean",
+      description:
+        "Whether the item may be posted outside Elixir (visibility public, clan or player). Followers-scoped plain posts are false. A member may explicitly share an item in Elixir; this read creates no public link.",
+    },
+    evidence: TIMELINE_EVIDENCE,
+    facts: { type: "object" },
+    follow: {
+      type: "array",
+      description:
+        "11.9.0, full verbosity: where this item leads, the reads that expand it into its story. Each is a tool this caller may call and the arguments to call it with, built from the item itself. Addresses, not advice; empty when nothing more is recorded.",
+      items: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          tool: { type: "string" },
+          args: { type: "object" },
+        },
+        required: ["tool", "args"],
+      },
+    },
+  },
+  required: [
+    "id",
+    "revision",
+    "at",
+    "sort_at",
+    "at_unix",
+    "local",
+    "late",
+    "kind",
+    "schema",
+    "section",
+    "subjects",
+    "text",
+    "visibility",
+    "publishable",
+    "facts",
+  ],
+};
+const TIMELINE_ITEM = {
+  anyOf: [
+    {
+      ...TIMELINE_ITEM_BASE,
+      additionalProperties: false,
+      properties: {
+        ...Object.fromEntries(
+          Object.entries(TIMELINE_ITEM_BASE.properties).filter(
+            ([key]) => key !== "nickname" && key !== "evidence",
+          ),
+        ),
+        kind: { type: "string", enum: ["post"] },
+        facts: POST_FACTS,
+        schema: { type: "string", enum: ["post/1"] },
+        section: { type: "string", enum: ["posts"] },
+        visibility: { type: "string", enum: ["followers"] },
+        publishable: { type: "boolean", enum: [false] },
+      },
+    },
+    {
+      ...TIMELINE_ITEM_BASE,
+      properties: {
+        ...TIMELINE_ITEM_BASE.properties,
+        kind: { type: "string", pattern: "^(?!post$)" },
+      },
+    },
+  ],
+};
+
 export const OUTPUT_SCHEMAS = {
   clans_my_view: {
     type: "object",
@@ -2982,164 +3145,7 @@ export const OUTPUT_SCHEMAS = {
       read_to: { type: ["string", "null"] },
       timeline: {
         type: "array",
-        items: {
-          type: "object",
-          allOf: [
-            {
-              if: {
-                properties: { kind: { const: "post" } },
-                required: ["kind"],
-              },
-              then: {
-                properties: {
-                  facts: POST_FACTS,
-                  schema: { const: "post/1" },
-                  section: { const: "posts" },
-                  visibility: { const: "followers" },
-                  publishable: { const: false },
-                },
-              },
-            },
-          ],
-          properties: {
-            id: {
-              type: "string",
-              description:
-                "9.15.0: the story this item tells, opaque and stable across reads and windows. 11.8.0: a read serves each id once; a story about a followed player and their clan is one item naming both in subjects, and a sitting that is also a standout is served as the session_standout. Tell a story once per id.",
-            },
-            revision: {
-              type: "integer",
-              minimum: 1,
-              description:
-                "9.15.0: how far the story has grown; 1 for a moment; a late proof changes evidence.version while the story revision stays 1. A sitting's is its battles the record holds so far, so a higher revision under a told id is the same story grown: update it, never retell it.",
-            },
-            at: {
-              ...ISO,
-              description:
-                "When it happened; what that means per kind is the kind's schema (docs: timeline, The facts keys by kind). A sitting's at is its first battle.",
-            },
-            sort_at: {
-              ...ISO,
-              description:
-                "11.8.0: the instant the feed is ordered by and an occurred window selects on: a sitting's last battle, else at.",
-            },
-            at_unix: {
-              type: "integer",
-              description:
-                "11.8.0: sort_at in Unix seconds (at until 11.17.0), for a renderer's own clock (Discord: <t:at_unix:f> or <t:at_unix:R>), so the time shown is the order served.",
-            },
-            local: {
-              type: "object",
-              description:
-                "11.8.0: sort_at on the reader's clock (timezone; at until 11.17.0): date YYYY-MM-DD, time HH:MM, weekday, tz.",
-              properties: {
-                date: { type: "string" },
-                time: { type: "string" },
-                weekday: { type: "string" },
-                tz: { type: "string" },
-              },
-              required: ["date", "time", "weekday", "tz"],
-            },
-            observed_at: {
-              ...ISO,
-              description:
-                "6.25.0: when the record observed the moment, which selects it into an observed window; at is when it happened.",
-            },
-            late: {
-              type: "boolean",
-              description:
-                "11.8.0: an observed read learned this in its window but it happened before from (sort_at at or before from). Always false on an occurred read.",
-            },
-            subject_tag: { type: ["string", "null"] },
-            subject_name: {
-              type: ["string", "null"],
-              description:
-                "The subject's in-game name (11.8.0: never the reader's nickname, which is its own field).",
-            },
-            nickname: {
-              type: "string",
-              description:
-                "11.8.0: the reader's private nickname for the subject player, when they set one. Never publish it.",
-            },
-            subjects: {
-              type: "array",
-              description:
-                "11.8.0: every player and clan the story is about, players first. Empty for the account's own administration.",
-              items: {
-                type: "object",
-                properties: {
-                  tag: TAG,
-                  kind: { type: "string", enum: ["player", "clan"] },
-                  name: { type: ["string", "null"] },
-                },
-                required: ["tag", "kind", "name"],
-              },
-            },
-            kind: { type: "string" },
-            schema: {
-              type: "string",
-              description:
-                "11.8.0: <kind>/<version>, the facts shape this item follows (docs: timeline). A kind's version moves when its facts or the meaning of its at change.",
-            },
-            section: { type: "string" },
-            text: {
-              type: "string",
-              description:
-                "One sentence a person can read, time-free since 11.8.0: render the time from at_unix or local.",
-            },
-            visibility: {
-              type: "string",
-              enum: [
-                "public",
-                "clan",
-                "player",
-                "leaders",
-                "owner",
-                "followers",
-              ],
-              description:
-                "Who may see it. public is the game record; clan, player and leaders are an attested fact's rule; owner is the account's own administration; followers is a plain post in the person's current follow audience, never a clan-agent grant.",
-            },
-            publishable: {
-              type: "boolean",
-              description:
-                "Whether the item may be posted outside Elixir (visibility public, clan or player). Followers-scoped plain posts are false. A member may explicitly share an item in Elixir; this read creates no public link.",
-            },
-            evidence: TIMELINE_EVIDENCE,
-            facts: { type: "object" },
-            follow: {
-              type: "array",
-              description:
-                "11.9.0, full verbosity: where this item leads, the reads that expand it into its story. Each is a tool this caller may call and the arguments to call it with, built from the item itself. Addresses, not advice; empty when nothing more is recorded.",
-              items: {
-                type: "object",
-                additionalProperties: false,
-                properties: {
-                  tool: { type: "string" },
-                  args: { type: "object" },
-                },
-                required: ["tool", "args"],
-              },
-            },
-          },
-          required: [
-            "id",
-            "revision",
-            "at",
-            "sort_at",
-            "at_unix",
-            "local",
-            "late",
-            "kind",
-            "schema",
-            "section",
-            "subjects",
-            "text",
-            "visibility",
-            "publishable",
-            "facts",
-          ],
-        },
+        items: TIMELINE_ITEM,
       },
       timeline_more: COUNT,
       timeline_more_to: {
