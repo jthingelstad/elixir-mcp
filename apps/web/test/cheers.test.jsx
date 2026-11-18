@@ -363,7 +363,8 @@ test("the keyboard: arrows move, Enter chooses, Escape steps back then closes", 
   expect(focused()).toBe("Well played");
   fireEvent.keyDown(document.activeElement, { key: "Escape" });
   expect(lead()).toBeNull();
-  await waitFor(() => expect(document.activeElement).toBe(toggle()));
+  // Focus must be restored before the next keyboard action.
+  expect(document.activeElement).toBe(toggle());
   expect(calls).toHaveLength(0);
 
   // More from the keyboard, then the grid in two dimensions.

@@ -9,3 +9,5 @@ This release goes to production while both relationship types still exist. The W
 Production table statistics estimated 122 claims on two heap pages. The migration bounds lock acquisition at five seconds and the statement at twenty. The migration runner vacuums the table after commit. The scratch regression checks the original claim data and all original friend dates on 122 fixtures. Another regression exercises an old claim, a new follow, and the three alert readers. Production verification uses deployment receipts and read-only diagnostics.
 
 MCP 13.12.0 and JSON API 5.1.0.
+
+During the release check the member-post keyboard journey opened the picker again when it meant to remove a cheer. Closing the picker scheduled focus on the next animation frame. An intervening focus change could therefore send Enter to the picker toggle. Both return controls stay mounted, so the picker now restores focus immediately. The focused keyboard test reproduced the bug on the prior code. The browser journey uses Shift+Tab from the returned focus and still verifies the second write and its visible count.

@@ -41,6 +41,8 @@ plain words.
 
 ## Interface
 
+- Closing the cheer picker restores keyboard focus immediately so the next keystroke acts on the selected control. [engineering, 2026-11-17]
+
 - **Deck displays follow Evo, Hero and Wild positions** — ordinary eight-card decks show an active Evolution first, an active Hero or catalog Champion second, and a remaining eligible card third. Ordinary cards fill unused positions in source order; no locked slots or historical eligibility are inferred. One pure presentation helper serves the app, mail and share images; played forms, card levels, canonical arrays, deck hashes, MCP output and Copy deck URLs stay intact. Non-eight-card lists and layouts beyond current slot limits keep their source order. [Jamie, 2026-11-17: match the game slots; engineering, 2026-11-17: stable display convention and conservative exceptions; `docs/notes/2026-11-17-deck-slot-order.md`]
 
 - **New posts reach the open Timeline and the existing digest** — new posts and questions count once in N new, while edits update on refresh without incrementing it. The existing weekly/daily/off digest includes visible new plain posts and their deck/cards for the same player/account-follow audience, using the canonical app reader, two-way blocks and open reports; no extra mail kind, subscription, send or Clan-only mail audience. Links open the signed-in member post and recheck access; no public share token is issued. Existing queued/sent snapshots cannot retract. [Jamie, 2026-11-17; engineering, 2026-11-17: creation windows, shared `packages/posts`, existing digest caps and gate; `docs/notes/2026-11-17-posts-reach.md`]
