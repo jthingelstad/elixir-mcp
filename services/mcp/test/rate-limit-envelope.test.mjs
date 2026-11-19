@@ -310,6 +310,7 @@ test("countsAgainstHour: calls, reads and unknown methods count; the handshake d
     "ping",
     "tools/list",
     "resources/list",
+    "server/discover",
     "resources/templates/list",
     "prompts/list",
   ])
@@ -319,12 +320,7 @@ test("countsAgainstHour: calls, reads and unknown methods count; the handshake d
     false,
     "a notification",
   );
-  for (const method of [
-    "tools/call",
-    "resources/read",
-    "prompts/get",
-    "server/discover",
-  ])
+  for (const method of ["tools/call", "resources/read", "prompts/get"])
     assert.equal(countsAgainstHour(msg(method)), true, method);
   assert.equal(countsAgainstHour(msg("tools/list", { id: null })), false);
   // Refused before any work anyway; counted so a malformed stream is not free.

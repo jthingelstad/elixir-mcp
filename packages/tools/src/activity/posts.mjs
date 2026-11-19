@@ -45,6 +45,14 @@ export async function readPostTimeline(db, accountId, options) {
           deck: post.deck,
           cards: post.cards,
           moment: post.moment,
+          battle: post.battle
+            ? {
+                battle_id: post.battle.battle_id,
+                battle_time: post.battle.battle_time,
+                mode_group: post.battle.mode_group,
+                outcome: post.battle.outcome,
+              }
+            : null,
           url: memberPostUrl(post.id),
         },
       };

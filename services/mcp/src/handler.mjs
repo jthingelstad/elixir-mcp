@@ -1,3 +1,4 @@
+import { transportError } from "./modern.mjs";
 /**
  * The native /mcp HTTP door behind CloudFront on elixir.poapkings.com.
  * Bearer only: the MCP behavior forwards no cookies.
@@ -210,6 +211,13 @@ export function makeHandler({
     // a direct hit in local development has neither, and null beats a lie.
     const headerOf = (name) =>
       event.headers?.[name] ?? event.headers?.[name.toLowerCase()] ?? null;
+    const browserOrigin = headerOf("Origin");
+    if (browserOrigin !== null && browserOrigin !== new URL(issuer).origin)
+      return {
+        statusCode: 403,
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ error: "invalid_origin" }),
+      };
     const viewerIp = viewerIpOf(event);
     const viewerCountry = headerOf("cloudfront-viewer-country");
 
@@ -343,6 +351,21 @@ export function makeHandler({
           body: JSON.stringify({ error: "invalid_json" }),
         };
       }
+      const protocolVersionHeader = headerOf("MCP-Protocol-Version");
+      const methodHeader = headerOf("Mcp-Method");
+      const nameHeader = headerOf("Mcp-Name");
+      const transport = transportError(
+        message,
+        protocolVersionHeader,
+        methodHeader,
+        nameHeader,
+      );
+      if (transport)
+        return {
+          statusCode: transport.statusCode,
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify(transport.payload),
+        };
       const surface = account.serviceName
         ? `svc:${account.serviceName}`
         : "mcp";
@@ -480,19 +503,20 @@ export function makeHandler({
       // Identity is read ONCE, on initialize, and never on a tool call: it is
       // what the connection is, not what the request is, and paying for it per
       // call would trade one wasted round trip for a permanent one.
-      const identity =
-        message?.method === "initialize"
-          ? await describeIdentity(db, account)
-          : null;
+      const identity = ["initialize", "server/discover"].includes(
+        message?.method,
+      )
+        ? await describeIdentity(db, account)
+        : null;
 
       const result = await handleMcpMessage(message, {
         registry,
         identity,
         // Lower-cased by the native HTTP request headers,
         // which forwards it.
-        protocolVersionHeader:
-          event.headers?.["mcp-protocol-version"] ??
-          event.headers?.["MCP-Protocol-Version"],
+        protocolVersionHeader,
+        methodHeader,
+        nameHeader,
         // resources/read for the card catalog; everything else in the
         // resource corpus is built in.
         db,

@@ -499,3 +499,95 @@ test("an evidence read always builds", async () => {
   assert.equal(ev.body.entries_skipped, false);
   assert.equal(ev.body.timeline[0].id, session.id);
 });
+
+test("the editor reads home promotions and summary before pagination, with its own position", async () => {
+  const {
+    rows: [agent],
+  } = await db.query(
+    "insert into account(email_hash,kind,status,owned_by_account_id) values('scoped-editor','agent','approved',$1) returning account_id",
+    [owner],
+  );
+  const id = agent.account_id;
+  await db.query(
+    "insert into account_clan(account_id,clan_tag,scope,notify,is_primary) values($1,$2,'comprehensive',true,true),($1,$3,'comprehensive',true,false)",
+    [id, CLAN, OTHER_CLAN],
+  );
+  await db.query(
+    "insert into recording(subject_type,subject_tag,requested_by) values('clan',$1,$3),('clan',$2,$3) on conflict do nothing",
+    [CLAN, OTHER_CLAN, owner],
+  );
+  const time = T + 12 * H;
+  for (const [clan, tag] of [
+    [CLAN, ME],
+    [OTHER_CLAN, FRIEND],
+  ]) {
+    await db.query(
+      `insert into clan_event(clan_tag,event_type,timing,window_start,window_end,player_tag,role_before,role_after)
+      values($1,'role_changed','estimated',$2,$3,$4,'member','elder')`,
+      [clan, at(time - MIN), at(time), tag],
+    );
+  }
+  const call = makeInvoker({
+    db,
+    account: { accountId: id, kind: "agent", timezone: "UTC" },
+    registry: makeRegistry(),
+  });
+  const args = {
+    from: at(time - 2 * MIN),
+    to: at(time + MIN),
+    reader: "editor",
+    basis: "observed",
+    kinds: ["member_role_changed"],
+  };
+  const home = await call("elixir_timeline", { ...args, scope: "home_clan" });
+  assert.equal(
+    home.body.applied?.clan_tag,
+    CLAN,
+    JSON.stringify(home.body.error),
+  );
+  assert.deepEqual(
+    home.body.entries.map((e) => e.subject_tag),
+    [CLAN],
+  );
+  assert.deepEqual(
+    home.body.timeline.map((i) => i.facts.player_tag),
+    [ME],
+  );
+  assert.equal(home.body.timeline[0].publishable, true);
+  assert.equal(
+    (
+      await db.query(
+        "select 1 from timeline_reader where account_id=$1 and reader='editor'",
+        [id],
+      )
+    ).rowCount,
+    0,
+  );
+  const all = await call("elixir_timeline", args);
+  assert.deepEqual(
+    new Set(all.body.timeline.map((i) => i.facts.player_tag)),
+    new Set([ME, FRIEND]),
+  );
+  assert.deepEqual(
+    new Set(all.body.entries.map((e) => e.subject_tag)),
+    new Set([CLAN, OTHER_CLAN]),
+  );
+  assert.equal(
+    (
+      await db.query(
+        "select read_to from timeline_clan_reader where account_id=$1 and clan_tag=$2 and reader='editor'",
+        [id, CLAN],
+      )
+    ).rows[0].read_to.toISOString(),
+    args.to,
+  );
+  await db.query(
+    "update recording set status='paused' where subject_type='clan' and subject_tag=$1",
+    [CLAN],
+  );
+  const refused = await call("elixir_timeline", {
+    ...args,
+    scope: "home_clan",
+  });
+  assert.equal(refused.body.error?.code ?? refused.body.code, "not_recorded");
+});

@@ -217,6 +217,7 @@ export const KEPT = Object.freeze({
   timeline_discord: "a current cross-post setting",
   clan_activity_discord: "a current channel setting",
   timeline_reader: "a reader's cursor",
+  timeline_clan_reader: "a home-clan reader's cursor",
   bell_seen: "a reader's cursor",
   comment_conversation:
     "private participation and a thread read cursor; goes with its account",

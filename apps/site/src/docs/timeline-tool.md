@@ -62,10 +62,14 @@ next_cursor, has_more, notes, docs, meta }`.
 
 ### Plain posts and questions
 
-A person's own authorized `/mcp` connection also reads visible plain posts
+A person's own authorized `/mcp` connection also reads visible posts
 and questions from their existing Timeline audience: their own posts,
 the players they follow with notifications on, and accounts they follow.
-Use `kinds: ["post"]` or `sections: ["posts"]` to read only those items.
+Use `kinds: ["post"]` or `sections: ["posts"]` to read the whole post with
+`facts.battle` for an attached battle. It contains the battle ID, game time,
+mode group and outcome. A mixed feed keeps the existing `battle_highlight`
+form for followed players who appear in the battles section. Each post has
+one ID across both forms and appears once per feed.
 Clan-agent principals do not receive them, including with `on_behalf_of`.
 
 Since MCP 14.1, `facts.moment` is null or the author’s own recorded public game
@@ -110,7 +114,10 @@ are excluded too. The existing Posts switch applies. Filters, caps,
 `skip_empty` and read pointers work as for the other Timeline kinds.
 Plain posts carry no separate game-evidence page. A milestone’s `item_ref`
 names its original recorded update; its post keeps its own time and thread. `meta.timeline_pending` remains
-the recorder's subject indicator; use Timeline polling to read posts.
+the recorder's subject indicator. For personal connections with posts enabled,
+`meta.posts_pending` is true when a poll can return a new or edited
+visible post, including a post with a battle attached. Use either hint to wake a poller. A read with `mark_read:
+false` leaves its position in place.
 
 ### Two kinds of window
 
@@ -153,7 +160,12 @@ code for both shapes is on the [agents page](/docs/agents#consuming-the-timeline
 
 ## Who is a subject
 
-Subscriptions are implicit; nothing to configure.
+Use `scope: "home_clan"` to read only the clan from your connection’s identity.
+The filter applies to both items and summary entries before pagination. A
+missing or inactive home clan cannot turn into a read of another clan. Scoped
+reads have their own position per account, clan and reader. Omit `scope` for
+the all-followed feed and its existing position. Publish only items with
+`publishable: true`, including stories saved from an earlier read.
 
 | Reader | Subjects | On the timeline |
 |---|---|---|
@@ -438,8 +450,9 @@ entry: a clan's silence is the clan's activity.
 1. Read `game_clock` once; if you care about war, schedule yourself from
    `war_day_closes_at`.
 2. Call `elixir_timeline` as your own `reader`, with `kinds` naming what
-   you wake on; skip the call when the last response's
-   `meta.timeline_pending` was 0. If `timeline` is empty, there is nothing
+   you wake on. A home-clan routine uses its named reader and
+   `scope: "home_clan"` on every poll. A personal poller can check both
+   `meta.timeline_pending` and `meta.posts_pending` on its latest response. If `timeline` is empty, there is nothing
    to consider. Otherwise read the items, then the entries for the shape of
    the window.
    Pass `skip_empty: true` when you poll and act only on items

@@ -57,9 +57,9 @@ test("a person sees everything but the agent's identity map (13.0.0: 43 of 44)",
   );
 });
 
-test("an agent has no personal identity tools, and follows for its clan (13.0.0: 42 of 44)", () => {
+test("an agent has no personal identity tools, and follows for its clan (13.0.0: 41 of 44)", () => {
   const agent = names("agent");
-  assert.equal(agent.length, 42);
+  assert.equal(agent.length, 41);
   assert.ok(!agent.includes("elixir_my_players"));
   // A person's own Clan view is never an agent's, its owner's agent
   // included (Jamie's ruling on #535, 2026-10-12).
@@ -74,11 +74,11 @@ test("an agent has no personal identity tools, and follows for its clan (13.0.0:
   assert.ok(agent.includes("war_current"));
   assert.ok(agent.includes("game_clock"));
   // It reads the social layer as its owner, and never writes it.
+  assert.ok(!agent.includes("elixir_cheers"));
   for (const social of [
     "players_follows",
     "players_highlights",
     "clans_directory",
-    "elixir_cheers",
   ])
     assert.ok(agent.includes(social), social);
 });
@@ -97,7 +97,8 @@ test("hiding is not enforcement: a remembered tool is refused, not served", asyn
 });
 
 test("a remembered clans_my_view call by an agent never invokes or spends quota", async () => {
-  for (const kind of ["agent"]) {
+  for (const name of ["clans_my_view", "elixir_cheers"]) {
+    const kind = "agent";
     let invoked = 0;
     let spent = 0;
     const result = await handleMcpMessage(
@@ -105,7 +106,7 @@ test("a remembered clans_my_view call by an agent never invokes or spends quota"
         jsonrpc: "2.0",
         id: 1,
         method: "tools/call",
-        params: { name: "clans_my_view", arguments: {} },
+        params: { name, arguments: {} },
       },
       {
         ...context(kind),
@@ -188,16 +189,21 @@ test("a person is told who they are, and told not to look it up", async () => {
       alt: [{ player_tag: "#0C2LVVR0", name: "Rapid Clear" }],
       friend: [{ player_tag: "#09YY2UU9", name: "Gecko Silver" }],
     },
-    clans: [{ clan_tag: "#J2RGCRVG", name: "POAP KINGS" }],
+    clans: [{ clan_tag: "#0GJJ9QJL", name: "Rival" }],
     // "Your clan" is the primary player's current clan (2026-09-25).
     primaryClan: { clan_tag: "#J2RGCRVG", name: "POAP KINGS", recorded: true },
   };
-  const text = (
+  const result = (
     await handleMcpMessage(
       { jsonrpc: "2.0", id: 1, method: "initialize", params: {} },
       { ...context("person"), identity },
     )
-  ).payload.result.instructions;
+  ).payload.result;
+  assert.equal(
+    result._meta["elixir.poapkings.com/principal"].clan.tag,
+    identity.primaryClan.clan_tag,
+  );
+  const text = result.instructions;
 
   assert.match(text, /YOU ARE Dove Sunny #0GVUURQ0/);
   assert.match(text, /Also you, under another tag: Rapid Clear #0C2LVVR0/);
@@ -248,4 +254,52 @@ test("a person with no player is told how to get one, not left to fail", async (
   ).payload.result.instructions;
   assert.match(text, /no player yet/);
   assert.match(text, /elixir_follow_player/);
+});
+
+test("modern discovery and the installed catalogue use the same authenticated principal", async () => {
+  const run = (kind, method, params = {}, overrides = {}) =>
+    handleMcpMessage(
+      {
+        jsonrpc: "2.0",
+        id: 1,
+        method,
+        params: {
+          ...params,
+          _meta: {
+            "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+            "io.modelcontextprotocol/clientCapabilities": {},
+          },
+        },
+      },
+      {
+        ...context(kind),
+        protocolVersionHeader: "2026-07-28",
+        methodHeader: method,
+        nameHeader: params.name,
+        ...overrides,
+      },
+    );
+  for (const kind of ["person", "agent"]) {
+    const discovery = (await run(kind, "server/discover")).payload.result;
+    assert.ok(discovery.supportedVersions.includes("2026-07-28"));
+    assert.equal(discovery.capabilities.tools.listChanged, false);
+    assert.equal(discovery.cacheScope, "private");
+    const list = (await run(kind, "tools/list")).payload.result;
+    assert.equal(list.resultType, "complete");
+    assert.equal(list.cacheScope, "private");
+    assert.ok(list.ttlMs >= 0);
+    assert.deepEqual(list.tools, registry.declarations(kind));
+  }
+  const refused = await run("agent", "tools/call", {
+    name: "elixir_cheers",
+    arguments: {},
+  });
+  assert.equal(refused.payload.error.code, -32601);
+  const mismatch = await run(
+    "person",
+    "tools/call",
+    { name: "elixir_cheers" },
+    { nameHeader: "war_current" },
+  );
+  assert.equal(mismatch.payload.error.code, -32020);
 });

@@ -128,14 +128,14 @@ after(async () => {
   await dropScratch(NAME);
 });
 
-test("initialize: cache-busting version, listChanged true, disclaimer in instructions", async () => {
+test("initialize: cache-busting version, stateless discovery, disclaimer in instructions", async () => {
   const res = await handleMcpMessage(
     rpc("initialize", { protocolVersion: "2025-06-18" }),
     context(),
   );
   const result = res.payload.result;
   assert.equal(result.protocolVersion, "2025-06-18");
-  assert.equal(result.capabilities.tools.listChanged, true);
+  assert.equal(result.capabilities.tools.listChanged, false);
   assert.match(
     result.serverInfo.version,
     new RegExp(

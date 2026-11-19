@@ -2665,14 +2665,16 @@ Resources:
           # viewer-address and viewer-country are what let an owner see WHERE
           # a credential is being used from. CloudFront adds them; the origin
           # cannot derive either (sourceIp is an edge node). Still no cookies.
-          Headers:
-            [
+          Headers: [
               x-collector-version,
               x-collector-binary-sha256,
               x-collector-release-key,
-              authorization,
+              # WebPrivateCachePolicy forwards Authorization on every behavior using this policy.
+              origin,
               content-type,
               mcp-protocol-version,
+              mcp-method,
+              mcp-name,
               cloudfront-viewer-address,
               cloudfront-viewer-country,
             ]

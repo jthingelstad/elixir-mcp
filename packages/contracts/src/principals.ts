@@ -35,6 +35,7 @@ export type PrincipalKind = "person" | "agent";
  */
 export const PERSON_ONLY_TOOLS: readonly string[] = [
   "elixir_my_players",
+  "elixir_cheers",
   "clans_my_view",
 ];
 

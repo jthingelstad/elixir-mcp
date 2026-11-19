@@ -437,11 +437,10 @@ The same item keeps its cheers and comments on your Timeline, a [player's page](
 Verify your player to comment. If a member owns the item, their comment settings apply. On an unclaimed player's update or a clan result, verified players with access to the item can comment. You can report a comment or block its author. Shared links show the item alone.
 
 A cheer stays in Elixir. It goes to no Discord channel or mail, and
-`elixir_timeline` does not carry it; an agent cannot cheer. Your own agent
-can read the counts on the items about your primary player with the MCP
-tool `elixir_cheers`, reading as you: for each
-cheered item in the window its id, kind, time, sentence and counts by
-kind, never who, and never your own cheer. The bell
+`elixir_timeline` does not carry it; an agent cannot cheer. On your personal MCP connection,
+`elixir_cheers` reads counts on your primary player’s game items and posts
+you wrote with any of your players. Each row gives the item’s id, kind, time,
+text and counts by cheer. Your own cheers are excluded. The bell
 counts the cheers on items about your own verified players, never naming
 who ([the bell](/docs/your-account#notifications)). You can give
 up to 120 cheers an hour.

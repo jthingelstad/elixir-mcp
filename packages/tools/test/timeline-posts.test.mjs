@@ -294,3 +294,88 @@ test("the existing posts switch leaves the record-only MCP read intact", async (
     process.env.POSTS_ENABLED = "true";
   }
 });
+
+test("a visible post wakes a personal reader and its author can read its cheers", async () => {
+  const p = await people.post({ at: new Date(T) });
+  await ctx.db.query("delete from timeline_reader where account_id=$1", [
+    people.reader,
+  ]);
+  await ctx.db.query(
+    "update account set activity_seen_at=null where account_id=$1",
+    [people.reader],
+  );
+  assert.equal((await read()).meta.posts_pending, true);
+  assert.equal((await read("stranger")).meta.posts_pending, false);
+  await read("reader", { reader: "social", mark_read: true });
+  assert.equal((await read()).meta.posts_pending, false);
+  await ctx.db.query(
+    "update account_post set updated_at=now(),revision=revision+1 where item_id=$1",
+    [p.item_id],
+  );
+  assert.equal((await read()).meta.posts_pending, true);
+  assert.equal(
+    (await read("reader", {}, "agent")).meta.posts_pending,
+    undefined,
+  );
+  await ctx.db.query(
+    "insert into timeline_cheer(item_id,account_id,cheer) values($1,$2,'well_played')",
+    [p.item_id, people.reader],
+  );
+  const invoke = makeInvoker({
+    db: ctx.db,
+    account: { accountId: people.author, kind: "person", timezone: "UTC" },
+    registry: makeRegistry(),
+  });
+  const result = await invoke("elixir_cheers", { days: 2 });
+  assert.equal(
+    result.body.items.find((item) => item.id === p.item_id)?.cheers.well_played,
+    1,
+  );
+  await ctx.db.query("update claim set is_primary=false where account_id=$1", [
+    people.author,
+  ]);
+  try {
+    const own = await invoke("elixir_cheers", { days: 2 });
+    assert.equal(own.body.player_tag, null);
+    assert.equal(own.body.items[0].id, p.item_id);
+  } finally {
+    await ctx.db.query(
+      "update claim set is_primary=true where account_id=$1 and player_tag=$2",
+      [people.author, AUTHOR_TAG],
+    );
+  }
+});
+
+test("the same battle post wakes a poll, reads as a post, and appears once in a mixed feed", async () => {
+  const at = iso(T + 1000),
+    battle = "mcp-post-attachment";
+  await ctx.db.query(
+    "insert into battle(battle_id,battle_time,type,type_class) values($1,$2,'PvP','pvp')",
+    [battle, at],
+  );
+  await ctx.db.query(
+    "insert into battle_participant(battle_id,battle_time,player_tag,side,outcome,type,type_class) values($1,$2,$3,0,'win','PvP','pvp')",
+    [battle, at, AUTHOR_TAG],
+  );
+  const p = await people.post({ at, question: false });
+  await ctx.db.query("update account_post set battle_id=$2 where item_id=$1", [
+    p.item_id,
+    battle,
+  ]);
+  for (const who of ["reader", "fan"]) {
+    const canonical = await read(who);
+    const [item] = canonical.timeline;
+    assert.equal(item.id, p.item_id);
+    assert.equal(item.facts.battle.battle_id, battle);
+    assert.equal(item.publishable, false);
+    assert.equal(validateArgs(OUTPUT_SCHEMAS.elixir_timeline, canonical), null);
+    const mixed = await read(who, { kinds: undefined });
+    const matches = mixed.timeline.filter((it) => it.id === p.item_id);
+    assert.equal(matches.length, 1);
+    assert.equal(
+      matches[0].kind,
+      who === "reader" ? "battle_highlight" : "post",
+    );
+  }
+  assert.equal((await read("fan")).meta.posts_pending, true);
+});

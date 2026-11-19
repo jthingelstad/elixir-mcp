@@ -153,7 +153,7 @@ test("the timing line names a protocol version this server does not speak (revie
     );
   try {
     await send(
-      { "mcp-protocol-version": "2026-07-28" },
+      { "mcp-protocol-version": "2099-07-28" },
       { jsonrpc: "2.0", id: 1, method: "server/discover" },
     );
     await send(
@@ -188,7 +188,7 @@ test("the timing line names a protocol version this server does not speak (revie
   const timing = lines.filter((l) => l.http);
   assert.equal(timing.length, 5);
   assert.equal(timing[0].rpc, "server/discover");
-  assert.equal(timing[0].protocol_version, "2026-07-28", "the refused header");
+  assert.equal(timing[0].protocol_version, "2099-07-28", "the refused header");
   assert.equal(
     timing[1].protocol_version,
     "2099-01-01",
@@ -197,4 +197,18 @@ test("the timing line names a protocol version this server does not speak (revie
   assert.equal(timing[2].protocol_version, undefined, "a supported header");
   assert.equal(timing[3].protocol_version, undefined, "a supported ask");
   assert.equal(timing[4].protocol_version.length, 40, "bounded");
+});
+
+test("MCP checks a supplied browser Origin before opening the database", async () => {
+  const res = await handler(
+    event({ path: "/mcp", headers: { origin: "https://unrelated.example" } }),
+  );
+  assert.equal(res.statusCode, 403);
+  const canonical = await handler(
+    event({
+      path: "/mcp",
+      headers: { origin: "https://elixir.poapkings.com" },
+    }),
+  );
+  assert.equal(canonical.statusCode, 401);
 });

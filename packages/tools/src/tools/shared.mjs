@@ -33,6 +33,7 @@ import {
   duelSql,
 } from "@elixir-mcp/contracts";
 import { cachedVocabulary } from "@elixir-mcp/ingest/card-roles";
+import { hasPendingPosts } from "@elixir-mcp/posts";
 import { reconcileRecording } from "@elixir-mcp/claims";
 import { resolveSubject, resolveEntitledClan } from "../entitlements.mjs";
 import { resolveInstant } from "../time.mjs";
@@ -767,15 +768,23 @@ export async function pendingHints(db, account) {
                  -- names itself sees pending fall to 0 after its read. A
                  -- reader that has not marked for 30 days is dead and
                  -- must not hold the hint high for everyone else.
-                 (select min(read_to) from timeline_reader
-                   where account_id = $1 and updated_at > now() - interval '30 days'),
-                 (select activity_seen_at from account where account_id = $1),
-                 'epoch'::timestamptz))) as timeline_pending`,
+                 watermark.since,'epoch'::timestamptz))) as timeline_pending,
+         greatest(coalesce(watermark.since,now()-interval '1 day'),now()-interval '30 days') as since
+         from (select coalesce((select min(read_to) from timeline_reader where account_id=$1 and updated_at>now()-interval '30 days'),
+             (select activity_seen_at from account where account_id=$1)) as since) watermark`,
       [account.accountId],
     );
     return {
       feedback_responses_pending: row.fb_pending,
       timeline_pending: row.timeline_pending,
+      ...((account.kind ?? "person") === "person" &&
+        process.env.POSTS_ENABLED === "true" && {
+          posts_pending: await hasPendingPosts(
+            db,
+            account.accountId,
+            row.since,
+          ),
+        }),
     };
   } catch (err) {
     console.error("pending_hints_failed", err?.message);

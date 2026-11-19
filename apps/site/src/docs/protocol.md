@@ -24,7 +24,7 @@ list.
 | Kind | Door | Hidden tools | Tools listed |
 |---|---|---|---|
 | `person` | `/mcp` | `elixir_my_identities` | {{ tools.personCount }} |
-| `agent` | `/a/<public_id>/mcp` | `elixir_my_players`, `clans_my_view` | {{ tools.agentCount }} |
+| `agent` | `/a/<public_id>/mcp` | `elixir_my_players`, `clans_my_view`, `elixir_cheers` | {{ tools.agentCount }} |
 
 The counts are generated from the registry at build time. Hiding is
 enforced: calling a hidden tool answers JSON-RPC `-32601` with `data.kind`
@@ -37,11 +37,22 @@ The group rides each tool's title
 (`Players · Player profile`); names never carry it, so regrouping breaks
 nothing. One page per group is under [Tools](/docs/tools).
 
+## Connection discovery
+
+MCP 2026-07-28 clients call `server/discover` at the same authenticated URL.
+Send `MCP-Protocol-Version` and `Mcp-Method` with each request. Include
+`io.modelcontextprotocol/protocolVersion` and
+`io.modelcontextprotocol/clientCapabilities` in `params._meta`. Tool calls,
+prompt reads and resource reads also send `Mcp-Name` with the name or resource URI.
+Discovery returns the principal in `_meta` and the tool, resource and prompt
+capabilities for that credential. Discovery and list results carry a one-minute
+private cache lifetime. Refresh `tools/list` when it expires.
+
 ## `initialize`
 
 ```json
 { "protocolVersion": "2025-06-18",
-  "capabilities": { "tools": { "listChanged": true },
+  "capabilities": { "tools": { "listChanged": false },
                     "resources": { "subscribe": false, "listChanged": false },
                     "prompts": { "listChanged": false } },
   "serverInfo": { "name": "elixir-mcp", "title": "Elixir",
@@ -81,10 +92,9 @@ Reading a resource spends no daily quota; the hourly rate limit still applies.
 
 `serverInfo.version` is `<contract_version>+tools.<fingerprint>`, where the
 fingerprint is the first 12 hex characters of the SHA-256 of the declarations
-your kind of connection receives. The server is stateless and never sends
-`notifications/tools/list_changed` even though it declares `listChanged`;
-compare `serverInfo.version` on every `initialize` and re-read `tools/list`
-when it differs. `elixir_changelog({ since: "0.35.0" })` lists what moved,
+your kind of connection receives. Clients discover tools and arguments from
+their credential’s `tools/list` response. Legacy clients refresh on connection.
+The release and fingerprint help diagnose differences between installed clients. `elixir_changelog({ since: "0.35.0" })` lists what moved,
 newest first, with `tools_added` and `breaking` where relevant. Pages contain
 up to 20 releases. Pass `next_offset` as `offset`, keeping `since` unchanged,
 until `next_offset` is `null`; `total` counts all releases matching `since`.
