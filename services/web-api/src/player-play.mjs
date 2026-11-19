@@ -90,14 +90,10 @@ function repeatedChanges(games, names, since) {
 
 export async function playerPlay(db, tag, now) {
   const args = [tag, new Date(now)];
-  const [
-    {
-      rows: [{ progress, changes, donation }],
-    },
-    { rows: games },
-  ] = await Promise.all([
-    db.query(
-      `with readings as (
+  const {
+    rows: [{ progress, changes, donation }],
+  } = await db.query(
+    `with readings as (
       select m.mode,p.progress_key,p.best_trophies,p.observed_at,p.arena_id,p.trophies,
         lag(p.best_trophies) over history as prior, lag(p.arena_id) over history as prior_arena,
         lag(p.trophies) over history as prior_trophies
@@ -125,10 +121,10 @@ export async function playerPlay(db, tag, now) {
     select coalesce((select jsonb_agg(progress) from progress),'[]') as progress,
       coalesce((select jsonb_agg(changes order by window_end desc) from changes),'[]') as changes,
       (select to_jsonb(donation) from donation) as donation`,
-      args,
-    ),
-    db.query(
-      `select g.*,d.card_ids,d.card_forms,d.tower_troop_id,
+    args,
+  );
+  const { rows: games } = await db.query(
+    `select g.*,d.card_ids,d.card_forms,d.tower_troop_id,
         (select e.event_type from player_event e where e.player_tag=$1 and e.battle_id=g.battle_id
            and e.timing='exact' and ((g.type='pathOfLegend' and e.event_type='ranked_promotion')
            or (g.type='PvP' and e.event_type='arena_changed' and e.floor is not null))
@@ -141,9 +137,8 @@ export async function playerPlay(db, tag, now) {
           and bp.battle_time between $2::timestamptz-interval '14 days' and $2
         order by bp.battle_time desc,bp.battle_id desc limit 30) g
       left join deck d using(deck_hash) order by g.battle_time,g.battle_id`,
-      args,
-    ),
-  ]);
+    args,
+  );
   const stories = progress.map((p) => {
     let text = `${modes[p.mode]} season best rose from ${p.prior} to ${p.best_trophies} trophies.`;
     if (
