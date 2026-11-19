@@ -173,7 +173,7 @@ for (const [label, width] of [
       // The reader's own verified player: a post about it is one tap away.
       await expect(
         games.getByRole("link", { name: /^Post about the battle/ }),
-      ).toHaveAttribute("href", "/battle/b1#post");
+      ).toHaveAttribute("href", "/battle/b1?from=highlight#post");
       await noSideways(page);
       await page.goBack();
       await expect(page).toHaveURL(/\/timeline$/);
