@@ -92,7 +92,7 @@ test("a clanmate and an outside follower read Pip's membership history @narrow",
 }) => {
   const clan = "#0QC8RCGY",
     player = "#0QYPJ8G2";
-  const events = [
+  const events: [string, string, string][] = [
     [
       "member_joined",
       "Pip joined Ember Hall.",
@@ -131,7 +131,7 @@ test("a clanmate and an outside follower read Pip's membership history @narrow",
         ],
         text,
         clan_news: true,
-        clan_story: { lines: [line], clan_tag: clan },
+        clan_story: { lines: [line] as const, clan_tag: clan },
       };
     })
     .reverse();
