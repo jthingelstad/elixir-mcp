@@ -157,7 +157,7 @@ test("one stay through welcome, promotion, demotion, classified departure and re
   );
   const verdict = async (eligible) =>
     ledger.saveVerdicts(clan, {
-      policy_version: 1,
+      policy_version: (await ledger.currentPolicy(clan)).version,
       removal_evidence_schema: 5,
       evaluated_at: new Date(time).toISOString(),
       members: [{ player_tag: tag, actionable: { promotion: eligible } }],
@@ -299,6 +299,35 @@ test("one stay through welcome, promotion, demotion, classified departure and re
     (await find(c, seat, "member_left"))[0].clan_story.lines[0],
     /was removed/,
   );
+  // Becoming Co-Leader is a real roster change without a new Elder
+  // occasion. Both the list and a direct link retire the obsolete share.
+  await roster("member");
+  await life.drain();
+  await roster("elder");
+  await life.drain();
+  const manual = await card("promotion");
+  await manage.shareLifecycle(clan, leader, manual.card_id, { part: 1 });
+  await roster("coLeader");
+  assert.equal(await life.drain(), 0);
+  const stale = (await manage.actionByNumber(clan, leader, manual.number))
+    .action;
+  assert.equal(stale.status, "withdrawn");
+  assert.equal(stale.lifecycle.receipts.length, 1);
+  await roster("member");
+  await life.drain();
+  const newPromo = await raise("promotion");
+  await verdict(true);
+  await manage.decide(clan, leader, newPromo, {
+    status: "done",
+    tribute: lines,
+  });
+  await roster("elder");
+  await life.drain();
+  await roster("coLeader");
+  assert.equal(await life.drain(), 0);
+  const list = await manage.actionsView(clan, leader);
+  assert.ok(!list.open.some((c) => c.card_id === newPromo));
+  assert.equal((await ledger.card(clan, newPromo)).lifecycle.phase, "closed");
   const { counts } = await clanMaintenance(ctx.url, {
     lane: "lifecycle",
     clan_tag: clan,

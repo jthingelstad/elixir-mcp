@@ -638,6 +638,14 @@ export function createManageService({
     return names;
   }
 
+  async function refreshRoleShares(clanTag, cards) {
+    if (!lifecycle) return cards;
+    const fresh = [];
+    for (const card of cards)
+      fresh.push(await lifecycle.refreshRoleShare(clanTag, card));
+    return fresh;
+  }
+
   /** The cards with every one numbered: read, and numbered under the
    *  clan's lock only when one still has no number. */
   async function numberedCards(clanTag) {
@@ -767,7 +775,7 @@ export function createManageService({
     roster,
     participation,
   }) {
-    const cards = await ledger.cards(clanTag);
+    const cards = await refreshRoleShares(clanTag, await ledger.cards(clanTag));
     const decisions = cards
       .filter((c) => c.status === "done" || c.status === "declined")
       .map((c) => ({
@@ -1493,7 +1501,10 @@ export function createManageService({
         ? { verdicts: snapshot, policy: currentPolicy, cached: true }
         : await evaluateClan({ clanTag, who, force: refresh });
       const t = now();
-      const all = await numberedCards(clanTag);
+      const all = await refreshRoleShares(
+        clanTag,
+        await numberedCards(clanTag),
+      );
       const mine = all.filter((c) => canAct(c, who));
       const closedAt = (c) => c.decided_at ?? c.withdrawn_at ?? c.raised_at;
       const open = mine
@@ -1538,6 +1549,7 @@ export function createManageService({
       if (!card)
         card = (await numberedCards(clanTag)).find((c) => c.number === number);
       if (!card || !mayRead(card, who)) throw new ManageError(404, "no_action");
+      if (lifecycle) card = await lifecycle.refreshRoleShare(clanTag, card);
       const safety = (await removalSafety(clanTag, [card])).get(card.card_id);
       return {
         clan_tag: clanTag,

@@ -59,6 +59,7 @@ const anyArgs = (v) => v === true || isObject(v);
 
 const CLAN_MAINTENANCE_READ_LANES = new Set([
   "actions",
+  "lifecycle",
   "clans",
   "grants",
   "morning",
