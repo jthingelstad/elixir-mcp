@@ -29,6 +29,7 @@ import { lastGameWeek } from "@elixir-mcp/record/game-week";
 import { json } from "../http.mjs";
 import { toolDeadlineMs } from "../deadline.mjs";
 import { TIMELINE_MODES } from "@elixir-mcp/contracts";
+import { sharedEvents } from "../shared-play.mjs";
 import { annotateFeed, groupsOf, inMode } from "../feed.mjs";
 import { cheersReceived, withCheers } from "../cheers.mjs";
 import { withComments } from "../comments.mjs";
@@ -767,6 +768,16 @@ async function readFeed(
       to: new Date(week.toMs).toISOString(),
     },
     seen_to,
+    ...(person && !cursor && !questionsOnly && (!mode || mode === "casual")
+      ? {
+          shared_events: sharedEvents(
+            all,
+            connections,
+            week.subjects,
+            week.fromMs,
+          ),
+        }
+      : {}),
     // The chips, sparklines and battle links, and each item's cheers:
     // counts and the reader's own, never who (slice 7, #765).
     // And each item's comments (2026-11-16): a count, the newest two and

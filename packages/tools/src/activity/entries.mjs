@@ -36,6 +36,7 @@ import { createHash } from "node:crypto";
 import { stampById } from "@elixir-mcp/stamps/catalog";
 import {
   badgeLabel,
+  chaosChoice,
   isMasteryBadge,
   TWELVE_WIN_BADGES,
   UNTOLD_BADGES,
@@ -730,7 +731,9 @@ async function sessionGameDetail(db, playerTag, records, deckCounts = {}) {
   const decks = [];
   if (records.length === 0) return { byBattle, decks };
   const { rows } = await db.query(
-    `select bp.battle_id, bp.deck_hash,
+    `select bp.battle_id, bp.deck_hash, bp.chaos_modifiers,
+            least(nullif(bp.king_tower_hp,0), nullif(bp.princess_tower_hp_1,0),
+                  nullif(bp.princess_tower_hp_2,0)) as surviving_hp,
             (select coalesce(jsonb_agg(jsonb_build_object(
                       'player_tag', t.player_tag, 'name', tp.name)
                       order by t.player_tag), '[]'::jsonb)
@@ -800,6 +803,10 @@ async function sessionGameDetail(db, playerTag, records, deckCounts = {}) {
     const theirs = indexOf(r.opponent_deck_hash);
     if (theirs !== null) out.opponent_deck = theirs;
     if (r.teammates.length) out.teammates = r.teammates;
+    if (r.surviving_hp > 0 && r.surviving_hp <= 100)
+      out.surviving_tower_hp = r.surviving_hp;
+    if (r.chaos_modifiers?.length)
+      out.modifiers = r.chaos_modifiers.map(chaosChoice);
     if (r.rounds.length)
       out.games = r.rounds.map((g) => ({
         round: g.round,

@@ -20,7 +20,7 @@ export async function playerPairSummary(
 ) {
   const { rows } = await db.query(
     `select ${mode} as mode,
-    me.side=peer.side as teamed,count(*)::int as count,max(me.battle_time) as latest
+    me.side=peer.side as teamed,count(*)::int as count, count(*) filter(where me.outcome='win')::int as wins, count(*) filter(where me.outcome='loss')::int as losses,max(me.battle_time) as latest
     ${from} group by mode,teamed order by latest desc,mode`,
     [playerTag, friendTag, new Date(fromMs), new Date(toMs)],
   );
@@ -32,6 +32,10 @@ export async function playerPairSummary(
       against: 0,
     };
     item[row.teamed ? "teamed" : "against"] = row.count;
+    item[row.teamed ? "teamed_record" : "against_record"] = {
+      wins: row.wins,
+      losses: row.losses,
+    };
     modes.set(row.mode, item);
   }
   return [...modes.values()];

@@ -686,3 +686,5 @@ channels tells it twice.
   tells each player once, and draws a clan's own news as a headline and
   its next three facts ([Email](/docs/email#your-digest)). The timeline itself keeps every item, newest
   first.
+
+Friends who played the same named event can appear together at the top of your Timeline. Open their sessions to see their individual games. In Clan’s Feed, the week can also bring together clanmates who played in the same tagged tournament, the clan’s last donation count before reset, or two closed war weeks with a change in placing against the same rival.

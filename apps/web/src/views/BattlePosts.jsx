@@ -1,10 +1,14 @@
 import { useEffect, useId, useState } from "react";
 import { useWrite } from "../client/index.ts";
-import { ConfirmAction, WriteError } from "@elixir-mcp/ui";
+import { ConfirmAction, Link, WriteError } from "@elixir-mcp/ui";
 import { PostReadState } from "../home/PostReadState.jsx";
 import { ItemShare } from "../home/ItemShare.jsx";
 import { api } from "../api.js";
-import { useBattlePosts, usePostsChanged } from "../lib/queries.js";
+import {
+  useBattlePosts,
+  useDeckTrial,
+  usePostsChanged,
+} from "../lib/queries.js";
 import { useAskOnOpen } from "../lib/own-refresh.js";
 
 /**
@@ -37,7 +41,8 @@ function BattlePostPanel({ battle, sides, data }) {
   // A session page's Post lands here (#post, 2026-11-16; #highlight from
   // a link made before): once the panel has drawn, it scrolls into view.
   useEffect(() => {
-    if (!["#post", "#highlight"].includes(window.location.hash)) return;
+    if (!["#post", "#highlight", "#tried-deck"].includes(window.location.hash))
+      return;
     document.getElementById("post")?.scrollIntoView?.({ block: "start" });
   }, [data]);
   const { can_post_as: players = [], posts = [] } = data;
@@ -94,12 +99,48 @@ function Words({ id, value, onChange, label }) {
   );
 }
 
+function DeckCredit({ postId, battleId, tag, onCredit, emptyDraft }) {
+  const { data } = useDeckTrial(postId, true, battleId);
+  const match = data?.match;
+  if (
+    !match?.source ||
+    match.battle_id !== battleId ||
+    match.player_tag !== tag
+  )
+    return null;
+  return (
+    <p>
+      <Link to={match.source.path}>The deck shared by {match.source.name}</Link>{" "}
+      {emptyDraft ? (
+        <button
+          type="button"
+          className="btn btn--sm"
+          onClick={() => onCredit(`I tried ${match.source.name}’s deck.`)}
+        >
+          Credit {match.source.name}
+        </button>
+      ) : null}
+    </p>
+  );
+}
+
 function Compose({ battle, players, nameOf, invalidate }) {
   const id = useId();
   // Opening the composer asks for your battles now (lib/own-refresh.js).
   useAskOnOpen(true);
-  const [words, setWords] = useState("");
-  const [as, setAs] = useState(players[0]);
+  const trial = window.location.hash === "#tried-deck";
+  const sourceId = trial
+    ? new URLSearchParams(window.location.search).get("deck_post")
+    : null;
+  const initialPlayer = trial
+    ? new URLSearchParams(window.location.search).get("as")
+    : null;
+  const [as, setAs] = useState(
+    players.includes(initialPlayer) ? initialPlayer : players[0],
+  );
+  const [words, setWords] = useState(
+    trial && players.includes(initialPlayer) ? "I tried this deck." : "",
+  );
   const post = useWrite(api.writeBattlePost, { invalidate });
   const player = players.includes(as) ? as : players[0];
   return (
@@ -114,6 +155,15 @@ function Compose({ battle, players, nameOf, invalidate }) {
         if (r.ok) setWords("");
       }}
     >
+      {sourceId ? (
+        <DeckCredit
+          postId={sourceId}
+          battleId={battle.id}
+          tag={player}
+          onCredit={setWords}
+          emptyDraft={!words || words === "I tried this deck."}
+        />
+      ) : null}
       <p className="footnote mb-3">
         It goes on {nameOf(player)}’s timeline as a post with this battle and
         your words. People in Elixir see it there; a member who can see it can

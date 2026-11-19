@@ -109,7 +109,17 @@ function ClanTimeline({ clan }) {
           Joins, departures, role changes, races and the clan's own notices.
         </p>
       ) : null}
-      {items.length === 0 ? (
+      {d.memories?.length ? (
+        <section className="panel">
+          <h3 className="panel__head">The clan’s week</h3>
+          <ul>
+            {d.memories.map((line) => (
+              <li key={line}>{line}</li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+      {items.length === 0 && d.memories?.length ? null : items.length === 0 ? (
         <Empty
           title={
             view === "unanswered"

@@ -740,6 +740,14 @@ export const postsKey = (ask) => [
   ask.player ? "player" : ask.account ? "account" : "mine",
   ask.player ?? ask.account ?? "",
 ];
+export const useDeckTrial = (id, enabled, battleId = null) =>
+  useQuery({
+    queryKey: ["me", "posts", "tried", id, battleId],
+    queryFn: payload(() => api.trial(id, battleId)),
+    enabled,
+    staleTime: 30_000,
+    retry: false,
+  });
 export const usePosts = (ask, enabled = true) =>
   useQuery({
     queryKey: postsKey(ask),

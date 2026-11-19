@@ -472,6 +472,59 @@ export function YourClanPeople() {
   );
 }
 
+function ClanPlayLine({ play: p, name }) {
+  return (
+    <span className="kit-people__why">
+      {p.shared
+        ? `${p.own_name} and ${name} played ${p.exact ? "the same recorded deck" : "decks sharing " + p.shared + " of eight cards"} in ${p.mode}. `
+        : ""}
+      {p.own_cards?.length
+        ? `${p.own_name} brought ${p.own_cards.join(" and ")}. ${name} brought ${p.peer_cards.join(" and ")}. `
+        : ""}
+      {p.card
+        ? `${p.card.name} appeared in ${p.card.mine} of ${p.own_name}’s ${p.card.mine_total} recorded ${p.mode} battles and ${p.card.theirs} of ${name}’s ${p.card.theirs_total}. `
+        : ""}
+    </span>
+  );
+}
+
+/** The Timeline features one match; Find uses the same cached roster for the full list. */
+export function ClanDeckSpotlight() {
+  const read = usePeople("clan");
+  const matches = (read.data?.players ?? []).filter((p) => p.shared_play);
+  matches.sort(
+    (a, b) =>
+      b.shared_play.shared - a.shared_play.shared ||
+      Number(b.shared_play.exact) - Number(a.shared_play.exact) ||
+      Math.min(b.shared_play.card?.mine ?? 0, b.shared_play.card?.theirs ?? 0) -
+        Math.min(
+          a.shared_play.card?.mine ?? 0,
+          a.shared_play.card?.theirs ?? 0,
+        ) ||
+      a.player_tag.localeCompare(b.player_tag),
+  );
+  const mate = matches[0];
+  if (!read.isSuccess || !mate) return null;
+  return (
+    <Panel title="A clanmate who plays your cards" pad>
+      <Link to={playerHref(mate.player_tag)}>
+        <PlayerName tag={mate.player_tag}>
+          <TagText>{mate.name ?? mate.player_tag}</TagText>
+        </PlayerName>
+      </Link>
+      <p>
+        <ClanPlayLine
+          play={mate.shared_play}
+          name={mate.name ?? mate.player_tag}
+        />
+      </p>
+      <p className="kit-tiny">
+        Up to 30 recorded battles each in the last 14 days.
+      </p>
+    </Panel>
+  );
+}
+
 function ClanPeoplePanel({ clan, players }) {
   const clanName = clan.name ?? clan.clan_tag;
   const others = players.filter(
@@ -491,6 +544,12 @@ function ClanPeoplePanel({ clan, players }) {
           </p>
         </div>
       </div>
+      {others.some((p) => p.shared_play) ? (
+        <p className="kit-people__why">
+          Deck comparisons use up to 30 recorded battles per player from the
+          last 14 days.
+        </p>
+      ) : null}
       {others.length === 0 ? (
         <p className="kit-week__quiet kit-people__quiet">
           Nobody else connected from this clan right now.
@@ -504,6 +563,12 @@ function ClanPeoplePanel({ clan, players }) {
               roster
               detail={
                 <>
+                  {p.shared_play ? (
+                    <ClanPlayLine
+                      play={p.shared_play}
+                      name={p.name ?? p.player_tag}
+                    />
+                  ) : null}
                   {roleLabel(p.role) ? (
                     <span className="kit-people__why">{roleLabel(p.role)}</span>
                   ) : null}

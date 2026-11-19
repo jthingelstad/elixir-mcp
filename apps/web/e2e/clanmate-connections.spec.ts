@@ -1,6 +1,6 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
-import { mockApi } from "./fixtures.ts";
+import { ME, mockApi } from "./fixtures.ts";
 import { HOME, homeApi, ownerPassport } from "./home-fixture.ts";
 import { ADA } from "./player-fixture.ts";
 
@@ -209,7 +209,25 @@ for (const width of [320, 390, 1280]) {
             ok: true,
             clans: [SHARED, ALT_CLAN],
             players: [
-              { ...MATE, player_tag: MATE.tag },
+              {
+                ...MATE,
+                player_tag: MATE.tag,
+                shared_play: {
+                  own_name: "Ash",
+                  mode: "Ranked",
+                  shared: 7,
+                  exact: false,
+                  own_cards: ["Fireball"],
+                  peer_cards: ["Poison"],
+                  card: {
+                    name: "Guards",
+                    mine: 8,
+                    theirs: 5,
+                    mine_total: 12,
+                    theirs_total: 8,
+                  },
+                },
+              },
               {
                 ...MATE,
                 tag: "#02G2PJC0",
@@ -233,6 +251,12 @@ for (const width of [320, 390, 1280]) {
     const list = page.locator(".kit-clanpeople-list");
     await expect(list).toContainText(SHARED.name);
     await expect(list).toContainText(ALT_CLAN.name);
+    await expect(list).toContainText(
+      "Ash brought Fireball. Ada brought Poison.",
+    );
+    await expect(list).toContainText(
+      "Guards appeared in 8 of Ash’s 12 recorded Ranked battles and 5 of Ada’s 8.",
+    );
     await expect(
       list.getByRole("button", { name: /Follow|Friend/ }),
     ).toHaveCount(0);
@@ -368,4 +392,58 @@ test("a blocked canonical clanmate has no Friend or Close controls", async ({
     head.getByRole("button", { name: /Friend|close friend/ }),
   ).toHaveCount(0);
   await expect(page.locator(".kit-clanmate-connection")).toHaveCount(0);
+});
+
+test("the Timeline automatically introduces a clanmate through the cards both players brought", async ({
+  page,
+}) => {
+  await mockApi(
+    page,
+    homeApi({
+      "GET /api/me": [
+        200,
+        {
+          ...ME,
+          claims: [
+            {
+              player_tag: HOME.first.player.player_tag,
+              is_primary: true,
+              status: "verified",
+              relationship: "primary",
+            },
+          ],
+        },
+      ],
+      "GET /api/me/people/clan": [
+        200,
+        {
+          ok: true,
+          players: [
+            {
+              ...MATE,
+              player_tag: MATE.tag,
+              shared_play: {
+                own_name: "Ash",
+                mode: "Ranked",
+                shared: 7,
+                exact: false,
+                card: null,
+                own_cards: ["Fireball"],
+                peer_cards: ["Poison"],
+              },
+            },
+          ],
+        },
+      ],
+    }),
+  );
+  await page.goto("/timeline");
+  await expect(
+    page.getByText("A clanmate who plays your cards", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByText("Ash brought Fireball. Ada brought Poison.", {
+      exact: false,
+    }),
+  ).toBeVisible();
 });

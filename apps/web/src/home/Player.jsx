@@ -309,6 +309,18 @@ export function PlayerView({ page, initialTab = "timeline" }) {
           )
         ) : shown === "timeline" ? (
           <>
+            {page.play_stories?.length ? (
+              <section aria-label="This week in play">
+                <h3>This week in play</h3>
+                <ul>
+                  {page.play_stories.map((s) => (
+                    <li key={s.text}>
+                      <TagText>{s.text}</TagText>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            ) : null}
             <PostList player={p.tag} />
             <ItemList
               items={page.timeline}

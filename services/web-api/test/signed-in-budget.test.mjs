@@ -121,7 +121,8 @@ const PLAYER_PAGE = {
   // +1: the @handles of the accounts behind the follow lists' verified
   // players, one statement (account handles, 2026-11-15).
   // +3: the player's clan role changes and war weeks, one statement each, and a promotion's story id (13.10.0, 2026-11-17).
-  "/api/player": { statements: 37, buffers: 6000 },
+  // Recent play stories read changes and same-season progress together, then sampled decks and card levels.
+  "/api/player": { statements: 40, buffers: 6000 },
   // 1500 to 900 (2026-11-14): 664 here, as on the battle page.
   // +1: the player's clan news reads (13.10.0, 2026-11-17).
   "/api/me/cheers": { statements: 27, buffers: 900 },
@@ -353,7 +354,8 @@ const FIND = {
   // +1 each: the rows' profile images, one statement a list (2026-11-14).
   "/api/me/people/suggested": { statements: 11, buffers: 600 },
   "/api/me/people/battles": { statements: 9, buffers: 1300 },
-  "/api/me/people/clan": { statements: 12, buffers: 700 },
+  // Each member contributes at most 30 keyed battle verifications for deck comparisons.
+  "/api/me/people/clan": { statements: 12, buffers: 5600 },
   // +1: one batch of current member relationships, independent of row count.
   "/api/me/follow-plan": { statements: 10, buffers: 500 },
   "/api/me/clans": { statements: 6, buffers: 300 },

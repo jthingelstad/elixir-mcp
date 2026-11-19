@@ -17,6 +17,7 @@ import { api } from "../api.js";
 import { useMe } from "../App.jsx";
 import {
   useCardCatalog,
+  useDeckTrial,
   useInvalidate,
   usePostsChanged,
 } from "../lib/queries.js";
@@ -399,7 +400,7 @@ export function PostBody({ it }) {
           Only you see this one for now: it's waiting for a look.
         </p>
       ) : null}
-      {p.deck ? <PostDeck deck={p.deck} /> : null}
+      {p.deck ? <PostDeck deck={p.deck} post={p} /> : null}
       {p.cards?.length ? <PostCards cards={p.cards} /> : null}
     </div>
   );
@@ -522,7 +523,49 @@ function PostBattle({ battle: b, versus: v, who }) {
   );
 }
 
-function PostDeck({ deck }) {
+function DeckTrial({ post }) {
+  const [asked, setAsked] = useState(false);
+  const trial = useDeckTrial(post.id, asked);
+  if (!asked)
+    return (
+      <button
+        className="btn btn--sm"
+        type="button"
+        onClick={() => setAsked(true)}
+      >
+        I tried this deck
+      </button>
+    );
+  if (trial.isError)
+    return (
+      <button
+        className="btn btn--sm"
+        type="button"
+        onClick={() => trial.refetch()}
+      >
+        Try reading your battles again
+      </button>
+    );
+  if (!trial.data)
+    return <span role="status">Checking your recorded battles…</span>;
+  const m = trial.data.match;
+  if (!m)
+    return (
+      <span role="status">
+        No matching battle recorded for your verified players since this post in
+        the last 30 days.
+      </span>
+    );
+  const path = new URL(m.url).pathname;
+  const q = new URLSearchParams({ as: m.player_tag, deck_post: post.id });
+  return (
+    <Link className="btn btn--sm" to={`${path}?${q}#tried-deck`}>
+      Post about {m.name ?? m.player_tag}’s matching battle
+    </Link>
+  );
+}
+
+function PostDeck({ deck, post }) {
   const [copied, setCopied] = useState(null);
   const avg = deck.average_elixir ?? averageElixir(deck.cards);
   return (
@@ -542,6 +585,7 @@ function PostDeck({ deck }) {
         {avg != null ? `${avg.toFixed(1)} average elixir` : null}
         {deck.tower_troop ? ` · ${deck.tower_troop.name}` : null}
       </p>
+      {post.id && !post.mine ? <DeckTrial post={post} /> : null}
       {deck.copy_link ? (
         <span className="kit-written__copy">
           <button

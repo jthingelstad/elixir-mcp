@@ -665,3 +665,28 @@ test("a duel is won on games, not on summed crowns (Gym #95)", () => {
   });
   assert.equal(outcome(bare, "#0VQRR8U0"), "win");
 });
+
+test("modifier choices follow their participant even when the two sides report them in reverse order", async () => {
+  const [battle] = await fixture("player_battlelog/with_boat_and_duel.json");
+  const left = battle.team[0].tag,
+    right = battle.opponent[0].tag;
+  const { participants } = canonicalizeBattle({
+    ...battle,
+    modifiers: [
+      { tag: right, modifiers: ["AxeMan2"] },
+      { tag: left, modifiers: ["Fireball3"] },
+    ],
+  });
+  assert.deepEqual(
+    participants.find((p) => p.player_tag === left).chaos_modifiers,
+    ["Fireball3"],
+  );
+  assert.deepEqual(
+    participants.find((p) => p.player_tag === right).chaos_modifiers,
+    ["AxeMan2"],
+  );
+  assert.equal(
+    canonicalizeBattle(battle).participants[0].chaos_modifiers,
+    null,
+  );
+});

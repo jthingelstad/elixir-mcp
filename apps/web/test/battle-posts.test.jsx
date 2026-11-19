@@ -285,3 +285,54 @@ test("a temporary refresh error keeps battle post words, and a later unavailable
   fireEvent.click(screen.getByRole("button", { name: "Try again" }));
   await waitFor(() => expect(container.textContent).toBe(""));
 });
+
+test("a deck trial credits the author only after the member chooses it, and still waits for Post", async () => {
+  const before = window.location.href;
+  try {
+    window.history.replaceState(
+      {},
+      "",
+      "/battle/ccd04012bda8?as=%230CR&deck_post=41#tried-deck",
+    );
+    vi.spyOn(api, "postsOnBattle").mockResolvedValue(
+      ok({ battle_id: BATTLE.id, can_post_as: ["#0CR"], posts: [] }),
+    );
+    const proof = vi
+      .spyOn(api, "trial")
+      .mockResolvedValue(
+        ok({
+          match: {
+            battle_id: BATTLE.id,
+            player_tag: "#0CR",
+            source: { path: "/home/post/41", name: "Rowan" },
+          },
+        }),
+      );
+    const publish = vi
+      .spyOn(api, "writeBattlePost")
+      .mockResolvedValue(ok({ post: item() }));
+    renderWithProviders(<BattlePosts battle={BATTLE} sides={SIDES} />);
+    const button = await screen.findByRole("button", { name: "Credit Rowan" });
+    expect(proof).toHaveBeenCalledWith("41", BATTLE.id);
+    expect(
+      screen
+        .getByRole("link", { name: "The deck shared by Rowan" })
+        .getAttribute("href"),
+    ).toBe("/home/post/41");
+    fireEvent.click(button);
+    expect(screen.getByLabelText("Your words (optional)").value).toBe(
+      "I tried Rowan’s deck.",
+    );
+    expect(publish).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "Post", exact: true }));
+    await waitFor(() =>
+      expect(publish).toHaveBeenCalledWith({
+        battle: BATTLE.id,
+        player_tag: "#0CR",
+        text: "I tried Rowan’s deck.",
+      }),
+    );
+  } finally {
+    window.history.replaceState({}, "", before);
+  }
+});
