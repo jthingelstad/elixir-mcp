@@ -8,6 +8,6 @@ export default {
   // tools_added for a new tool and breaking for a major. The changelog
   // test fails while this is empty.
   summary: md(
-    "elixir_timeline gives newly observed clan arrivals and departures the same item ID on the player and clan timelines. New roster-backed player moves use member_joined and member_left. A later stay has its own ID. Player-only membership changes keep clan_joined and clan_left.",
+    "elixir_timeline gives newly observed clan arrivals and departures the same item ID on the player and clan timelines. A later stay has its own ID. Player-only reads keep clan_joined and clan_left. A newly observed arrival includes the clan size in roster_size_after.",
   ),
 } satisfies ChangelogEntry;

@@ -31,6 +31,9 @@ export function timelineItemRef(it) {
           (s) => s.kind === "clan" && s.tag === it.clan_story.clan_tag,
         )
       : null) ??
+    (["member_joined", "member_left"].includes(it.kind)
+      ? it.subjects?.find((s) => s.kind === "clan")
+      : null) ??
     it.subjects?.find((s) => s.tag === it.subject_tag) ??
     it.subjects?.[0];
   const source =

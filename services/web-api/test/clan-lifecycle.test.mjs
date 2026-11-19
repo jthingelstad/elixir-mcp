@@ -4,6 +4,7 @@ import { scratchDb } from "../../../packages/ingest/test/helpers.mjs";
 import { ingestClanRoster } from "../../../packages/ingest/src/roster.mjs";
 import { createPostgresLedger } from "@elixir-mcp/clan-state/postgres";
 import { createManageService } from "@elixir-mcp/clan/manage/service.mjs";
+import { writeClanFactInClan } from "@elixir-mcp/record/attested-facts";
 import { createLifecycle } from "@elixir-mcp/clan/manage/lifecycle.mjs";
 import { draftStory } from "@elixir-mcp/syndication";
 import { buildTimeline } from "@elixir-mcp/tools/activity/entries";
@@ -26,6 +27,10 @@ test("one stay through welcome, promotion, demotion, classified departure and re
     name: "Ash",
   };
   const life = createLifecycle(db, ledger, {
+    attest: (tag, body) =>
+      writeClanFactInClan(db, { kind: "person", accountId: seat }, tag, body, {
+        inTransaction: true,
+      }),
     storyFor: (clan, tags, opts) => draftStory(db, clan, tags, opts),
   });
   let time = Date.now() - 3600000;
@@ -53,7 +58,17 @@ test("one stay through welcome, promotion, demotion, classified departure and re
     const members = [
       { tag: elder, name: "Ash", role: "leader" },
       ...Array.from({ length: 9 }, (_, i) => ({
-        tag: "#0GGG" + "0289PYLQG"[i] + "GG",
+        tag: [
+          "#0PLUG2V9",
+          "#0PYLQ2",
+          "#0GRJCUV",
+          "#0Q2L8",
+          "#0YY9P",
+          "#0PQ2VY",
+          "#0CU8LG",
+          "#0LUVR2",
+          "#0C2C8",
+        ][i],
         name: "Clanmate",
         role: "member",
       })),
@@ -100,12 +115,14 @@ test("one stay through welcome, promotion, demotion, classified departure and re
   await roster("member");
   assert.equal(await life.drain(), 1);
   const introduction = await card("welcome");
-  const [publicJoin] = await find(p, outside, "member_joined");
+  const [publicJoin] = await find(p, outside, "clan_joined");
   const [join] = await find([...p, ...c], seat, "member_joined");
   assert.equal(join.id, publicJoin.id);
   assert.deepEqual(join.clan_story.lines, introduction.lifecycle.lines);
   assert.equal(publicJoin.clan_story, undefined);
   assert.ok(postableMoment(publicJoin));
+  await setCheer(db, seat, join.id, "wow", join);
+  assert.equal((await cheersFor(db, [join.id], outside)).size, 1);
   for (const part of [1, 1, 2])
     await manage.shareLifecycle(clan, leader, introduction.card_id, { part });
   assert.equal(
@@ -113,7 +130,7 @@ test("one stay through welcome, promotion, demotion, classified departure and re
     2,
   );
   const raise = async (type) => {
-    const id = "recommend_" + type;
+    const id = "recommend_" + type + "_" + time;
     const raised_at = new Date(time).toISOString();
     const lifecycle = await life.prepare(clan, tag, type, "Pip", raised_at);
     await ledger.putCard(clan, {
@@ -129,7 +146,28 @@ test("one stay through welcome, promotion, demotion, classified departure and re
     });
     return id;
   };
+  assert.equal(
+    (
+      await db.query(
+        "select count(*)::int as n from attested_fact where fact_type='clan_message'",
+      )
+    ).rows[0].n,
+    2,
+  );
+  const verdict = async (eligible) =>
+    ledger.saveVerdicts(clan, {
+      policy_version: 1,
+      removal_evidence_schema: 5,
+      evaluated_at: new Date(time).toISOString(),
+      members: [{ player_tag: tag, actionable: { promotion: eligible } }],
+    });
   const promo = await raise("promotion");
+  await verdict(false);
+  await assert.rejects(
+    manage.decide(clan, leader, promo, { status: "done" }),
+    (e) => e.code === "recommendation_changed",
+  );
+  await verdict(true);
   time += 1000;
   const lines = ["Congratulations, Pip!", "Thanks for stepping up as Elder."];
   await manage.decide(clan, leader, promo, { status: "done", tribute: lines });
@@ -159,7 +197,7 @@ test("one stay through welcome, promotion, demotion, classified departure and re
   });
   const [exit] = await find(c, seat, "member_left");
   assert.match(exit.clan_story.lines[0], /was removed/);
-  const [neutral] = await find(p, outside, "member_left");
+  const [neutral] = await find(p, outside, "clan_left");
   assert.equal(exit.id, neutral.id);
   assert.doesNotMatch(neutral.text, /kick|removed/);
   await roster("member");
@@ -180,4 +218,61 @@ test("one stay through welcome, promotion, demotion, classified departure and re
   const exits = await find(c, seat, "member_left");
   assert.equal(exits.length, 2);
   assert.match(exits[0].clan_story.lines[0], /left/);
+
+  await roster("member");
+  await life.drain();
+  const direct = await raise("promotion");
+  await roster("elder");
+  await life.drain();
+  const attached = await ledger.card(clan, direct);
+  assert.equal(attached.lifecycle.phase, "decision");
+  await manage.decide(clan, leader, direct, { status: "done", tribute: lines });
+  const promotions = await find(p, outside, "member_role_changed");
+  assert.equal(promotions.length, 2);
+  assert.notEqual(promotions[0].id, confirmed.id);
+  await roster(null);
+  await life.drain();
+  const ignored = await card("departure");
+  await manage.decide(clan, leader, ignored.card_id, {
+    classification: "ignore",
+  });
+  assert.equal(
+    (await ledger.card(clan, ignored.card_id)).lifecycle.phase,
+    "ignored",
+  );
+  assert.match(
+    (await find(c, seat, "member_left"))[0].clan_story.lines[0],
+    /no longer/,
+  );
+
+  await roster("member");
+  await life.drain();
+  const removal = await ledger.card(clan, await raise("removal"));
+  const decided = {
+    status: "done",
+    decided_at: new Date(time).toISOString(),
+    decided_by: elder,
+    decided_by_name: "Ash",
+  };
+  await life.confirm(clan, removal, decided, { hours: 24 });
+  const [notice] = await find(c, seat, "member_left");
+  assert.equal(notice.clan_story.reported_only, true);
+  assert.equal((await find(p, outside, "clan_left")).length, 3);
+  await roster(null);
+  await life.drain();
+  assert.equal((await find(p, outside, "clan_left"))[0].id, notice.id);
+  assert.equal(await card("departure"), undefined);
+  await manage.shareLifecycle(clan, leader, removal.card_id, { skip: true });
+
+  await ledger.savePolicy(clan, {
+    values: { welcome_enabled: false, departures_enabled: false },
+    by: elder,
+  });
+  await roster("member");
+  await life.drain();
+  assert.match(
+    (await find(c, seat, "member_joined"))[0].clan_story.lines[0],
+    /Welcome back/,
+  );
+  assert.equal(await card("welcome"), undefined);
 });

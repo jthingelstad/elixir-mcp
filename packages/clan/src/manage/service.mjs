@@ -43,6 +43,7 @@ import {
   MIN_MEMBERS,
   awayCandidates,
   actionLabel,
+  actionWaiting,
   canAct,
   inActionOrder,
   JUDGING_TYPES,
@@ -250,9 +251,7 @@ export function createManageService({
    *  take, in the list, by number and in its log. */
   const mayRead = (card, who) =>
     canAct(card, who) &&
-    (card.status === "proposed" ||
-      card.lifecycle?.phase === "sharing" ||
-      (isLeader(who) && who.verified !== false));
+    (actionWaiting(card) || (isLeader(who) && who.verified !== false));
   const requireLeader = (who) => {
     if (!isLeader(who) || who.verified === false)
       throw new ManageError(403, "leaders_only");
@@ -454,9 +453,7 @@ export function createManageService({
     const size = await ledger.clanSize(clanTag);
     if (size && size.members < MIN_MEMBERS) return [];
     return (await ledger.cards(clanTag)).filter(
-      (c) =>
-        (c.status === "proposed" || c.lifecycle?.phase === "sharing") &&
-        canAct(c, who),
+      (c) => actionWaiting(c) && canAct(c, who),
     );
   }
 
@@ -1257,7 +1254,7 @@ export function createManageService({
       }
       const open_actions = active
         ? (await ledger.cards(clanTag)).filter(
-            (c) => c.status === "proposed" && canAct(c, who),
+            (c) => actionWaiting(c) && canAct(c, who),
           ).length
         : 0;
       const trophies = active
@@ -1500,15 +1497,12 @@ export function createManageService({
       const mine = all.filter((c) => canAct(c, who));
       const closedAt = (c) => c.decided_at ?? c.withdrawn_at ?? c.raised_at;
       const open = mine
-        .filter(
-          (c) => c.status === "proposed" || c.lifecycle?.phase === "sharing",
-        )
+        .filter(actionWaiting)
         .sort((a, b) => (a.raised_at < b.raised_at ? 1 : -1));
       const recent = mine
         .filter(
           (c) =>
-            c.status !== "proposed" &&
-            c.lifecycle?.phase !== "sharing" &&
+            !actionWaiting(c) &&
             mayRead(c, who) &&
             t - Date.parse(closedAt(c)) < 30 * DAY_MS,
         )
@@ -1788,7 +1782,7 @@ export function createManageService({
       const byCard = await logsByCard(clanTag);
       const safety = await removalSafety(clanTag, cards, { verdicts });
       const inbox = cards
-        .filter((c) => c.status === "proposed" && canAct(c, who))
+        .filter((c) => actionWaiting(c) && canAct(c, who))
         .sort((a, b) => (a.raised_at < b.raised_at ? 1 : -1))
         .map((c) =>
           shapeSafeAction(c, byCard.get(c.card_id), who, safety.get(c.card_id)),
@@ -2156,7 +2150,21 @@ export function createManageService({
         throw new ManageError(400, "bad_status");
       if (card.lifecycle?.phase === "sharing")
         throw new ManageError(409, "record_chat_receipt");
-      if (status === "done") await requireRemovalSafety(clanTag, card);
+      if (status === "done") {
+        await requireRemovalSafety(clanTag, card);
+        if (
+          card.lifecycle &&
+          ["promotion", "demotion"].includes(card.type) &&
+          !(await lifecycle.observed(clanTag, card))
+        ) {
+          const { verdicts } = await evaluateClan({ clanTag, who });
+          const member = verdicts.members.find(
+            (m) => m.player_tag === card.player_tag,
+          );
+          if (!member?.actionable?.[card.type])
+            throw new ManageError(409, "recommendation_changed");
+        }
+      }
       if (
         status === "done" &&
         card.evidence?.messages?.some(
@@ -2241,9 +2249,10 @@ export function createManageService({
             }
           : {}),
       };
+      let lifecycleFacts = null;
       if (card.lifecycle && lifecycle && status === "done") {
         const policy = await requirePolicy(clanTag);
-        await lifecycle.confirm(clanTag, card, decided, {
+        lifecycleFacts = await lifecycle.confirm(clanTag, card, decided, {
           classification,
           tribute,
           hours: policy.values.outcome_window_hours,
@@ -2279,16 +2288,18 @@ export function createManageService({
       // What the action did goes to Elixir, always; it never holds up
       // the decision, and the log says what happened. The answer carries
       // the outcome so the page can say when this sign-in cannot share.
-      const shared = await sharing
-        .afterDecision(clanTag, who, card, decided, {
-          sent: reviewed ?? sent,
-        })
-        .catch((e) => {
-          console.warn(
-            JSON.stringify({ level: "warn", sharing_failed: e.message }),
-          );
-          return [];
-        });
+      const shared =
+        lifecycleFacts ??
+        (await sharing
+          .afterDecision(clanTag, who, card, decided, {
+            sent: reviewed ?? sent,
+          })
+          .catch((e) => {
+            console.warn(
+              JSON.stringify({ level: "warn", sharing_failed: e.message }),
+            );
+            return [];
+          }));
       return shared.length ? { ...decided, shared } : decided;
     },
 
@@ -2318,7 +2329,7 @@ export function createManageService({
      */
     async mailActionsWaiting(clanTag) {
       const cards = await ledger.cards(clanTag);
-      if (!cards.some((c) => c.status === "proposed")) return { mailed: 0 };
+      if (!cards.some(actionWaiting)) return { mailed: 0 };
       if (typeof record.sendMail !== "function") return { mailed: 0 };
       // The email names actions by number: any still without one gets it.
       await numberActions(clanTag, cards);

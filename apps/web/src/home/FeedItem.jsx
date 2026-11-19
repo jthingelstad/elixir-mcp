@@ -272,7 +272,7 @@ export function FeedItem({
             </time>
             {it.clan_story.reported_only
               ? " · awaiting roster confirmation"
-              : " · confirmed by the roster"}
+              : " · roster change observed"}
           </small>
         ) : null}
       </div>

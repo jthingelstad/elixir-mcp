@@ -231,6 +231,7 @@ export function storyId(namespace, ...parts) {
     .slice(0, 20)}`;
 }
 /** The namespaces whose part is a ledger row's id. */
+const LIFECYCLE_RECEIPT = Symbol("lifecycle delivery receipt");
 const LEDGERS = new Set([
   "player_event",
   "clan_event",
@@ -1910,12 +1911,10 @@ const WHO_SQL = (tagSql) =>
 /** The player's clan joins and leaves the window observed. */
 const clanMovesSql = (tagSql, fromMs, toMs) =>
   `select cm.clan_tag, c.name as clan_name, cm.role, cm.baseline,
-          cm.joined_observed_at, cm.left_observed_at, joined.occasion_id as join_id, j.roster_size_after as joined_size,j.roster_size_before as join_before,j.role_after as join_role, gone.occasion_id as exit_id,x.roster_size_before as exit_before,x.roster_size_after as exit_after,x.role_before as exit_role
+          cm.joined_observed_at, cm.left_observed_at, joined.occasion_id as join_id, joined.roster_size as joined_size, gone.occasion_id as exit_id
      from clan_membership cm
      left join clan_lifecycle joined on joined.kind='welcome' and joined.clan_tag=cm.clan_tag and joined.player_tag=cm.player_tag and joined.stay_at=cm.joined_observed_at and joined.observed_at=cm.joined_observed_at
      left join clan_lifecycle gone on gone.kind='departure' and gone.clan_tag=cm.clan_tag and gone.player_tag=cm.player_tag and gone.stay_at=cm.joined_observed_at and gone.observed_at=cm.left_observed_at
-     left join clan_event j on j.event_id=joined.event_id
-     left join clan_event x on x.event_id=gone.event_id
      left join clan c on c.clan_tag = cm.clan_tag
     where cm.player_tag = ${tagSql}
       and ((cm.joined_observed_at >= ${ts(fromMs + 1)} and cm.joined_observed_at < ${ts(toMs + 1)})
@@ -2475,21 +2474,11 @@ export async function buildPlayerEntry(
     if (m.join_id)
       moveStories.set(`joined/${m.clan_tag}/${iso(m.joined_observed_at)}`, {
         id: m.join_id,
-        facts: {
-          role: m.join_role,
-          roster_size_before: m.join_before,
-          roster_size_after: m.joined_size,
-        },
+        size: m.joined_size,
       });
     if (m.exit_id)
       moveStories.set(`left/${m.clan_tag}/${iso(m.left_observed_at)}`, {
         id: m.exit_id,
-        facts: {
-          role_at_departure: m.exit_role,
-          joined_observed_at: iso(m.joined_observed_at),
-          roster_size_before: m.exit_before,
-          roster_size_after: m.exit_after,
-        },
       });
     const j = m.joined_observed_at.getTime();
     // A baseline row is Elixir's first sight of the player in the clan,
@@ -2738,13 +2727,7 @@ export async function buildPlayerEntry(
     });
   for (const c of clanChanges) {
     const occasion = moveStories.get(`${c.kind}/${c.clan_tag}/${c.at}`);
-    const kind = occasion
-      ? c.kind === "joined"
-        ? "member_joined"
-        : "member_left"
-      : c.kind === "joined"
-        ? "clan_joined"
-        : "clan_left";
+    const kind = c.kind === "joined" ? "clan_joined" : "clan_left";
     items.push({
       ...subject,
       at: c.at,
@@ -2754,7 +2737,11 @@ export async function buildPlayerEntry(
         ...subject.subjects,
         { tag: c.clan_tag, kind: "clan", name: c.clan_name ?? null },
       ],
-      facts: { ...self, ...(occasion ? occasion.facts : c) },
+      facts: {
+        ...self,
+        ...c,
+        ...(occasion?.size != null ? { roster_size_after: occasion.size } : {}),
+      },
       [STORY]: occasion
         ? moment("clan_event", `lifecycle:${occasion.id}`)
         : moment(kind, tag, c.clan_tag, c.at),
@@ -4530,6 +4517,7 @@ export async function clanStoriesFor(
   { accountId, fromMs, toMs, timezone = "UTC", basis = "observed" },
 ) {
   const clans = subjects.filter((s) => s.kind === "clan").map((s) => s.tag);
+  items = items.filter((it) => !it[LIFECYCLE_RECEIPT]);
   if (!accountId || !clans.length) return items;
   const { rows } = await db.query(
     `select l.occasion_id,l.clan_tag,l.player_tag,l.player_name,l.kind,l.paragraphs,l.observed_at,l.reported_at,
@@ -4541,7 +4529,7 @@ export async function clanStoriesFor(
     left join attested_fact f on f.source='clan.poapkings.com' and f.source_ref='action:'||l.action_id and f.clan_tag=l.clan_tag
     left join player attester on attester.player_tag=f.attester_tag
     where l.clan_tag=any($1::text[]) and l.published_at is not null and
-      (l.published_at between $3 and $4 or l.observed_at between $3 and $4 or l.reported_at between $3 and $4)
+      (l.published_at between $3 and $4 or l.observed_at between $3 and $4 or l.reported_at between $3 and $4 or f.recorded_at between $3 and $4)
       and exists(select 1 from claim seat join clan_membership cm on cm.player_tag=seat.player_tag and cm.left_observed_at is null
         where seat.account_id=$2 and seat.status='verified' and (seat.is_primary or seat.relationship in ('primary','alt')) and cm.clan_tag=l.clan_tag)`,
     [clans, accountId, new Date(fromMs + 1), new Date(toMs)],
@@ -4556,6 +4544,11 @@ export async function clanStoriesFor(
       clan_tag: row.clan_tag,
       lines: row.paragraphs,
       reported_only: !row.event_id,
+      restricted:
+        !row.event_id ||
+        row.kind === "demotion" ||
+        row.classification === "kick" ||
+        row.classification === "leave",
       ...(row.reported_at
         ? {
             reported_at: iso(row.reported_at),
@@ -4569,6 +4562,7 @@ export async function clanStoriesFor(
       continue;
     }
     const at = iso(row.observed_at ?? row.reported_at);
+    if (Date.parse(at) <= fromMs || Date.parse(at) > toMs) continue;
     const kind =
       row.kind === "welcome"
         ? "member_joined"
@@ -4606,6 +4600,30 @@ export async function clanStoriesFor(
     byId.set(id, item);
   }
   return [...byId.values()];
+}
+
+/** Match a classification the Discord reader already received to the exact
+ * roster occasion. The one attested fact reader owns the source reference. */
+export async function classifiedExitLinks(
+  db,
+  clanTag,
+  classified,
+  fromMs,
+  toMs,
+) {
+  if (!classified.length) return new Map();
+  const tags = [
+    ...new Set(classified.map((it) => it.facts?.player_tag).filter(Boolean)),
+  ];
+  const { rows } = await db.query(
+    `select f.fact_id,l.occasion_id,l.event_id,l.match_until
+    from clan_lifecycle l join attested_fact f on f.source='clan.poapkings.com' and f.source_ref='action:'||l.action_id and f.clan_tag=l.clan_tag
+    where l.clan_tag=$1 and l.kind='departure' and l.player_tag=any($2::text[]) and f.recorded_at between $3 and $4`,
+    [clanTag, tags, new Date(fromMs), new Date(toMs)],
+  );
+  return new Map(
+    rows.map((row) => [storyId("attested_fact", row.fact_id), row]),
+  );
 }
 
 export async function windowFacts(
@@ -4788,7 +4806,7 @@ async function readFactItems(
   },
 ) {
   const { rows } = await db.query(
-    `select f.*, cl.name as clan_name, p.name as player_name,
+    `select f.*, exists(select 1 from clan_lifecycle l where f.fact_type='clan_message' and f.source='clan.poapkings.com' and l.clan_tag=f.clan_tag and l.action_id=split_part(f.source_ref,':',2) and f.source_ref ~ '^action:[^:]+:message:chat:[1-3]$') as lifecycle_receipt, cl.name as clan_name, p.name as player_name,
             ap.name as attester_name, pp.name as previous_name,
             dep.role as role_at_departure
        from attested_fact f
@@ -4858,6 +4876,7 @@ async function readFactItems(
       ],
       at: iso(f.occurred_at),
       observed_at: iso(f.recorded_at),
+      ...(f.lifecycle_receipt ? { [LIFECYCLE_RECEIPT]: true } : {}),
       kind: f.fact_type,
       section: "attested",
       facts: {
@@ -5197,7 +5216,7 @@ export const shownAt = (it) => it.sort_at ?? sortAt(it) ?? "";
 
 /** Which copy of a story tells it: the richer kind, then the copy whose
  *  facts say more. */
-const KIND_RANK = { session_standout: 1 };
+const KIND_RANK = { session_standout: 1, member_joined: 1, member_left: 1 };
 const copyRank = (it) => [
   KIND_RANK[it.kind] ?? 0,
   Object.keys(it.facts ?? {}).length,
@@ -5285,7 +5304,9 @@ const PUBLISHABLE = new Set(["public", "clan", "player"]);
 /** Whether an item may leave Elixir (cross-posting reads this, server
  *  side): usable as a buildTimeline filter, before the item is finished. */
 export const isPublishable = (it) =>
-  it.kind !== "drop_game" && PUBLISHABLE.has(itemVisibility(it));
+  !it[LIFECYCLE_RECEIPT] &&
+  it.kind !== "drop_game" &&
+  PUBLISHABLE.has(itemVisibility(it));
 
 /** The local reading of an instant in the reader's zone. */
 export function localOf(isoAt, timeZone) {

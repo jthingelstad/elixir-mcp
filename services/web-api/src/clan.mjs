@@ -299,6 +299,9 @@ export function createClanRequest({
     const exclusive = clanExclusive(db);
     const manage = createManageService({
       lifecycle: createLifecycle(db, ledger, {
+        attest: (tag, body) =>
+          writeClanFactInClan(db, account, tag, body, { inTransaction: true }),
+        wake: (fact) => wakeAfterFact(db, fact, { outbox }),
         storyFor: (tag, tags, opts) => draftStory(db, tag, tags, opts),
       }),
       ledger,

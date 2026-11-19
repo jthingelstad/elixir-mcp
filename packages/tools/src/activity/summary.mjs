@@ -678,7 +678,7 @@ export function itemText(it, timeZone = "UTC") {
     case "war_week_played":
       return `${member || subj} played ${f.decks_used >= WAR_WEEK_DECKS ? `all ${WAR_WEEK_DECKS} war decks` : plural(f.decks_used, "war deck")} in ${seasonWeek(f.season_id, (f.section_index ?? 0) + 1)}${f.is_colosseum ? " (Colosseum)" : ""}${typeof f.points === "number" ? `, for ${num(f.points)} points` : ""}.`;
     case "clan_joined":
-      return `${subj} joined ${f.clan_name ?? f.clan_tag}.`;
+      return `${subj} joined ${f.clan_name ?? f.clan_tag}.${f.roster_size_after > 0 ? ` The clan has ${f.roster_size_after} members.` : ""}`;
     case "clan_left":
       return `${subj} departed ${f.clan_name ?? f.clan_tag}${f.role ? ` (was ${roleWord(f.role)})` : ""}.`;
     case "quiet_crossed":
