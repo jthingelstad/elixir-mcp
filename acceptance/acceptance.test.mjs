@@ -11,7 +11,8 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { makeDoor, DOOR_TIMEOUT_MS, REQUEST_TIMEOUT } from "./door.mjs";
-import { shapeCatalogue } from "./catalogue.mjs";
+import { makeRegistry } from "../packages/tools/src/tools.mjs";
+import { shapeCatalogue, loadCatalogue } from "./catalogue.mjs";
 import { identities } from "./checks/identities.mjs";
 import { noteTokens, notesNameFields, deepKeys } from "./lib.mjs";
 import { runSuite, SUITES } from "./run.mjs";
@@ -1066,4 +1067,14 @@ test("milestone locator docs are conditional only for elixir_timeline, without i
   markdown = "A post's recorded milestone carries its `item_ref`.";
   await run("example_tool#0");
   await assert.rejects(() => run("example_tool#docs"), /documents item_ref/);
+});
+
+test("the live acceptance catalogue only replays reads its agent can discover", () => {
+  const names = new Set(
+    makeRegistry()
+      .declarations("agent")
+      .map((t) => t.name),
+  );
+  for (const name of Object.keys(loadCatalogue().tools))
+    assert.ok(names.has(name), name);
 });

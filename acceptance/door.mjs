@@ -119,10 +119,13 @@ export function makeDoor({
         `${method}: non-JSON answer (HTTP ${res.status}): ${text.slice(0, 200)}`,
       );
     }
-    if (body.error)
-      throw new Error(
+    if (body.error) {
+      const err = new Error(
         `${method}: ${body.error.message ?? JSON.stringify(body.error)}`,
       );
+      err.rpcCode = body.error.code;
+      throw err;
+    }
     return { result: body.result, ms, status: res.status };
   }
   /** tools/call, unwrapped: `{ body, isError, ms }`. A refusal is an
@@ -141,6 +144,7 @@ export function makeDoor({
           error: {
             code: err?.code === REQUEST_TIMEOUT ? REQUEST_TIMEOUT : "rpc_error",
             message: err.message,
+            ...(Number.isInteger(err.rpcCode) && { rpc_code: err.rpcCode }),
           },
         },
         isError: true,

@@ -209,7 +209,7 @@ if (isMain) {
   const raw = JSON.parse(Buffer.from(res.Payload).toString("utf8"));
   if (raw.errorMessage) throw new Error(raw.errorMessage);
   const stale = [];
-  const declarations = makeRegistry().declarations();
+  const declarations = makeRegistry().declarations("agent");
   const byName = new Map(declarations.map((d) => [d.name, d]));
   const shaped = shapeCatalogue(raw, declarations, { stale });
   // Hand-picked sets beside the derived ones (catalogue-seed.json, a
