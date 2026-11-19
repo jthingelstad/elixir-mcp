@@ -279,9 +279,12 @@ export async function readSitting(
   // The moments this sitting's games proved, each on its game's row. One
   // statement: the proofs that are this player's battles in the sitting.
   const proved = timeline
-    .map((it) => [proofOf(it), markOf(it)])
+    .map((it) => [proofOf(it), markOf(it), it.kind])
     .filter(([battle, label]) => battle && label);
   let marks = [];
+  const promotions = (item.facts?.ranked?.promotions ?? []).map(
+    (p) => p.battle_id,
+  );
   if (proved.length) {
     const { rows: inside } = await db.query(
       `select battle_id from battle_participant
@@ -290,6 +293,12 @@ export async function readSitting(
       [tag, proved.map(([b]) => b), item.evidence.from, item.evidence.through],
     );
     const ids = new Set(inside.map((r) => r.battle_id));
+    for (const [battle, , kind] of proved)
+      if (
+        ids.has(battle) &&
+        ["arena_changed", "ranked_promotion"].includes(kind)
+      )
+        promotions.push(battle);
     marks = proved
       .filter(([b]) => ids.has(b))
       .map(([battle_id, label]) => ({ battle_id, label }));
@@ -299,6 +308,7 @@ export async function readSitting(
     item: pageItem(item, games.decks?.[0] ?? null),
     games,
     marks,
+    ...(!publicOnly ? { promotions } : {}),
     // Whether anyone with the link may read it: the public page's gate.
     shareable: itemVisibility(item) === "public",
   };
@@ -339,13 +349,7 @@ export async function readSessionPage(
     account.kind === "agent" ? null : account.accountId,
     { comments },
   );
-  const promoted = (read.item.facts?.ranked?.promotions ?? []).map(
-    (p) => p.battle_id,
-  );
-  for (const m of read.marks)
-    if (m.label.startsWith("Promoted to ") || m.label.startsWith("Reached "))
-      promoted.push(m.battle_id);
-  const { rows: switched } = promoted.length
+  const { rows: switched } = read.promotions.length
     ? await db.query(
         `select bp.battle_id,bp.type from battle_participant bp join battle b using(battle_id)
       cross join lateral (select prev.deck_hash,h.deck_selection,prev.cards from battle_participant prev join battle h using(battle_id)
@@ -355,7 +359,7 @@ export async function readSessionPage(
       where bp.player_tag=$1 and bp.battle_id=any($2::text[]) and bp.type in ('PvP','pathOfLegend')
         and bp.outcome='win' and b.event_tag is null and b.deck_selection='collection' and prior.deck_selection='collection'
         and cardinality(bp.cards)=8 and cardinality(prior.cards)=8 and bp.deck_hash<>prior.deck_hash`,
-        [tag, promoted],
+        [tag, read.promotions],
       )
     : { rows: [] };
   for (const g of switched)
