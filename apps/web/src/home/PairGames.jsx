@@ -15,8 +15,8 @@ import { usePairBattles, usePlayerPair } from "../lib/queries.js";
 import { SETTINGS } from "../lib/settings.js";
 
 /** A private record of two named players, never an inferred connection. */
-export function PairGames({ tag }) {
-  const [as, setAs] = useState(null);
+export function PairGames({ tag, initialAs = null }) {
+  const [as, setAs] = useState(initialAs);
   const [pick, setPick] = useState(null);
   const id = useId();
   const query = usePlayerPair(tag, as);
@@ -52,6 +52,31 @@ export function PairGames({ tag }) {
       </Empty>
     );
   const modes = data.modes ?? [];
+  // The two most recent distinct days on which these players changed sides.
+  const days = modes
+    .flatMap((m) => (m.days ?? []).map((d) => ({ ...d, mode: m.key })))
+    .sort(
+      (a, b) =>
+        b.day.localeCompare(a.day) ||
+        b.count - a.count ||
+        a.mode.localeCompare(b.mode),
+    );
+  const latest = days[0];
+  const earlier =
+    latest &&
+    days.find((d) => d.day < latest.day && d.teamed !== latest.teamed);
+  const dayLine = (d) => {
+    const label = MODE_LABEL[d.mode] ?? d.mode;
+    const date = new Intl.DateTimeFormat("en-US", {
+      weekday: "long",
+      month: "short",
+      day: "numeric",
+      timeZone: "UTC",
+    }).format(new Date(d.day + "T12:00:00Z"));
+    return d.teamed && d.wins === d.count
+      ? `won ${d.wins} ${label} ${d.wins === 1 ? "game" : "games"} together on ${date}`
+      : `played ${d.count} ${label} ${d.count === 1 ? "game" : "games"} ${d.teamed ? "together" : "against each other"} on ${date}`;
+  };
   const mode = modes.find((m) => m.key === pick) ?? modes[0];
   const own = data.own_players.find((p) => p.tag === data.selected_player);
   return (
@@ -103,6 +128,11 @@ export function PairGames({ tag }) {
         <p className="kit-tiny">
           Last 30 days, as Elixir recorded them. A gap means unknown.
         </p>
+        {earlier ? (
+          <p>
+            You {dayLine(earlier)}, then {dayLine(latest)}.
+          </p>
+        ) : null}
       </div>
       {mode ? (
         <>

@@ -81,7 +81,10 @@ export function playerPairRoutes({ resolveAccount }) {
           from: new Date(window.fromMs).toISOString(),
           to: new Date(toMs).toISOString(),
         },
-        modes: await playerPairSummary(db, ask),
+        modes: await playerPairSummary(db, {
+          ...ask,
+          timezone: account.timezone ?? "UTC",
+        }),
       });
     },
   };

@@ -687,4 +687,8 @@ channels tells it twice.
   its next three facts ([Email](/docs/email#your-digest)). The timeline itself keeps every item, newest
   first.
 
-Friends who played the same named event can appear together at the top of your Timeline. Open their sessions to see their individual games. In Clan’s Feed, the week can also bring together clanmates who played in the same tagged tournament, the clan’s last donation count before reset, or two closed war weeks with a change in placing against the same rival.
+When friends play the same event run, the Timeline groups their sessions and any visible posts about their battles in that run. Rotating events appear ahead of familiar weekly fixtures. From a session you played with a followed friend, **Your games with…** opens Together for the player you used. Together can tell when you teamed up one day and faced each other another.
+
+A player’s **This week in play** compares repeated decks in the same mode, including a single card or form change within an archetype. Open **Compare decks** for both sets of eight. Mastery stories count appearances among up to 30 known collection decks apiece in recent Ranked and Trophy Road games. A promotion game can show that the player brought a different deck from their previous recorded game in that mode.
+
+Clan’s Feed counts distinct recorded tournament games featuring participating clanmates. It can recall a rival from a previous season when the opening war week closes, recognize a reversal between closed weeks, and show the last clan donation reading before reset. A player’s own lifetime donations are recognized separately at observed thousand-donation crossings.

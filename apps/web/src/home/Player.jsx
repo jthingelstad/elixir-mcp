@@ -143,6 +143,7 @@ export function PlayerPage() {
   return (
     <PlayerView
       page={env.data}
+      initialAs={typeof search?.as === "string" ? search.as : null}
       initialTab={typeof search?.tab === "string" ? search.tab : undefined}
     />
   );
@@ -150,7 +151,11 @@ export function PlayerPage() {
 
 /** The page itself, open on the tab the address names. (You drew your
  *  primary player's until 2026-11-15; it opens your account page now.) */
-export function PlayerView({ page, initialTab = "timeline" }) {
+export function PlayerView({
+  page,
+  initialTab = "timeline",
+  initialAs = null,
+}) {
   const nav = useNav();
   const [tab, setTab] = useState(
     OWN_TABS.has(initialTab) ? initialTab : "timeline",
@@ -316,6 +321,20 @@ export function PlayerView({ page, initialTab = "timeline" }) {
                   {page.play_stories.map((s) => (
                     <li key={s.text}>
                       <TagText>{s.text}</TagText>
+                      {s.before && s.after ? (
+                        <details>
+                          <summary>Compare decks</summary>
+                          <p>
+                            <strong>Before</strong> · {s.before.join(", ")}
+                          </p>
+                          <p>
+                            <strong>After</strong> · {s.after.join(", ")}
+                          </p>
+                        </details>
+                      ) : null}
+                      {s.url ? (
+                        <Link to={s.url}>Open the promotion battle</Link>
+                      ) : null}
                     </li>
                   ))}
                 </ul>
@@ -339,7 +358,7 @@ export function PlayerView({ page, initialTab = "timeline" }) {
             where={{ key: ["me", "player", p.tag], list: "moments" }}
           />
         ) : shown === "together" ? (
-          <PairGames key={p.tag} tag={p.tag} />
+          <PairGames key={p.tag} initialAs={initialAs} tag={p.tag} />
         ) : shown === "record" ? (
           <PlayerRecord tag={p.tag} />
         ) : (

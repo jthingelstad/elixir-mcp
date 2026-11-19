@@ -1,3 +1,17 @@
+import { memberPostPath } from "@elixir-mcp/posts";
+
+// Titles present throughout the reference's event rotation sample. Tags
+// still identify runs, including a new run of a recurring title.
+const regular = new Set([
+  "Classic 1v1",
+  "Classic 2v2",
+  "Classic Challenge",
+  "Grand Challenge",
+  "Mega Draft Challenge",
+  "Merge Tactics",
+  "Seasonal Trophy Road",
+]);
+
 /** A reader's week, drawn only from sessions already visible on their Timeline.
  * Keep one session link per friend and run. An event tag is one run even
  * when the game reuses its name. A replay adds no new item or delivery. */
@@ -36,10 +50,27 @@ export function sharedEvents(items, connections, subjects, fromMs) {
         });
     }
   }
+  for (const it of items) {
+    const post = it.post;
+    const battle = post?.battle;
+    const run = runs.get(battle?.event_tag);
+    const player = run?.players.get(post?.author?.player_tag);
+    const path = memberPostPath(post?.id);
+    if (
+      !player ||
+      !path ||
+      post.status ||
+      battle.mode_group !== "event" ||
+      Date.parse(battle.battle_time) < fromMs
+    )
+      continue;
+    (player.posts ??= []).push({ path, question: post.question === true });
+  }
   return [...runs.values()]
     .filter((r) => r.players.size >= 2)
     .sort(
       (a, b) =>
+        Number(regular.has(a.name)) - Number(regular.has(b.name)) ||
         b.players.size - a.players.size ||
         a.name.localeCompare(b.name) ||
         a.tag.localeCompare(b.tag),

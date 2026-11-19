@@ -419,6 +419,7 @@ const TWELVE_EVIDENCE = {
 
 /** The session page's read (GET /api/player/session). */
 export const TWELVE_PAGE = {
+  pairs: [{ friend_tag: ADA, own_tag: ME_TAG, name: "Ada" }],
   player: { tag: ME_TAG, name: "King Thing" },
   you: { own: true, can_post: true },
   item: {

@@ -46,6 +46,37 @@ test("a shared event requires the same run and two currently visible friends wit
     connections,
     friends,
   );
+  const more = [session(me, "always", "x"), session(peer, "always", "y")];
+  for (const item of more) item.facts.events[0].name = "Classic 1v1";
+  const attachment = (author, tag, mode) => ({
+    kind: "post",
+    post: {
+      id: "17",
+      author: { player_tag: author },
+      battle: { event_tag: tag, mode_group: mode, battle_time: "2026-11-18" },
+    },
+  });
+  const ranked = sharedEvents(
+    [
+      ...more,
+      ...rows,
+      session(me, "one", "e"),
+      attachment(peer, "one", "event"),
+      attachment(other, "one", "event"),
+      attachment(me, "one", "casual"),
+    ],
+    connections,
+    friends,
+    Date.parse("2026-11-17"),
+  );
+  assert.deepEqual(
+    ranked.map((r) => r.name),
+    ["Quick Wit", "Classic 1v1"],
+  );
+  assert.deepEqual(
+    ranked[0].players.flatMap((p) => p.posts ?? []),
+    [{ path: "/home/post/17", question: false }],
+  );
   assert.deepEqual(
     event.players.map((p) => p.session_id),
     ["a", "e"],
@@ -159,8 +190,19 @@ test("clanmates' own decks, recent card use and a shared tournament come from di
     "insert into clan_snapshot_daily(clan_tag,day,observed_at,snapshot_kind,donations_per_week) values($1,$2::timestamptz::date,$2,'pre_reset',1200)",
     [clan, ago(1)],
   );
-  const lines = await clanMemories(ctx.db, people.reader, clan, now);
-  assert.ok(lines.some((s) => s.includes("tournament #0Q2L8")));
+  const { memories: lines, tournaments } = await clanMemories(
+    ctx.db,
+    people.reader,
+    clan,
+    now,
+  );
+  assert.ok(
+    lines.some(
+      (s) => s.includes("tournament #0Q2L8") && s.includes("1 game featuring"),
+    ),
+  );
+  assert.equal(tournaments[0].games.length, 1);
+  assert.match(tournaments[0].games[0].url, /\/battle\/444444444444$/);
   assert.ok(
     lines.some((s) => s.includes("Invented rival") && s.includes("#1 and #3")),
   );
@@ -205,7 +247,7 @@ test("a Mastery milestone requires a played card and the maxed deck requires eig
     stories.some(
       (s) =>
         s.text.includes("Guards reached Mastery level 3") &&
-        s.text.includes("3 recent"),
+        s.text.includes("3 of 3 recent recorded Trophy Road"),
     ),
   );
   assert.ok(stories.some((s) => s.text.includes("eight cards")));
@@ -219,4 +261,47 @@ test("a Mastery milestone requires a played card and the maxed deck requires eig
       s.text.includes("eight cards"),
     ),
   );
+});
+
+test("repeated exact decks reveal a form change with both eights even without a deck switch event", async () => {
+  const db = ctx.db;
+  await db.query(
+    "insert into deck(deck_hash,card_count,first_seen_at,last_seen_at,card_ids,card_forms) values('guards-evo',8,$1,$2,$3,$4)",
+    [ago(3), now, ids, [1, 0, 0, 0, 0, 0, 0, 0]],
+  );
+  for (const [i, hash] of [
+    "shared-deck",
+    "shared-deck",
+    "guards-evo",
+    "guards-evo",
+  ].entries()) {
+    const at = ago(2 - i / 4);
+    const battle = String(i + 5).repeat(64);
+    await db.query(
+      "insert into battle(battle_id,battle_time,type,type_class,deck_selection) values($1,$2,'pathOfLegend','pvp','collection')",
+      [battle, at],
+    );
+    await db.query(
+      "insert into battle_participant(battle_id,player_tag,side,battle_time,type,type_class,outcome,cards,deck_hash) values($1,$2,0,$3,'pathOfLegend','pvp','win',$4,$5)",
+      [battle, other, at, ids, hash],
+    );
+    if (i === 2) {
+      assert.ok(!(await playerPlay(db, other, now)).some((s) => s.before));
+      await db.query(
+        "insert into player_event(player_tag,event_type,timing,window_start,window_end,occurred_at,battle_id) values($1,'ranked_promotion','exact',$2,$2,$2,$3)",
+        [other, at, battle],
+      );
+    }
+  }
+  const stories = await playerPlay(db, other, now);
+  const swap = stories.find((s) => s.before);
+  assert.match(
+    swap.text,
+    /Kept all eight cards in Ranked.*Guards.*Won promotion/,
+  );
+  assert.match(swap.url, /\/battle\/777777777777$/);
+  assert.equal(swap.before.length, 8);
+  assert.deepEqual(swap.before.slice(1), swap.after.slice(1));
+  assert.equal(swap.before[0], "Guards");
+  assert.match(swap.after[0], /Guards \(.+\)/);
 });

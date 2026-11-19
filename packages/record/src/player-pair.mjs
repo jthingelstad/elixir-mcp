@@ -16,13 +16,18 @@ const from = `from battle_participant me
 
 export async function playerPairSummary(
   db,
-  { playerTag, friendTag, fromMs, toMs },
+  { playerTag, friendTag, fromMs, toMs, timezone = "UTC" },
 ) {
   const { rows } = await db.query(
-    `select ${mode} as mode,
-    me.side=peer.side as teamed,count(*)::int as count, count(*) filter(where me.outcome='win')::int as wins, count(*) filter(where me.outcome='loss')::int as losses,max(me.battle_time) as latest
-    ${from} group by mode,teamed order by latest desc,mode`,
-    [playerTag, friendTag, new Date(fromMs), new Date(toMs)],
+    `with days as(select ${mode} as mode,me.side=peer.side as teamed,
+       to_char(me.battle_time at time zone $5,'YYYY-MM-DD') as day,
+       count(*)::int as count,count(*) filter(where me.outcome='win')::int as wins,
+       count(*) filter(where me.outcome='loss')::int as losses,max(me.battle_time) as latest
+       ${from} group by 1,2,3)
+    select mode,teamed,sum(count)::int as count,sum(wins)::int as wins,sum(losses)::int as losses,max(latest) as latest,
+      jsonb_agg(jsonb_build_object('day',day,'teamed',teamed,'count',count,'wins',wins) order by day desc) as days
+      from days group by mode,teamed order by latest desc,mode`,
+    [playerTag, friendTag, new Date(fromMs), new Date(toMs), timezone],
   );
   const modes = new Map();
   for (const row of rows) {
@@ -36,6 +41,7 @@ export async function playerPairSummary(
       wins: row.wins,
       losses: row.losses,
     };
+    (item.days ??= []).push(...row.days);
     modes.set(row.mode, item);
   }
   return [...modes.values()];

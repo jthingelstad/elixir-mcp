@@ -191,3 +191,35 @@ test.each(
     );
   },
 );
+
+test("Together tells the dated change from teammates to opponents for an alt", async () => {
+  const modes = [
+    {
+      key: "casual",
+      teamed: 3,
+      against: 0,
+      days: [{ day: "2026-11-14", teamed: true, count: 3, wins: 3 }],
+    },
+    {
+      key: "ladder",
+      teamed: 0,
+      against: 1,
+      days: [{ day: "2026-11-15", teamed: false, count: 1, wins: 0 }],
+    },
+  ];
+  global.fetch = vi.fn(async (u) => {
+    const q = new URL(String(u), "https://elixir.test").searchParams;
+    return response(
+      q.has("side")
+        ? { battles: [], next_before: null }
+        : { ...meta, selected_player: ALT, modes },
+    );
+  });
+  renderWithProviders(<PairGames tag={FRIEND} initialAs={ALT} />);
+  expect(
+    await screen.findByText(
+      /won 3 .* together on Saturday.*then played 1 .* against each other on Sunday/,
+    ),
+  ).toBeTruthy();
+  expect(screen.getByLabelText("Your player").value).toBe(ALT);
+});

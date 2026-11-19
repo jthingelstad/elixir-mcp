@@ -369,9 +369,21 @@ export function HomeFeed({
               <ul>
                 {event.players.map((p) => (
                   <li key={p.tag}>
-                    <Link to={sessionHref(p.tag, p.session_id, p.started_at)}>
+                    <Link
+                      data-tinylytics-event="play.friend_session_open"
+                      to={sessionHref(p.tag, p.session_id, p.started_at)}
+                    >
                       {p.name ?? p.tag}’s session
                     </Link>
+                    {p.posts?.map((post) => (
+                      <span key={post.path}>
+                        {" "}
+                        ·{" "}
+                        <Link to={post.path}>
+                          {post.question ? "Battle question" : "Battle post"}
+                        </Link>
+                      </span>
+                    ))}
                   </li>
                 ))}
               </ul>

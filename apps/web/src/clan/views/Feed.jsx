@@ -1,5 +1,12 @@
 import { useState } from "react";
-import { Chips, Empty, Skeleton, useClock, ErrorState } from "@elixir-mcp/ui";
+import {
+  Link,
+  Chips,
+  Empty,
+  Skeleton,
+  useClock,
+  ErrorState,
+} from "@elixir-mcp/ui";
 import { useMe } from "../../App.jsx";
 import { FeedRows } from "../../home/FeedItem.jsx";
 import { CLAN, clanPath } from "../lib/base.js";
@@ -30,7 +37,7 @@ function byDay(items, dayHeading) {
  *  at a time, drawn by the Timeline's own components (2026-11-17) so the
  *  two use the same interactions on each item. */
 function ClanTimeline({ clan }) {
-  const { dayHeading } = useClock();
+  const { dayHeading, when } = useClock();
   const { me } = useMe();
   const questionsOn =
     me?.features?.posts === true && me?.features?.comments === true;
@@ -117,6 +124,18 @@ function ClanTimeline({ clan }) {
               <li key={line}>{line}</li>
             ))}
           </ul>
+          {d.tournaments?.map((t) => (
+            <details key={t.tag}>
+              <summary>Recorded games in {t.tag}</summary>
+              <ul>
+                {t.games.map((g) => (
+                  <li key={g.url}>
+                    <Link to={g.url}>{when(g.at)}</Link>
+                  </li>
+                ))}
+              </ul>
+            </details>
+          ))}
         </section>
       ) : null}
       {items.length === 0 && d.memories?.length ? null : items.length === 0 ? (

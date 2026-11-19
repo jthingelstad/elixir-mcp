@@ -109,6 +109,7 @@ export function battleOfRow(r, links) {
       url: links.get(r.battle_id)?.url ?? null,
       battle_time: iso(r.battle_time),
       mode_group: modeGroupOf(r.type, r.event_tag),
+      ...(r.event_tag ? { event_tag: r.event_tag } : {}),
       game_mode: r.game_mode_name ?? null,
       outcome: r.outcome ?? null,
       crowns: r.crowns ?? null,
