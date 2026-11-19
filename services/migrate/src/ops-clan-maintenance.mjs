@@ -36,6 +36,7 @@ export async function clanMaintenance(databaseUrl, spec) {
   if (
     ![
       "actions",
+      "lifecycle",
       "clans",
       "grants",
       "morning",
@@ -51,6 +52,7 @@ export async function clanMaintenance(databaseUrl, spec) {
     throw new Error("Clan maintenance limit is 1 through 100");
   const clanLane = [
     "actions",
+    "lifecycle",
     "grants",
     "morning",
     "action_log",
@@ -93,6 +95,25 @@ export async function clanMaintenance(databaseUrl, spec) {
   await db.connect();
   try {
     const ledger = createPostgresLedger(db);
+    if (lane === "lifecycle") {
+      // Each row represents one occasion. The same Action can have several
+      // paragraph receipts. Read only the current week's counts for one clan.
+      const { rows } = await db.query(
+        `select l.kind, l.classification,
+        count(*)::int as occasions, count(l.event_id)::int as observed,
+        count(l.reported_at)::int as leader_confirmed, count(l.published_at)::int as published,
+        count(*) filter(where l.event_id is not null and l.processed_at is null)::int as pending_publication,
+        count(*) filter(where s.body->'lifecycle'->>'phase'='sharing' and s.body->>'status' in ('done','proposed'))::int as awaiting_share,
+        count(*) filter(where s.body->'lifecycle'->>'phase'='ignored')::int as ignored,
+        count(*) filter(where s.body->'lifecycle'->>'phase'='skipped')::int as skipped,
+        coalesce(sum(jsonb_array_length(s.body->'lifecycle'->'receipts')),0)::int as chat_paragraphs_sent
+        from clan_lifecycle l left join clan_state s on s.pk='card#'||l.clan_tag||'#'||l.action_id
+        where l.clan_tag=$1 and greatest(l.observed_at,l.reported_at)>=now()-interval '7 days'
+        group by l.kind,l.classification order by l.kind,l.classification`,
+        [clanTag],
+      );
+      return { lane, clan_tag: clanTag, days: 7, counts: rows };
+    }
     if (lane === "draft_packet") return await draftPacket(db, ledger);
     if (lane === "reconcile_removal") {
       await db.query("begin");

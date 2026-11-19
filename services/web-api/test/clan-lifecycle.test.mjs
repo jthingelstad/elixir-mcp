@@ -1,4 +1,5 @@
 import { test } from "node:test";
+import { clanMaintenance } from "../../migrate/src/ops-clan-maintenance.mjs";
 import assert from "node:assert/strict";
 import { scratchDb } from "../../../packages/ingest/test/helpers.mjs";
 import { ingestClanRoster } from "../../../packages/ingest/src/roster.mjs";
@@ -297,5 +298,23 @@ test("one stay through welcome, promotion, demotion, classified departure and re
   assert.match(
     (await find(c, seat, "member_left"))[0].clan_story.lines[0],
     /was removed/,
+  );
+  const { counts } = await clanMaintenance(ctx.url, {
+    lane: "lifecycle",
+    clan_tag: clan,
+  });
+  assert.equal(
+    counts.find((c) => c.kind === "welcome").chat_paragraphs_sent,
+    2,
+  );
+  assert.equal(
+    counts.find((c) => c.kind === "departure" && c.classification === "kick")
+      .observed,
+    3,
+  );
+  assert.equal(
+    counts.find((c) => c.kind === "departure" && c.classification === null)
+      .ignored,
+    1,
   );
 });
