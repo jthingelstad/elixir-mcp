@@ -1132,14 +1132,14 @@ export function ActionCard(props) {
     `${a.card_id}:${a.status}:${a.outcome?.classification}:${a.decided_at}`;
   return (
     <BoundActionCard
-      key={`${props.clan.clan_tag}:${props.who?.player_tag}:${version}:${a.removal_safety?.status}:${a.removal_safety?.evidence_version}`}
+      key={`${props.clan.clan_tag}:${props.who?.player_tag}:${version}:${a.lifecycle?.phase}:${a.lifecycle?.receipts?.length}:${a.removal_safety?.status}:${a.removal_safety?.evidence_version}`}
       {...props}
     />
   );
 }
 
 function BoundActionCard({
-  action,
+  action: initialAction,
   clan,
   who,
   reasons,
@@ -1149,6 +1149,8 @@ function BoundActionCard({
 }) {
   const { zone: accountZone } = useClock();
   const zone = accountZone ?? Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const [receiptView, setReceiptView] = useState(null);
+  const action = receiptView ?? initialAction;
   const [reason, setReason] = useState("not_now");
   const [tribute, setTribute] = useState(
     () => action.lifecycle?.lines?.join("\n\n") ?? "",
@@ -1167,8 +1169,8 @@ function BoundActionCard({
   const open = action.status === "proposed";
   const removalHeld =
     action.type === "removal" &&
-    action.status === "proposed" &&
-    action.removal_safety?.status === "held";
+    action.removal_safety?.status === "held" &&
+    !(action.lifecycle?.occasion_id && action.status === "done");
   const departureCopy =
     action.type === "departure" && action.status === "done" && !!action.copy;
   const ev = action.evidence ?? {};
@@ -1225,6 +1227,22 @@ function BoundActionCard({
           return r.data;
         }
       : null;
+  const checkSharing = async () => {
+    setCheckReceipt(true);
+    try {
+      const result = await manageApi.action(clan.clan_tag, action.number);
+      if (result.ok && result.data?.action) {
+        setReceiptView(result.data.action);
+        setCheckReceipt(false);
+        setError("");
+        onChanged?.();
+        return;
+      }
+    } catch {
+      /* The next read can recover the receipt. */
+    }
+    setError("Check the saved receipt before sending another paragraph.");
+  };
   const share = async (body) => {
     if (busy || checkReceipt) return;
     setBusy(true);
@@ -1235,12 +1253,10 @@ function BoundActionCard({
         action.card_id,
         body,
       );
-      if (!r.ok)
-        setError("Refresh the Action to check its current sharing status.");
-      await onChanged?.();
+      if (!r.ok) setError("Checking the saved sharing status.");
+      await checkSharing();
     } catch {
-      setCheckReceipt(true);
-      setError("Refresh this Action to check whether the send was recorded.");
+      await checkSharing();
     } finally {
       setBusy(false);
     }
@@ -1571,6 +1587,11 @@ function BoundActionCard({
                 <small>Remaining sharing skipped.</small>
               ) : null}
             </>
+          ) : null}
+          {checkReceipt ? (
+            <button className="btn w-fit" onClick={checkSharing}>
+              Check saved receipt
+            </button>
           ) : null}
           {action.can_share || canDecide ? (
             <Link

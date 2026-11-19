@@ -357,7 +357,13 @@ async function clanAttester(db, account, clanTag) {
 /** A person's clan fact, written through Clan. Clan's session signs the
  *  person in; verified current membership, role, type and replacement
  *  permission belong to this writer. */
-export async function writeClanFactInClan(db, account, clanInput, body) {
+export async function writeClanFactInClan(
+  db,
+  account,
+  clanInput,
+  body,
+  { inTransaction = false } = {},
+) {
   const clanTag = tagOf(clanInput, "clan_tag");
   const type = String(body.type ?? "");
   const t = ATTESTED_FACT_TYPES[type];
@@ -387,7 +393,7 @@ export async function writeClanFactInClan(db, account, clanInput, body) {
   // be allowed the fact that is THERE as well as the one sent (review
   // §6.5). The ref is locked first, so no concurrent write slips between
   // the check and the upsert.
-  await db.query("begin");
+  if (!inTransaction) await db.query("begin");
   try {
     await db.query("select pg_advisory_xact_lock(hashtext($1))", [
       `attested_fact:${source}:${ref}`,
@@ -423,10 +429,10 @@ export async function writeClanFactInClan(db, account, clanInput, body) {
       seat,
       occurredAt,
     });
-    await db.query("commit");
+    if (!inTransaction) await db.query("commit");
     return written;
   } catch (err) {
-    await db.query("rollback");
+    if (!inTransaction) await db.query("rollback");
     throw err;
   }
 }

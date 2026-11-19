@@ -86,7 +86,7 @@ kind. An action that stops being true is **withdrawn**, with the reason
 in its log: the member left, played again, or rejoined; a welcome waited
 a week past the join.
 
-- Elixir introduces each observed newcomer in **Clan news**. The introduction can recognize an earlier stay, a favorite deck or a recorded achievement. An eligible clan gets an Action to share those same paragraphs in chat.
+- Elixir introduces each newcomer it sees join in **Clan news**. The introduction can recognize an earlier stay, a favorite deck or a recorded achievement. An eligible clan gets an Action to share those same paragraphs in chat.
 - A **departure** is raised when someone leaves and no removal action
   explains it, because a leave and a kick look the same in the record:
   say which, so the clan's history knows. A removal marked **Done**

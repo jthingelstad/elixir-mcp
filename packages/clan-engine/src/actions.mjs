@@ -76,6 +76,10 @@ export const ACTION_TYPES = {
 export const JUDGING_TYPES = new Set(["promotion", "demotion", "removal"]);
 
 /** Name the saved award scope in both the app and its notification. */
+export const actionWaiting = (card) =>
+  card.status === "proposed" ||
+  (card.status === "done" && card.lifecycle?.phase === "sharing");
+
 export function actionLabel(action) {
   if (action.lifecycle?.phase === "sharing")
     return action.type === "welcome"

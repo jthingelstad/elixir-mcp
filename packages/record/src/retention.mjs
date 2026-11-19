@@ -81,6 +81,14 @@ export const TRIMMED = Object.freeze([
   },
   plain("player_event", "window_end", YEAR),
   plain("clan_event", "window_end", YEAR),
+  {
+    table: "clan_lifecycle",
+    column: "coalesce(observed_at,reported_at)",
+    columns: ["observed_at", "reported_at"],
+    window: YEAR,
+    extra: "",
+    note: "membership publications share the roster record’s one-year window; Action receipts keep their own history",
+  },
   plain(
     "clan_membership",
     "left_observed_at",

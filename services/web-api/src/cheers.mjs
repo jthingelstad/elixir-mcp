@@ -199,7 +199,7 @@ export async function setCheer(db, accountId, itemId, cheer, item = null) {
         itemId,
         cheer,
         item ? stampedTags(item) : null,
-        item?.clan_story?.clan_tag ?? null,
+        item?.clan_story?.restricted ? item.clan_story.clan_tag : null,
       ],
     );
   const found = (await cheersFor(db, [itemId], accountId)).get(itemId);
@@ -214,7 +214,7 @@ export async function setCheer(db, accountId, itemId, cheer, item = null) {
  *  nothing in the record, private Clan/People facts, or a Drop game whose
  *  current follower audience does not extend to game mail or push. */
 export function stampedTags(item) {
-  if (item.clan_story || item.kind === "drop_game") return null;
+  if (item.clan_story?.restricted || item.kind === "drop_game") return null;
   if (!["public", "player"].includes(itemVisibility(item))) return null;
   if (item.kind === "post" && !item.post?.battle) return null;
   return itemSubjectTags(item);

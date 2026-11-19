@@ -1,8 +1,10 @@
+import { factsOfAction } from "./sharing.mjs";
 import { createActionStore } from "./actions.mjs";
 import {
   effectivePolicyValues,
   lifecycleWords,
   MIN_MEMBERS,
+  openRemovalAtLeave,
   validTribute,
 } from "@elixir-mcp/clan-engine";
 import { ManageError } from "./service.mjs";
@@ -19,7 +21,21 @@ const sameTurn = (card, row) =>
 
 /** Connected client supplied by the door. The clan lock serializes Actions.
  * The roster's player lock serializes an in-game observation with confirmation. */
-export function createLifecycle(db, ledger, { storyFor }) {
+export function createLifecycle(
+  db,
+  ledger,
+  { storyFor, attest = null, wake = null },
+) {
+  const lockPlayer = (tag) =>
+    db.query(
+      "select pg_advisory_xact_lock(hashtext('clan_roster_member'),hashtext($1))",
+      [tag],
+    );
+  const notify = async (facts) => {
+    for (const f of facts)
+      if (wake)
+        await wake(f).catch(() => console.warn("clan_lifecycle_wake_failed"));
+  };
   const { raiseAction, withdrawAction } = createActionStore({ ledger });
   async function transaction(fn) {
     await db.query("begin");
@@ -126,11 +142,8 @@ export function createLifecycle(db, ledger, { storyFor }) {
     decided,
     { classification, tribute, hours },
   ) {
-    return transaction(async () => {
-      await db.query(
-        "select pg_advisory_xact_lock(hashtext('clan_roster_member'),hashtext($1))",
-        [card.player_tag],
-      );
+    const written = await transaction(async () => {
+      await lockPlayer(card.player_tag);
       const row = await observed(clan, card);
       const m = await membership(clan, card.player_tag);
       if (
@@ -210,10 +223,27 @@ export function createLifecycle(db, ledger, { storyFor }) {
       };
       if (!(await ledger.updateCardIf(clan, card, decided)))
         throw new ManageError(409, "action_changed");
+      const facts = [];
+      if (attest)
+        for (const fact of factsOfAction(card, decided))
+          facts.push(await attest(clan, fact));
+      return facts;
     });
+    await notify(written);
+    return written.map((f) => ({ type: f.type, ok: true }));
   }
 
-  async function share(clan, card, who, { part, skip }) {
+  async function share(clan, card, who, request) {
+    const receipts = [];
+    const next = await transaction(async () => {
+      await lockPlayer(card.player_tag);
+      return shareLocked(clan, card, who, request, receipts);
+    });
+    await notify(receipts);
+    return next;
+  }
+
+  async function shareLocked(clan, card, who, { part, skip }, facts) {
     const l = card.lifecycle;
     if (!l || who.verified === false) throw new ManageError(403, "forbidden");
     if (
@@ -265,6 +295,19 @@ export function createLifecycle(db, ledger, { storyFor }) {
       });
     if (!(await ledger.updateCardIf(clan, card, patch)))
       throw new ManageError(409, "action_changed");
+    if (
+      attest &&
+      skip !== true &&
+      ["welcome", "promotion", "demotion"].includes(card.type)
+    )
+      facts.push(
+        await attest(clan, {
+          type: "clan_message",
+          ref: `action:${card.card_id}:message:chat:${part}`,
+          occurred_at: at,
+          detail: { channel: "clan_chat", body: l.lines[part - 1] },
+        }),
+      );
     return { ...card, ...patch };
   }
 
@@ -285,18 +328,24 @@ export function createLifecycle(db, ledger, { storyFor }) {
           (!roleFor[kind] || String(m.prior) === String(row.event_id));
     for (const c of cards.filter((c) => c.player_tag === tag && c.lifecycle)) {
       const l = c.lifecycle;
+      const supersededRole =
+        roleFor[c.type] &&
+        same &&
+        String(m.prior) !== l.prior &&
+        String(m.prior) !== String((await observed(clan, c))?.event_id);
       const outdated =
+        supersededRole ||
         !sameStay(m?.joined_observed_at, l.stay) ||
         (m.left_observed_at &&
           ["welcome", "promotion", "demotion"].includes(c.type));
       if (
         outdated &&
         (l.phase === "sharing" ||
-          (c.type === "departure" && c.status === "proposed"))
+          (c.status === "proposed" && c.type !== "removal"))
       ) {
         if (c.status === "proposed")
           await withdrawAction(clan, c, "The membership changed.");
-        else
+        else if (c.status === "done")
           await ledger.updateCardIf(clan, c, {
             lifecycle: { ...l, phase: "closed" },
           });
@@ -354,19 +403,17 @@ export function createLifecycle(db, ledger, { storyFor }) {
       } else {
         const removal =
           kind === "departure" &&
-          cards.find(
-            (c) =>
-              c.type === "removal" &&
-              c.player_tag === tag &&
-              c.status === "proposed" &&
-              sameTurn(c, row),
-          );
-        if (removal)
-          await withdrawAction(
-            clan,
-            removal,
-            "They are no longer in the clan.",
-            { left_clan: true, departure_card_id: `life_${row.occasion_id}` },
+          openRemovalAtLeave(
+            cards.filter((c) => !c.lifecycle || sameTurn(c, row)),
+            tag,
+            iso(row.observed_at),
+            [
+              {
+                type: "member_joined",
+                at: iso(row.stay_at),
+                detail: { player_tag: tag },
+              },
+            ],
           );
         const action = await raiseAction(
           clan,
@@ -403,6 +450,24 @@ export function createLifecycle(db, ledger, { storyFor }) {
           },
         );
         actionId = action.card_id;
+        if (removal) {
+          const link = {
+            left_clan: true,
+            departure_card_id: actionId,
+            departure_number: action.number ?? null,
+          };
+          if (removal.status === "proposed")
+            await withdrawAction(
+              clan,
+              removal,
+              "They are no longer in the clan.",
+              link,
+            );
+          else
+            await ledger.updateCardIf(clan, removal, {
+              withdraw_detail: { ...removal.withdraw_detail, ...link },
+            });
+        }
       }
     }
     await db.query(

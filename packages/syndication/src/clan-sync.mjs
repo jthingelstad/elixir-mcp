@@ -83,6 +83,7 @@ import {
 } from "@elixir-mcp/clan-engine";
 import {
   buildTimeline,
+  classifiedExitLinks,
   storyId,
   isPublishable,
   timelineNews,
@@ -698,15 +699,13 @@ async function planRun(
     );
 
   const heldWords = [];
-  const links = new Map();
-  if (classified.length) {
-    const { rows } = await db.query(
-      `select f.fact_id,l.occasion_id,l.event_id,l.match_until from clan_lifecycle l join attested_fact f on f.source='clan.poapkings.com' and f.source_ref='action:'||l.action_id and f.clan_tag=l.clan_tag where l.clan_tag=$1 and l.kind='departure' and l.player_tag=any($2::text[]) and f.recorded_at between $3 and $4`,
-      [clanTag, classified.map(memberTag), new Date(fromMs), new Date(toMs)],
-    );
-    for (const link of rows)
-      links.set(storyId("attested_fact", link.fact_id), link);
-  }
+  const links = await classifiedExitLinks(
+    db,
+    clanTag,
+    classified,
+    fromMs,
+    toMs,
+  );
   for (const c of classified) {
     const tag = memberTag(c);
     // The departure this word is about: the one nearest its left_at (a
