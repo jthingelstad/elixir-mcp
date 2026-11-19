@@ -275,3 +275,30 @@ test("reading, a changed read and paging say so", () => {
   screen.getByRole("button", { name: "Newer battles" }).click();
   expect(setOffset).toEqual([25, 0]);
 });
+
+test("a comeback needs three proved rounds and a tower finish needs a winning singles battle", async () => {
+  const { battleHighlights } = await import("../src/home/session-games.js");
+  const won = {
+    outcome: "win",
+    crowns: 1,
+    opponents: [{}],
+    surviving_tower_hp: 7,
+  };
+  expect(battleHighlights(won)).toEqual(["Won with a tower at 7 HP"]);
+  expect(battleHighlights({ ...won, teammates: [{}] })).toEqual([]);
+  expect(battleHighlights({ ...won, type: "boatBattle" })).toEqual([]);
+  const duel = {
+    ...won,
+    crowns: 3,
+    games: ["loss", "win", "win"].map((outcome, i) => ({
+      round: i + 1,
+      outcome,
+    })),
+  };
+  expect(battleHighlights(duel)).toEqual([
+    "Won the duel after losing game one",
+  ]);
+  expect(battleHighlights({ ...duel, games: duel.games.slice(0, 2) })).toEqual(
+    [],
+  );
+});

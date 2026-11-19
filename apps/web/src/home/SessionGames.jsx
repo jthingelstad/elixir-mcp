@@ -3,6 +3,7 @@ import { DeckRow, Link, TagText, noun, useClock } from "@elixir-mcp/ui";
 import { playerHref } from "../lib/player.js";
 import { modeWord } from "./logic.js";
 import {
+  battleHighlights,
   deckRuns,
   gameScore,
   nameOf,
@@ -115,6 +116,7 @@ export function SessionGames({ item, query, offset, setOffset, onRefresh }) {
                 at={clock(b.at)}
                 title={when(b.at)}
                 showMode={manyModes}
+                marks={battleHighlights(b)}
               />
             ))}
           </ol>
@@ -247,6 +249,11 @@ export function Game({
             </>
           ) : null}
         </span>
+        {b.modifiers?.length ? (
+          <span className="kit-sgame__mine">
+            C.H.A.O.S. choices · {b.modifiers.join(", ")}
+          </span>
+        ) : null}
         {mine?.label ? (
           <span className="kit-sgame__mine">
             with <TagText>{mine.label}</TagText>

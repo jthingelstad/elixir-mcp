@@ -41,6 +41,7 @@ import {
   visiblePost,
   writePost,
 } from "../posts.mjs";
+import { deckTrial } from "../deck-trials.mjs";
 import { battleFor } from "../battle-posts.mjs";
 import { factAfter } from "../passport-hooks.mjs";
 import { json } from "../http.mjs";
@@ -153,6 +154,17 @@ export function postsRoutes({
       const q = event.queryStringParameters ?? {};
       // The battle page's panel: may I post about this battle, as whom,
       // and what have I posted about it.
+      if (q.tried) {
+        if (!plain) return off();
+        const result = await deckTrial(
+          db,
+          account.accountId,
+          String(q.tried),
+          plain,
+          q.match ?? null,
+        );
+        return result ? json(200, result) : notFound();
+      }
       if (q.battle) {
         const on = await battleFor(db, account.accountId, String(q.battle));
         if (on.error) return json(404, on);

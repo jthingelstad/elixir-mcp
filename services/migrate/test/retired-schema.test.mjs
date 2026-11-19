@@ -182,16 +182,16 @@ test("populated retired tables refuse atomically and an obsolete writer blocks t
 test("verified empty upgrade preserves complete battles, cards, rounds, entities and immutable receipts", async () => {
   const ctx = await oldDatabase("upgrade");
   try {
-    // Today's ingest writes the 0255 card arrays beside the rows, so the
-    // pre-0199 database gets those columns (nothing else) before it
-    // ingests; 0199 never touches the three tables they sit on.
+    // Let today's ingest seed the old database with its card arrays and
+    // participant choices. The migration under test touches neither.
     await ctx.db.query("begin");
-    await ctx.db.query(
-      await readFile(
-        path.join(repoRoot, "db/migrations/0255_card_arrays.sql"),
-        "utf8",
-      ),
-    );
+    for (const file of [
+      "0255_card_arrays.sql",
+      "0309_battle_participant_modifiers.sql",
+    ])
+      await ctx.db.query(
+        await readFile(path.join(repoRoot, "db/migrations", file), "utf8"),
+      );
     await ctx.db.query("commit");
     const receiptId = await seedReceipt(ctx.db);
     const meta = await fixtureMeta();

@@ -142,3 +142,9 @@ Opened signed out, the link explains Elixir and offers **Join Elixir** and
 **Sign in**; either brings the reader back to the link. Signed in, it lists the
 players, each with its Follow and what it costs, and **Follow all** when there
 are several, asked once with the same pricing and refusal as following a clan.
+
+## Connections through play
+
+**This week in play** on the player's Timeline connects recent observations. A Mastery milestone can name how many recent recorded Trophy Road or Ranked battles used the card. A deck change can name the card or form that changed. A reported season best in Merge Tactics, 2v2 League or Seasonal Trophy Road can show the earlier and later values in the same season.
+
+On **Find › Your clan**, Elixir compares up to 30 recorded Trophy Road and Ranked battles per player from the last 14 days. A deck comparison uses the same mode and requires both players to have brought their decks at least twice. A shared card must occur in at least three battles and half the sampled battles in that mode for each player. An open deck post’s **I tried this deck** checks your verified players for a matching eight-card battle after the post, up to 30 days back. You choose whether to publish.

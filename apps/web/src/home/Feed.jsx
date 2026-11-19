@@ -42,9 +42,11 @@ import {
   timelineDays,
   timelineNewAt,
 } from "./logic.js";
+import { sessionHref } from "../lib/player.js";
 import { FeedRows } from "./FeedItem.jsx";
 import { SessionGames } from "./SessionGames.jsx";
-import { PeopleToFollow } from "./People.jsx";
+import { canPost as hasVerifiedPlayer } from "./post-set.js";
+import { ClanDeckSpotlight, PeopleToFollow } from "./People.jsx";
 import { PostComposer } from "./Post.jsx";
 
 /**
@@ -352,6 +354,30 @@ export function HomeFeed({
       ) : null}
       {chipsAt ? createPortal(chips, chipsAt) : chips}
       {composer}
+      {!newOnly &&
+      !mode &&
+      ["everyone", "clan"].includes(show) &&
+      hasVerifiedPlayer(me) ? (
+        <ClanDeckSpotlight />
+      ) : null}
+      {!newOnly && ["everyone", "friends"].includes(show)
+        ? timeline?.shared_events?.map((event) => (
+            <details key={event.tag} className="kit-panel kit-panel__body">
+              <summary>
+                {event.players.length} friends played {event.name} this week
+              </summary>
+              <ul>
+                {event.players.map((p) => (
+                  <li key={p.tag}>
+                    <Link to={sessionHref(p.tag, p.session_id, p.started_at)}>
+                      {p.name ?? p.tag}’s session
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </details>
+          ))
+        : null}
       {days.length === 0 ? (
         <p className="kit-week__quiet">
           {mayMatchNextPage

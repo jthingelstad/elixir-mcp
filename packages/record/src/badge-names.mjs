@@ -141,6 +141,14 @@ export function masteryCard(name) {
   return CARD_CODENAMES[inner] ?? words(inner);
 }
 
+/** A recorded C.H.A.O.S. choice uses the same card codenames as Mastery. */
+export function chaosChoice(code) {
+  const match = /^([A-Za-z]+)([1-3])$/.exec(code);
+  return match
+    ? `${masteryCard("Mastery" + match[1])} · tier ${match[2]}`
+    : code;
+}
+
 /** The badge as a player would say it. Never throws; an unknown shape
  *  comes back as its words, which is still better than the identifier. */
 export function badgeLabel(name) {

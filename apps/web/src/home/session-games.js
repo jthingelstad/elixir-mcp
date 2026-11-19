@@ -78,6 +78,27 @@ export function ordinal(n) {
  * order (`spark`) to line up with the page: it is said only when the strip
  * holds every recorded game. A Map of battle id to its words.
  */
+export function battleHighlights(b) {
+  if (b.outcome !== "win" || b.type === "boatBattle") return [];
+  if (b.games?.length || /duel/i.test(b.type ?? "")) {
+    const comeback =
+      b.games?.length === 3 &&
+      b.games.every(
+        (g, i) => g.round === i + 1 && g.outcome === ["loss", "win", "win"][i],
+      );
+    return comeback ? ["Won the duel after losing game one"] : [];
+  }
+  const words = b.crowns === 3 ? ["Three crowns"] : [];
+  if (
+    b.opponents?.length === 1 &&
+    !b.teammates?.length &&
+    b.surviving_tower_hp > 0 &&
+    b.surviving_tower_hp <= 100
+  )
+    words.push(`Won with a tower at ${b.surviving_tower_hp} HP`);
+  return words;
+}
+
 export function gameMarks(
   battles = [],
   { spark = null, count = 0, offset = 0, marks = [] } = {},
@@ -98,7 +119,7 @@ export function gameMarks(
         }, [])
       : null;
   battles.forEach((b, j) => {
-    if (b.outcome === "win" && b.crowns === 3) add(b.battle_id, "Three crowns");
+    for (const word of battleHighlights(b)) add(b.battle_id, word);
     if (!runs) return;
     // The page is newest first; the strip is in played order.
     const i = count - 1 - (offset + j);

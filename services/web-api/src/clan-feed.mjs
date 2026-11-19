@@ -1,6 +1,7 @@
 import { buildTimeline, shownAt } from "@elixir-mcp/tools/activity/entries";
 import { feedOrder } from "@elixir-mcp/tools/activity/home-feed";
 import { withTimelineSocial } from "./timeline-social.mjs";
+import { clanMemories } from "./clan-memories.mjs";
 import { annotateFeed } from "./feed.mjs";
 import { clanPosts, clanQuestionCounts } from "./posts.mjs";
 import { ATTESTED_FACT_TYPES } from "@elixir-mcp/contracts";
@@ -144,6 +145,10 @@ export async function readClanFeed(
     view,
     window_days: FEED_DAYS,
     question_counts: questionCounts,
+    memories:
+      !questionsView && account.kind === "person"
+        ? await clanMemories(db, account.accountId, clanTag, now)
+        : [],
     items: (
       await withTimelineSocial(
         db,

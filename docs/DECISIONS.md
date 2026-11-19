@@ -495,6 +495,8 @@ plain words.
 - **New indexes or tools must collapse a measured walk** — check an audit claim against the calling client first. [engineering, 2026-09-23]
 
 
+- **Shared play appears automatically** when sessions, decks or closed clan records support the comparison. Crediting another player's deck begins with the person who tried it. [Jamie, 2026-11-19; `docs/notes/2026-11-19-shared-play.md`]
+
 ## Declined
 
 - **Outcome ratings** (Elo, Glicko, TrueSkill, Bradley-Terry) — the matchmaker has already spent the information. [Jamie, 2026-09-19]

@@ -47,7 +47,8 @@ const BUDGET = {
   "/actions": 64,
   "/me": 50,
   "/week": 70,
-  "/feed": 30,
+  // One bounded read composes the clan's week from war, donation and tournament records.
+  "/feed": 31,
   // The other tabs' first reads: Standings, War and Policy. Standings is
   // 13 while the clan's evaluation is cached and 62 when it evaluates.
   "/standing": 62,

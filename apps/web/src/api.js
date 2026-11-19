@@ -436,6 +436,11 @@ export const api = {
   // an agent's pages. A post about nothing in the record answers 404
   // posts_off while posts are off; a post about a battle (what was a
   // highlight, 0292) works either way.
+  trial: (id, battleId) =>
+    request(
+      "GET",
+      `/api/me/posts?${new URLSearchParams({ tried: id, ...(battleId ? { match: battleId } : {}) })}`,
+    ),
   posts: ({ player, account, mine }) =>
     request(
       "GET",

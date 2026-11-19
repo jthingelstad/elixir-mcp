@@ -253,6 +253,16 @@ export function canonicalizeBattle(entry) {
   const team = Array.isArray(entry.team) ? entry.team : [];
   const opponent = Array.isArray(entry.opponent) ? entry.opponent : [];
 
+  const modifiers = new Map();
+  for (const choice of Array.isArray(entry.modifiers) ? entry.modifiers : []) {
+    if (
+      typeof choice?.tag !== "string" ||
+      !Array.isArray(choice.modifiers) ||
+      !choice.modifiers.every((m) => typeof m === "string" && m.length > 0)
+    )
+      continue;
+    modifiers.set(choice.tag.toUpperCase(), choice.modifiers);
+  }
   const participants = [];
   for (const [side, entries, otherEntries, isTeamSide] of [
     [0, team, opponent, true],
@@ -286,6 +296,7 @@ export function canonicalizeBattle(entry) {
         // written by the participant upsert itself, so the cards cost no
         // second row version.
         ...participantArrays(deck),
+        chaos_modifiers: modifiers.get(normalizeTag(p.tag)) ?? null,
         elixir_leaked: p.elixirLeaked ?? null,
         // Null unless the player was globally ranked at battle time
         // (0151): the API rides it on every participant of every battle.
@@ -393,6 +404,7 @@ const PARTICIPANT_COLS = [
   "deck_avg_level",
   "opp_deck_avg_level",
   "elixir_leaked",
+  "chaos_modifiers",
   "global_rank",
   "king_tower_hp",
   "princess_tower_hp_1",

@@ -629,6 +629,9 @@ function DeckPanel({ player, outcome, deck, narrow }) {
         )}
       </div>
       <div className="panel__body">
+        {player.modifiers?.length ? (
+          <p>C.H.A.O.S. choices · {player.modifiers.join(", ")}</p>
+        ) : null}
         {deck ? (
           <div className="battle-deck__body">
             <DeckGrid

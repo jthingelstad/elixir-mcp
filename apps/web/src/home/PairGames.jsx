@@ -106,6 +106,20 @@ export function PairGames({ tag }) {
       </div>
       {mode ? (
         <>
+          {mode.against_record && mode.against > 1 ? (
+            <p className="kit-panel__body">
+              {mode.against_record.wins === mode.against_record.losses &&
+              mode.against_record.wins * 2 === mode.against
+                ? `You split ${mode.against} games, ${mode.against_record.wins} wins each.`
+                : `You played each other ${mode.against} times. You won ${mode.against_record.wins}.`}
+            </p>
+          ) : null}
+          {mode.teamed_record && mode.teamed > 1 ? (
+            <p className="kit-panel__body">
+              You teamed up for {mode.teamed} games and won{" "}
+              {mode.teamed_record.wins} together.
+            </p>
+          ) : null}
           <PairRows
             tag={tag}
             as={data.selected_player}

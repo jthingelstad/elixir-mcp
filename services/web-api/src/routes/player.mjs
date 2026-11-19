@@ -1,3 +1,4 @@
+import { playerPlay } from "../player-play.mjs";
 import { handlesOfVerified } from "../handle.mjs";
 import { latestSnapshotOrder } from "@elixir-mcp/record/latest-snapshot";
 import { checkRateLimit } from "@elixir-mcp/auth";
@@ -475,6 +476,7 @@ async function readPlayerPage(
     follows: faced(social.follows),
     followers: faced(social.followers),
     window_days: PAGE_DAYS,
+    play_stories: await playerPlay(db, tag, now),
     timeline,
     timeline_more: built.timeline_more ?? 0,
     moments: timeline.filter((it) => MOMENT_KINDS.has(it.kind)),
@@ -517,18 +519,26 @@ export async function followPlan(
   const yours = new Set(own.map((r) => r.player_tag));
   const wanted = tags.filter((t) => !yours.has(t));
   const costs = await playerCosts(db, owner.account_id, wanted);
-  const { rows: names } = await db.query(
-    `select player_tag, name from player where player_tag = any($1::text[])`,
-    [wanted],
+  // The current clan roster already carries each player's name and direct
+  // relationship. Other callers need one keyed read for both facts.
+  const people = connections
+    ? [...connections.values()].map((p) => ({
+        player_tag: p.player_tag,
+        name: p.name,
+        friend: p.connection === "friend",
+      }))
+    : (
+        await db.query(
+          `select p.player_tag,p.name,(held.relationship='friend' and not held.is_primary) is true as friend
+       from player p left join claim held on held.player_tag=p.player_tag and held.account_id=$1
+       where p.player_tag=any($2::text[])`,
+          [accountId, wanted],
+        )
+      ).rows;
+  const nameOf = new Map(people.map((p) => [p.player_tag, p.name]));
+  const followed = new Set(
+    people.filter((p) => p.friend).map((p) => p.player_tag),
   );
-  const nameOf = new Map(names.map((r) => [r.player_tag, r.name]));
-  const { rows: friends } = await db.query(
-    `select player_tag from claim
-      where account_id = $1 and relationship = 'friend' and not is_primary
-        and player_tag = any($2::text[])`,
-    [accountId, wanted],
-  );
-  const followed = new Set(friends.map((r) => r.player_tag));
   const used = (await pooledUsage(db, owner.account_id)).players_used;
   const links = connections ?? (await playerConnections(db, accountId, wanted));
   const players = costs.map((c) => ({

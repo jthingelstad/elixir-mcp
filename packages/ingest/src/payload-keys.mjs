@@ -538,11 +538,8 @@ export const PAYLOAD_KEYS = {
     "[].newTowersDestroyed": to("battle.new_towers_destroyed", opt),
     "[].prevTowersDestroyed": to("battle.prev_towers_destroyed", opt),
     "[].remainingTowers": to("battle.remaining_towers", opt),
-    "[].modifiers[].tag": dropped(
-      "0112: CHAOS modifiers had no reader; the column was dead",
-      opt,
-    ),
-    "[].modifiers[].modifiers[]": dropped("with modifiers[].tag", opt),
+    "[].modifiers[].tag": derived("matches battle_participant.player_tag", opt),
+    "[].modifiers[].modifiers[]": to("battle_participant.chaos_modifiers", opt),
     "[].challengeWinCountBefore": dropped(
       "official-only; never observed live (Appendix D)",
       opt,

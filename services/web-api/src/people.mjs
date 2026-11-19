@@ -30,6 +30,7 @@ import {
 import { CLANMATE_TYPES, FRIENDLY_TYPES } from "@elixir-mcp/contracts";
 import { readNearYou, readPlayerMap } from "@elixir-mcp/auth/clan-context";
 import { MAP_ATTRIBUTION, placeName, resolvePlace } from "./player-places.mjs";
+import { clanPlay } from "./clan-play.mjs";
 import { FOLLOW_ALL_MAX, followPlan } from "./routes/player.mjs";
 
 /** The side panel's window and size. */
@@ -474,6 +475,7 @@ export async function clanPeople(db, accountId) {
     };
   }
   const members = await currentClanmates(db, accountId);
+  const overlap = members.size ? await clanPlay(db, accountId) : new Map();
   const clan = { clan_tag: clans[0].clan_tag, name: clans[0].name ?? null };
   const plan = await followPlan(db, accountId, [...members.keys()], {
     connections: members,
@@ -488,6 +490,9 @@ export async function clanPeople(db, accountId) {
     players: plan.players.map((p) => ({
       ...p,
       role: members.get(p.player_tag)?.role ?? null,
+      ...(overlap.has(p.player_tag)
+        ? { shared_play: overlap.get(p.player_tag) }
+        : {}),
     })),
   };
 }

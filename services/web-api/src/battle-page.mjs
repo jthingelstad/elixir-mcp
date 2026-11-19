@@ -12,6 +12,7 @@
  *  Game names only; nicknames are account data and never appear here. */
 import { battles_query } from "@elixir-mcp/tools/tools/battles/query";
 import { isDuel } from "@elixir-mcp/tools/tools/battles/common";
+import { chaosChoice } from "@elixir-mcp/record/badge-names";
 import { battleLinks, resolveBattleRef } from "@elixir-mcp/record/battle-links";
 import { DISCLAIMER, modeGroupOf } from "@elixir-mcp/contracts";
 
@@ -25,16 +26,27 @@ const SITTING_SPAN_MS = 4 * 3600_000;
 const SITTING_MAX = 12;
 const MEETINGS_MAX = 6;
 
-/** A crowd of costs, one read: the catalog's current elixir_cost. */
-async function costsOf(db, ids) {
-  if (ids.length === 0) return { costs: new Map(), rarities: new Map() };
-  const { rows } = await db.query(
-    `select card_id, elixir_cost, rarity from card where card_id = any($1::int[])`,
-    [[...new Set(ids)]],
+/** A battle's card catalog and each participant's C.H.A.O.S. choices. */
+async function battleCards(db, battleId, ids) {
+  const {
+    rows: [row],
+  } = await db.query(
+    `select (select jsonb_agg(jsonb_build_array(card_id,elixir_cost,rarity)) from card
+               where card_id=any($1::int[])) as cards,
+            (select jsonb_object_agg(player_tag,chaos_modifiers) from battle_participant
+               where battle_id=$2 and cardinality(chaos_modifiers)>0) as choices`,
+    [[...new Set(ids)], battleId],
   );
+  const cards = row.cards ?? [];
   return {
-    costs: new Map(rows.map((r) => [r.card_id, r.elixir_cost])),
-    rarities: new Map(rows.map((r) => [r.card_id, r.rarity])),
+    costs: new Map(cards.map(([id, cost]) => [id, cost])),
+    rarities: new Map(cards.map(([id, , rarity]) => [id, rarity])),
+    choices: new Map(
+      Object.entries(row.choices ?? {}).map(([tag, codes]) => [
+        tag,
+        codes.map(chaosChoice),
+      ]),
+    ),
   };
 }
 
@@ -75,7 +87,7 @@ function deckOf(cards, archetype, tower, costs, rarities) {
   };
 }
 
-function playerOf(p, costs, rarities) {
+function playerOf(p, costs, rarities, choices) {
   const d = p.deck ?? null;
   const rounds = Array.isArray(d?.rounds)
     ? d.rounds.map((r) => deckOf(r.cards, r.archetype, null, costs, rarities))
@@ -85,6 +97,9 @@ function playerOf(p, costs, rarities) {
     name: p.name ?? null,
     clan_tag: p.clan_tag ?? null,
     clan_name: p.clan_name ?? null,
+    ...(choices.has(p.player_tag)
+      ? { modifiers: choices.get(p.player_tag) }
+      : {}),
     starting_trophies: p.starting_trophies ?? null,
     trophy_change: p.trophy_change ?? null,
     global_rank: p.global_rank ?? null,
@@ -186,8 +201,9 @@ export async function readPublicBattle(db, ref, { around = true } = {}) {
     ...(p.deck?.cards ?? []),
     ...(p.deck?.rounds ?? []).flatMap((r) => r.cards ?? []),
   ]);
-  const { costs, rarities } = await costsOf(
+  const { costs, rarities, choices } = await battleCards(
     db,
+    ids[0],
     allCards.map((c) => c.id),
   );
   const duel = [...leftPlayers, ...rightPlayers].some((p) =>
@@ -205,13 +221,13 @@ export async function readPublicBattle(db, ref, { around = true } = {}) {
     outcome: b.me.outcome ?? null,
     crowns: b.me.crowns ?? null,
     tower_hp: b.me.tower_hp ?? null,
-    players: leftPlayers.map((p) => playerOf(p, costs, rarities)),
+    players: leftPlayers.map((p) => playerOf(p, costs, rarities, choices)),
   };
   const right = {
     outcome: flip(b.me.outcome ?? null),
     crowns: opp?.crowns ?? null,
     tower_hp: opp?.tower_hp ?? null,
-    players: rightPlayers.map((p) => playerOf(p, costs, rarities)),
+    players: rightPlayers.map((p) => playerOf(p, costs, rarities, choices)),
   };
   // A duel game by game: one game per round deck either side played,
   // with each side's own result for it from rounds[] where the record
