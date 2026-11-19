@@ -12,6 +12,8 @@ guide: clan-actions
 
 # The inactivity clock
 
+After removing a member in the game, choose **I removed them** on the eligible Action. Clanmates see a brief removal notice. The inactivity evidence stays with leadership. The Action offers the published notice for clan chat and records each send the leader confirms.
+
 ## The inactivity clock
 
 When the clan turns on **Suggest removals**, each member has a clock: the

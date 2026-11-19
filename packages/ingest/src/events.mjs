@@ -104,4 +104,5 @@ export async function emitEvent(
          from resolved r where w.event_id = r.event_id`,
       [rows[0].event_id],
     );
+  return rows[0].event_id;
 }

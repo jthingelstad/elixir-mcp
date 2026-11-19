@@ -1,5 +1,5 @@
 import { publishPublicStats } from "./public-stats.mjs";
-import { runClanEvaluation } from "./clan.mjs";
+import { clanLifecycle, runClanEvaluation } from "./clan.mjs";
 import { isActiveEmailKind, inactiveEmailReason } from "@elixir-mcp/contracts";
 /** The jobs Lambda — scheduled product work, split out of the migrate
  *  Lambda (2026-09-05): EventBridge fires the sweeps and
@@ -167,7 +167,8 @@ export async function homeFeeds(databaseUrl, { wakeOutbox = outbox } = {}) {
     const now = Date.now();
     const accounts = await homeWeeksToWake(db, { now });
     for (const accountId of accounts) await wake(accountId, now);
-    return { woken: accounts.length };
+    const processed = await clanLifecycle(db).drain();
+    return { woken: accounts.length, lifecycle_processed: processed };
   } finally {
     await db.end();
   }

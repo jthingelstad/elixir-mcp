@@ -341,6 +341,7 @@ export function createDrafts({
     ) {
       const card = await ledger.card(clanTag, cardId);
       if (!card) throw new ManageError(404, "no_action");
+      if (card.lifecycle) throw new ManageError(409, "timeline_words_ready");
       const { kind, shape, chosen, plain, request, voice } = await prepare(
         clanTag,
         card,
@@ -381,6 +382,7 @@ export function createDrafts({
         throw new ManageError(409, "draft_changed");
       if (card.type === "departure" && !confirmedDeparture(card))
         throw new ManageError(409, "departure_unconfirmed");
+      if (card.lifecycle) throw new ManageError(409, "timeline_words_ready");
       if (card.status !== "proposed" && !confirmedDeparture(card))
         throw new ManageError(409, "action_closed");
       let removalVersion = null;

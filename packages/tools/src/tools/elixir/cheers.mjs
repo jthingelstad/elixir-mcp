@@ -1,3 +1,4 @@
+import { visibleClanInteractionSql } from "@elixir-mcp/record/clan-lifecycle";
 import { authoredCheeredPosts } from "@elixir-mcp/posts";
 import { blockedSql } from "@elixir-mcp/claims";
 import { responseMeta } from "@elixir-mcp/contracts";
@@ -116,7 +117,7 @@ export const elixir_cheers = {
       const { rows } = await ctx.db.query(
         `select item_id, cheer, count(*)::int as n
            from timeline_cheer tc
-          where item_id = any($1::text[]) and account_id <> $2 and not ${blockedSql("tc.account_id", "$2::uuid")}
+          where item_id = any($1::text[]) and account_id <> $2 and ${visibleClanInteractionSql("tc", "$2")} and not ${blockedSql("tc.account_id", "$2::uuid")}
           group by item_id, cheer`,
         [[...new Set(open.map((it) => it.id))], reader.accountId],
       );

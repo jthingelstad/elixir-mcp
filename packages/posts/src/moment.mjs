@@ -2,6 +2,9 @@
  * Store the original canonical sentence and identity, never client facts or
  * private Clan/People state. Every delivery reader uses this same shape. */
 export const POST_MOMENT_KINDS = Object.freeze([
+  "clan_joined",
+  "member_joined",
+  "member_role_changed",
   "badge_earned",
   "legendary_badge_earned",
   "arena_changed",
@@ -26,6 +29,8 @@ export function postableMoment(item) {
     item &&
     kinds.has(item.kind) &&
     item.visibility === "public" &&
+    (item.kind !== "member_role_changed" ||
+      item.facts?.direction === "promoted") &&
     !["account", "people", "attested"].includes(item.section) &&
     (item.kind !== "arena_changed" || item.facts?.to > item.facts?.from),
   );

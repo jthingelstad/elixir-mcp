@@ -11,6 +11,8 @@
  * agent's own cheer, since an agent has none.
  */
 
+import { visibleClanInteractionSql } from "@elixir-mcp/record/clan-lifecycle";
+
 /** The cheers, in the order the picker shows them: the six of 2026-11-12
  *  first, with their ids unchanged, then the fourteen added 2026-11-17
  *  ("Reactions are glyphs alone; a larger set"). The web app names and
@@ -62,7 +64,7 @@ export async function cheersFor(db, itemIds, accountId) {
     `select item_id, cheer, count(*)::int as n,
             bool_or(account_id = $2) as mine
        from timeline_cheer c
-      where item_id = any($1::text[])
+      where item_id = any($1::text[]) and ${visibleClanInteractionSql("c", "$2")}
         and ($2::uuid is null or not exists (
               select 1 from account_block ab
                where (ab.account_id = $2 and ab.blocked_account_id = c.account_id)

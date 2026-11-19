@@ -28,6 +28,7 @@
 import { createHash } from "node:crypto";
 import {
   buildTimeline,
+  clanStoriesFor,
   followedAccountIds,
   restoredItem,
   shownAt,
@@ -381,13 +382,20 @@ export async function readHomeWeek(
     ...live,
     timezone,
   });
-  const items = [
-    ...week.items.filter(
-      (it) => it.kind !== "battle_highlight" && it.section !== "attested",
-    ),
-    ...highlights,
-    ...facts,
-  ].sort(feedOrder);
+  const items = (
+    await clanStoriesFor(
+      db,
+      [
+        ...week.items.filter(
+          (it) => it.kind !== "battle_highlight" && it.section !== "attested",
+        ),
+        ...highlights,
+        ...facts,
+      ],
+      subjects,
+      { accountId, ...live, timezone },
+    )
+  ).sort(feedOrder);
   return {
     subjects,
     fromMs: week.fromMs,
@@ -603,13 +611,20 @@ export async function readBellWeek(
     ...live,
   });
   const facts = await windowFacts(db, subjects, { accountId, ...live });
-  const items = [
-    ...week.items.filter(
-      (it) => it.kind !== "battle_highlight" && it.section !== "attested",
-    ),
-    ...highlights,
-    ...facts,
-  ]
+  const items = (
+    await clanStoriesFor(
+      db,
+      [
+        ...week.items.filter(
+          (it) => it.kind !== "battle_highlight" && it.section !== "attested",
+        ),
+        ...highlights,
+        ...facts,
+      ],
+      subjects,
+      { accountId, ...live },
+    )
+  )
     .filter(cheerable)
     .sort(feedOrder);
   return { items, stored: week.stored, ageMs: week.stored ? age : 0 };

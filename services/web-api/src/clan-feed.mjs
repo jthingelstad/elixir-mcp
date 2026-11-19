@@ -85,6 +85,7 @@ export async function readClanFeed(
           timezone: account.timezone ?? "UTC",
           accountId: account.accountId,
           interactive: true,
+          clanStories: true,
           // A post about a battle is read below as the post it is, so the
           // record's own line for it (kind battle_highlight) is left out here:
           // one item, not two.

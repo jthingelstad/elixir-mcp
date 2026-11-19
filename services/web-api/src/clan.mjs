@@ -1,3 +1,4 @@
+import { createLifecycle } from "@elixir-mcp/clan/manage/lifecycle.mjs";
 import { timedStore, timedRead } from "@elixir-mcp/clan/trace.mjs";
 import { ledgerOver } from "@elixir-mcp/clan-state";
 import { createModelService } from "@elixir-mcp/clan/manage/model.mjs";
@@ -297,6 +298,9 @@ export function createClanRequest({
     const context = createAccountContext({ account, state });
     const exclusive = clanExclusive(db);
     const manage = createManageService({
+      lifecycle: createLifecycle(db, ledger, {
+        storyFor: (tag, tags, opts) => draftStory(db, tag, tags, opts),
+      }),
       ledger,
       record,
       exclusive,

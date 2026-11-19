@@ -83,6 +83,7 @@ import {
 } from "@elixir-mcp/clan-engine";
 import {
   buildTimeline,
+  storyId,
   isPublishable,
   timelineNews,
 } from "@elixir-mcp/tools/activity/entries";
@@ -697,14 +698,33 @@ async function planRun(
     );
 
   const heldWords = [];
+  const links = new Map();
+  if (classified.length) {
+    const { rows } = await db.query(
+      `select f.fact_id,l.occasion_id,l.event_id,l.match_until from clan_lifecycle l join attested_fact f on f.source='clan.poapkings.com' and f.source_ref='action:'||l.action_id and f.clan_tag=l.clan_tag where l.clan_tag=$1 and l.kind='departure' and l.player_tag=any($2::text[]) and f.recorded_at between $3 and $4`,
+      [clanTag, classified.map(memberTag), new Date(fromMs), new Date(toMs)],
+    );
+    for (const link of rows)
+      links.set(storyId("attested_fact", link.fact_id), link);
+  }
   for (const c of classified) {
     const tag = memberTag(c);
     // The departure this word is about: the one nearest its left_at (a
     // leader's answer to a departure) or the word itself (a removal,
     // said as it is done), never just the player's latest.
+    const link = links.get(c.id);
+    const exact =
+      link && storyId("clan_event", `lifecycle:${link.occasion_id}`);
+    if (link && !link.event_id) {
+      if (Date.parse(link.match_until) > now) heldWords.push(c);
+      else toldNow.push(toldRow(c, { revision: 1, story_key: c.id }));
+      continue;
+    }
     const target = Date.parse(c.facts?.left_at ?? c.at);
     const departure = (s) =>
-      s.items[0].kind === "member_left" && memberTag(s.items[0]) === tag;
+      s.items[0].kind === "member_left" &&
+      memberTag(s.items[0]) === tag &&
+      (!exact || s.items[0].id === exact);
     // Its departure is held: so is the word, told with it.
     if (
       tag &&
@@ -735,12 +755,13 @@ async function planRun(
           and not skipped`,
       [clanTag, tag],
     );
-    const left =
-      nearest(
-        rows.filter((r) => r.item_at),
-        target,
-        (r) => r.item_at.getTime(),
-      ) ?? (rows.length === 1 && !rows[0].item_at ? rows[0] : null);
+    const left = exact
+      ? rows.find((r) => r.item_id === exact)
+      : (nearest(
+          rows.filter((r) => r.item_at),
+          target,
+          (r) => r.item_at.getTime(),
+        ) ?? (rows.length === 1 && !rows[0].item_at ? rows[0] : null));
     if (!left) continue;
     const revision = Math.max(left.revision, CLASSIFIED_REVISION) + 1;
     posts.push({

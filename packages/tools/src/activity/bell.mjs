@@ -18,6 +18,7 @@
  *
  * An agent has no bell, and none of this reaches MCP or `/api/v1`.
  */
+import { visibleClanInteractionSql } from "@elixir-mcp/record/clan-lifecycle";
 import { blockedSql } from "@elixir-mcp/claims";
 import { battleLinks } from "@elixir-mcp/record/battle-links";
 import { sessionPathOf } from "@elixir-mcp/ui/session-story";
@@ -89,7 +90,7 @@ export async function readReactions(
                                or updated_at > $3)::int as fresh,
             max(updated_at) as last_at
        from timeline_cheer tc
-      where item_id = any($1::text[]) and tc.account_id <> $2
+      where item_id = any($1::text[]) and tc.account_id <> $2 and ${visibleClanInteractionSql("tc", "$2")}
         and not ${blockedSql("tc.account_id", "$2::uuid")}
       group by item_id, cheer`,
     [[...byId.keys()], accountId, seen],

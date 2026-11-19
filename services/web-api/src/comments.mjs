@@ -247,7 +247,8 @@ async function targetsForItems(db, items) {
         owner: players.get(itemPlayer(it)) ?? null,
         tag: itemPlayer(it),
         account: false,
-        receipt: ["public", "player"].includes(itemVisibility(it)),
+        receipt:
+          !it.clan_story && ["public", "player"].includes(itemVisibility(it)),
       },
     ]),
   );
@@ -627,8 +628,8 @@ async function postChecked(db, readerId, item, raw, comments, target) {
     return { error: "not_open", message: "You can't comment on this one." };
   const { rows } = await db.query(
     `with posted as (insert into timeline_comment
-       (item_id, account_id, subject_tag, owner_account_id, body, owner_is_account, receipt_allowed)
-     values ($1, $2, $3, $4, $5, $6, $7)
+       (item_id, account_id, subject_tag, owner_account_id, body, owner_is_account, receipt_allowed,audience_clan)
+     values ($1, $2, $3, $4, $5, $6, $7,$9)
      returning comment_id,created_at), joined as (
        insert into comment_conversation(account_id,item_id,item_ref,legacy_subject_tag,joined_at,read_at,read_comment_id)
        select $2,$1,$8::jsonb,$3,created_at,created_at,comment_id from posted
@@ -644,6 +645,7 @@ async function postChecked(db, readerId, item, raw, comments, target) {
       target.account,
       target.receipt,
       JSON.stringify(timelineItemRef(item)),
+      item.clan_story?.clan_tag ?? null,
     ],
   );
   const { rows: back } = await db.query(

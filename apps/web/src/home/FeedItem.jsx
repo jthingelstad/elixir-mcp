@@ -256,11 +256,31 @@ export function FeedItem({
   const sessionTo = card
     ? sessionLink(it, who?.kind === "player" ? who.tag : null)
     : null;
-  const text = (
-    <p className="kit-feed__text">
-      <TagText>{it.text}</TagText>
-    </p>
-  );
+  const text =
+    it.clan_story && !publicView ? (
+      <div>
+        {it.clan_story.lines.map((line, i) => (
+          <p className="kit-feed__text" key={i}>
+            {line}
+          </p>
+        ))}
+        {it.clan_story.reported_at ? (
+          <small>
+            Reported by {it.clan_story.reported_by ?? "clan leadership"} ·{" "}
+            <time dateTime={it.clan_story.reported_at}>
+              {new Date(it.clan_story.reported_at).toLocaleDateString()}
+            </time>
+            {it.clan_story.reported_only
+              ? " · awaiting roster confirmation"
+              : " · confirmed by the roster"}
+          </small>
+        ) : null}
+      </div>
+    ) : (
+      <p className="kit-feed__text">
+        <TagText>{it.text}</TagText>
+      </p>
+    );
   const links = (
     <>
       {it.battle_url && !moment ? (

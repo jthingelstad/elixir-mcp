@@ -9,6 +9,7 @@
  */
 
 import { normalizeTag } from "@elixir-mcp/contracts";
+import { observeLifecycle } from "@elixir-mcp/record/clan-lifecycle";
 import { emitEvent } from "./events.mjs";
 import { crTimeToIso } from "./battle-time.mjs";
 
@@ -262,14 +263,35 @@ export async function ingestClanRoster(
     roster_size_after: members.length,
     ...extra,
   });
-  const emit = async (type, payload) => {
-    await emitEvent(db, type, {
+  const emit = async (type, payload, stay) => {
+    const eventId = await emitEvent(db, type, {
       tag: clanTag,
       payload,
       windowStart: windowStart ?? at,
       windowEnd: at,
       receiptId: receiptId ?? null,
     });
+    const kind =
+      type === "member_joined"
+        ? "welcome"
+        : type === "member_left"
+          ? "departure"
+          : payload.role_before === "member" && payload.role_after === "elder"
+            ? "promotion"
+            : payload.role_before === "elder" && payload.role_after === "member"
+              ? "demotion"
+              : null;
+    if (kind)
+      await observeLifecycle(db, {
+        clan: clanTag,
+        tag: payload.player_tag,
+        name: payload.name,
+        kind,
+        stay,
+        at,
+        eventId,
+        size: members.length,
+      });
   };
 
   let joined = 0;
@@ -300,6 +322,7 @@ export async function ingestClanRoster(
       await emit(
         "member_joined",
         evidence({ player_tag: m.tag, name: m.name, role: m.role }),
+        at,
       );
       joined += 1;
     } else if (existing.role !== m.role) {
@@ -320,6 +343,7 @@ export async function ingestClanRoster(
           role_after: m.role,
           direction: roleDirection(existing.role, m.role),
         }),
+        existing.joined_observed_at,
       );
       roleChanged += 1;
     }
@@ -348,6 +372,7 @@ export async function ingestClanRoster(
           role_at_departure: r.role,
           joined_observed_at: r.joined_observed_at,
         }),
+        r.joined_observed_at,
       );
       departed += 1;
     }

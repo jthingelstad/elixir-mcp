@@ -620,6 +620,7 @@ async function buildFeed(db, account, { fromMs, toMs }) {
     accountLines: false,
     lateCounts: false,
     people: { accounts, players: true },
+    clanStories: true,
   });
   return { built, subjects };
 }

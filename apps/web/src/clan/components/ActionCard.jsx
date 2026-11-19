@@ -1150,6 +1150,10 @@ function BoundActionCard({
   const { zone: accountZone } = useClock();
   const zone = accountZone ?? Intl.DateTimeFormat().resolvedOptions().timeZone;
   const [reason, setReason] = useState("not_now");
+  const [tribute, setTribute] = useState(
+    () => action.lifecycle?.lines?.join("\n\n") ?? "",
+  );
+  const [checkReceipt, setCheckReceipt] = useState(false);
   const [note, setNote] = useState("");
   const [declining, setDeclining] = useState(false);
   const [deciding, setBusy] = useState(false);
@@ -1162,7 +1166,9 @@ function BoundActionCard({
   const [sheet, setSheet] = useState(false);
   const open = action.status === "proposed";
   const removalHeld =
-    action.type === "removal" && action.removal_safety?.status === "held";
+    action.type === "removal" &&
+    action.status === "proposed" &&
+    action.removal_safety?.status === "held";
   const departureCopy =
     action.type === "departure" && action.status === "done" && !!action.copy;
   const ev = action.evidence ?? {};
@@ -1219,6 +1225,26 @@ function BoundActionCard({
           return r.data;
         }
       : null;
+  const share = async (body) => {
+    if (busy || checkReceipt) return;
+    setBusy(true);
+    setError("");
+    try {
+      const r = await manageApi.shareLifecycle(
+        clan.clan_tag,
+        action.card_id,
+        body,
+      );
+      if (!r.ok)
+        setError("Refresh the Action to check its current sharing status.");
+      await onChanged?.();
+    } catch {
+      setCheckReceipt(true);
+      setError("Refresh this Action to check whether the send was recorded.");
+    } finally {
+      setBusy(false);
+    }
+  };
   const decide = async (status, extra = {}) => {
     if (busy) return;
     setBusy(true);
@@ -1239,6 +1265,14 @@ function BoundActionCard({
               lines.some((l) => l.trim())
             ? { sent: { lines: lines.filter((l) => l.trim()) } }
             : {}),
+        ...(status === "done" && action.type === "promotion" && action.lifecycle
+          ? {
+              tribute: tribute
+                .split(/\n+/)
+                .map((l) => l.trim())
+                .filter(Boolean),
+            }
+          : {}),
         ...extra,
       });
       if (!r.ok) {
@@ -1321,7 +1355,10 @@ function BoundActionCard({
       !removalHeld &&
       ((open && delivery.draft) ||
         (action.copy && !delivery.draft && (open || departureCopy))));
-  const canDecide = open && action.can_act;
+  const canDecide =
+    open &&
+    action.can_act &&
+    (!action.lifecycle || action.lifecycle.phase === "decision");
   const kickSuggested =
     action.type === "departure" &&
     action.evidence?.suggested_classification === "kick";
@@ -1465,6 +1502,86 @@ function BoundActionCard({
             ))}
           </div>
         </Disclosure>
+      ) : null}
+      {action.lifecycle &&
+      !["withdrawn", "declined"].includes(action.status) ? (
+        <div className="grid gap-3 px-5 pb-4">
+          {action.lifecycle.phase === "decision" &&
+          action.type === "promotion" ? (
+            <label className="grid gap-1">
+              <span className="field-label">Tribute for the clan Timeline</span>
+              <textarea
+                className="input"
+                rows={4}
+                value={tribute}
+                onChange={(e) => setTribute(e.target.value)}
+                disabled={busy}
+              />
+              <small>
+                Each paragraph becomes one clan chat message, up to 200
+                characters.
+              </small>
+            </label>
+          ) : action.lifecycle.phase === "decision" &&
+            action.type === "demotion" ? (
+            action.lifecycle.lines.map((line, i) => <p key={i}>{line}</p>)
+          ) : null}
+          {["sharing", "sent", "skipped", "closed"].includes(
+            action.lifecycle.phase,
+          ) ? (
+            <>
+              <strong>Share the Timeline message to clan chat</strong>
+              {action.lifecycle.lines.map((line, i) => {
+                const receipt = action.lifecycle.receipts?.find(
+                  (r) => r.part === i + 1,
+                );
+                return (
+                  <div key={i} className="grid gap-2">
+                    {action.can_share && !receipt ? (
+                      <CopyLine text={line} />
+                    ) : (
+                      <p>{line}</p>
+                    )}
+                    {receipt ? (
+                      <small>
+                        Marked sent by {receipt.by} · {dayAt(receipt.at, zone)}
+                      </small>
+                    ) : action.can_share ? (
+                      <button
+                        className="btn w-fit"
+                        disabled={busy || checkReceipt}
+                        onClick={() => share({ part: i + 1 })}
+                      >
+                        Mark paragraph {i + 1} sent
+                      </button>
+                    ) : null}
+                  </div>
+                );
+              })}
+              {action.can_share ? (
+                <button
+                  className="btn w-fit"
+                  disabled={busy || checkReceipt}
+                  onClick={() => share({ skip: true })}
+                >
+                  Skip remaining sharing
+                </button>
+              ) : null}
+              {action.lifecycle.phase === "skipped" ? (
+                <small>Remaining sharing skipped.</small>
+              ) : null}
+            </>
+          ) : null}
+          {action.can_share || canDecide ? (
+            <Link
+              to={`${clanPath(clan.clan_tag)}/actions`}
+              navigate={navigate}
+              className="btn--text w-fit"
+            >
+              Review later
+            </Link>
+          ) : null}
+        </div>
       ) : null}
       {hasMessage ? (
         <Disclosure
@@ -1683,7 +1800,13 @@ function BoundActionCard({
                   }
                   onClick={() => decide("done")}
                 >
-                  Done
+                  {action.lifecycle
+                    ? ({
+                        promotion: "I promoted them",
+                        demotion: "I moved them to Member",
+                        removal: "I removed them",
+                      }[action.type] ?? "Done")
+                    : "Done"}
                 </button>
               )}
               <button

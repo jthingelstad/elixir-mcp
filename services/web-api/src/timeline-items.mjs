@@ -125,6 +125,7 @@ export async function readRecordedItem(
     basis: "occurred",
     accountId,
     interactive: Boolean(accountId),
+    clanStories: Boolean(accountId),
     accountLines: false,
     lateCounts: false,
     people: person ? { accounts: [person], players: true } : null,

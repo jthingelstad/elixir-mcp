@@ -38,6 +38,8 @@ const NOT_LEADER_MUTATIONS = [
 export function isLeaderMutation(method, rest, role) {
   if (method === "GET" || method === "HEAD" || method === "OPTIONS")
     return false;
+  if (role === "elder" && /^\/actions\/[A-Za-z0-9_-]+\/share$/.test(rest))
+    return true;
   if (!LEADER_BAND.has(role)) return false;
   return !NOT_LEADER_MUTATIONS.some((re) => re.test(rest));
 }

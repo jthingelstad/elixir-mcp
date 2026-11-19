@@ -54,8 +54,8 @@ against current profile readings.
 | Promote to Elder | the leader and co-leaders | clan chat |
 | Demote to Member | the leader and co-leaders | clan chat |
 | Remove from the clan ([the inactivity clock](/docs/inactivity-clock#the-inactivity-clock)) | the leader and co-leaders | a line for clan chat |
-| Departure: kicked, left, or ignore? | the leader and co-leaders | none |
-| Welcome a newcomer | elders, co-leaders and the leader | a line for clan chat |
+| Classify a departure | the leader and co-leaders | optional farewell after classification |
+| Share a newcomer’s introduction | elders, co-leaders and the leader | the published Timeline paragraphs |
 | Going to be away? | the quiet member alone | none |
 | Share this week's award standings | the leader and co-leaders | clan chat, with a durable Inbox alternative |
 | Announce the season's awards | the leader and co-leaders | clan chat, with a durable Inbox alternative |
@@ -86,10 +86,7 @@ kind. An action that stops being true is **withdrawn**, with the reason
 in its log: the member left, played again, or rejoined; a welcome waited
 a week past the join.
 
-- A **welcome** is raised for someone who joined in the last three days.
-  Its suggested words may use a recently recorded career fact or a proven
-  return to the clan. Missing or old evidence gets a simple welcome; a career
-  total is never described as a milestone just reached.
+- Elixir introduces each observed newcomer in **Clan news**. The introduction can recognize an earlier stay, a favorite deck or a recorded achievement. An eligible clan gets an Action to share those same paragraphs in chat.
 - A **departure** is raised when someone leaves and no removal action
   explains it, because a leave and a kick look the same in the record:
   say which, so the clan's history knows. A removal marked **Done**
@@ -127,16 +124,13 @@ that section.
 
 | Action | The choices |
 |---|---|
-| Promote, demote, remove | **Done**, or **Decline** with a reason (not now, knows the member, evidence wrong, handled in the game, other) |
+| Promote, demote, remove | Confirm the change you made in the game, or **Decline** with a reason |
 | Departure | **Kicked**, **Left** or **Ignore**, with an optional note |
-| Welcome | **Done** or **Decline** |
+| Welcome | **Copy for clan chat**, **Mark paragraph sent**, or **Skip remaining sharing** |
 | Announcement | **Done**, once the message is marked sent, or **Decline** |
 | Going to be away? | **Mark me away**, or **I'm not away** |
 
-Make the change in the game, then mark the action. For a promotion
-that means promoting the member and sending the reviewed message;
-they go together, as one action. Once decided, the decision stands; an
-action someone else already decided says so.
+After promoting the member in the game, review their tribute and choose **I promoted them**. Clanmates can read it immediately. Share it in chat when you choose. Each paragraph has its own copy button and send receipt. Elders can share welcomes. Leaders and co-leaders handle role changes and departures.
 
 After **Done**, Clan watches the record: if the role change or the
 removal shows up within the clan's outcome window (48 hours to start),
@@ -183,8 +177,7 @@ body of up to 180, and appears in members' Inbox, separate from chat.
 Routine messages default to **Clan chat**, where members normally talk.
 For award standings, final award announcements and important rule changes,
 choose **Leader Message** when you want members to keep it in their Inbox.
-Welcomes remain chat. Edit welcomes and removal messages (up to 200
-characters a line) before copying them into the game. Each field counts
+For a welcome, role change or departure, copy the published Timeline paragraphs into clan chat. Each fits one game message. Each field counts
 characters and warns about known chat-filter problems. Copying a field waits
 until its text fits; your edits stay in place to shorten. Nothing is ever
 posted for the clan automatically.
@@ -209,7 +202,7 @@ cannot guarantee readable delivery or identify every filter trigger. Elixir
 cannot verify game delivery or readability and never automatically resends.
 Completed decisions and saved receipts do not change.
 
-With the clan's own model set up under **Run › Model & voice**, an open
+Older lifecycle Actions keep the drafts and delivery choices they originally offered. For those Actions and for announcements, with the clan’s own model set up under **Run › Model & voice**, an open
 message, welcome or removal action offers leaders and co-leaders
 **Draft in our voice**. It uses the
 clan's Anthropic key to draft a promotion, demotion, awards announcement

@@ -109,7 +109,7 @@ export function createActionStore({ ledger, now = () => Date.now() }) {
       ...card,
       number: await ledger.nextActionNumber(clanTag),
       audience: audienceOf(card),
-      ...(actionDelivery(card, { fresh: true })
+      ...(!card.lifecycle && actionDelivery(card, { fresh: true })
         ? { delivery: actionDelivery(card, { fresh: true }) }
         : {}),
     };
@@ -231,6 +231,8 @@ export function createActionStore({ ledger, now = () => Date.now() }) {
   /** The words an action carries into the game: a clan chat line, or a
    *  Clan Leader Message (title and message) for leaders to send. */
   function wordsFor(c) {
+    if (c.lifecycle)
+      return { channel: null, delivery: null, copy: null, message: null };
     if (confirmedDeparture(c))
       return {
         channel: "clan_chat",
@@ -301,6 +303,7 @@ export function createActionStore({ ledger, now = () => Date.now() }) {
     ...wordsFor(c),
     draft_context_version: draftContextVersion(c),
     can_draft:
+      !c.lifecycle &&
       !!who &&
       who.verified !== false &&
       ["leader", "coLeader"].includes(who.role) &&
@@ -318,6 +321,12 @@ export function createActionStore({ ledger, now = () => Date.now() }) {
     can_act:
       c.status === "proposed" &&
       (!who || (canAct(c, who) && who.verified !== false)),
+    can_share:
+      c.lifecycle?.phase === "sharing" &&
+      ["proposed", "done"].includes(c.status) &&
+      !!who &&
+      who.verified !== false &&
+      canAct(c, who),
     can_reopen:
       c.status === "declined" &&
       !!who &&

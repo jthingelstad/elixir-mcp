@@ -30,6 +30,7 @@ export function chatLines(message) {
 }
 
 export function actionDelivery(card, { fresh = false } = {}) {
+  if (card?.lifecycle) return null;
   if (card.delivery) return card.delivery;
   if (!TYPES.has(card.type)) return null;
   const messages = card.evidence?.messages ?? [

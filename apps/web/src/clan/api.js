@@ -69,6 +69,8 @@ export const manageApi = {
     get(`${clanBase(tag)}/actions${refresh ? "?refresh=1" : ""}`),
   // One action by its number: its own page, the address people share.
   action: (tag, number) => get(`${clanBase(tag)}/actions/${number}`),
+  shareLifecycle: (tag, id, body) =>
+    post(`${clanBase(tag)}/actions/${id}/share`, body),
   decideAction: (tag, id, body) =>
     post(`${clanBase(tag)}/actions/${id}/decide`, body),
   reopenAction: (tag, id, body) =>

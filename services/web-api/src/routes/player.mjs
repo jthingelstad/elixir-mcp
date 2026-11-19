@@ -525,7 +525,13 @@ async function readPlayerPage(
     play_stories: await playerPlay(db, tag, now),
     timeline,
     timeline_more: built.timeline_more ?? 0,
-    moments: timeline.filter((it) => MOMENT_KINDS.has(it.kind)),
+    moments: timeline.filter(
+      (it) =>
+        MOMENT_KINDS.has(it.kind) ||
+        ["clan_joined", "member_joined"].includes(it.kind) ||
+        (it.kind === "member_role_changed" &&
+          it.facts?.direction === "promoted"),
+    ),
     // The verified owner's passport in one row (#1015): the same owner as
     // the badges, a main and an alt alike; null for an unverified claim,
     // nobody's player or an owner with no passport yet. One statement,

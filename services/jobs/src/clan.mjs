@@ -2,6 +2,8 @@
  * state and derived facts stay distinct from collector-admitted facts.
  * The record is read in process as Elixir itself; no grant, key or
  * credential is stored or presented. */
+import { createLifecycle } from "@elixir-mcp/clan/manage/lifecycle.mjs";
+import { draftStory } from "@elixir-mcp/syndication";
 import { S3Client } from "@aws-sdk/client-s3";
 import { guardS3, openJobsClient } from "./db.mjs";
 import {
@@ -43,6 +45,11 @@ const answer = async (fn) => {
     };
   }
 };
+export function clanLifecycle(db, ledger = createPostgresLedger(db)) {
+  return createLifecycle(db, ledger, {
+    storyFor: (tag, tags, opts) => draftStory(db, tag, tags, opts),
+  });
+}
 export async function evaluateClanTick(
   db,
   {
@@ -228,6 +235,7 @@ export async function runClanEvaluation({
             })
           : null,
       manage: createManageService({
+        lifecycle: clanLifecycle(db, ledger),
         ledger,
         record,
         activityFor: (tag, tags) => clanActivityEvidence(db, tag, tags),

@@ -769,6 +769,12 @@ export function createHandler({
       if (method === "POST" && reopen)
         return json(200, await manage.reopen(tag, who, reopen[1], body));
       const decide = /^\/actions\/([A-Za-z0-9_-]+)\/decide$/.exec(rest);
+      const lifecycleShare = /^\/actions\/([A-Za-z0-9_-]+)\/share$/.exec(rest);
+      if (method === "POST" && lifecycleShare)
+        return json(
+          200,
+          await manage.shareLifecycle(tag, who, lifecycleShare[1], body),
+        );
       const sentMessage =
         /^\/actions\/([A-Za-z0-9_-]+)\/messages\/([0-9]{1,3})\/sent$/.exec(
           rest,
