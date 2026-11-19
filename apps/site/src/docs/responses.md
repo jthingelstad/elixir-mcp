@@ -80,8 +80,13 @@ is the dry run on a fresh account, not an error.
 `elixir_my_feedback`.
 
 **`timeline_pending`**: subjects of yours with something admitted since
-your timeline read pointer. A hint to call `elixir_timeline` rather than
-re-polling the data tools.
+the oldest active named account reader's position, or the account's own
+position when it has no active named reader.
+
+**`posts_pending`** is a separate boolean on personal connections with posts
+enabled. It signals a visible new or edited post, including one with a battle
+attached. Either hint can wake a personal feed poll. A `home_clan` poller
+uses its own clan and reader position.
 
 **`quota`**: your spend against both daily budgets, on every response, so a
 plan can be priced before it starts rather than discovered mid-sweep. `calls`
@@ -100,9 +105,10 @@ rate limit is the exception: each agent has its own hour (see
 reporting an answer that looks wrong and we can find the exact row. Your own
 call history, with these ids, is under **Settings › Usage and limits › Requests**.
 
-**`contract_version`**: the tool contract this response was produced under. If
-it differs from what you cached, re-read `tools/list`; `elixir_changelog(since)`
-says what moved.
+**`contract_version`** identifies the Elixir release that produced the
+response. `elixir_changelog` explains release changes. Use `tools/list` on
+the active connection to discover callable tools and their arguments. On
+MCP 2026-07-28 refresh discovery when its private cache lifetime expires.
 
 ### Beside the envelope
 
@@ -129,14 +135,15 @@ or read `elixir://docs/<page>#<section>`.
 
 ## Knowing who you are connected as
 
-`initialize` describes the connection twice, for two different readers.
+Both `server/discover` and legacy `initialize` describe the connection
+in prose and as structured data.
 
 `instructions` says it in prose, *"YOU ACT FOR Tidewater #0G9J08"*, which
 is the right shape for the model that reads it, and the wrong shape for the
 program hosting that model. That wording is tuned for the model and changes
 whenever the tuning does, so a client must not parse it.
 
-The same facts ride as data, in `_meta` on the initialize result:
+The same facts ride as data, in the discovery or initialization result’s `_meta`:
 
 ```json
 "_meta": {

@@ -17,18 +17,19 @@ lede: "The transport, how a client authenticates, and the OAuth 2.1 flow."
 |---|---|
 | Endpoint (personal) | `POST https://elixir.poapkings.com/mcp` |
 | Endpoint (agent) | `POST https://elixir.poapkings.com/a/<public_id>/mcp` |
-| MCP protocol versions | `2025-06-18` (default), `2025-03-26` accepted |
-| `MCP-Protocol-Version` header | Checked on every request after `initialize`: absent is taken as `2025-03-26`; a version not listed above is HTTP 400 with JSON-RPC `-32600` and the supported list in `error.data.supported`. Nothing the server sends differs between the two versions. |
+| MCP protocol versions | `2026-07-28` uses `server/discover`. Clients using `2025-06-18` or `2025-03-26` use `initialize`. |
+| Request headers | On `2026-07-28`, send `MCP-Protocol-Version` and `Mcp-Method` on every request. Tool calls, prompt reads and resource reads also need `Mcp-Name`. Send the matching protocol version and client capabilities in `params._meta`. See [Connection discovery](/docs/protocol#connection-discovery). |
+| Legacy protocol header | After `initialize`, send the negotiated `MCP-Protocol-Version`. An absent header is treated as `2025-03-26`. An unsupported legacy header returns HTTP 400 with JSON-RPC `-32600`. |
 | Framing | Streamable HTTP, JSON only. One JSON-RPC message per POST. Every reply is `content-type: application/json`. |
 | SSE | Not used. No `text/event-stream`, no server-initiated messages. |
 | Sessions | None. No `Mcp-Session-Id` header is issued or required; every request stands alone. |
 | Batches | Refused: a JSON array body answers HTTP 400 with JSON-RPC `-32600` "Batched requests are not supported." |
 | Notifications | A message without `id` answers HTTP 202 with an empty body, after the credential check. |
-| Hourly limit | Counts calls only (`tools/call`, `resources/read`, `prompts/get`); notifications, `initialize`, `ping` and the `*/list` methods are not counted ([Limits](/docs/limits#the-table)). |
+| Hourly limit | Counts calls only (`tools/call`, `resources/read`, `prompts/get`); notifications, `server/discover`, `initialize`, `ping` and the `*/list` methods are not counted ([Limits](/docs/limits#the-table)). |
 | Any non-POST | HTTP 405 with `allow: POST` and an empty body. This includes `GET /mcp`. |
 | Malformed JSON (after auth) | HTTP 400 `{"error":"invalid_json"}` |
-| CORS | No `Access-Control-*` headers and no `OPTIONS` handling. Browser-resident clients need a proxy. |
-| Capabilities declared | `tools: { listChanged: true }`, `resources: { subscribe: false, listChanged: false }`, `prompts: { listChanged: false }`. No logging. Every successful `tools/call` result carries the same JSON as `structuredContent` beside the text block, conforming to the tool's `outputSchema`; a result with `isError: true` carries the text block alone. |
+| CORS | No `Access-Control-*` headers and no `OPTIONS` handling. Requests with an Origin header must name Elixir's own origin. Other browser origins need a server-side client. |
+| Capabilities declared | `tools: { listChanged: false }`, `resources: { subscribe: false, listChanged: false }`, `prompts: { listChanged: false }`. No logging. Every successful `tools/call` result carries the same JSON as `structuredContent` beside the text block, conforming to the tool's `outputSchema`; a result with `isError: true` carries the text block alone. |
 
 `public_id` is 8 to 16 characters of `[a-z0-9]`.
 

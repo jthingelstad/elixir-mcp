@@ -28,8 +28,8 @@ beforeEach(async () => {
     people.reader,
   ]);
 });
-async function read(who = "reader", args = {}, kind = "person") {
-  const invoke = makeInvoker({
+function invoker(who, kind = "person") {
+  return makeInvoker({
     db: ctx.db,
     account: {
       accountId: people[who],
@@ -40,7 +40,10 @@ async function read(who = "reader", args = {}, kind = "person") {
     },
     registry: makeRegistry(),
   });
-  const result = await invoke("elixir_timeline", {
+}
+
+async function read(who = "reader", args = {}, kind = "person") {
+  const result = await invoker(who, kind)("elixir_timeline", {
     from: iso(T),
     to: iso(T + 1_800_000),
     basis: "observed",
@@ -378,4 +381,29 @@ test("the same battle post wakes a poll, reads as a post, and appears once in a 
     );
   }
   assert.equal((await read("fan")).meta.posts_pending, true);
+  await ctx.db.query(
+    "insert into post_report(post_id,account_id,reason) values($1,$2,'other')",
+    [p.id, people.reader],
+  );
+  for (const kinds of [["post"], ["battle_highlight"], undefined]) {
+    const page = await read("reader", { kinds, skip_empty: true });
+    assert.equal(
+      page.timeline.some((item) => item.id === p.item_id),
+      false,
+    );
+    assert.equal(page.meta.posts_pending, false);
+    if (kinds?.includes("battle_highlight"))
+      assert.equal(page.entries_skipped, true);
+  }
+  assert.equal((await read("fan")).timeline[0].id, p.item_id);
+  for (const who of ["fan", "reader"]) {
+    const result = await invoker(who)("players_highlights", {
+      player_tag: AUTHOR_TAG,
+    });
+    assert.equal(result.isError, false);
+    assert.deepEqual(
+      result.body.highlights.map((row) => row.id),
+      who === "fan" ? [p.item_id] : [],
+    );
+  }
 });

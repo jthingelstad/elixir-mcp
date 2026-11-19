@@ -43,9 +43,8 @@ Settings › Connections & agents. Details are on the [Protocol reference](/docs
    six-digit code from the mail, and approve the listed capabilities.
 4. In a chat, enable the connector under the tools menu and ask something.
 
-The connector caches the tool list. When `elixir_changelog` or a response's
-`contract_version` shows the contract moved, disconnect and reconnect the
-connector to refresh it.
+If Claude still offers an older set of tools after an Elixir update,
+disconnect and reconnect the connector to refresh its cached list.
 
 ### Claude Desktop
 
@@ -81,17 +80,23 @@ RFC 8707 `resource` support. The sequence is:
    `resource=https://elixir.poapkings.com/mcp`, and `state`.
 5. Exchange the code at `/oauth/token` with `code_verifier` and the same
    `resource`. Access tokens last an hour; refresh tokens rotate on every use.
-6. `POST /mcp` with `Authorization: Bearer <access_token>` and an
-   `initialize` request. Read `serverInfo.version` and `_meta`.
+6. Authenticate each request with `Authorization: Bearer <access_token>`.
+   Call `server/discover` on MCP 2026-07-28 or `initialize` on the supported
+   2025 revisions. Check the principal in `_meta`, then use `tools/list` on
+   the same connection. [Protocol and required headers](/docs/protocol#connection-discovery).
 
 The official MCP SDKs implement steps 1 to 5; `mcp-remote` bridges a
 stdio-only client to this flow.
 
 ### ChatGPT
 
-ChatGPT's connector support is scoped to its own connector catalogue and to
-developer-mode custom connectors whose availability depends on your plan and
-region, and its expectations of a server (specific `search` and `fetch`
-tools for deep research) differ from a general MCP tool surface. Elixir
-does not test against ChatGPT and makes no claim that it works there. If you
-try it and it does, or does not, `elixir_send_feedback` is the place to say so.
+In a workspace that allows custom MCP apps, add Elixir's endpoint with
+OAuth, connect your account and enable the app in a conversation. Use the
+personal endpoint above for your player account or the URL on your clan
+agent's Settings page for that agent.
+
+Published workspace apps can retain an older set of actions while Elixir
+already serves the new ones. An authorized workspace admin can open the
+app in Workspace settings, select **Refresh**, review the changed actions
+and publish the ones the workspace should use. New actions are disabled by
+default. [OpenAI’s custom MCP app guide](https://help.openai.com/en/articles/12584461-connecting-custom-mcp-servers-in-chatgpt).

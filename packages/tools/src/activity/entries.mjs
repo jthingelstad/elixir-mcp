@@ -29,6 +29,7 @@ import {
   playerEventProofSql,
 } from "@elixir-mcp/record/event-origin";
 import { battleLinks } from "@elixir-mcp/record/battle-links";
+import { postReaderAllowsSql } from "@elixir-mcp/posts";
 import { battlePostRows, battleOfRow } from "@elixir-mcp/posts/battle";
 import { daysSincePollSql } from "@elixir-mcp/record/read-facts";
 import { createHash } from "node:crypto";
@@ -4365,15 +4366,15 @@ async function highlightItems(
 /**
  * A player's highlights (their posts about battles), newest first, for
  * players_highlights (slice 6, #764): every one they posted, not a window's, finished as the timeline
- * serves an item. Read with no account, so no share link is served.
+ * serves an item. The calling tool selects only the public battle fields.
  */
 export async function playerHighlights(
   db,
   tag,
-  { timezone = "UTC", limit = 30, now = Date.now() } = {},
+  { accountId, timezone = "UTC", limit = 30, now = Date.now() },
 ) {
   const items = await highlightItems(db, [{ kind: "player", tag }], {
-    accountId: null,
+    accountId,
     fromMs: -1,
     toMs: now,
     basis: "occurred",
@@ -5334,8 +5335,10 @@ export async function timelineNews(
       players.length &&
       // Observed when its words last changed: a post, or an edit (0240).
       `exists (select 1 from account_post h
+                 join account au on au.account_id = h.account_id
+                   and au.kind = 'person' and au.status = 'approved'
                 where h.player_tag = any(p.players) and h.battle_id is not null
-                  and h.status = 'visible'
+                  and h.status = 'visible' and ${postReaderAllowsSql("h", "p.account_id")}
                   and ${inWindow("coalesce(h.updated_at, h.created_at)")})`,
     clan_ledger:
       clans.length &&

@@ -21,6 +21,7 @@ import {
   INSTRUCTIONS_BUDGET,
   requestProtocolVersion,
 } from "../src/protocol.mjs";
+import { LEGACY_VERSIONS, MODERN_VERSION } from "../src/modern.mjs";
 import { OUTPUT_SCHEMAS } from "../../../packages/tools/src/output-schemas.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -174,6 +175,30 @@ test("the brief's manual pointer names a real section, and that section says the
     .properties.window.properties.source.enum)
     assert.match(section, new RegExp(`\`${source}\``), source);
   assert.match(section, /verbosity: full \| compact/);
+});
+
+test("the connection guide lists the supported protocols and the advertised tool capability", async () => {
+  const guide = readFileSync(
+    path.join(here, "../../../apps/site/src/docs/connecting.md"),
+    "utf8",
+  );
+  for (const version of [MODERN_VERSION, ...LEGACY_VERSIONS]) {
+    assert.ok(guide.includes(`\`${version}\``), version);
+  }
+  const { payload } = await handleMcpMessage(
+    {
+      jsonrpc: "2.0",
+      id: 1,
+      method: "initialize",
+      params: { protocolVersion: LEGACY_VERSIONS[0] },
+    },
+    context("person"),
+  );
+  assert.ok(
+    guide.includes(
+      `tools: { listChanged: ${payload.result.capabilities.tools.listChanged} }`,
+    ),
+  );
 });
 
 const agentArgs = (d) =>
