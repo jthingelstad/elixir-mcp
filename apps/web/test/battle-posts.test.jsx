@@ -297,17 +297,15 @@ test("a deck trial credits the author only after the member chooses it, and stil
     vi.spyOn(api, "postsOnBattle").mockResolvedValue(
       ok({ battle_id: BATTLE.id, can_post_as: ["#0CR"], posts: [] }),
     );
-    const proof = vi
-      .spyOn(api, "trial")
-      .mockResolvedValue(
-        ok({
-          match: {
-            battle_id: BATTLE.id,
-            player_tag: "#0CR",
-            source: { path: "/home/post/41", name: "Rowan" },
-          },
-        }),
-      );
+    const proof = vi.spyOn(api, "trial").mockResolvedValue(
+      ok({
+        match: {
+          battle_id: BATTLE.id,
+          player_tag: "#0CR",
+          source: { path: "/home/post/41", name: "Rowan" },
+        },
+      }),
+    );
     const publish = vi
       .spyOn(api, "writeBattlePost")
       .mockResolvedValue(ok({ post: item() }));
