@@ -247,12 +247,16 @@ answered without reading the subjects (`entries_skipped` is `true` and
 `entries` is empty), so a poll every few minutes costs little. Drop it on
 the read that wants the entries of a quiet window.
 
-A runtime that keeps its own cursor still can (pass `from`, `mark_read:
-false`), but then `meta.timeline_pending` cannot help it: that hint counts
-admissions since the OLDEST named pointer on the account, or the account's
-own when no reader has ever marked, so a reader that marks sees it fall to
-0 after its read and can skip the next read when it is 0 on any call it was
-making anyway.
+A clan poller uses its own schedule. The `home_clan` reader has a separate
+position for this clan and reader name. A runtime with a local delivery
+cursor can pass its last successful `from` explicitly when retrying.
+
+For a personal feed, either a positive `meta.timeline_pending` or a true
+`meta.posts_pending` is a reason to poll. The first counts subjects with
+newly recorded activity. The second includes newly created or edited
+visible posts, including posts with a battle attached. These hints use the
+oldest active named account reader or, if there is none, the account
+pointer. A client with its own local cursor should poll from that cursor.
 
 A reader that pulls a day's story rather than polling ("what happened
 yesterday") passes `from` and `to` without a `reader`: that read is by

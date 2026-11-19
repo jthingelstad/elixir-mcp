@@ -2,7 +2,7 @@
  * Audience belongs to the caller; these reads preserve the existing visible
  * and author-held post rules without depending on the tool registry.
  */
-import { blockedSql } from "@elixir-mcp/claims";
+import { postReaderAllowsSql } from "./visibility.mjs";
 import { formName, modeGroupOf } from "@elixir-mcp/contracts";
 import { battleLinks } from "@elixir-mcp/record/battle-links";
 
@@ -87,7 +87,7 @@ export async function battlePostRows(
           limit 1) me
       where p.battle_id is not null
         and ${held ? "p.status <> 'removed'" : "p.status = 'visible'"}
-        and ($1::uuid is null or not ${blockedSql("p.account_id", "$1::uuid")})
+        and ${postReaderAllowsSql("p", "$1::uuid")}
         and ${where}`,
     [accountId, ...params],
   );

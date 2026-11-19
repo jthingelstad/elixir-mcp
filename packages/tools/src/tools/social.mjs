@@ -128,7 +128,10 @@ export const socialTools = {
       const reader = await socialReaderOrRefuse(ctx);
       const who = await socialSubject(ctx, reader, args.player_tag);
       const limit = args.limit ?? 10;
-      const found = await playerHighlights(ctx.db, who.tag, { limit });
+      const found = await playerHighlights(ctx.db, who.tag, {
+        accountId: reader.accountId,
+        limit,
+      });
       return {
         player_tag: who.tag,
         name: who.name,

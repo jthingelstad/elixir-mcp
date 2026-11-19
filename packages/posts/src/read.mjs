@@ -13,6 +13,7 @@ import { classifyDeck, deckLink, postUrl } from "@elixir-mcp/contracts";
 import { cachedVocabulary } from "@elixir-mcp/ingest/card-roles";
 import { battlePostFacts } from "./battle.mjs";
 import { readPostMoment } from "./moment.mjs";
+import { postReaderAllowsSql } from "./visibility.mjs";
 import { memberPostPath } from "./paths.mjs";
 
 const POSTS_PAGE = 30;
@@ -60,10 +61,7 @@ const POST_JOIN = `left join timeline_share ts on ts.item_id = p.item_id
  *  a battle always, as a highlight was (0292). */
 const seen = (plain, visibleOnly = false) => `(p.status = 'visible'
          or (${visibleOnly ? "false" : "p.status = 'hidden' and p.account_id = $1::uuid"}))
-        and not ${blockedSql("p.account_id", "$1::uuid")}
-        and not exists (select 1 from post_report pr
-                         where pr.post_id = p.post_id
-                           and pr.account_id = $1::uuid and pr.resolved_at is null)
+        and ${postReaderAllowsSql("p", "$1::uuid")}
         ${plain ? "" : "and p.battle_id is not null"}`;
 
 /** Posts a reader sees, by an extra condition (its parameters from $2),

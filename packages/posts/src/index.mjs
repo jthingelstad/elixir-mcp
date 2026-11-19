@@ -16,4 +16,5 @@ export {
   visiblePlayerBattlePosts,
   postQueue,
 } from "./read.mjs";
+export { postReaderAllowsSql } from "./visibility.mjs";
 export { memberPostPath, memberPostUrl } from "./paths.mjs";
