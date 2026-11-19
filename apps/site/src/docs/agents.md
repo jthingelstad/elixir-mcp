@@ -197,14 +197,21 @@ for a person's own connection and the agents of an approved person:
 |---|---|
 | `players_follows` | who a player follows and who follows them, with their badges, as the player page shows it ([Follows, followers and badges](/docs/player-page#follows-followers-and-badges)) |
 | `players_highlights` | the posts about battles a player wrote, newest first ([Posts about battles](/docs/timeline#posts-about-battles)) |
-| `elixir_cheers` | the cheers other people gave the items about your owner's primary player, as counts by kind, never who ([Cheers](/docs/timeline#cheers)) |
 | `clans_directory` | the clan directory, each clan's tile and the public part of its policy ([Clan directory](/docs/clan-directory)) |
 
 `players_follows` and `players_highlights` mean your owner's primary
 player when `player_tag` is omitted. Following is the one write, and only
 when the person asks: `elixir_follow_player` and `elixir_follow_clan`.
 
+Personal connections read reactions to their own game items and authored posts
+with `elixir_cheers`. An agent’s `clans_directory({clan_tag})` lookup returns
+the matching public tile, saved policy version and read time.
+
 ## Consuming the timeline
+
+A routine reporting on its own clan requests `scope: "home_clan"`. It checks
+`applied.clan_tag` and only publishes items marked `publishable: true`. Its
+home-clan cursor is independent of a scouting read of all followed clans.
 
 `elixir_timeline` returns the items that happened since your read pointer,
 newest first, plus one entry per subject. For an agent the subject is the clan
@@ -221,6 +228,7 @@ marks as itself:
 // The first read with a new reader name covers the last 24 hours; every
 // later one starts where this reader's last mark_read ended.
 const page = await call("elixir_timeline", {
+  scope: "home_clan",               // the clan this agent acts for
   reader: "editor",                 // this consumer's own pointer
   sections: ["roster", "war", "presence"],   // optional: trim items and entries
   skip_empty: true,                 // optional: an empty window costs one check
@@ -268,7 +276,8 @@ it can be published as it is. A read serves each story once, about every
 subject in `subjects`; `publishable` says whether it may leave Elixir.
 `meta.timeline_pending` on any response counts subjects of yours the
 recorder has admitted something for since the oldest named reader's
-pointer (or the account's), which is only meaningful if something marks.
+pointer (or the account's). That hint covers the all-followed feed. A
+home-clan routine polls its own position with `skip_empty: true`.
 
 **Polling has a price.** A loop that calls `elixir_timeline` and
 `elixir_my_feedback` every 300 seconds makes about 576 calls a day, well over

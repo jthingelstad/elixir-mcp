@@ -27,6 +27,7 @@ import {
   WINDOW_OBSERVED_FROM_DESC,
   WINDOW_OBSERVED_TO_DESC,
   appliedBlock,
+  entitledClan,
   notes,
   seasonFieldsForInstants,
   withWindowSugar,
@@ -105,14 +106,20 @@ export const elixir_timeline = {
         items: { type: "string" },
         maxItems: 16,
         description:
-          "Keep only items and entry sections in these sections; the summary, subject, window and player notables always stay. Player sections: battles, trophies, arena, ranked, collection, badges, clan, war, presence. Clan sections: activity, roster, war, presence, standouts, donations. Plus account, attested and posts (plain posts/questions, only a person's own connection).",
+          "Keep only items and entry sections in these sections; the summary, subject, window and player notables always stay. Player sections: battles, trophies, arena, ranked, collection, badges, clan, war, presence. Clan sections: activity, roster, war, presence, standouts, donations. Plus account, attested and posts (posts, questions and posts with battle attachments, only a person's own connection).",
       },
       kinds: {
         type: "array",
         items: { type: "string" },
         maxItems: 32,
         description:
-          "Keep only timeline items of these kinds (entries are untouched): post (plain posts/questions, person-scoped), battle_session, session_standout, battle_highlight (a battle its player highlighted, with their words; 11.20.0), badge_earned, legendary_badge_earned, arena_changed, ranked_promotion, best_trophies_band, collection_level_step, career_wins_step, card_unlocked, card_form_unlocked, card_maxed, king_tower_leveled, challenge_best_run, twelve_win_run (13.5.0), deck_switched (13.6.0), ranked_season_finished (13.8.0), card_first_win (13.9.0), clan_joined, clan_left, member_joined, member_left, member_role_changed (also on a player's own timeline for promotions, 13.10.0), bracket_observed, race_finished, week_resolved, war_week_played (a player's own war week; 13.10.0), quiet_crossed, returned, the attested facts (departure_classified, role_change_made, award_granted, award_standing, member_away, clan_message, personal_record; each shown only to the reader its type allows), or an account_* kind. A consumer that wakes on a few kinds reads only those.",
+          "Keep only timeline items of these kinds (entries are untouched): post (posts, questions and posts with battle attachments, person-scoped), battle_session, session_standout, battle_highlight (a post with a battle attached; 11.20.0), badge_earned, legendary_badge_earned, arena_changed, ranked_promotion, best_trophies_band, collection_level_step, career_wins_step, card_unlocked, card_form_unlocked, card_maxed, king_tower_leveled, challenge_best_run, twelve_win_run (13.5.0), deck_switched (13.6.0), ranked_season_finished (13.8.0), card_first_win (13.9.0), clan_joined, clan_left, member_joined, member_left, member_role_changed (also on a player's own timeline for promotions, 13.10.0), bracket_observed, race_finished, week_resolved, war_week_played (a player's own war week; 13.10.0), quiet_crossed, returned, the attested facts (departure_classified, role_change_made, award_granted, award_standing, member_away, clan_message, personal_record; each shown only to the reader its type allows), or an account_* kind. A consumer that wakes on a few kinds reads only those.",
+      },
+      scope: {
+        type: "string",
+        enum: ["all", "home_clan"],
+        description:
+          "All followed subjects by default. home_clan reads only the home clan among your notify-enabled subjects, including its summary. Its pointer is separate for each clan and reader.",
       },
       player_tag: {
         type: "string",
@@ -145,16 +152,43 @@ export const elixir_timeline = {
         `reader must match ^[a-z0-9][a-z0-9-]{0,31}$ (got '${reader}').`,
         "A short lowercase name for this consumer, e.g. editor or poap-kings-discord.",
       );
-    const { rows: acct } = reader
-      ? await ctx.db.query(
-          `select read_to as activity_seen_at from timeline_reader
-              where account_id = $1 and reader = $2`,
-          [ctx.account.accountId, reader],
-        )
-      : await ctx.db.query(
-          `select activity_seen_at from account where account_id = $1`,
+    let homeClan = null;
+    if (args.scope === "home_clan") {
+      // Match the clan named in discovery even if its recording stopped.
+      // The next active clan could be a rival.
+      let bound;
+      if (ctx.account.kind === "agent") {
+        const {
+          rows: [clan],
+        } = await ctx.db.query(
+          "select clan_tag from account_clan where account_id=$1 order by is_primary desc, clan_tag limit 1",
           [ctx.account.accountId],
         );
+        if (!clan)
+          throw new ToolFailure(
+            "no_subject",
+            "This agent has no home clan.",
+            "Set its clan in Account → Agents.",
+          );
+        bound = clan.clan_tag;
+      }
+      homeClan = await entitledClan(ctx.db, ctx.account, bound);
+    }
+    const { rows: acct } = homeClan
+      ? await ctx.db.query(
+          "select read_to as activity_seen_at from timeline_clan_reader where account_id=$1 and clan_tag=$2 and reader=$3",
+          [ctx.account.accountId, homeClan, reader ?? ""],
+        )
+      : reader
+        ? await ctx.db.query(
+            `select read_to as activity_seen_at from timeline_reader
+              where account_id = $1 and reader = $2`,
+            [ctx.account.accountId, reader],
+          )
+        : await ctx.db.query(
+            `select activity_seen_at from account where account_id = $1`,
+            [ctx.account.accountId],
+          );
     const pointerMs = acct[0]?.activity_seen_at
       ? acct[0].activity_seen_at.getTime()
       : null;
@@ -311,8 +345,12 @@ export const elixir_timeline = {
       !memberTag ||
       it.subject_tag === memberTag ||
       it.facts?.player_tag === memberTag;
-    const subjects = await subjectsFor(ctx.db, ctx.account.accountId);
+    const followed = await subjectsFor(ctx.db, ctx.account.accountId);
+    const subjects = homeClan
+      ? followed.filter((sub) => sub.kind === "clan" && sub.tag === homeClan)
+      : followed;
     const wantsPosts =
+      !homeClan &&
       (ctx.account.kind ?? "person") === "person" &&
       process.env.POSTS_ENABLED === "true" &&
       (!kinds || kinds.includes("post")) &&
@@ -321,6 +359,13 @@ export const elixir_timeline = {
       wantsPosts
         ? readPostTimeline(ctx.db, ctx.account.accountId, {
             subjects,
+            // The existing game projection already serves these same post IDs
+            // for followed players when its kind and section are requested.
+            battlePosts:
+              (!kinds || kinds.includes("battle_highlight")) &&
+              (!sections || sections.includes("battles"))
+                ? "outside_game"
+                : "all",
             fromMs,
             toMs,
             basis: readBasis,
@@ -355,6 +400,7 @@ export const elixir_timeline = {
         accountId: ctx.account.accountId,
         basis: b,
         // Leaders-only facts need the person's own consent, not a key.
+        accountLines: !homeClan,
         interactive: ctx.account.credentialType === "oauth",
         memberTag,
         // A clan entry's late counts are said only in its activity
@@ -531,6 +577,7 @@ export const elixir_timeline = {
       return {
         applied: appliedBlock({
           window: { ...built.window, source },
+          ...(homeClan && { scope: "home_clan", clan_tag: homeClan }),
           basis: evidenceBasis,
           mark_read: false,
           evidence_item_id: args.evidence_item_id,
@@ -567,7 +614,19 @@ export const elixir_timeline = {
     // The pointer only moves forward; read_to reports the one STORED (Gym
     // #251: a past `to` echoed a move that never happened).
     let storedMs = null;
-    if (marking && reader) {
+    if (marking && homeClan) {
+      const {
+        rows: [row],
+      } = await ctx.db.query(
+        `insert into timeline_clan_reader(account_id,clan_tag,reader,read_to)
+         values ($1,$2,$3,to_timestamp($4 / 1000.0))
+         on conflict(account_id,clan_tag,reader) do update
+           set read_to=greatest(timeline_clan_reader.read_to,excluded.read_to)
+         returning read_to`,
+        [ctx.account.accountId, homeClan, reader ?? "", endMs],
+      );
+      storedMs = row.read_to.getTime();
+    } else if (marking && reader) {
       const { rows: stored } = await ctx.db.query(
         `insert into timeline_reader (account_id, reader, read_to)
            values ($1, $2, to_timestamp($3 / 1000.0))
@@ -640,6 +699,7 @@ export const elixir_timeline = {
           ...seasonFields.echo,
         },
         basis,
+        ...(homeClan && { scope: "home_clan", clan_tag: homeClan }),
         mark_read: marking,
         ...(reader ? { reader } : {}),
         ...(memberTag ? { player_tag: memberTag } : {}),

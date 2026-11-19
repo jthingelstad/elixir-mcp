@@ -192,11 +192,13 @@ with allowed as (
           or (a.kind = 'agent' and o.kind = 'person' and o.status = 'approved'))
 ), listed as (
   select substr(pointer.pk, length('policy#') + 1) as clan_tag,
+         (pointer.body ->> 'version')::int as version,
          v.body -> 'values' as saved,
          coalesce(v.body ->> 'saved_at', pointer.body ->> 'saved_at') as saved_at
     from allowed, clan_state pointer
     join clan_state v on v.pk = pointer.pk || '#v' || (pointer.body ->> 'version')
    where pointer.pk ~ '^policy##[0289PYLQGRJCUV]{3,12}$'
+     and ($4::text is null or pointer.pk = 'policy#' || $4)
 ), mine as (
   -- The reader's own current clans, read once by their claims, never
   -- once per listed clan.
@@ -211,7 +213,7 @@ with allowed as (
 select l.clan_tag, c.name, c.type, c.description,
        (select jsonb_object_agg(f, l.saved -> f)
           from unnest($2::text[]) f where l.saved ? f) as policy,
-       l.saved_at,
+       l.saved_at,l.version,
        s.members, s.required_trophies,
        l.clan_tag in (select clan_tag from mine) as yours
   from listed l
@@ -245,6 +247,7 @@ function directoryTile(row) {
       : null,
     yours: row.yours === true,
     policy: {
+      version: row.version,
       war_intent: INTENTS.has(values.war_intent)
         ? values.war_intent
         : "unknown",
@@ -274,7 +277,7 @@ function directoryTile(row) {
  * an agent that is not approved or whose owner is not an approved person;
  * otherwise `{ directory }`.
  */
-export async function readClanDirectory(db, account) {
+export async function readClanDirectory(db, account, clanTag = null) {
   const kind = account?.kind ?? null;
   if ((kind !== "person" && kind !== "agent") || !account.accountId)
     return { refused: "not_a_person" };
@@ -282,6 +285,7 @@ export async function readClanDirectory(db, account) {
     account.accountId,
     DIRECTORY_POLICY_FIELDS,
     DIRECTORY_LIMIT + 1,
+    clanTag,
   ]);
   if (rows.length === 0) {
     // An unapproved account reads no row at all; say so rather than "none".

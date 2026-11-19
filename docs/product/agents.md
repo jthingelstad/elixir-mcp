@@ -40,8 +40,9 @@ the social layer, and Elixir is useful without an agent. [Jamie,
 
 1. **Agents read the social layer and never write it, save a follow the
    person asks for.** An agent reads follows and followers
-   (`players_follows`), highlights (`players_highlights`), cheers on your
-   items (`elixir_cheers`) and the clan directory (`clans_directory`). It
+   (`players_follows`), posts with battle attachments (`players_highlights`)
+   and the public clan directory (`clans_directory`). A personal connection
+   reads reactions to its player’s game items and authored posts (`elixir_cheers`). It
    never cheers, highlights or posts. It may follow a player when the
    person asks ("an agent should be able to follow a player tag if a
    user asks it"), as a watched player in the person's pooled slots.

@@ -3,6 +3,8 @@ export {
   readVisiblePosts,
   readVisiblePostPage,
   countNewPosts,
+  hasPendingPosts,
+  authoredCheeredPosts,
   readVisiblePost,
   readPublishedPost,
   visiblePost,

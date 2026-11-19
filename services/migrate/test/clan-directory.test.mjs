@@ -95,6 +95,11 @@ test("lists clans with a saved policy, by name, never by size", async () => {
     // Unnamed sorts first (empty name), then case-blind by name.
     ["#0RR", "#029", "#0YR"],
   );
+  const exact = await readClanDirectory(scratch.db, person(me), "#0YR");
+  assert.deepEqual(exact.directory.clans, [got.directory.clans[2]]);
+  assert.equal(exact.directory.truncated, false);
+  const missing = await readClanDirectory(scratch.db, person(me), "#0PC");
+  assert.deepEqual(missing.directory.clans, []);
   assert.equal(got.directory.truncated, false);
   assert.equal(got.directory.schema_version, 1);
 });
@@ -131,6 +136,7 @@ test("a tile is the record's facts and the policy's public part", async () => {
         counted: ["war", "donations"],
         removal_day: 10,
         saved_at: "x",
+        version: 2,
       },
     },
   );

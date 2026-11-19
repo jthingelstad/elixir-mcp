@@ -282,7 +282,11 @@ export function identitySentences(identity, { compact = false } = {}) {
  */
 export const PRINCIPAL_META_KEY = "elixir.poapkings.com/principal";
 
-export function principalBlock(kind, identity) {
+export function principalBlock(
+  kind,
+  identity,
+  personClan = identity?.clans?.[0],
+) {
   const resolved = kind ?? "person";
   const block = { kind: resolved };
 
@@ -311,7 +315,7 @@ export function principalBlock(kind, identity) {
           ...(primary.name ? { name: primary.name } : {}),
         }
       : null;
-    const clan = identity?.clans?.[0];
+    const clan = personClan;
     if (clan)
       block.clan = {
         tag: clan.clan_tag,

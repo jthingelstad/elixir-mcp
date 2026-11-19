@@ -1,3 +1,5 @@
+import { authoredCheeredPosts } from "@elixir-mcp/posts";
+import { blockedSql } from "@elixir-mcp/claims";
 import { responseMeta } from "@elixir-mcp/contracts";
 import { buildTimeline, shownAt } from "../../activity/entries.mjs";
 import { itemText } from "../../activity/summary.mjs";
@@ -37,7 +39,7 @@ export function cheerableItems(built) {
  */
 export const elixir_cheers = {
   description:
-    "The cheers other people gave the timeline items about your primary player (your owner's, for an agent) in the last days: each cheered item's id, kind, time and sentence with its cheers as counts by kind (keyed by the cheer's id: well_played, on_fire, royal, wow, ha, grind and fourteen more, listed in docs timeline#cheers), and the total. Counts only, never who cheered; your own cheers are not counted. Read-only: an agent never gives a cheer. For a person's own connection and their agents.",
+    "Cheers other people gave items about your primary player and posts you authored with any of your players, in the selected window. Counts by cheer and total, without identities or your own cheers. Personal connections only.",
   inputSchema: {
     type: "object",
     properties: {
@@ -55,16 +57,14 @@ export const elixir_cheers = {
     additionalProperties: false,
   },
   async handler(ctx, args) {
+    if ((ctx.account.kind ?? "person") !== "person")
+      throw new ToolFailure(
+        "not_entitled",
+        "Cheers belong to your personal connection.",
+        "Connect at /mcp.",
+      );
     const reader = await socialReaderOrRefuse(ctx);
     const tag = await primaryOf(ctx.db, reader.accountId);
-    if (!tag)
-      throw new ToolFailure(
-        "no_subject",
-        reader.asOwner
-          ? "Your owner has no primary player in Elixir, so no item is about them."
-          : "You have no primary player in Elixir, so no item is about you.",
-        "Set a primary player in Settings, Players & following.",
-      );
     const explicit = ["from", "to", "weeks", "season"].some(
       (k) => args[k] !== undefined,
     );
@@ -82,24 +82,41 @@ export const elixir_cheers = {
         `The window is ${Math.ceil((toMs - fromMs) / DAY_MS)} days; cheers are read at most ${MAX_WINDOW_DAYS} days at a time.`,
         "Pass days (1 to 30), a season, or a from/to at most 35 days apart.",
       );
-    const built = await buildTimeline(
+    const authored = await authoredCheeredPosts(
       ctx.db,
-      [{ kind: "player", tag, relationship: "primary", nickname: null }],
-      {
-        fromMs,
-        toMs,
-        accountId: reader.accountId,
-        interactive: true,
-        accountLines: false,
-      },
+      reader.accountId,
+      fromMs,
+      toMs,
+      process.env.POSTS_ENABLED === "true",
     );
-    const open = cheerableItems(built);
+    if (!tag && authored.length === 0)
+      throw new ToolFailure(
+        "no_subject",
+        "You have no primary player in Elixir.",
+        "Set a primary player in Settings, Players & following.",
+      );
+    const built = tag
+      ? await buildTimeline(
+          ctx.db,
+          [{ kind: "player", tag, relationship: "primary", nickname: null }],
+          {
+            fromMs,
+            toMs,
+            accountId: reader.accountId,
+            interactive: true,
+            accountLines: false,
+          },
+        )
+      : { timeline: [] };
+    const open = [...cheerableItems(built), ...authored].sort(
+      (a, b) => Date.parse(shownAt(b) || b.at) - Date.parse(shownAt(a) || a.at),
+    );
     const counts = new Map();
     if (open.length > 0) {
       const { rows } = await ctx.db.query(
         `select item_id, cheer, count(*)::int as n
-           from timeline_cheer
-          where item_id = any($1::text[]) and account_id <> $2
+           from timeline_cheer tc
+          where item_id = any($1::text[]) and account_id <> $2 and not ${blockedSql("tc.account_id", "$2::uuid")}
           group by item_id, cheer`,
         [[...new Set(open.map((it) => it.id))], reader.accountId],
       );
@@ -136,7 +153,7 @@ export const elixir_cheers = {
       notes: notes(
         "Counts only: who cheered is never shown, and the reader's own cheers are not counted.",
         items.length === 0
-          ? "Nobody else cheered an item about this player in the window."
+          ? "Nobody else cheered these items or posts in the window."
           : null,
         win.seasonNotes,
       ),

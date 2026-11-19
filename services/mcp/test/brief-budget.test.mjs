@@ -87,7 +87,7 @@ const KEY = {
     "No corpus statistics",
     "Modes are different games",
     "notes[]",
-    "re-fetch tools/list",
+    "tools/list for available tools",
     "elixir_send_feedback",
     "Manual: elixir_docs",
     "protocol#argument-conventions",
@@ -97,7 +97,7 @@ const KEY = {
     "Your clan is Clan Name 00000",
     "elixir_my_players lists them",
     "OMIT player_tag and clan_tag",
-    "START: players_summary",
+    "START: elixir_timeline",
   ],
   agent: [
     "YOU ACT FOR Clan Name 00000",

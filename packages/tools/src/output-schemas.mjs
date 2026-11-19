@@ -259,6 +259,7 @@ const META = {
     timezone_applied: { type: "string" },
     feedback_responses_pending: COUNT,
     timeline_pending: COUNT,
+    posts_pending: { type: "boolean" },
     asker: {
       type: "object",
       description:
@@ -668,6 +669,14 @@ const POST_FACTS = closed({
     type: "array",
     items: closed({ id: { type: "integer" }, name: { type: "string" } }),
   },
+  battle: nullable(
+    closed({
+      battle_id: { type: "string" },
+      battle_time: ISO,
+      mode_group: STR_OR_NULL,
+      outcome: STR_OR_NULL,
+    }),
+  ),
   moment: nullable(
     closed({
       id: { type: "string", pattern: "^tl_[0-9a-f]{20}$" },
@@ -785,12 +794,12 @@ const TIMELINE_ITEM_BASE = {
       type: "string",
       enum: ["public", "clan", "player", "leaders", "owner", "followers"],
       description:
-        "Who may see it. public is the game record; clan, player and leaders are an attested fact's rule; owner is the account's own administration; followers is a plain post in the person's current follow audience, never a clan-agent grant.",
+        "Who may see it. public is the game record; clan, player and leaders are an attested fact's rule; owner is the account's own administration; followers is a post in the person's current follow audience, never a clan-agent grant.",
     },
     publishable: {
       type: "boolean",
       description:
-        "Whether the item may be posted outside Elixir (visibility public, clan or player). Followers-scoped plain posts are false. A member may explicitly share an item in Elixir; this read creates no public link.",
+        "Whether the item may be posted outside Elixir (visibility public, clan or player). Followers-scoped posts are false. A member may explicitly share an item in Elixir; this read creates no public link.",
     },
     evidence: TIMELINE_EVIDENCE,
     facts: { type: "object" },
@@ -3162,7 +3171,10 @@ export const OUTPUT_SCHEMAS = {
     type: "object",
     properties: {
       evidence: TIMELINE_EVIDENCE_PAGE,
-      applied: { type: "object" },
+      applied: {
+        type: "object",
+        properties: { scope: { enum: ["all", "home_clan"] }, clan_tag: TAG },
+      },
       window: {
         type: "object",
         properties: { from: ISO, to: ISO },
@@ -3395,6 +3407,7 @@ export const OUTPUT_SCHEMAS = {
           required_trophies: NULLABLE_INT,
           yours: { type: "boolean" },
           policy: closed({
+            version: COUNT,
             war_intent: {
               type: "string",
               enum: ["participating", "not_participating", "unknown"],
@@ -3411,7 +3424,7 @@ export const OUTPUT_SCHEMAS = {
         }),
       },
       truncated: { type: "boolean" },
-      applied: { type: "object" },
+      applied: { type: "object", properties: { clan_tag: TAG } },
       notes: NOTES,
       docs: DOCS,
       meta: META,
@@ -3421,7 +3434,7 @@ export const OUTPUT_SCHEMAS = {
   elixir_cheers: {
     type: "object",
     properties: {
-      player_tag: TAG,
+      player_tag: nullable(TAG),
       total: {
         ...COUNT,
         description: "Cheers other people gave, over every item listed.",

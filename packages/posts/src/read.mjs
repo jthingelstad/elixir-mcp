@@ -272,6 +272,7 @@ export async function readVisiblePostPage(
     basis = "observed",
     playerTag = null,
     clanmates = false,
+    battlePosts = "none",
     limit = 150,
   },
 ) {
@@ -292,7 +293,7 @@ export async function readVisiblePostPage(
             where p.post_id = candidate.post_id limit 1
          ) p
         where ${seen(true, true)}${feedMute(clanmates)}
-          and p.battle_id is null
+          ${battlePosts === "none" ? "and p.battle_id is null" : battlePosts === "outside_game" ? "and (p.battle_id is null or not (p.player_tag = any($2::text[])))" : ""}
           and ${instant} >= $3 and ${instant} < $4
           and ($5::text is null or p.player_tag = $5)
         order by ${instant} desc, p.post_id desc limit ${size + 1}
@@ -307,6 +308,41 @@ export async function readVisiblePostPage(
     more: Math.max(0, (rows[0]?.total ?? 0) - size),
     more_at: rows[size]?.page_at?.toISOString() ?? null,
   };
+}
+
+/** Whether an observed personal MCP window can deliver a new or edited post.
+ * Probe each indexed audience arm after the reader's watermark. */
+export async function hasPendingPosts(db, readerId, since) {
+  const players =
+    "array(select player_tag from claim where account_id=$1::uuid and notify)";
+  const timeColumn = "coalesce(p.updated_at,p.created_at)";
+  const candidates = audiencePostIds({
+    players,
+    timeColumn,
+    window: `${timeColumn} >= $2::timestamptz + interval '1 millisecond' and ${timeColumn} <= now()`,
+  });
+  const {
+    rows: [row],
+  } = await db.query(
+    `select exists(select 1 from (${candidates}) candidate
+    join account_post p using(post_id) ${POST_AUTHOR_JOIN} where ${seen(true, true)}) as pending`,
+    [readerId, since],
+  );
+  return row.pending;
+}
+
+/** The member's authored posts with a reaction, including posts by their alts. */
+export async function authoredCheeredPosts(db, readerId, fromMs, toMs, plain) {
+  const { rows } = await db.query(
+    `select p.item_id as id,case when p.battle_id is null then 'post' else 'battle_highlight' end as kind,
+      p.body as text,p.created_at as at from account_post p ${POST_AUTHOR_JOIN}
+    where p.account_id=$1 and ${seen(plain, true)}
+      and p.created_at >= $2 and p.created_at < $3
+      and exists(select 1 from timeline_cheer tc where tc.item_id=p.item_id and tc.account_id<>$1 and not ${blockedSql("tc.account_id", "$1::uuid")})
+    order by p.created_at desc,p.post_id desc`,
+    [readerId, new Date(fromMs + 1), new Date(toMs + 1)],
+  );
+  return rows.map((r) => ({ ...r, at: r.at.toISOString() }));
 }
 
 /** The live posts the Home read could show that were CREATED after its

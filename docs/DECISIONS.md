@@ -184,6 +184,8 @@ plain words.
 
 ## MCP contract and versioning
 
+- **Player and clan connections discover one service.** Each credential reads its own tool declarations. The release number and changelog describe changes. Personal cheers belong to the person. A clan publisher reads its home clan and requires explicit permission on each item. Its war routine reads the saved public policy for that exact clan. [Jamie, 2026-11-18, MCP revisions]
+
 - **`packages/contracts` is the single source** — tool schemas, the error enum, `deck_hash` and the meta envelope; additive is a minor, a behaviour correction a patch, and an output-schema change a patch that moves the fingerprint. [engineering, 2026-09-10, 2026-09-17]
 - **MCP majors track domain shifts** — an agent reasons from the current declaration; removing an unreliable field is a patch; a major is for a domain-model change that alters what a task means. [Jamie, 2026-09-25]
 - **No deprecation window** — every client, first-party or an outside agent, reasons from the current declaration; `elixir_changelog(since)` is the notice; no window is promised while Elixir is small. [Jamie, 2026-09-19, 2026-09-25, 2026-10-12]

@@ -74,9 +74,14 @@ The same tiles reach your own agent: the MCP tool
 `clans_directory` reads the directory as this page does, in the same order, with nothing
 added. Each entry in `clans` carries `clan_tag`, `name`, `type`,
 `description`, `members`, `required_trophies`, `yours` and `policy`
-(`war_intent`, `posture`, `together`, `counted`, `removal_day`,
+(`version`, `war_intent`, `posture`, `together`, `counted`, `removal_day`,
 `saved_at`); `truncated` says when the directory holds more than one
 read returns.
+
+To look up one clan, pass its `clan_tag`. The tool echoes the normalized tag
+in `applied.clan_tag` and returns at most one tile. An empty list means the
+clan has no public tile. `policy.version` is its saved revision and
+`meta.as_of` is when the directory was read.
 
 `policy.war_intent` is the leaders' Clan Wars intent: `participating`,
 `not_participating` or `unknown`. Unknown never means not participating,

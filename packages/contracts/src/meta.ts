@@ -33,6 +33,7 @@ export interface ResponseMeta {
   feedback_responses_pending?: number;
   /** Subjects of yours with something admitted since your timeline read pointer. */
   timeline_pending?: number;
+  posts_pending?: boolean;
   /**
    * The caller's spend against its budgets, so an agent can price a plan
    * without asking (feedback #17): every tool call costs one daily call;
@@ -98,6 +99,7 @@ const checks: Record<keyof ResponseMeta, (value: unknown) => boolean> = {
   timezone_applied: text,
   feedback_responses_pending: count,
   timeline_pending: count,
+  posts_pending: (value) => typeof value === "boolean",
   quota: (value) =>
     object(value) &&
     utcTimestamp(value.resets_at) &&

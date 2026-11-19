@@ -64,8 +64,25 @@ export const contracts = [
         "removal_day",
         "saved_at",
         "together",
+        "version",
         "war_intent",
       ];
+      if (r.clans?.length) {
+        const tag = r.clans[0].clan_tag;
+        const exact = await read(ctx, "clans_directory", { clan_tag: tag });
+        ok(
+          exact.applied?.clan_tag === tag &&
+            exact.truncated === false &&
+            exact.clans.length === 1 &&
+            exact.clans[0].clan_tag === tag,
+          "An exact public lookup returns one matching clan.",
+        );
+        ok(
+          Number.isInteger(exact.clans[0].policy.version) &&
+            Number.isFinite(Date.parse(exact.meta.as_of)),
+          "The public revision and read time are available.",
+        );
+      }
       for (const c of r.clans ?? []) {
         ok(
           JSON.stringify(Object.keys(c).sort()) === JSON.stringify(tile),

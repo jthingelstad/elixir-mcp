@@ -1,10 +1,7 @@
 /**
  * MCP protocol layer — librarian's pattern (its shipped lessons kept):
  * stateless streamable HTTP, one JSON-RPC message per POST; batching
- * rejected (removed in the 2025-06-18 revision); listChanged declared
- * true because the list DOES change across deploys and a stateless server
- * can never deliver the notification — serverInfo.version is the honest
- * cache key, changing exactly when the tool surface does; results capped
+ * rejected (removed in the 2025-06-18 revision); a stateless server never promises change notifications; results capped
  * with a hint naming the tool's own parameters.
  *
  * 1.0.0: resources and prompts beside tools (resources.mjs), every tool
@@ -14,6 +11,14 @@
  * windows once, so the per-argument descriptions can be one line.
  */
 
+import {
+  MODERN_VERSION,
+  LEGACY_VERSIONS,
+  modernRequest,
+  transportError,
+  discover,
+  modernReply,
+} from "./modern.mjs";
 import crypto from "node:crypto";
 import {
   CONTRACT_VERSION,
@@ -36,7 +41,7 @@ import {
 } from "./resources.mjs";
 
 const MCP_PROTOCOL_VERSION = "2025-06-18";
-const SUPPORTED_PROTOCOL_VERSIONS = ["2025-06-18", "2025-03-26"];
+const SUPPORTED_PROTOCOL_VERSIONS = [MODERN_VERSION, ...LEGACY_VERSIONS];
 /** What a request without the header is taken to speak: the 2025-06-18
  *  transport's backwards-compatibility rule. Nothing this server sends
  *  differs between the two versions it supports. */
@@ -91,6 +96,7 @@ export function unsupportedProtocolVersion(message, header) {
  *  against the MCP hour"). */
 const UNCOUNTED_METHODS = new Set([
   "initialize",
+  "server/discover",
   "ping",
   "tools/list",
   "resources/list",
@@ -158,21 +164,19 @@ function instructionsFor(kind, identity) {
     "label ('Hog Rider cycle'), never eight cards; a label is not a verdict;",
     "cards_archetype resolves a name a person uses. Modes are different games: a rate",
     "with no mode pools them; pass mode for one. Repeat a response's",
-    "notes[]. When serverInfo.version changes, re-fetch tools/list;",
+    "notes[]. Read tools/list for available tools;",
     "elixir_changelog(since) says what shipped.",
   ];
   const start = {
     person: [
-      "START: players_summary for 'how am I doing', battles_performance for",
-      "a window or a before/after, battles_decks for decks, elixir_timeline",
-      "for what happened; elixir_follow_player / elixir_follow_clan start",
-      "recording someone. meta.timeline_pending means elixir_timeline has",
-      "news.",
+      "START: elixir_timeline for friends' posts and play; posts_pending signals new or edited posts.",
+      "elixir_cheers for reactions, players_summary for progress, battles_performance for results,",
+      "battles_decks for decks; elixir_follow_player and elixir_follow_clan follow on request.",
     ],
     agent: [
       "START: war_current (decks_today: who still has decks), elixir_timeline",
-      "under your own reader name; poll it and elixir_my_feedback only when",
-      "meta.timeline_pending or meta.feedback_responses_pending says so.",
+      "with scope home_clan and your reader name; elixir_my_feedback when",
+      "meta.feedback_responses_pending says so.",
       "display_name beside an unmapped on_behalf_of makes no_subject carry",
       "candidates[]. battles_decks reads a named player's recorded decks.",
     ],
@@ -216,11 +220,11 @@ function initializeResult(
   const declarations = registry.declarations(kind);
   const requested = String(requestedVersion ?? "");
   return {
-    protocolVersion: SUPPORTED_PROTOCOL_VERSIONS.includes(requested)
+    protocolVersion: LEGACY_VERSIONS.includes(requested)
       ? requested
       : MCP_PROTOCOL_VERSION,
     capabilities: {
-      tools: { listChanged: true },
+      tools: { listChanged: false },
       resources: { subscribe: false, listChanged: false },
       prompts: { listChanged: false },
     },
@@ -233,7 +237,13 @@ function initializeResult(
     instructions: instructionsFor(kind, identity),
     // The same facts the instructions state in prose, as data a CLIENT can
     // branch on at boot without regexing English. See principalBlock.
-    _meta: { [PRINCIPAL_META_KEY]: principalBlock(kind, identity) },
+    _meta: {
+      [PRINCIPAL_META_KEY]: principalBlock(
+        kind,
+        identity,
+        identity?.primaryClan ?? null,
+      ),
+    },
   };
 }
 
@@ -262,9 +272,49 @@ export async function handleMcpMessage(message, context) {
   }
   const { method } = record;
   const id = "id" in record ? record.id : undefined;
-  const params =
-    record.params && typeof record.params === "object" ? record.params : {};
 
+  const modern = modernRequest(record, context.protocolVersionHeader);
+  const error = transportError(
+    record,
+    context.protocolVersionHeader,
+    context.methodHeader,
+    context.nameHeader,
+  );
+  if (error) return error;
+  if (modern) {
+    if (method === "initialize")
+      return modernReply(
+        {
+          statusCode: 404,
+          payload: rpcError(
+            id,
+            -32601,
+            "Use server/discover on this protocol revision.",
+          ),
+        },
+        method,
+      );
+    if (id === undefined) return { statusCode: 202, payload: null };
+    if (method === "server/discover")
+      return modernReply(
+        {
+          statusCode: 200,
+          payload: rpcResult(
+            id,
+            discover(
+              initializeResult(
+                context.registry,
+                null,
+                context.kind,
+                context.identity,
+              ),
+            ),
+          ),
+        },
+        method,
+      );
+    return modernReply(await dispatchMethod(record, context), method);
+  }
   if (method !== "initialize") {
     const version = requestProtocolVersion(context.protocolVersionHeader);
     if (!version.ok)
@@ -275,12 +325,19 @@ export async function handleMcpMessage(message, context) {
           -32600,
           `Unsupported MCP-Protocol-Version: ${version.version.slice(0, 40)}.`,
           {
-            supported: SUPPORTED_PROTOCOL_VERSIONS,
-            hint: `Send the version initialize negotiated (${MCP_PROTOCOL_VERSION} unless you asked for ${SUPPORTED_PROTOCOL_VERSIONS.slice(1).join(", ")}), or omit the header.`,
+            supported: LEGACY_VERSIONS,
+            hint: `Send the version initialize negotiated (${MCP_PROTOCOL_VERSION} unless you asked for ${LEGACY_VERSIONS.slice(1).join(", ")}), or omit the header.`,
           },
         ),
       };
   }
+  return dispatchMethod(record, context);
+}
+
+async function dispatchMethod(record, context) {
+  const { method, id } = record;
+  const params =
+    record.params && typeof record.params === "object" ? record.params : {};
   if (id === undefined) return { statusCode: 202, payload: null }; // notifications
   if (method === "initialize") {
     return {

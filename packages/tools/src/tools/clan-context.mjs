@@ -1,4 +1,4 @@
-import { responseMeta } from "@elixir-mcp/contracts";
+import { normalizeTag, responseMeta } from "@elixir-mcp/contracts";
 import {
   readClanDirectory,
   readOwnClanView,
@@ -40,17 +40,36 @@ export const clanContextTools = {
       "The clan directory, as Home's Clans page lists it: every recorded clan whose leaders saved a policy in Clan, each with its recorded name, type, size, trophies to join and description, and the policy's public part (Clan Wars intent, posture, playing together, what counts, the removal day). yours marks a clan one of your verified players is in (an agent reads as its owner). Ordered by name, never ranked. For a person's own connection and their agents.",
     inputSchema: {
       type: "object",
-      properties: {},
+      properties: {
+        clan_tag: {
+          type: "string",
+          minLength: 1,
+          description:
+            "Return only this clan’s public directory entry. An unlisted clan returns an empty list.",
+        },
+      },
       additionalProperties: false,
     },
-    async handler(ctx) {
-      const read = await readClanDirectory(ctx.db, ctx.account);
+    async handler(ctx, args = {}) {
+      let tag = null;
+      if (args.clan_tag !== undefined) {
+        try {
+          tag = normalizeTag(args.clan_tag);
+        } catch {
+          throw new ToolFailure(
+            "invalid_tag",
+            "Invalid clan tag.",
+            "Use the clan’s game tag.",
+          );
+        }
+      }
+      const read = await readClanDirectory(ctx.db, ctx.account, tag);
       if (read.refused) throw new ToolFailure(...SOCIAL_REFUSAL);
       const { directory } = read;
       return {
         clans: directory.clans,
         truncated: directory.truncated,
-        applied: {},
+        applied: tag ? { clan_tag: tag } : {},
         notes: notes(
           "A clan is listed once its leaders save a policy in Clan; policy is the saved policy's public part, never who saved it, a note, a minimum or a member's standing.",
           ctx.account?.kind === "agent"
