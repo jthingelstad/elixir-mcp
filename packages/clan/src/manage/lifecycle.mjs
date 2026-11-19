@@ -243,6 +243,41 @@ export function createLifecycle(
     return next;
   }
 
+  async function sameRoleTransition(clan, card, m) {
+    return (
+      sameStay(m?.joined_observed_at, card.lifecycle.stay) &&
+      !m.left_observed_at &&
+      (String(m.prior) === card.lifecycle.prior ||
+        String(m.prior) === String((await observed(clan, card))?.event_id))
+    );
+  }
+
+  // An Elder can become Co-Leader without creating a new Member/Elder
+  // story. Check the actual transition when evaluating or opening Actions.
+  async function refreshRoleShare(clan, card) {
+    if (
+      !roleFor[card.type] ||
+      card.lifecycle?.phase !== "sharing" ||
+      !["done", "proposed"].includes(card.status)
+    )
+      return card;
+    if (
+      await sameRoleTransition(
+        clan,
+        card,
+        await membership(clan, card.player_tag),
+      )
+    )
+      return card;
+    if (card.status === "proposed")
+      await withdrawAction(clan, card, "The membership changed.");
+    else
+      await ledger.updateCardIf(clan, card, {
+        lifecycle: { ...card.lifecycle, phase: "closed" },
+      });
+    return await ledger.card(clan, card.card_id);
+  }
+
   async function shareLocked(clan, card, who, { part, skip }, facts) {
     const l = card.lifecycle;
     if (!l || who.verified === false) throw new ManageError(403, "forbidden");
@@ -258,9 +293,7 @@ export function createLifecycle(
       !sameStay(m?.joined_observed_at, l.stay) ||
       (["welcome", "promotion", "demotion"].includes(card.type) &&
         m.left_observed_at) ||
-      (roleFor[card.type] &&
-        String(m.prior) !== l.prior &&
-        String(m.prior) !== String((await observed(clan, card))?.event_id))
+      (roleFor[card.type] && !(await sameRoleTransition(clan, card, m)))
     )
       throw new ManageError(409, "membership_changed");
     const at = new Date().toISOString();
@@ -329,10 +362,7 @@ export function createLifecycle(
     for (const c of cards.filter((c) => c.player_tag === tag && c.lifecycle)) {
       const l = c.lifecycle;
       const supersededRole =
-        roleFor[c.type] &&
-        same &&
-        String(m.prior) !== l.prior &&
-        String(m.prior) !== String((await observed(clan, c))?.event_id);
+        roleFor[c.type] && !(await sameRoleTransition(clan, c, m));
       const outdated =
         supersededRole ||
         !sameStay(m?.joined_observed_at, l.stay) ||
@@ -573,5 +603,13 @@ export function createLifecycle(
       );
     });
   }
-  return { prepare, confirm, decline, share, observed, drain };
+  return {
+    prepare,
+    confirm,
+    decline,
+    share,
+    observed,
+    drain,
+    refreshRoleShare,
+  };
 }
