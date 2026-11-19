@@ -351,12 +351,47 @@ export function createLifecycle(
           });
       }
     }
+    // A legacy decision can straddle deployment. Only a single completed
+    // decision in this very stay and outcome window can explain the new row.
+    const legacy =
+      !row.action_id &&
+      policy &&
+      kind !== "welcome" &&
+      cards.filter((c) => {
+        const decided = Date.parse(c.decided_at);
+        const delay = Date.parse(row.observed_at) - decided;
+        return (
+          !c.lifecycle &&
+          c.status === "done" &&
+          !c.outcome?.flagged_at &&
+          c.player_tag === tag &&
+          (kind === "departure" ? c.type === "removal" : c.type === kind) &&
+          Date.parse(c.raised_at) >= Date.parse(row.stay_at) &&
+          decided >= Date.parse(c.raised_at) &&
+          delay >= 0 &&
+          delay <= policy.outcome_window_hours * 3600000
+        );
+      });
+    let earlier = legacy?.length === 1 ? legacy[0] : null;
+    if (earlier) {
+      const { rowCount } = await db.query(
+        `select 1 where exists(select 1 from clan_lifecycle where clan_tag=$1 and action_id=$2)
+          or exists(select 1 from clan_event where event_id=$3 and window_end>$4)`,
+        [
+          clan,
+          earlier.card_id,
+          kind === "departure" ? 0 : row.prior_role_id,
+          earlier.decided_at,
+        ],
+      );
+      if (rowCount) earlier = null;
+    }
     const copy = row.paragraphs
       ? null
       : await context(
           clan,
           tag,
-          kind,
+          earlier?.type === "removal" ? "kick" : kind,
           row.stay_at,
           row.observed_at,
           row.player_name,
@@ -378,7 +413,7 @@ export function createLifecycle(
         c.status === "proposed" &&
         sameTurn(c, row),
     );
-    let actionId = row.action_id;
+    let actionId = row.action_id ?? earlier?.card_id;
     if (!actionId && eligible) {
       const life = {
         occasion_id: String(row.occasion_id),
@@ -473,8 +508,17 @@ export function createLifecycle(
     await db.query(
       `update clan_lifecycle set processed_at=now(),published_at=coalesce(published_at,observed_at),
       action_id=coalesce(action_id,$2), paragraphs=coalesce(paragraphs,$3),
-      evidence=coalesce(evidence,$4),source=coalesce(source,'roster') where occasion_id=$1`,
-      [row.occasion_id, actionId || null, lines, copy?.evidence ?? null],
+      evidence=coalesce(evidence,$4),reported_at=coalesce(reported_at,$5::timestamptz),
+      classification=coalesce(classification,$6),source=coalesce(source,case when $5::timestamptz is null then 'roster' else 'leader' end)
+      where occasion_id=$1`,
+      [
+        row.occasion_id,
+        actionId || null,
+        lines,
+        copy?.evidence ?? null,
+        earlier?.decided_at ?? null,
+        earlier?.type === "removal" ? "kick" : null,
+      ],
     );
   }
 
