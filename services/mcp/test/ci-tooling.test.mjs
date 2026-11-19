@@ -453,10 +453,26 @@ test("validate runs the runner's shards and the journeys' shards it names, and g
   for (const result of ["CHANGES", "STATIC", "TEST"])
     assert.match(job("validate"), new RegExp(`test "\\$${result}" = success`));
   assert.match(job("validate"), /test "\$E2E" = skipped/);
+  // A push to main asks push-plan.mjs; a tree already tested as a pull
+  // request skips every job, and validate holds them all to skipped.
+  assert.match(
+    job("changes"),
+    /node infra\/scripts\/push-plan\.mjs >> "\$GITHUB_OUTPUT"/,
+  );
+  for (const name of ["static", "test"])
+    assert.match(job(name), /if: needs\.changes\.outputs\.run == 'true'\n/);
+  assert.match(
+    job("e2e"),
+    /if: needs\.changes\.outputs\.run == 'true' && needs\.changes\.outputs\.e2e == 'true'\n/,
+  );
+  assert.match(
+    job("validate"),
+    /test "\$STATIC" = skipped && test "\$TEST" = skipped && test "\$E2E" = skipped/,
+  );
   // Every Node is the repository's Node.
   const setups = workflow.match(/uses: actions\/setup-node@/g) ?? [];
   const pinned = workflow.match(/node-version-file: \.node-version/g) ?? [];
-  assert.equal(setups.length, 3);
+  assert.equal(setups.length, 4);
   assert.equal(pinned.length, setups.length);
   assert.doesNotMatch(workflow, /node-version: /);
   // verify locally is static, the runner, and the bundles: CI's three parts.

@@ -12,7 +12,8 @@
 # Doc pages and the updates feed are checked by verify's site build,
 # except the pages a journey opens (quickstart). Everything else in
 # services, migrations, infra and the MCP tools never reaches a journey.
-# validate runs the journeys on every push to main regardless.
+# A push to main asks the same question of what changed since main's
+# newest green commit (lib/push-plan.mjs).
 #
 # services/mcp/test/ci-tooling.test.mjs holds this list to the specs: it
 # bundles every spec (and every entry a spec bundles), and each repository

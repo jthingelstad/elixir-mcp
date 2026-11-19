@@ -24,7 +24,7 @@ const PENDING = new Set(["queued", "in_progress", "waiting", "pending"]);
 /** The newest `validate` check run on a commit: "success", "failure"
  *  (any finished run that is not a success), "pending", or null when
  *  there is none yet. */
-async function checkState(ghApi, repo, sha) {
+export async function checkState(ghApi, repo, sha) {
   const r = await ghApi(
     `repos/${repo}/commits/${sha}/check-runs?check_name=${CI_CHECK}&filter=latest`,
   );
