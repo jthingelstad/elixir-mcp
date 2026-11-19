@@ -159,6 +159,7 @@ export function factsOfAction(
           : { from: "elder", to: "member" },
     });
   }
+  if (card.lifecycle) return facts;
   if (
     [
       "promotion",

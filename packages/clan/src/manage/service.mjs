@@ -31,6 +31,7 @@ import {
   removalDay,
   nextSteps,
   participationPhrase,
+  promotionContribution,
   ranksElder,
   reconcileCards,
   policyCapabilities,
@@ -230,6 +231,7 @@ export function createManageService({
   ledger,
   record,
   activityFor = null,
+  lifecycle = null,
   /** One clan's battles per window, the record's clanWeekBattles (A13). */
   weekBattlesFor = null,
   now = () => Date.now(),
@@ -248,7 +250,9 @@ export function createManageService({
    *  take, in the list, by number and in its log. */
   const mayRead = (card, who) =>
     canAct(card, who) &&
-    (card.status === "proposed" || (isLeader(who) && who.verified !== false));
+    (card.status === "proposed" ||
+      card.lifecycle?.phase === "sharing" ||
+      (isLeader(who) && who.verified !== false));
   const requireLeader = (who) => {
     if (!isLeader(who) || who.verified === false)
       throw new ManageError(403, "leaders_only");
@@ -418,7 +422,8 @@ export function createManageService({
 
   function shapeSafeAction(card, logs, who, safety) {
     const shaped = shapeAction({ ...card, removal_safety: safety }, logs, who);
-    if (card.type !== "removal") return shaped;
+    if (card.type !== "removal" || (card.lifecycle && card.status === "done"))
+      return shaped;
     const ready = safety?.status === "ready";
     return {
       ...shaped,
@@ -427,7 +432,15 @@ export function createManageService({
       can_draft: shaped.can_draft && ready,
       can_reopen: shaped.can_reopen && ready,
       // Explicitly remove the static Copy fallback as well as model drafting.
-      ...(!ready ? { copy: null, channel: null } : {}),
+      ...(!ready
+        ? {
+            copy: null,
+            channel: null,
+            ...(card.lifecycle
+              ? { lifecycle: { ...card.lifecycle, lines: [] } }
+              : {}),
+          }
+        : {}),
     };
   }
 
@@ -441,7 +454,9 @@ export function createManageService({
     const size = await ledger.clanSize(clanTag);
     if (size && size.members < MIN_MEMBERS) return [];
     return (await ledger.cards(clanTag)).filter(
-      (c) => c.status === "proposed" && canAct(c, who),
+      (c) =>
+        (c.status === "proposed" || c.lifecycle?.phase === "sharing") &&
+        canAct(c, who),
     );
   }
 
@@ -788,11 +803,30 @@ export function createManageService({
     // Reconcile cards against the fresh verdicts.
     const open = cards.filter((c) => c.status === "proposed");
     const { raise, withdraw } = reconcileCards(verdicts, open);
-    for (const { card, reason, detail } of withdraw)
+    for (const { card, reason, detail } of withdraw) {
+      if (card.lifecycle?.phase === "sharing") continue;
+      if (
+        card.lifecycle &&
+        ["promotion", "demotion"].includes(card.type) &&
+        (await lifecycle?.observed(clanTag, card))
+      )
+        continue;
       await withdrawAction(clanTag, card, reason, detail ?? null);
+    }
     for (const { player_tag, type, verdict } of raise) {
       const raised_at = new Date(t).toISOString();
       const facts = cardFacts(verdict, policy.values, type);
+      const occasion = await lifecycle?.prepare(
+        clanTag,
+        player_tag,
+        type,
+        verdict.name,
+        raised_at,
+        type === "promotion"
+          ? promotionContribution(verdict, policy.values)
+          : null,
+      );
+      if (lifecycle && !occasion) continue;
       const rationale = cardRationale(type, verdict, policy.values, verdicts);
       await raiseAction(
         clanTag,
@@ -802,6 +836,7 @@ export function createManageService({
           player_tag,
           player_name: verdict.name,
           role_at_raise: verdict.role,
+          ...(occasion ? { lifecycle: occasion } : {}),
           type,
           status: "proposed",
           raised_at,
@@ -848,6 +883,8 @@ export function createManageService({
         verified =
           m?.role === "elder" || m?.role === "coLeader" || m?.role === "leader";
       else if (c.type === "demotion") verified = m?.role === "member";
+      if (c.lifecycle && lifecycle)
+        verified = Boolean(await lifecycle.observed(clanTag, c));
       if (verified) {
         const classification =
           c.type === "removal" ? "member_kicked" : "role_changed";
@@ -1000,12 +1037,14 @@ export function createManageService({
         else if (t - Date.parse(c.evidence?.joined_at) > 7 * DAY_MS)
           await withdrawAction(clanTag, c, "Too long after they joined.");
       }
-      for (const w of welcomesFrom(
-        roster.recent_events,
-        allCards,
-        currentTags,
-        new Date(t),
-      ))
+      for (const w of lifecycle
+        ? []
+        : welcomesFrom(
+            roster.recent_events,
+            allCards,
+            currentTags,
+            new Date(t),
+          ))
         await raiseAction(
           clanTag,
           {
@@ -1054,12 +1093,14 @@ export function createManageService({
         )) {
           await withdrawAction(clanTag, c, "The member rejoined the clan.");
         }
-        for (const d of departuresFrom(
-          roster.recent_events,
-          allCards,
-          lastKnown,
-          currentTags,
-        )) {
+        for (const d of lifecycle
+          ? []
+          : departuresFrom(
+              roster.recent_events,
+              allCards,
+              lastKnown,
+              currentTags,
+            )) {
           const name = d.player_name ?? d.last?.name ?? d.player_tag;
           const departure = await raiseAction(
             clanTag,
@@ -1459,12 +1500,15 @@ export function createManageService({
       const mine = all.filter((c) => canAct(c, who));
       const closedAt = (c) => c.decided_at ?? c.withdrawn_at ?? c.raised_at;
       const open = mine
-        .filter((c) => c.status === "proposed")
+        .filter(
+          (c) => c.status === "proposed" || c.lifecycle?.phase === "sharing",
+        )
         .sort((a, b) => (a.raised_at < b.raised_at ? 1 : -1));
       const recent = mine
         .filter(
           (c) =>
             c.status !== "proposed" &&
+            c.lifecycle?.phase !== "sharing" &&
             mayRead(c, who) &&
             t - Date.parse(closedAt(c)) < 30 * DAY_MS,
         )
@@ -1836,17 +1880,24 @@ export function createManageService({
           const explained =
             e.type === "member_left"
               ? (byTag(tag).find(
-                  (c) =>
-                    Math.abs(
-                      Date.parse(c.evidence?.left_at) - Date.parse(e.at),
-                    ) < DAY_MS,
+                  (c) => Date.parse(c.evidence?.left_at) === Date.parse(e.at),
                 ) ??
                 cards.find(
                   (c) =>
                     c.player_tag === tag &&
                     c.type === "removal" &&
                     c.status === "done" &&
-                    Date.parse(c.decided_at) <= Date.parse(e.at) + DAY_MS,
+                    (c.lifecycle
+                      ? Date.parse(c.lifecycle.stay) ===
+                        Date.parse(e.detail.joined_observed_at)
+                      : Date.parse(c.decided_at) <= Date.parse(e.at) &&
+                        !(roster.recent_events ?? []).some(
+                          (j) =>
+                            j.type === "member_joined" &&
+                            j.detail?.player_tag === tag &&
+                            Date.parse(j.at) > Date.parse(c.decided_at) &&
+                            Date.parse(j.at) <= Date.parse(e.at),
+                        )),
                 ) ??
                 null)
               : null;
@@ -1876,9 +1927,7 @@ export function createManageService({
                       (c) =>
                         c.type === "welcome" &&
                         c.player_tag === tag &&
-                        Math.abs(
-                          Date.parse(c.evidence?.joined_at) - Date.parse(e.at),
-                        ) < DAY_MS,
+                        Date.parse(c.evidence?.joined_at) === Date.parse(e.at),
                     )?.evidence?.welcome,
                   })
                 : explained?.outcome?.classification === "member_left"
@@ -2056,6 +2105,23 @@ export function createManageService({
       return card;
     },
 
+    async shareLifecycle(clanTag, who, id, body) {
+      const policy = await requirePolicy(clanTag);
+      const card = await ledger.card(clanTag, id);
+      if (
+        !card ||
+        !lifecycle ||
+        !canAct(card, who) ||
+        who.verified === false ||
+        card.status === "withdrawn" ||
+        card.status === "declined"
+      )
+        throw new ManageError(404, "no_action");
+      if (card.type === "welcome" && !policy.values.welcome_enabled)
+        throw new ManageError(409, "action_changed");
+      return lifecycle.share(clanTag, card, who, body);
+    },
+
     async decide(
       clanTag,
       who,
@@ -2065,6 +2131,7 @@ export function createManageService({
         reason = null,
         note = null,
         classification = null,
+        tribute = null,
         // The words the person sent in the game, as they edited them.
         sent = null,
       },
@@ -2087,6 +2154,8 @@ export function createManageService({
         status = "done";
       } else if (status !== "done" && status !== "declined")
         throw new ManageError(400, "bad_status");
+      if (card.lifecycle?.phase === "sharing")
+        throw new ManageError(409, "record_chat_receipt");
       if (status === "done") await requireRemovalSafety(clanTag, card);
       if (
         status === "done" &&
@@ -2104,7 +2173,7 @@ export function createManageService({
       )
         throw new ManageError(400, "bad_reason");
       const decided_at = new Date(now()).toISOString();
-      const delivery = actionDelivery(card);
+      const delivery = card.lifecycle ? null : actionDelivery(card);
       let reviewed = null;
       if (status === "done" && delivery && !card.evidence?.messages) {
         // Old clients could complete without reviewed words. Preserve that
@@ -2172,7 +2241,16 @@ export function createManageService({
             }
           : {}),
       };
-      if (!(await ledger.updateCardIf(clanTag, card, decided)))
+      if (card.lifecycle && lifecycle && status === "done") {
+        const policy = await requirePolicy(clanTag);
+        await lifecycle.confirm(clanTag, card, decided, {
+          classification,
+          tribute,
+          hours: policy.values.outcome_window_hours,
+        });
+      } else if (card.lifecycle && lifecycle)
+        await lifecycle.decline(clanTag, card, decided);
+      else if (!(await ledger.updateCardIf(clanTag, card, decided)))
         throw new ManageError(409, "action_changed");
       const completedWords = shapeAction(decided, [], who);
       const channel = reviewed?.channel ?? completedWords.channel;
@@ -2188,7 +2266,9 @@ export function createManageService({
             reason: decided.decline_reason,
             classification: decided.outcome?.classification ?? null,
             // Completing a leader-message action says the message was sent.
-            ...(status === "done" && channel ? { channel } : {}),
+            ...(status === "done" && channel && !card.lifecycle
+              ? { channel }
+              : {}),
             ...(reviewed ? { sent: reviewed } : {}),
             ...(completedWords.delivery_channels?.length
               ? { delivery_channels: completedWords.delivery_channels }

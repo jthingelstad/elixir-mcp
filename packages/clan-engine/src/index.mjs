@@ -12,6 +12,7 @@ export * from "./delivery.mjs";
 export * from "./goals.mjs";
 export * from "./member.mjs";
 export * from "./chat.mjs";
+export * from "./lifecycle.mjs";
 export * from "./words.mjs";
 export * from "./mail.mjs";
 export * from "./geo.mjs";

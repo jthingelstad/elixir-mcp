@@ -22,6 +22,7 @@
  * transport retains its narrow current-feed read. Taking a cheer back
  * needs no item read.
  */
+import { visibleClanInteractionSql } from "@elixir-mcp/record/clan-lifecycle";
 import { blockedSql } from "@elixir-mcp/claims";
 import { normalizeTag } from "@elixir-mcp/contracts";
 import { resolveBattleRef } from "@elixir-mcp/record/battle-links";
@@ -182,19 +183,24 @@ export async function setCheer(db, accountId, itemId, cheer, item = null) {
     );
   else
     await db.query(
-      `insert into timeline_cheer (account_id, item_id, cheer, subject_tags)
-       values ($1, $2, $3, $4::text[])
+      `insert into timeline_cheer (account_id, item_id, cheer, subject_tags,audience_clan)
+       values ($1, $2, $3, $4::text[],$5)
        on conflict (account_id, item_id)
        do update set cheer = excluded.cheer, updated_at = now(),
-                     subject_tags = coalesce(excluded.subject_tags,
-                                             timeline_cheer.subject_tags)`,
+                     subject_tags = excluded.subject_tags, audience_clan=excluded.audience_clan`,
       // A post about nothing in the record stamps no players (2026-11-17):
       // the activity mail and push find their accounts by these tags, and
       // those posts reach neither; the web bell reads their cheers by the
       // post itself. A post about a battle stamps its player, as the
       // highlight it was did (0292), so its cheers keep reaching the mail,
       // push and the bell.
-      [accountId, itemId, cheer, item ? stampedTags(item) : null],
+      [
+        accountId,
+        itemId,
+        cheer,
+        item ? stampedTags(item) : null,
+        item?.clan_story?.clan_tag ?? null,
+      ],
     );
   const found = (await cheersFor(db, [itemId], accountId)).get(itemId);
   return {
@@ -208,7 +214,7 @@ export async function setCheer(db, accountId, itemId, cheer, item = null) {
  *  nothing in the record, private Clan/People facts, or a Drop game whose
  *  current follower audience does not extend to game mail or push. */
 export function stampedTags(item) {
-  if (item.kind === "drop_game") return null;
+  if (item.clan_story || item.kind === "drop_game") return null;
   if (!["public", "player"].includes(itemVisibility(item))) return null;
   if (item.kind === "post" && !item.post?.battle) return null;
   return itemSubjectTags(item);
@@ -344,7 +350,7 @@ export async function cheersReceived(db, accountId, tag, fromMs, toMs) {
   if (ids.length === 0) return 0;
   const { rows } = await db.query(
     `select count(*)::int as n from timeline_cheer tc
-      where item_id = any($1::text[]) and tc.account_id <> $2
+      where item_id = any($1::text[]) and tc.account_id <> $2 and ${visibleClanInteractionSql("tc", "$2")}
         and not ${blockedSql("tc.account_id", "$2::uuid")}`,
     [ids, accountId],
   );

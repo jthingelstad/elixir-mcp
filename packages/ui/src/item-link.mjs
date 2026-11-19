@@ -26,7 +26,13 @@ const commentIdOf = (value) => {
 export function timelineItemRef(it) {
   if (!it?.id || it.section === "account") return null;
   const subject =
-    it.subjects?.find((s) => s.tag === it.subject_tag) ?? it.subjects?.[0];
+    (it.clan_story
+      ? it.subjects?.find(
+          (s) => s.kind === "clan" && s.tag === it.clan_story.clan_tag,
+        )
+      : null) ??
+    it.subjects?.find((s) => s.tag === it.subject_tag) ??
+    it.subjects?.[0];
   const source =
     it.kind === "post" || it.kind === "battle_highlight"
       ? "post"

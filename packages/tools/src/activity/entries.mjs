@@ -273,13 +273,13 @@ async function firstEventIds(db, ledger, rows) {
                 (${playerEventOriginSql("w")})::text as first_id
            from player_event w where w.event_id = any($1::bigint[])`
       : `select w.event_id::text as event_id,
-                (select min(e.event_id) from clan_event e
+                coalesce((select 'lifecycle:' || l.occasion_id from clan_lifecycle l where l.event_id=w.event_id), (select min(e.event_id) from clan_event e
                   where e.clan_tag = w.clan_tag and e.event_type = w.event_type
                     and e.window_end between w.window_end - interval '1 day' and w.window_end
                     and e.event_id <= w.event_id
                     and ${sameRow(SAME_CLAN_EVENT)}
                     and (w.event_type not in ('member_joined', 'member_left', 'role_changed')
-                         or coalesce(e.occurred_at, e.window_end) = coalesce(w.occurred_at, w.window_end)))::text as first_id
+                         or coalesce(e.occurred_at, e.window_end) = coalesce(w.occurred_at, w.window_end)))::text) as first_id
            from clan_event w where w.event_id = any($1::bigint[])`;
   const { rows: found } = await db.query(text, [
     rows.map((r) => String(r.event_id)),
@@ -1910,8 +1910,12 @@ const WHO_SQL = (tagSql) =>
 /** The player's clan joins and leaves the window observed. */
 const clanMovesSql = (tagSql, fromMs, toMs) =>
   `select cm.clan_tag, c.name as clan_name, cm.role, cm.baseline,
-          cm.joined_observed_at, cm.left_observed_at
+          cm.joined_observed_at, cm.left_observed_at, joined.occasion_id as join_id, j.roster_size_after as joined_size,j.roster_size_before as join_before,j.role_after as join_role, gone.occasion_id as exit_id,x.roster_size_before as exit_before,x.roster_size_after as exit_after,x.role_before as exit_role
      from clan_membership cm
+     left join clan_lifecycle joined on joined.kind='welcome' and joined.clan_tag=cm.clan_tag and joined.player_tag=cm.player_tag and joined.stay_at=cm.joined_observed_at and joined.observed_at=cm.joined_observed_at
+     left join clan_lifecycle gone on gone.kind='departure' and gone.clan_tag=cm.clan_tag and gone.player_tag=cm.player_tag and gone.stay_at=cm.joined_observed_at and gone.observed_at=cm.left_observed_at
+     left join clan_event j on j.event_id=joined.event_id
+     left join clan_event x on x.event_id=gone.event_id
      left join clan c on c.clan_tag = cm.clan_tag
     where cm.player_tag = ${tagSql}
       and ((cm.joined_observed_at >= ${ts(fromMs + 1)} and cm.joined_observed_at < ${ts(toMs + 1)})
@@ -2466,7 +2470,27 @@ export async function buildPlayerEntry(
     prefetched?.moves ??
     (await db.query(clanMovesSql("$1", fromMs, toMs), [tag])).rows;
   const clanChanges = [];
+  const moveStories = new Map();
   for (const m of moves) {
+    if (m.join_id)
+      moveStories.set(`joined/${m.clan_tag}/${iso(m.joined_observed_at)}`, {
+        id: m.join_id,
+        facts: {
+          role: m.join_role,
+          roster_size_before: m.join_before,
+          roster_size_after: m.joined_size,
+        },
+      });
+    if (m.exit_id)
+      moveStories.set(`left/${m.clan_tag}/${iso(m.left_observed_at)}`, {
+        id: m.exit_id,
+        facts: {
+          role_at_departure: m.exit_role,
+          joined_observed_at: iso(m.joined_observed_at),
+          roster_size_before: m.exit_before,
+          roster_size_after: m.exit_after,
+        },
+      });
     const j = m.joined_observed_at.getTime();
     // A baseline row is Elixir's first sight of the player in the clan,
     // not a join it saw (0207; ingest/roster.mjs): no moment.
@@ -2713,7 +2737,14 @@ export async function buildPlayerEntry(
       ...crossingEvidence(r, firstIds.get(String(r.event_id))),
     });
   for (const c of clanChanges) {
-    const kind = c.kind === "joined" ? "clan_joined" : "clan_left";
+    const occasion = moveStories.get(`${c.kind}/${c.clan_tag}/${c.at}`);
+    const kind = occasion
+      ? c.kind === "joined"
+        ? "member_joined"
+        : "member_left"
+      : c.kind === "joined"
+        ? "clan_joined"
+        : "clan_left";
     items.push({
       ...subject,
       at: c.at,
@@ -2723,8 +2754,10 @@ export async function buildPlayerEntry(
         ...subject.subjects,
         { tag: c.clan_tag, kind: "clan", name: c.clan_name ?? null },
       ],
-      facts: { ...self, ...c },
-      [STORY]: moment(kind, tag, c.clan_tag, c.at),
+      facts: { ...self, ...(occasion ? occasion.facts : c) },
+      [STORY]: occasion
+        ? moment("clan_event", `lifecycle:${occasion.id}`)
+        : moment(kind, tag, c.clan_tag, c.at),
     });
   }
   // A promotion is the player's news as well as the clan's (the owner,
@@ -4488,6 +4521,93 @@ export async function windowHighlights(
  * who left a clan or lost a role stops seeing them at once (Codex on
  * #818).
  */
+/** Human Timeline overlay. Stored weeks, anonymous links and external feeds keep
+ * game words. Only a current verified clan seat can fetch these paragraphs. */
+export async function clanStoriesFor(
+  db,
+  items,
+  subjects,
+  { accountId, fromMs, toMs, timezone = "UTC", basis = "observed" },
+) {
+  const clans = subjects.filter((s) => s.kind === "clan").map((s) => s.tag);
+  if (!accountId || !clans.length) return items;
+  const { rows } = await db.query(
+    `select l.occasion_id,l.clan_tag,l.player_tag,l.player_name,l.kind,l.paragraphs,l.observed_at,l.reported_at,
+    l.published_at,l.event_id,l.classification,c.name as clan_name,f.fact_id,f.attester_tag,attester.name as reporter_name,
+     exists(select 1 from claim p join account_block b on
+        ((b.account_id=$2 and b.blocked_account_id=p.account_id) or (b.blocked_account_id=$2 and b.account_id=p.account_id))
+        where p.player_tag=l.player_tag and p.status='verified') as blocked
+    from clan_lifecycle l join clan c using(clan_tag)
+    left join attested_fact f on f.source='clan.poapkings.com' and f.source_ref='action:'||l.action_id and f.clan_tag=l.clan_tag
+    left join player attester on attester.player_tag=f.attester_tag
+    where l.clan_tag=any($1::text[]) and l.published_at is not null and
+      (l.published_at between $3 and $4 or l.observed_at between $3 and $4 or l.reported_at between $3 and $4)
+      and exists(select 1 from claim seat join clan_membership cm on cm.player_tag=seat.player_tag and cm.left_observed_at is null
+        where seat.account_id=$2 and seat.status='verified' and (seat.is_primary or seat.relationship in ('primary','alt')) and cm.clan_tag=l.clan_tag)`,
+    [clans, accountId, new Date(fromMs + 1), new Date(toMs)],
+  );
+  if (!rows.length) return items;
+  const byId = new Map(mergeStories(items).map((it) => [it.id, it]));
+  for (const row of rows) {
+    if (row.fact_id) byId.delete(storyId("attested_fact", String(row.fact_id)));
+    if (row.blocked) continue;
+    const id = storyId("clan_event", `lifecycle:${row.occasion_id}`);
+    const clan_story = {
+      clan_tag: row.clan_tag,
+      lines: row.paragraphs,
+      reported_only: !row.event_id,
+      ...(row.reported_at
+        ? {
+            reported_at: iso(row.reported_at),
+            reported_by: row.reporter_name ?? row.attester_tag ?? null,
+          }
+        : {}),
+    };
+    const base = byId.get(id);
+    if (base) {
+      byId.set(id, { ...base, clan_story });
+      continue;
+    }
+    const at = iso(row.observed_at ?? row.reported_at);
+    const kind =
+      row.kind === "welcome"
+        ? "member_joined"
+        : row.kind === "departure"
+          ? "member_left"
+          : "member_role_changed";
+    const promotion = row.kind === "promotion";
+    const item = {
+      id,
+      revision: 1,
+      at,
+      observed_at: at,
+      kind,
+      section: "roster",
+      subject_tag: row.clan_tag,
+      subject_name: row.clan_name,
+      subjects: [
+        { kind: "clan", tag: row.clan_tag, name: row.clan_name },
+        { kind: "player", tag: row.player_tag, name: row.player_name },
+      ],
+      facts: {
+        player_tag: row.player_tag,
+        name: row.player_name,
+        ...(kind === "member_role_changed"
+          ? {
+              role_before: promotion ? "member" : "elder",
+              role_after: promotion ? "elder" : "member",
+              direction: promotion ? "promoted" : "demoted",
+            }
+          : {}),
+      },
+      clan_story,
+    };
+    finishItem(item, { fromMs, basis, timezone });
+    byId.set(id, item);
+  }
+  return [...byId.values()];
+}
+
 export async function windowFacts(
   db,
   subjects,
@@ -4810,6 +4930,7 @@ export async function buildTimeline(
     // Each player entry also carries battles.mode_records. Off for every
     // door: elixir_timeline's entries do not have it.
     modeRecords = false,
+    clanStories = false,
     // Players whose highlights the read also serves, with no entry of
     // their own: Clan's Feed passes its current members (slice 8, #766),
     // whose highlights a clan subject alone does not carry.
@@ -5017,6 +5138,14 @@ export async function buildTimeline(
   // The caller's filter (kinds, sections, a member) applies BEFORE the
   // cap (Gym #244: the cap counted items the filter then removed, so a
   // filtered reader got 18 of 50 items and a busy-window note).
+  if (clanStories && accountId)
+    items = await clanStoriesFor(db, items, subjects, {
+      accountId,
+      fromMs,
+      toMs,
+      timezone,
+      basis,
+    });
   if (filter) items = items.filter(filter);
   // One item per story (#374): a member followed as a player and seen on
   // their clan's timeline was two items under one id.
@@ -5145,6 +5274,7 @@ export function mergeStories(items) {
  *  by their type's rule): public is the game record; clan and player are
  *  the attested rules; leaders and owner never publish. */
 export function itemVisibility(it) {
+  if (it.clan_story?.reported_only) return "clan";
   if (it.section === "account") return "owner";
   if (it.section === "people") return "member";
   if (it.section === "attested")
@@ -5208,7 +5338,9 @@ function finishItem(it, { fromMs, basis, timezone }) {
   it.visibility = itemVisibility(it);
   it.publishable = isPublishable(it);
   it.schema = itemSchema(it.kind);
-  it.text = itemText(it, timezone);
+  it.text = it.clan_story?.reported_only
+    ? it.clan_story.lines.join("\n\n")
+    : itemText(it, timezone);
 }
 
 /**

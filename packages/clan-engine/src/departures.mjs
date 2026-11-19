@@ -105,11 +105,18 @@ export function departuresFrom(
         c.player_tag === tag &&
         ((c.type === "departure" &&
           c.evidence?.left_at &&
-          Math.abs(Date.parse(c.evidence.left_at) - atMs) < DAY_MS) ||
+          Date.parse(c.evidence.left_at) === atMs) ||
           (c.type === "removal" &&
             c.status === "done" &&
             c.decided_at &&
-            Date.parse(c.decided_at) <= atMs + DAY_MS)),
+            Date.parse(c.decided_at) <= atMs &&
+            !(events ?? []).some(
+              (e) =>
+                e.type === "member_joined" &&
+                e.detail?.player_tag === tag &&
+                Date.parse(e.at) > Date.parse(c.decided_at) &&
+                Date.parse(e.at) <= atMs,
+            ))),
     );
   return (events ?? [])
     .filter((e) => e.type === "member_left" && e.detail?.player_tag)

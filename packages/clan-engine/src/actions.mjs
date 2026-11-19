@@ -77,6 +77,10 @@ export const JUDGING_TYPES = new Set(["promotion", "demotion", "removal"]);
 
 /** Name the saved award scope in both the app and its notification. */
 export function actionLabel(action) {
+  if (action.lifecycle?.phase === "sharing")
+    return action.type === "welcome"
+      ? `Share ${action.player_name ?? action.player_tag}’s introduction to clan chat`
+      : `Share ${action.player_name ?? action.player_tag}’s ${{ promotion: "Elder promotion", demotion: "role change", departure: "farewell", removal: "departure" }[action.type]} to clan chat`;
   if (action.type === "awards_announcement" && action.evidence?.season_id) {
     const names = [
       ...new Set((action.evidence.awards ?? []).map((a) => a.name)),
@@ -271,8 +275,7 @@ export function welcomesFrom(
           (c) =>
             c.type === "welcome" &&
             c.player_tag === e.detail.player_tag &&
-            Math.abs(Date.parse(c.evidence?.joined_at) - Date.parse(e.at)) <
-              DAY_MS,
+            Date.parse(c.evidence?.joined_at) === Date.parse(e.at),
         ),
     )
     .map((e) => ({

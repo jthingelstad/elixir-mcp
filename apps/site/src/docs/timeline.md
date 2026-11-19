@@ -12,6 +12,8 @@ callout: ["Read it on your Timeline", "/timeline", "Open your Timeline"]
 
 # The timeline
 
+A new clanmate’s introduction appears in **Clan news** and **All activity**. Friends see the clan they joined and observed promotions on their player Timeline and in Moments. Following the player and clan gives each new stay one item to cheer. Clanmates can read leadership’s farewell or role acknowledgment. Outside followers see a neutral roster departure.
+
 Most tools answer a question you asked. The timeline is the other
 direction: it tells you what happened to the subjects you follow since you
 last looked, newest first like a newsfeed, so a scheduled agent can read

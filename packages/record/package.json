@@ -5,6 +5,7 @@
   "type": "module",
   "description": "The record's data functions over Postgres and its clock, shared by every service: MCP tools and the web app's reads are adapters over these.",
   "exports": {
+    "./clan-lifecycle": "./src/clan-lifecycle.mjs",
     "./player-pair": "./src/player-pair.mjs",
     "./capture-state": "./src/capture-state.mjs",
     "./membership-capture": "./src/membership-capture.mjs",

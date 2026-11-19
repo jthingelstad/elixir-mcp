@@ -644,13 +644,13 @@ export function itemText(it, timeZone = "UTC") {
     case "deck_switched":
       return `${member || subj} switched to ${f.deck ?? "a new deck"} ${SWITCH_PLACE[f.mode] ?? `in ${MODE_WORDS[f.mode] ?? f.mode}`}: ${plural(f.battles, "battle")}, ${plural(f.wins, "win")}.`;
     case "member_joined":
-      return `${f.name ?? f.player_tag} joined ${subj}${f.role ? ` as ${roleWord(f.role)}` : ""}.`;
+      return `${f.name ?? f.player_tag} joined ${(it.subjects ?? []).find((s) => s.kind === "clan")?.name ?? subj}${f.role ? ` as ${roleWord(f.role)}` : ""}.${f.roster_size_after > 0 ? ` The clan has ${f.roster_size_after} members.` : ""}`;
     // The roster sees only that a member went, never whether they left or
     // were removed (Jamie, 2026-10-10: a kick is "was removed", never
     // "left", wherever the timeline is told), so the roster's own item
     // says neither; a leader's departure_classified says which.
     case "member_left":
-      return `${f.name ?? f.player_tag} departed ${subj}${f.role_at_departure ? ` (was ${roleWord(f.role_at_departure)})` : ""}.`;
+      return `${f.name ?? f.player_tag} departed ${(it.subjects ?? []).find((s) => s.kind === "clan")?.name ?? subj}${f.role_at_departure ? ` (was ${roleWord(f.role_at_departure)})` : ""}.`;
     case "member_role_changed": {
       // Rows written before 3.0.0 carry no direction; the roles say it.
       const rank = { member: 0, elder: 1, coLeader: 2, leader: 3 };
