@@ -22,32 +22,31 @@ function variant(before, after, names) {
     !validDeck(before) ||
     !validDeck(after) ||
     before.tower_troop_id !== after.tower_troop_id ||
-    ![before, after].every(
-      (d) =>
-        d.card_forms?.length === 8 &&
-        d.card_forms.every(Number.isInteger) &&
-        d.card_ids.every((id) => names.has(id)),
-    )
+    ![before, after].every((d) => d.card_ids.every((id) => names.has(id)))
   )
     return null;
+  const knownForms = [before, after].every(
+    (d) => d.card_forms?.length === 8 && d.card_forms.every(Number.isInteger),
+  );
   const prior = new Map(
-    before.card_ids.map((id, i) => [id, before.card_forms[i]]),
+    before.card_ids.map((id, i) => [id, before.card_forms?.[i]]),
   );
   const lost = before.card_ids.filter((id) => !after.card_ids.includes(id));
   const added = after.card_ids.filter((id) => !prior.has(id));
   const changed = after.card_ids.filter(
-    (id, i) => prior.has(id) && prior.get(id) !== after.card_forms[i],
+    (id, i) =>
+      prior.has(id) && knownForms && prior.get(id) !== after.card_forms[i],
   );
   const label = (id, bits) =>
     bits ? names.get(id) + " (" + formName(bits) + ")" : names.get(id);
   let change;
   if (lost.length === 1 && added.length === 1 && !changed.length) {
-    change = `Kept seven cards in ${modes[after.type]}, switching from ${label(lost[0], prior.get(lost[0]))} to ${label(added[0], after.card_forms[after.card_ids.indexOf(added[0])])}.`;
+    change = `Kept seven cards in ${modes[after.type]}, switching from ${label(lost[0], prior.get(lost[0]))} to ${label(added[0], after.card_forms?.[after.card_ids.indexOf(added[0])])}.`;
   } else if (!lost.length && !added.length && changed.length === 1) {
     const id = changed[0];
     change = `Kept all eight cards in ${modes[after.type]} and switched ${names.get(id)} from ${formName(prior.get(id))} to ${formName(after.card_forms[after.card_ids.indexOf(id)])}.`;
   } else return null;
-  const cards = (d) => d.card_ids.map((id, i) => label(id, d.card_forms[i]));
+  const cards = (d) => d.card_ids.map((id, i) => label(id, d.card_forms?.[i]));
   return {
     at: after.battle_time,
     text: change,
