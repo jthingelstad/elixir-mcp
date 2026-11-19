@@ -130,7 +130,8 @@ only beside the others is a race to fix, never one to rerun past.
 The journeys: when `git diff --name-only origin/main...HEAD | sh
 infra/scripts/e2e-needed.sh` prints `true`, also `npm run e2e` (set
 `ELIXIR_E2E_PORT` if 4321 is taken). CI runs them on the same answer, and
-on every push to main. Node 24 (`.node-version`): a run on another major
+on a push to main when what changed since main's newest green commit
+reaches them (`infra/scripts/lib/push-plan.mjs`). Node 24 (`.node-version`): a run on another major
 warns that it is not a pass on 24.
 
 ## Commit

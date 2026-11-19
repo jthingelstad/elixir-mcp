@@ -28,37 +28,51 @@ jobs:
   # and the `test` shards run the same runner verify runs
   # (infra/scripts/test.mjs), each its share of the workspaces by measured
   # time. The journeys run beside them. A pull request runs the journeys
-  # only when it touches what they serve (infra/scripts/e2e-needed.sh); a
-  # push to main always runs them. A skipped job would count as passing
-  # for a required check, so `validate` always runs and checks each
-  # result itself.
+  # only when it touches what they serve (infra/scripts/e2e-needed.sh). A
+  # push to main (2026-11-19, a kinder CI; infra/scripts/lib/push-plan.mjs)
+  # runs nothing more when its tree is a merged pull request head that
+  # already passed, which the deploy gate accepts as it is; otherwise it
+  # runs everything, and the journeys when what changed since main's
+  # newest green commit reaches them. A skipped job would count as
+  # passing for a required check, so `validate` always runs and checks
+  # each result itself.
   changes:
     name: changes
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      pull-requests: read
+      checks: read
     outputs:
+      run: ${{ steps.decide.outputs.run }}
       e2e: ${{ steps.decide.outputs.e2e }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
           fetch-depth: 0
+      - if: github.event_name != 'pull_request'
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .node-version
       - id: decide
         env:
           EVENT: ${{ github.event_name }}
           BASE: ${{ github.event.pull_request.base.sha }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           if [ "$EVENT" = pull_request ]; then
             e2e="$(git diff --name-only "$BASE" HEAD | sh infra/scripts/e2e-needed.sh)"
+            echo "run: true, e2e: $e2e"
+            { echo run=true; echo "e2e=$e2e"; } >> "$GITHUB_OUTPUT"
           else
-            e2e=true
+            node infra/scripts/push-plan.mjs >> "$GITHUB_OUTPUT"
           fi
-          echo "e2e: $e2e"
-          echo "e2e=$e2e" >> "$GITHUB_OUTPUT"
 
   static:
     name: static
+    needs: changes
+    if: needs.changes.outputs.run == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -93,6 +107,8 @@ jobs:
   # llms.txt links, a missing app shell).
   test:
     name: test (${{ matrix.shard }}/3)
+    needs: changes
+    if: needs.changes.outputs.run == 'true'
     runs-on: ubuntu-latest
     # A shard takes about 2 minutes. Test files end when their handles
     # close (no --test-force-exit since #1052), so a file that leaks one
@@ -139,7 +155,7 @@ jobs:
   e2e:
     name: e2e (${{ matrix.shard }}/3)
     needs: changes
-    if: needs.changes.outputs.e2e == 'true'
+    if: needs.changes.outputs.run == 'true' && needs.changes.outputs.e2e == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -182,11 +198,17 @@ jobs:
     steps:
       - env:
           CHANGES: ${{ needs.changes.result }}
+          RUN: ${{ needs.changes.outputs.run }}
           WANT_E2E: ${{ needs.changes.outputs.e2e }}
           STATIC: ${{ needs.static.result }}
           TEST: ${{ needs.test.result }}
           E2E: ${{ needs.e2e.result }}
         run: |
-          echo "changes: $CHANGES, static: $STATIC, test: $TEST, e2e: $E2E (wanted: $WANT_E2E)"
+          echo "changes: $CHANGES, static: $STATIC, test: $TEST, e2e: $E2E (run: $RUN, wanted: $WANT_E2E)"
+          # Main's tree is a pull request head that already passed.
+          if [ "$CHANGES" = success ] && [ "$RUN" = false ]; then
+            test "$STATIC" = skipped && test "$TEST" = skipped && test "$E2E" = skipped
+            exit
+          fi
           test "$CHANGES" = success && test "$STATIC" = success && test "$TEST" = success || exit 1
           if [ "$WANT_E2E" = true ]; then test "$E2E" = success; else test "$E2E" = skipped; fi
