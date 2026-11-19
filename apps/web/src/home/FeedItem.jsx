@@ -240,6 +240,7 @@ export function FeedItem({
   publicView = false,
   commentEntry = null,
 }) {
+  const { when } = useClock();
   const sitting = SITTINGS.has(it.kind);
   const clan = isClanItem(it);
   const who = subjectOf(it);
@@ -268,7 +269,7 @@ export function FeedItem({
           <small>
             Reported by {it.clan_story.reported_by ?? "clan leadership"} ·{" "}
             <time dateTime={it.clan_story.reported_at}>
-              {new Date(it.clan_story.reported_at).toLocaleDateString()}
+              {when(it.clan_story.reported_at)}
             </time>
             {it.clan_story.reported_only
               ? " · awaiting roster confirmation"

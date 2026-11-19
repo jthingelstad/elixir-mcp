@@ -275,4 +275,27 @@ test("one stay through welcome, promotion, demotion, classified departure and re
     /Welcome back/,
   );
   assert.equal(await card("welcome"), undefined);
+  await ledger.savePolicy(clan, {
+    values: { departures_enabled: true },
+    by: elder,
+  });
+  const before = new Date(time).toISOString();
+  await ledger.putCard(clan, {
+    card_id: "legacy_kick",
+    player_tag: tag,
+    player_name: "Pip",
+    clan_tag: clan,
+    type: "removal",
+    status: "done",
+    raised_at: before,
+    decided_at: before,
+    decided_by: elder,
+  });
+  await roster(null);
+  await life.drain();
+  assert.equal(await card("departure"), undefined);
+  assert.match(
+    (await find(c, seat, "member_left"))[0].clan_story.lines[0],
+    /was removed/,
+  );
 });
