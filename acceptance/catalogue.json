@@ -432,20 +432,6 @@
         }
       ]
     },
-    "elixir_cheers": {
-      "calls": null,
-      "p50_ms": null,
-      "p95_ms": null,
-      "sets": [
-        {
-          "args": {
-            "days": 7
-          },
-          "calls": 0,
-          "seed": "12.0.0: counts of other people's cheers on your primary's items, never who"
-        }
-      ]
-    },
     "players_series": {
       "calls": null,
       "p50_ms": null,

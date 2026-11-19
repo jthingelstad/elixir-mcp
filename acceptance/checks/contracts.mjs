@@ -112,6 +112,24 @@ export const contracts = [
     },
   },
   {
+    id: "personal-cheers-hidden-from-agent",
+    tools: ["elixir_cheers"],
+    run: async (ctx) => {
+      ok(
+        !ctx.tools.has("elixir_cheers"),
+        "The agent catalogue excludes personal cheers.",
+      );
+      const result = await ctx.read("elixir_cheers", { days: 7 });
+      ok(
+        result.isError &&
+          result.body?.error?.rpc_code === -32601 &&
+          !result.body.items,
+        "The agent receives method not found and no reaction counts.",
+      );
+      return { ms: result.ms };
+    },
+  },
+  {
     id: "timeline-canonical-evidence",
     tools: ["elixir_timeline"],
     run: async (ctx) => {

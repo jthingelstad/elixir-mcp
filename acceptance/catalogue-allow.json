@@ -100,27 +100,5 @@
     "role_before": "On members[].role_changes[] (full verbosity) only when a member's role changed inside the window; a quiet window has none, so requiring it made the docs audit pass or fail by what the clan's leaders did (2026-11-17). packages/tools/test/participation-history.test.mjs pins the change's fields on scratch roster reads.",
     "role_after": "same as role_before",
     "window_start": "same as role_before: the change's bracket, on role_changes[] only"
-  },
-  "elixir_cheers": {
-    "well_played": "A cheer id (docs/timeline#cheers, the table of the twenty): an item's cheers hold a kind's key only when someone gave that cheer in the window, so which ids a run sees is the day's data. services/web-api/test/cheers-rss.test.mjs stores and counts every id on scratch cheers, and elixir_cheers counts any id in CHEER_KEYS (packages/tools/src/activity/cheers.mjs). Never manufacture a live cheer for acceptance.",
-    "on_fire": "same as well_played",
-    "royal": "same as well_played",
-    "wow": "same as well_played",
-    "ha": "same as well_played",
-    "grind": "same as well_played",
-    "love_it": "same as well_played",
-    "good_game": "same as well_played",
-    "congrats": "same as well_played",
-    "clutch": "same as well_played",
-    "high_five": "same as well_played",
-    "champion": "same as well_played",
-    "nailed_it": "same as well_played",
-    "climbing": "same as well_played",
-    "big_brain": "same as well_played",
-    "ice_cold": "same as well_played",
-    "close_one": "same as well_played",
-    "lucky": "same as well_played",
-    "fun_to_watch": "same as well_played",
-    "getting_better": "same as well_played"
   }
 }
