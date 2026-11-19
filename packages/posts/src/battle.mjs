@@ -109,7 +109,6 @@ export function battleOfRow(r, links) {
       url: links.get(r.battle_id)?.url ?? null,
       battle_time: iso(r.battle_time),
       mode_group: modeGroupOf(r.type, r.event_tag),
-      ...(r.event_tag ? { event_tag: r.event_tag } : {}),
       game_mode: r.game_mode_name ?? null,
       outcome: r.outcome ?? null,
       crowns: r.crowns ?? null,
@@ -150,5 +149,11 @@ export async function battlePostFacts(db, itemIds) {
     db,
     rows.map((r) => r.battle_id),
   );
-  return new Map(rows.map((r) => [r.item_id, battleOfRow(r, links)]));
+  return new Map(
+    rows.map((r) => {
+      const facts = battleOfRow(r, links);
+      if (r.event_tag) facts.battle.event_tag = r.event_tag;
+      return [r.item_id, facts];
+    }),
+  );
 }

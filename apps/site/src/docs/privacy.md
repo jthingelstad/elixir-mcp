@@ -125,8 +125,8 @@ you as signed in without asking the server. It is never sent anywhere
 ([Your account](/docs/your-account)).
 
 **Counting visits.** Pages use [Tinylytics](https://tinylytics.app), a
-small, cookie-free analytics service, to count visits and errors in
-aggregate. No account is attached to a visit.
+small, cookie-free analytics service, to count visits, errors and use of features in
+aggregate. For example, Elixir can count how often someone opens a friend’s session from a shared event. No account is attached to a visit.
 
 **Services Elixir uses.** Elixir runs on Amazon Web Services in the
 United States, which also delivers its account mail. Buttondown holds
