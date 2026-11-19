@@ -145,10 +145,9 @@ export async function readClanFeed(
     view,
     window_days: FEED_DAYS,
     question_counts: questionCounts,
-    memories:
-      !questionsView && account.kind === "person"
-        ? await clanMemories(db, account.accountId, clanTag, now)
-        : [],
+    ...(!questionsView && account.kind === "person"
+      ? await clanMemories(db, account.accountId, clanTag, now)
+      : { memories: [], tournaments: [] }),
     items: (
       await withTimelineSocial(
         db,

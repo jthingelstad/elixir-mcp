@@ -81,6 +81,10 @@ test("a followed friend's actual pair records keep teammate and opponent evidenc
   assert.equal(response.statusCode, 200, response.body);
   const data = payload(response);
   assert.equal(data.selected_player, READER_TAG);
+  const day = data.modes.find((m) => m.key === "casual").days[0];
+  assert.equal(day.teamed, true);
+  assert.equal(day.wins, 1);
+  assert.match(day.day, /^\d{4}-\d\d-\d\d$/);
   assert.equal(data.modes.find((m) => m.key === "casual").teamed, 1);
   assert.equal(data.modes.find((m) => m.key === "casual").against, 0);
   assert.equal(data.modes.find((m) => m.key === "ladder").against, 1);

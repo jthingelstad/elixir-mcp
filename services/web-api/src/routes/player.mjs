@@ -339,6 +339,47 @@ export async function readSessionPage(
     account.kind === "agent" ? null : account.accountId,
     { comments },
   );
+  const promoted = (read.item.facts?.ranked?.promotions ?? []).map(
+    (p) => p.battle_id,
+  );
+  for (const m of read.marks)
+    if (m.label.startsWith("Promoted to ") || m.label.startsWith("Reached "))
+      promoted.push(m.battle_id);
+  const { rows: switched } = promoted.length
+    ? await db.query(
+        `select bp.battle_id,bp.type from battle_participant bp join battle b using(battle_id)
+      cross join lateral (select prev.deck_hash,h.deck_selection,prev.cards from battle_participant prev join battle h using(battle_id)
+        where prev.player_tag=bp.player_tag and prev.type=bp.type and h.event_tag is null
+          and prev.battle_time<bp.battle_time and prev.battle_time>=bp.battle_time-interval '14 days'
+        order by prev.battle_time desc,prev.battle_id desc limit 1) prior
+      where bp.player_tag=$1 and bp.battle_id=any($2::text[]) and bp.type in ('PvP','pathOfLegend')
+        and bp.outcome='win' and b.event_tag is null and b.deck_selection='collection' and prior.deck_selection='collection'
+        and cardinality(bp.cards)=8 and cardinality(prior.cards)=8 and bp.deck_hash<>prior.deck_hash`,
+        [tag, promoted],
+      )
+    : { rows: [] };
+  for (const g of switched)
+    read.marks.push({
+      battle_id: g.battle_id,
+      label: `Won promotion with a different deck from the previous recorded ${g.type === "PvP" ? "Trophy Road" : "Ranked"} game`,
+    });
+  const battleIds = read.games.battles.map((b) => b.battle_id);
+  const { rows: pairs } =
+    account.kind === "person" && battleIds.length
+      ? await db.query(
+          `select distinct own.player_tag as own_tag,friend.player_tag as friend_tag,p.name
+      from battle b join battle_participant a using(battle_id)
+      join claim own on own.account_id=$1 and own.player_tag=a.player_tag and own.status='verified'
+        and (own.is_primary or own.relationship in ('primary','alt'))
+      join battle_participant f on f.battle_id=b.battle_id and f.player_tag<>a.player_tag
+      join claim friend on friend.player_tag=f.player_tag and friend.account_id=$1 and ${visibleFriendSql("friend")}
+      join player p on p.player_tag=f.player_tag
+      where b.battle_id=any($2::text[]) and $3 in (a.player_tag,f.player_tag)
+        and b.type<>'boatBattle' and b.boat_battle_side is null
+      order by p.name,friend_tag,own_tag`,
+          [account.accountId, battleIds, tag],
+        )
+      : { rows: [] };
   return {
     player: read.player,
     you: {
@@ -352,6 +393,7 @@ export async function readSessionPage(
       can_post: claim?.status === "verified",
     },
     item,
+    pairs,
     games: read.games,
     marks: read.marks,
     // Sharing is an explicit capability request, never an enumerable URL.

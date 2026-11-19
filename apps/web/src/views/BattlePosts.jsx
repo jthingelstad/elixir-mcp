@@ -1,3 +1,4 @@
+import { trackEvent } from "../analytics.js";
 import { useEffect, useId, useState } from "react";
 import { useWrite } from "../client/index.ts";
 import { ConfirmAction, Link, WriteError } from "@elixir-mcp/ui";
@@ -152,7 +153,14 @@ function Compose({ battle, players, nameOf, invalidate }) {
           player_tag: player,
           text: words,
         });
-        if (r.ok) setWords("");
+        if (r.ok) {
+          setWords("");
+          if (
+            new URLSearchParams(window.location.search).get("from") ===
+            "highlight"
+          )
+            trackEvent("play.highlight_post_submitted");
+        }
       }}
     >
       {sourceId ? (

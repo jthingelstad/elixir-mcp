@@ -271,6 +271,18 @@ export function SessionView({
         ) : null}
       </section>
 
+      {!publicView
+        ? data.pairs?.map((pair) => (
+            <p key={pair.friend_tag + pair.own_tag}>
+              <Link
+                data-tinylytics-event="play.together_open"
+                to={`${playerHref(pair.friend_tag)}?tab=together&as=${encodeURIComponent(pair.own_tag)}`}
+              >
+                Your games with {pair.name ?? pair.friend_tag}
+              </Link>
+            </p>
+          ))
+        : null}
       {publicView ? <JoinLine /> : null}
 
       {item.id && !publicView ? (
@@ -350,7 +362,9 @@ export function SessionView({
                   }
                   marks={marks.get(b.battle_id) ?? []}
                   postTo={
-                    !publicView && you?.can_post && url ? `${url}#post` : null
+                    !publicView && you?.can_post && url
+                      ? `${url}${marks.has(b.battle_id) ? "?from=highlight" : ""}#post`
+                      : null
                   }
                   linked={!publicView}
                 />

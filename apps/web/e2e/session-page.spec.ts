@@ -120,6 +120,16 @@ for (const [label, width, tag] of [
     ).toHaveCount(0);
     // An opponent opens their page; a game opens its battle, and your own
     // verified player's game offers Post one tap away.
+    await expect(
+      page.getByRole("link", { name: "Your games with Ada" }),
+    ).toHaveAttribute(
+      "href",
+      "/home/player/00C298UC?tab=together&as=%2320JJJ2CCRU",
+    );
+    const marked = rows.filter({ hasText: "5th win in a row" });
+    await expect(
+      marked.getByRole("link", { name: /^Post about/ }),
+    ).toHaveAttribute("href", /\?from=highlight#post$/);
     const first = rows.first();
     await expect(first.locator(".kit-sgame__name").first()).toHaveAttribute(
       "href",
