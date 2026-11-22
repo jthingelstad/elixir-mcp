@@ -67,7 +67,7 @@ your friends' Ranked play.
 - **War** is River Race battles and your clan's race results.
 - A moment about one mode sits under it: a new Arena or best trophies
   under Trophy Road, a league up under Ranked, a challenge run under
-  Casual. A post with a battle sits under that battle's mode.
+  Casual, a big week under its mode. A post with a battle sits under that battle's mode.
 - Things that aren't about one mode (badges, cards, levels, joining or
   leaving a clan, a post without a battle) show only under **All modes**.
 
@@ -267,6 +267,21 @@ their clan:
   in Season 131, week 2, for 3,200 points." It's the whole week, never a
   day, and points, never fame. A week with no deck played says nothing.
   When several friends' weeks close together, they fold into one row.
+
+### A big week
+
+When a game week ends (Monday, at the game's 10:00 UTC reset), a player you
+follow, or you, can get a line about it:
+
+- "Pip won 62% of 26 Trophy Road battles in the week to Nov 23, up from
+  48% over the 4 weeks before."
+- It shows when the week's win rate in one mode is at least 10 points above
+  the 4 weeks before it, with at least 10 battles won or lost on each side.
+  Draws and boat battles don't count.
+- Only a rise shows up. A slower week never does.
+- One mode a week: if a few modes went up, it's the one with the most
+  battles that week. Modes are never added together.
+- Tap **See stats** to open that player's Stats in that mode.
 
 ### Getting set up
 
