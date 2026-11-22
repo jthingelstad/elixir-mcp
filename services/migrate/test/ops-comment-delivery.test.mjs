@@ -77,6 +77,7 @@ test("names each bell condition a comment passes, and no body", async () => {
   assert.equal(fresh.in_window, true);
   assert.equal(fresh.after_seen, true);
   assert.equal(fresh.blocked, false);
+  assert.equal(fresh.post_ok, true);
   assert.equal(ownerless.owner_set, false);
   assert.equal(old.receipt_allowed, false);
   assert.equal(old.in_window, false);

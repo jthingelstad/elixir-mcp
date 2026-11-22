@@ -12,6 +12,7 @@
  *   - `receipt_allowed`: the item allowed a receipt when it was written
  *     (not a clan story; public or player visibility)
  *   - `visible`: the comment's status is `visible`
+ *   - `post_ok`: not on a post, or on a visible post of the owner's
  *   - `audience_ok`: no clan audience, or the owner sits in that clan now
  *   - `blocked`: a block stands between author and owner
  *   - `reported`: the owner has an open report on it
@@ -54,6 +55,7 @@ export async function commentDeliveryOp(databaseUrl, spec = {}) {
               tc.owner_is_account, tc.receipt_allowed,
               tc.audience_clan is not null as has_audience,
               p.post_id is not null as on_post,
+              (p.post_id is null or (p.status = 'visible' and p.account_id = tc.owner_account_id)) as post_ok,
               (case when tc.owner_is_account
                     then p.post_id is not null and p.account_id = tc.owner_account_id
                     else exists (select 1 from claim own
