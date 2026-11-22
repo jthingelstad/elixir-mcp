@@ -11,6 +11,7 @@ import { isActiveEmailKind, inactiveEmailReason } from "@elixir-mcp/contracts";
  *  sweep_operational: true} · {sweep_operational: true} ·
  *  {archetype_stamp: true} · {capture_efficiency: true} ·
  *  {shape_census: true} · {retention_trim: true} ·
+ *  {week_form: true | {week_start, after?}} ·
  *  {email: "<kind>", account_id?, force?}.
  *  Retired editorial payloads refuse before I/O. */
 
@@ -28,6 +29,7 @@ import {
   homeWeekWake,
 } from "@elixir-mcp/tools/activity/home-feed";
 import { runFeedbackAnswers } from "./email/feedback-answers.mjs";
+import { runWeekForm } from "./week-form.mjs";
 import { runActivityMail } from "./email/activity-today.mjs";
 import { runCollectorUpgrades } from "./email/collector-upgrades.mjs";
 import { runEmail } from "./email/index.mjs";
@@ -377,6 +379,7 @@ export function eventOps(event) {
   if (event?.web_push) ops.push("web_push");
   if (typeof event?.email === "string") ops.push("email");
   if (event?.retention_trim) ops.push("retention_trim");
+  if (event?.week_form) ops.push("week_form");
   if (event?.shape_census) ops.push("shape_census");
   if (event?.capture_efficiency) ops.push("capture_efficiency");
   if (event?.public_stats) ops.push("public_stats");
@@ -519,6 +522,20 @@ async function dispatch(event) {
       remainingMs: runRemainingMs,
     });
     console.log(JSON.stringify({ retention_trim: result }));
+    return result;
+  }
+  // A week's form (0311): the Monday 16:15Z rule stores the readings of
+  // the game week that closed at 10:00Z, once its grace has passed.
+  if (event?.week_form) {
+    const result = await runWeekForm(process.env.DATABASE_URL, {
+      spec: event.week_form === true ? null : event.week_form,
+      remainingMs: runRemainingMs,
+    });
+    console.log(JSON.stringify({ week_form: result }));
+    if (result.incomplete)
+      throw new Error(
+        `week_form_incomplete: ${result.players} players to ${result.after}`,
+      );
     return result;
   }
   if (event?.shape_census) {
