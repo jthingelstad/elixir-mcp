@@ -30,6 +30,7 @@
     "./standings-sql": "./src/standings-sql.mjs",
     "./war-clock": "./src/war-clock.mjs",
     "./war-membership": "./src/war-membership.mjs",
+    "./win-rate-sql": "./src/win-rate-sql.mjs",
     "./attested-facts": "./src/attested-facts.mjs",
     "./event-origin": "./src/event-origin.mjs",
     "./retention": "./src/retention.mjs",
