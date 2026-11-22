@@ -799,7 +799,8 @@ describe("the 15.2.0 rows: close games, three-crowned against, the longest win s
       "1 win in a row",
       "5 wins in a row",
     ]);
-    expect(rows[3].cells[0].count).toBe("30 battles");
+    // Over every won and lost battle, as the tool reads the streak.
+    expect(rows[3].cells[0].count).toBe("31 battles");
     expect(JSON.stringify(rows)).not.toMatch(/better|worse|improv|good|bad/i);
   });
   test("the season's table carries them before Decks played; a side without them drops the row", () => {

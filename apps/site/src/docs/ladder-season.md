@@ -69,7 +69,8 @@ and it shows the tool's own numbers, each with the battles it is over:
 - **Three-crowned against**: how often your opponent took all three of
   your towers, over head-to-head battles.
 - **Longest win streak**: your longest run of wins in a row among the
-  side's decided battles, in battle order. A streak running into the
+  side's won and lost battles, in battle order. Boat battles count, as
+  they do for your current streak. A streak running into the
   stretch from before it counts only its wins inside.
 
 A side needs at least **10 battles** before it is set beside the other.
