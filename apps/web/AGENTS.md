@@ -67,7 +67,8 @@ behaviour is in `apps/site/src/docs/`, not here.
 ## The Timeline and the shell
 
 `src/home/` is the Timeline (`/timeline`, one feed), Find (`/home/find`),
-Profile (`/home/you`, your own account page with Your stats, since 2026-11-15) and the
+Profile (`/home/you`, your own account page with Your stats, since 2026-11-15; Stats is
+also a tab of its own since 2026-11-22) and the
 player page (`/home/player/<tag>`), and
 `src/shell/Shell.jsx` is the top bar, bottom tabs and footer every page wears,
 with the bell (`src/shell/Bell.jsx`, its logic `bell-logic.js`, its read

@@ -16,9 +16,9 @@ callout: ["Open it at Stats › Season", "/home/you/stats", "Open Stats"]
 The game forgets: its battle log holds roughly your last 30 battles. Elixir keeps
 every battle it records, and **Stats**, at `/home/you/stats`, reads that record
 back to you as a season: what you played, in which mode, and how it went.
-Open it from **Profile**, your own account page (the account menu on a wide
-screen, a tab on a phone), with **Your stats**; its tabs lead back to Profile.
-It is signed in like your Timeline. A bar at the top says whose
+Tap **Stats** in the tabs (at the foot on a phone, in the top bar on a wide
+screen). **Your stats** on your Profile opens it too. It is signed in like
+your Timeline. A bar at the top says whose
 season, which season and which mode you are reading; four tabs under it are
 the pages: **Season**, **Battles**, **Decks** and **Cards**.
 

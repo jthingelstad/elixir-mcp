@@ -50,7 +50,8 @@ public"). An agent has no Timeline page; it reads the same timeline over MCP.
 
 ## What it holds
 
-The product tabs are Timeline, Find, Clan and Profile, with search, Help
+The product tabs are Timeline, Find, Stats, Clan and Profile (Stats since
+2026-11-22, DECISIONS "Stats is a tab of its own"), with search, Help
 and the bell (Notifications) in the top bar; on a phone they are tabs at the
 foot. The bell is in the top bar next to the avatar at every width, never a
 tab. [Jamie, 2026-11-17, "Notifications is a dropdown by your avatar"] The

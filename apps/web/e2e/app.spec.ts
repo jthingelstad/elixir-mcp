@@ -688,10 +688,11 @@ test.describe("signed in", () => {
       "aria-current",
       "page",
     );
-    for (const name of ["Find", "Clan", "Profile"])
+    for (const name of ["Find", "Stats", "Clan", "Profile"])
       await expect(tabs.getByRole("link", { name })).toBeVisible();
-    // Four tabs: the bell is in the bar beside the account (2026-11-17).
-    await expect(tabs.locator("a, button")).toHaveCount(4);
+    // Five tabs (Stats since 2026-11-22): the bell is in the bar beside the
+    // account (2026-11-17).
+    await expect(tabs.locator("a, button")).toHaveCount(5);
     await expect(
       page.locator(".kit-top").getByRole("button", { name: /^Notifications/ }),
     ).toBeVisible();

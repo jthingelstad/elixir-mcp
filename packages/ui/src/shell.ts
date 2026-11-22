@@ -77,10 +77,11 @@ export interface ShellTab {
 }
 
 /** The places a signed-in reader moves between, in order (slice 7, #765:
- *  Timeline, Find, Clan, Profile since 2026-11-17). The phone draws all
- *  four; the top bar draws all but Profile, which is its avatar. The bell
- *  is no tab: it is in the bar beside the avatar at every width
- *  (2026-11-17). Stats is a product, not a tab: Profile leads to it. */
+ *  Timeline, Find, Clan, Profile since 2026-11-17; Stats between Find and
+ *  Clan since 2026-11-22, a player's ask: "make a separate tab for that").
+ *  The phone draws all five; the top bar draws all but Profile, which is
+ *  its avatar. The bell is no tab: it is in the bar beside the avatar at
+ *  every width (2026-11-17). */
 export const SHELL_TABS: ReadonlyArray<ShellTab> = manifest.tabs.map((t) => ({
   ...t,
   icon: t.icon as IconName,

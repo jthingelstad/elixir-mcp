@@ -25,11 +25,11 @@ import { Pending } from "../stats/Pending.jsx";
 import { Decks } from "../stats/Decks.jsx";
 import { StatsFrame } from "../stats/ScopeBar.jsx";
 import { Season } from "../stats/Season.jsx";
-import { YouTabs } from "../home/You.jsx";
 import { Whose, whoseWords } from "../stats/whose.js";
 
 /**
- * You › Stats (2026-11-12; Ladder, at /ladder until then), under You's tabs.
+ * Stats, a tab of its own (2026-11-22; You's last tab from 2026-11-12, and
+ * Ladder, at /ladder, before that).
  * STATS/{page}: whose season (`?player=`, one of yours, the primary by
  * default), which game (`?mode=`, else the mode played most) and which
  * season (`?season=`, else the current one, or the last with battles
@@ -44,15 +44,13 @@ export function StatsPage() {
   const { search } = useLocation();
   const players = statsPlayers(me?.claims, search?.player);
   const player = pickPlayer(players, search?.player);
-  // A player you follow is theirs, not yours: no You tabs above it, a way
-  // back to their player page, and "their" where your own says "your".
+  // A player you follow is theirs, not yours: a way back to their player
+  // page above it, and "their" where your own says "your".
   const own = !player || isOwnClaim(player);
   return (
     <Whose.Provider value={whoseWords(own)}>
       <div className="kit-you-stats">
-        {own ? (
-          <YouTabs />
-        ) : (
+        {own ? null : (
           <nav className="kit-you-stats__back" aria-label="Whose stats">
             <Link to={playerHref(player.player_tag)}>
               <Icon name="chevron-left" size={16} />

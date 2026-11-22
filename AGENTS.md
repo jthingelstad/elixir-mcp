@@ -13,7 +13,7 @@ official API is current-state only), served on one origin,
 | `/signin` | signing in | `apps/web` |
 | `/settings` | Settings: your account and agents, with its left rail; Admin (`/settings/admin/*`) for staff | `apps/web` |
 | `/console`, `/ladder`, `/data/service` | nothing: the Console folded on 2026-11-12 and its old addresses stopped forwarding on 2026-11-13 (Jamie: "It is fine to break url support"); CloudFront has no behaviour for them, so they are the site's 404 | none |
-| `/home/you/stats` | Stats (Ladder until 2026-11-12): your season, read back, Profile's last tab | `apps/web/src/stats` |
+| `/home/you/stats` | Stats (Ladder until 2026-11-12): your season, read back, a tab of its own since 2026-11-22 | `apps/web/src/stats` |
 | `/clan`, `/api/clan` | Clan, a part of Elixir: running a clan on its policy | `packages/clan*` |
 | `/battle/<id>` | a member battle page; anonymous reads 404 | `services/web-api` |
 | `/share/<id>` | one public-safe Timeline item through an opaque capability | `services/web-api` |

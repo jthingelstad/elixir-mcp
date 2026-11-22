@@ -238,8 +238,8 @@ export function barArea(path, me = null) {
   if (clean === YOU) return "you";
   if (BATTLE_PATH.test(path)) return undefined;
   if (isHome(path)) return "home";
-  // Stats is You's last tab (2026-11-12).
-  if (isStats(path)) return "you";
+  // Stats is a tab of its own (2026-11-22; You's last tab before).
+  if (isStats(path)) return "stats";
   if (isClan(path)) return "clan";
   return undefined;
 }

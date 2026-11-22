@@ -730,7 +730,7 @@ test(
         a.getAttribute("href"),
       ]);
     // The bar's places are the tabs the bar shows (slice 7, #765: Home,
-    // Find, Clan); the phone has all four, and the bell after them.
+    // Find, Stats, Clan); the phone has all five, and the bell after them.
     const places = kit.SHELL_TABS.filter((t) => t.bar !== false).map((t) => [
       t.label,
       t.path,
@@ -782,7 +782,7 @@ test(
     const bell = site.querySelector('.kit-bell[data-session-face="in"]');
     assert.equal(bell.getAttribute("href"), kit.SHELL_PLACES.bell.staticPath);
     assert.equal(bell.getAttribute("aria-label"), kit.SHELL_PLACES.bell.label);
-    // The phone's tabs are the signed-in face only, and are the app's four:
+    // The phone's tabs are the signed-in face only, and are the app's five:
     // the bell is in the bar beside the avatar at every width (2026-11-17).
     assert.deepEqual(
       hrefs('nav.kit-bottom[data-session-face="in"] a'),

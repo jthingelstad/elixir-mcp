@@ -4818,7 +4818,7 @@ a.card-art:hover .card-art__img {
   gap: var(--s-4);
   min-width: 0;
 }
-/* You › Stats (2026-11-12): You's tabs over Stats' own frame. */
+/* Stats (a tab of its own since 2026-11-22): its head over its own frame. */
 .stats-group {
   margin: var(--s-2) 0 -4px;
   font-size: var(--t-h2);
@@ -6712,7 +6712,7 @@ button.kit-row {
   display: flex;
   gap: var(--s-1);
 }
-/* Signed in, these are the app's three places: tabs with the phone's icons,
+/* Signed in, these are the app's four places: tabs with the phone's icons,
    set off from the brand and standing the full height of the bar. Signed out,
    .kit-top__out stays plain site links, because that is what they are. */
 .kit-top__nav {
@@ -10106,7 +10106,7 @@ a.kit-bell__hit:focus-visible::after {
     left: 0;
     z-index: 25;
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(5, 1fr);
     background: var(--ground-chrome);
     box-shadow: 0 -1px 0 var(--line-soft);
     padding: 0 env(safe-area-inset-right) env(safe-area-inset-bottom)
@@ -11295,13 +11295,19 @@ a.kit-bell__hit:focus-visible::after {
     padding: var(--s-2);
     min-height: var(--hit);
   }
-  .kit-top__search span {
+  .kit-top__search span,
+  .kit-top__nav .kit-top__label {
     position: absolute;
     width: 1px;
     height: 1px;
     overflow: hidden;
     clip-path: inset(50%);
     white-space: nowrap;
+  }
+  /* The places keep their icons and names (the name is the link's name)
+     with four of them since Stats joined (2026-11-22). */
+  .kit-top__nav a {
+    padding: 0 var(--s-2);
   }
 }
 .kit-top__search {
@@ -12115,9 +12121,6 @@ html[data-session-player="verified"] .chrome__avatar--hint {
 .kit-find > .kit-tabs,
 .stats-head.kit-head,
 .stats-page > .kit-tabs,
-.kit-you-stats > .kit-tabs {
-  margin-bottom: 0;
-}
 /* Shared phone controls: readable fields and one 44px control rhythm. */
 .docs-task__links a {
   display: inline-flex;

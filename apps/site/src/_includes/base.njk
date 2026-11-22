@@ -72,7 +72,7 @@
           </nav>
           <nav class="kit-top__nav" data-session-face="in" aria-label="Main">
             {%- for tab in shell.tabs %}{% if tab.bar != false %}
-            <a href="{{ tab.path }}">{% chromeIcon tab.icon, 18 %}{{ tab.label }}</a>
+            <a href="{{ tab.path }}">{% chromeIcon tab.icon, 18 %}<span class="kit-top__label">{{ tab.label }}</span></a>
             {%- endif %}{% endfor %}
           </nav>
           <a class="kit-top__search" data-session-face="in" href="{{ shell.search.staticPath }}">

@@ -93,7 +93,7 @@ has the details.
 
 ## See how you play
 
-**Profile** is your own account page. Its **Your stats** opens [Stats](/home/you/stats), your
+Tap **Stats** in the tabs for [your stats](/home/you/stats): your
 season, one game mode at a time ([how to read it](/docs/ladder)). Every
 player page also has a **Record** tab: the saved profile and the last 30 days.
 
