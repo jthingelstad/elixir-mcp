@@ -13,7 +13,7 @@ test("historical participation is lossless and previous Lambda writes join durin
     const people = await postFixture(ctx.db, "conversation-migration");
     const post = await people.post();
     await ctx.db.query(
-      "drop trigger join_comment_conversation on timeline_comment; drop function join_comment_conversation(); drop table comment_conversation_read; drop table comment_conversation",
+      "drop trigger join_comment_conversation_restored on timeline_comment; drop trigger join_comment_conversation on timeline_comment; drop function join_comment_conversation(); drop table comment_conversation_read; drop table comment_conversation",
     );
     const insert = async (at) =>
       (
