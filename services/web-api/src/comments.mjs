@@ -474,6 +474,8 @@ export async function commentsOnItem(
     open: open.get(item.id) === true,
     next_before: next,
     anchored: Boolean(anchor),
+    // Your own item: reading it read its comments in your bell too.
+    yours: Boolean(target.owner) && target.owner === readerId,
   };
 }
 
@@ -648,6 +650,14 @@ async function postChecked(db, readerId, item, raw, comments, target) {
       item.clan_story?.clan_tag ?? null,
     ],
   );
+  // The insert's trigger joined the item's owner to the conversation
+  // (0312); give that row the item's locator so it opens the exact item.
+  if (target.owner && target.owner !== readerId && target.receipt)
+    await db.query(
+      `update comment_conversation set item_ref = $3::jsonb
+        where account_id = $1 and item_id = $2 and item_ref is null`,
+      [target.owner, item.id, JSON.stringify(timelineItemRef(item))],
+    );
   const { rows: back } = await db.query(
     `select ${COMMENT_COLS} from timeline_comment tc ${AUTHOR_JOIN}
       where tc.comment_id = $1`,

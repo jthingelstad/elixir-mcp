@@ -8,6 +8,7 @@ import { battlePostRows } from "../../../packages/posts/src/battle.mjs";
 import { buildTimeline } from "../../../packages/tools/src/activity/entries.mjs";
 import { readPostTimeline } from "../../../packages/tools/src/activity/posts.mjs";
 import { readBell } from "../src/bell.mjs";
+import { readConversations } from "../src/conversations.mjs";
 import { readFile } from "node:fs/promises";
 import {
   commentsOnItem,
@@ -319,7 +320,8 @@ test("post replies coalesce with unread counts, distinguish answers and preserve
   });
   const answer = bell.comments.items.find((c) => c.post_id === question.id);
   assert.equal(answer.count, 2);
-  assert.equal(answer.unread_count, 1);
+  // Nothing read yet: opening the bell never reads a comment (2026-11-22).
+  assert.equal(answer.unread_count, 2);
   assert.equal(answer.question, true);
   assert.equal(answer.new, true);
   assert.equal(answer.text, "Latest answer");
@@ -347,9 +349,21 @@ test("post replies coalesce with unread counts, distinguish answers and preserve
     comments: true,
     posts: true,
   });
-  assert.equal(seen.comments.new, 0);
+  assert.equal(seen.comments.new, 2, "the bell opened, nothing read");
+  // The owner opens each thread: that is what reads its comments.
+  for (const p of [question, normal])
+    await commentsOnItem(scratch.db, owner, {
+      id: p.item_id,
+      kind: "post",
+      subjects: [{ kind: "player", tag: TAG }],
+    });
+  const read = await readBell(scratch.db, owner, {
+    comments: true,
+    posts: true,
+  });
+  assert.equal(read.comments.new, 0);
   assert.equal(
-    seen.comments.items.find((c) => c.post_id === question.id).count,
+    read.comments.items.find((c) => c.post_id === question.id).count,
     2,
   );
   await comment(question, "A later answer", 0);
@@ -714,5 +728,57 @@ test("a denied battle post cannot reopen its thread through an older game projec
       })
     ).kind,
     "member_joined",
+  );
+});
+
+test("someone else's comment joins the item's owner to its conversation: unread in My conversations, new in the bell until the thread is opened (Jamie, 2026-11-22)", async () => {
+  const db = scratch.db;
+  const p = await post(900, false, 30);
+  const item = {
+    id: p.item_id,
+    kind: "post",
+    subjects: [{ kind: "player", tag: TAG }],
+  };
+  const row = async () =>
+    (
+      await readBell(db, owner, { comments: true, posts: true })
+    ).comments.items.find((c) => c.post_id === p.id);
+  await comment(p, "First on the new post", 5);
+  assert.equal((await row()).new, true);
+  const mine = (await readConversations(db, owner, { posts: true })).items.find(
+    (c) => c.item_id === p.item_id,
+  );
+  assert.ok(mine, "the owner's thread is in My conversations");
+  assert.equal(mine.unread, 1);
+  // Opening the bell is not reading the comment.
+  await db.query(
+    `insert into bell_seen(account_id,seen_at) values($1,now())
+     on conflict(account_id) do update set seen_at=now()`,
+    [owner],
+  );
+  assert.equal((await row()).new, true);
+  // Someone else reading the thread moves nothing of the owner's.
+  await commentsOnItem(db, other, item);
+  assert.equal((await row()).new, true);
+  // The owner reading it does.
+  const read = await commentsOnItem(db, owner, item);
+  assert.equal(read.yours, true);
+  assert.equal((await row()).new, false);
+  assert.equal((await row()).unread_count, 0);
+  const firstId = read.comments.at(-1).id;
+  // A newer comment is new again; a read that serves only the older one
+  // leaves it new and the mark where it was.
+  await comment(p, "Second on the new post", 0);
+  assert.equal((await row()).unread_count, 1);
+  await commentsOnItem(db, owner, item, { around: firstId });
+  assert.equal((await row()).unread_count, 1);
+  assert.ok((await row()).unread_since, "the link's after is the mark");
+  await commentsOnItem(db, owner, item);
+  assert.equal((await row()).new, false);
+  assert.equal(
+    (await readConversations(db, owner, { posts: true })).items.find(
+      (c) => c.item_id === p.item_id,
+    ).unread,
+    0,
   );
 });

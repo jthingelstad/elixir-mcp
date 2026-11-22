@@ -244,17 +244,35 @@ export function mergeAccountLines(lines, stamps) {
  *  place comments reach you (DECISIONS "Comments, checked before they
  *  post"): the activity mail and push (tools activity/bell.mjs
  *  readAwayActivity) carry cheers and follows only. The words are hostile
- *  input, escaped wherever they are shown. */
-async function readComments(db, accountId, seen) {
+ *  input, escaped wherever they are shown. Since 2026-11-22 (Jamie) a
+ *  comment by someone else joins you to the item's conversation (0312), and
+ *  it is new here exactly while it is unread there: after your read
+ *  position and not read past an unread gap, as My conversations counts
+ *  (conversations.mjs readConversations). Opening the bell reads nothing;
+ *  opening the thread does (conversation-state readConversationThrough).
+ *  A game comment's row carries the conversation's item locator, when it
+ *  has one, so it opens the thread itself. */
+async function readComments(db, accountId) {
   const { rows } = await db.query(
     `with visible as (
        select tc.*, p.post_id::text as post_id, p.question,
+              cc.item_ref as conversation_ref,
+              to_char(cc.read_at at time zone 'UTC',
+                      'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') as read_at_text,
+              cc.read_comment_id::text as read_id,
+              (cc.account_id is null or ((tc.created_at, tc.comment_id)
+                 > (cc.read_at, cc.read_comment_id)
+                 and not exists (select 1 from comment_conversation_read cr
+                                  where cr.account_id = $1
+                                    and cr.comment_id = tc.comment_id))) as unread,
               case when p.post_id is null then 'comment-' || tc.comment_id::text
                    else 'post-' || p.post_id::text end as conversation
          from timeline_comment tc
          join account a on a.account_id = tc.account_id
                        and a.kind = 'person' and a.status = 'approved'
          left join account_post p on p.item_id = tc.item_id
+         left join comment_conversation cc on cc.account_id = $1
+                                          and cc.item_id = tc.item_id
         where tc.owner_account_id = $1 and tc.account_id <> $1
           and tc.receipt_allowed
           and ((tc.owner_is_account and p.post_id is not null) or
@@ -263,13 +281,13 @@ async function readComments(db, accountId, seen) {
               and own.account_id = $1 and own.status = 'verified'
               and (own.is_primary or own.relationship in ('primary','alt')))))
           and tc.status = 'visible'
-          and tc.created_at > now() - make_interval(days => $3)
+          and tc.created_at > now() - make_interval(days => $2)
           and (p.post_id is null or (p.status = 'visible' and p.account_id = $1))
           and ${commentSeenSql("$1::uuid")}
      ), ranked as (
        select *, row_number() over w as position,
               count(*) over (partition by conversation)::int as reply_count,
-              count(*) filter (where $2::timestamptz is null or created_at > $2)
+              count(*) filter (where unread)
                 over (partition by conversation)::int as unread_count
          from visible window w as
            (partition by conversation order by created_at desc, comment_id desc)
@@ -280,8 +298,8 @@ async function readComments(db, accountId, seen) {
          left join claim pc on pc.account_id = r.account_id and pc.is_primary
          left join player pp on pp.player_tag = pc.player_tag
         where r.position = 1
-        order by r.created_at desc, r.comment_id desc limit $4`,
-    [accountId, seen, ACCOUNT_DAYS, LIST_CAP + 1],
+        order by r.created_at desc, r.comment_id desc limit $3`,
+    [accountId, ACCOUNT_DAYS, LIST_CAP + 1],
   );
   const items = rows.slice(0, LIST_CAP).map((r) => ({
     comment_id: r.comment_id,
@@ -293,9 +311,13 @@ async function readComments(db, accountId, seen) {
           question: r.question === true,
           count: r.reply_count,
           unread_count: r.unread_count,
-          unread_since: seen ? new Date(seen).toISOString() : null,
+          unread_since: r.read_at_text ?? null,
         }
-      : {}),
+      : {
+          item_ref: r.conversation_ref ?? null,
+          read_at: r.read_at_text ?? null,
+          read_comment_id: r.read_id ?? null,
+        }),
     at: r.created_at ? new Date(r.created_at).toISOString() : null,
     author: {
       account_id: r.author_id ?? null,
@@ -403,7 +425,7 @@ export async function readBell(
   }
   const followers = await readFollowers(db, accountId, own, seen);
   const comments = commentsOn
-    ? await readComments(db, accountId, seen)
+    ? await readComments(db, accountId)
     : { items: [], new: 0 };
   const answers = await readAnswers(db, accountId);
   const account = mergeAccountLines(

@@ -3,6 +3,7 @@ import { cheerCounts } from "../home/cheer-set.js";
 // and player.js reads HOME as it loads.
 import { isSessionPath, playerHref } from "../lib/player.js";
 import { passportHref } from "../lib/passport.js";
+import { memberItemPath } from "@elixir-mcp/ui/item-link";
 import { SETTINGS } from "../lib/settings.js";
 import { eventGroup, eventLabel } from "../views/account/events.js";
 
@@ -31,7 +32,9 @@ export function bellLabel(label, { need = 0, fresh = 0 } = {}) {
 
 /** The read as it stands once the bell was opened: reactions and followers
  *  before the marker are no longer new. An unread answer stays new until it
- *  is read, in Settings › Feedback, as it always has been. */
+ *  is read, in Settings › Feedback, as it always has been, and a comment
+ *  until you open its thread (2026-11-22): opening the bell is not reading
+ *  a comment you may never have scrolled to. */
 export function bellSeenAt(bell, seenAt) {
   const reactions = (bell.reactions?.items ?? []).map((r) => ({
     ...r,
@@ -46,20 +49,18 @@ export function bellSeenAt(bell, seenAt) {
     ...a,
     new: false,
   }));
-  const comments = (bell.comments?.items ?? []).map((c) => ({
-    ...c,
-    new: false,
-  }));
+  const comments = bell.comments?.items ?? [];
+  const commentsNew = comments.filter((c) => c.new === true).length;
   return {
     ...bell,
     seen_at: seenAt ?? bell.seen_at ?? null,
-    new: answers.new ?? 0,
+    new: (answers.new ?? 0) + commentsNew,
     reactions: { ...bell.reactions, items: reactions, new: 0 },
     followers: { ...bell.followers, players: followers, new: 0 },
     answers,
     account: { ...bell.account, items: account, new: 0 },
     ...(bell.comments
-      ? { comments: { ...bell.comments, items: comments, new: 0 } }
+      ? { comments: { ...bell.comments, items: comments, new: commentsNew } }
       : {}),
   };
 }
@@ -193,6 +194,7 @@ export function reactionRow(r) {
     counts,
     words: counts.map((c) => `${c.label} ${c.count}`).join(", "),
     total: r.total,
+    at: r.at ?? null,
     // A sitting opens its own page (2026-11-16); a moment its battle; a
     // post of yours (2026-11-17) your Profile, where your posts are.
     to: r.post
@@ -244,8 +246,9 @@ export function followerRows(followers) {
 }
 
 /** Comments on your play (2026-11-16): who said it and the words, to the
- *  page of your player it is about, where the item's thread opens. The
- *  bell is the one place a comment reaches you. */
+ *  item's own thread when the read carries its locator (2026-11-22), else
+ *  the page of your player it is about. New while unread in that item's
+ *  conversation, which you joined when the comment came. */
 export const commentRows = (comments) =>
   (comments?.items ?? []).map((c) => ({
     key: c.post_id ? `post-comments-${c.post_id}` : `comment-${c.comment_id}`,
@@ -258,11 +261,15 @@ export const commentRows = (comments) =>
     count: c.count ?? 1,
     unread: c.unread_count ?? 0,
     at: c.at ?? null,
+    // A post opens its answers; a game comment its item's own thread when
+    // the read carries the item's locator, else the player's page.
     to: c.post_id
       ? `/home/post/${c.post_id}?${new URLSearchParams({ answers: "1", reply: c.comment_id, ...(c.new ? { after: c.unread_since ?? "all" } : {}) })}`
-      : c.subject_tag
-        ? playerHref(c.subject_tag)
-        : null,
+      : (memberItemPath(c.item_ref, {
+          commentId: c.comment_id,
+          after: c.read_at ?? null,
+          afterId: c.read_comment_id ?? null,
+        }) ?? (c.subject_tag ? playerHref(c.subject_tag) : null)),
     new: c.new === true,
   }));
 
@@ -283,10 +290,27 @@ export const answerRows = (answers) =>
  * with its kind and its key, split into New and Earlier. A row is New when
  * the read says so or when `keep` holds its key (what was new when the
  * bell last showed it, kept while you visit a row and come back); `drop`
- * holds the keys you have opened since, which are no longer new. Within
- * each part the kinds keep the order cheers, followers,
- * comments, answers, your account, each newest first as the read sends it.
+ * holds the keys you have opened since, which are no longer new. Each part
+ * runs newest first across kinds (2026-11-22: a comment under every cheer
+ * and follower went unseen); rows with no time (followers) follow, in the
+ * read's order.
  */
+/** Newest first by `at`; rows without one keep their order, after. */
+export function newestFirst(rows) {
+  const time = (r) => {
+    const t = Date.parse(r.at ?? "");
+    return Number.isFinite(t) ? t : null;
+  };
+  return rows
+    .map((row, i) => ({ row, i, t: time(row) }))
+    .sort((a, b) =>
+      a.t === null || b.t === null
+        ? (a.t === null) - (b.t === null) || a.i - b.i
+        : b.t - a.t || a.i - b.i,
+    )
+    .map((x) => x.row);
+}
+
 export function bellGroups(bell, { keep = null } = {}) {
   if (!bell) return { fresh: [], earlier: [], counted: null };
   const { rows: followers, counted } = followerRows(bell.followers);
@@ -308,7 +332,7 @@ export function bellGroups(bell, { keep = null } = {}) {
     if (n > 1) row.key = `${row.key}~${n}`;
   }
   const isNew = (row) => row.new || keep?.has(row.key) === true;
-  const marked = all.map((row) => ({ ...row, new: isNew(row) }));
+  const marked = newestFirst(all.map((row) => ({ ...row, new: isNew(row) })));
   return {
     fresh: marked.filter((r) => r.new),
     earlier: marked.filter((r) => !r.new),

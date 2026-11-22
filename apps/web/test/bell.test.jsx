@@ -174,11 +174,12 @@ test("the bell's sections: counts not cheerers, named and counted followers, ans
   const hrefs = [...fresh.querySelectorAll("a")].map((a) =>
     a.getAttribute("href"),
   );
+  // Newest first across kinds; followers carry no time, so they follow.
   expect(hrefs).toEqual([
     "/battle/abc123",
+    "/settings/feedback/42",
     "/home/player/0VQRR8U0",
     "/home/player/0Q2L8",
-    "/settings/feedback/42",
   ]);
   expect(fresh.textContent).toContain("Invented Fan follows you");
   // A claimed player is named, marked not verified, with no gold mark,
@@ -369,8 +370,8 @@ test("back from a row: what was new is still New, but the row you opened; closin
       [...again.querySelectorAll("a")].map((a) => a.getAttribute("href")),
     ).toEqual([
       "/battle/abc123",
-      "/home/player/0Q2L8",
       "/settings/feedback/42",
+      "/home/player/0Q2L8",
     ]),
   );
   // Closed by you: the next opening keeps nothing.
