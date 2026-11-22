@@ -48,9 +48,14 @@ test("private RSS carries posts and question attachments, escaped, at member des
   assert.ok(
     xml.includes(`<link>https://elixir.poapkings.com/home/post/${p.id}</link>`),
   );
-  assert.match(xml, /Which &lt;\/title&gt;&lt;script&gt; &amp; card\?/);
+  // The description is HTML inside XML: authored words escaped twice.
+  assert.match(
+    xml,
+    /asked: Which &amp;lt;\/title&amp;gt;&amp;lt;script&amp;gt; &amp;amp; card\?/,
+  );
+  assert.equal(xml.includes("<title>Which"), false);
   assert.match(xml, /&lt;b&gt;Writer&lt;\/b&gt; &amp; Friend/);
-  assert.match(xml, /Question/);
+  assert.match(xml, /&amp;amp; Friend asked: /);
   for (let i = 1; i <= 8; i++) assert.ok(xml.includes(`Example Card ${i}`));
   assert.equal(xml.includes("<script>"), false);
   assert.equal(xml.includes("/share/"), false);

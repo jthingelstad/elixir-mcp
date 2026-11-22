@@ -3,7 +3,7 @@ import { renderRss } from "../../../services/web-api/src/feed-link.mjs";
 
 const words = '<b>Keep these tags</b> &lt;literal entity&gt; & "words"';
 
-for (const { label, item, title, description } of [
+for (const { label, item, description, creator } of [
   {
     label: "authored words and card names",
     item: {
@@ -19,8 +19,8 @@ for (const { label, item, title, description } of [
         deck: null,
       },
     },
-    title: words,
-    description: `${words}\n\nCards: ${words}`,
+    description: `Question: ${words}\n\nCards: ${words}`,
+    creator: null,
   },
   {
     label: "tag-shaped game names",
@@ -32,8 +32,8 @@ for (const { label, item, title, description } of [
       subjects: [{ kind: "player", tag: "#0YRL2GQP", name: words }],
       facts: {},
     },
-    title: `${words}: ${words} changed their name.`,
     description: `${words} changed their name.`,
+    creator: words,
   },
 ]) {
   test(`RSS preserves ${label} through XML and HTML parsing`, async ({
@@ -47,14 +47,20 @@ for (const { label, item, title, description } of [
       reader.innerHTML = description?.textContent ?? "";
       return {
         xmlError: Boolean(parsed.querySelector("parsererror")),
-        title: parsed.querySelector("item > title")?.textContent,
+        titled: Boolean(parsed.querySelector("item > title")),
+        creator:
+          parsed.getElementsByTagNameNS(
+            "http://purl.org/dc/elements/1.1/",
+            "creator",
+          )[0]?.textContent ?? null,
         text: reader.textContent,
         elements: reader.childElementCount,
       };
     }, xml);
     expect(shown).toEqual({
       xmlError: false,
-      title,
+      titled: false,
+      creator,
       text: description,
       elements: 0,
     });

@@ -370,11 +370,12 @@ test("the RSS link: shown once, kept as a hash, reset and turned off", async () 
   const xml = feed.body;
   assert.match(
     xml,
-    /^<\?xml version="1\.0" encoding="UTF-8"\?>\n<rss version="2\.0">/,
+    /^<\?xml version="1\.0" encoding="UTF-8"\?>\n<rss version="2\.0" xmlns:dc="http:\/\/purl\.org\/dc\/elements\/1\.1\/">/,
   );
   // The battle post, its player's game name and words escaped.
   assert.ok(xml.includes(xmlText(HOSTILE_NAME)));
-  assert.ok(xml.includes(xmlText(WORDS)));
+  // Words live in the description, HTML inside XML: escaped twice.
+  assert.ok(xml.includes(xmlText(xmlText(WORDS))));
   assert.equal(xml.includes("<b>Fixture"), false);
   assert.equal(xml.includes("</title><x>"), false);
   // Never a nickname, an email, or the account's own administration.

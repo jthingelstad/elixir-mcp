@@ -547,7 +547,9 @@ seven days and at most 50 items, newest first.
 - **Reset** makes a new link and stops the old one at once; **Turn off**
   ends it. Closing your account ends it too.
 - **What it carries:** each item's words with players by their game names,
-  a link to the session, battle, player or post, and when.
+  a link to the session, battle, player or post, and when. Items have no
+  title, because each line already names its player: your reader shows
+  them as posts, with the player as the author.
   Never comments, your nicknames for players,
   your email, your account notices, leaders-only facts or cheers.
 - **Posts and questions:** from the players and accounts you follow, with
