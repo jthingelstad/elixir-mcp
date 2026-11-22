@@ -231,6 +231,23 @@ test("a deck switch is a full moment with its mode, its deck and the deck's card
   }
 });
 
+test("a week's form is a full moment with its mode, its two rates and a way into Stats (15.3.0)", async ({
+  page,
+}) => {
+  await open(page, 390);
+  const item = page
+    .locator(".kit-feed__item")
+    .filter({ hasText: "Trophy Road form" });
+  await expect(item).toBeVisible();
+  await expect(item.locator(".kit-moment__title")).toHaveText(
+    "62% won, up from 48%",
+  );
+  await expect(item.getByRole("link", { name: "See stats" })).toHaveAttribute(
+    "href",
+    "/home/you/stats?player=0UL9Q20J&mode=ladder",
+  );
+});
+
 test("a first win is a full moment named as its deck slot, with the card's art (0289)", async ({
   page,
 }) => {
