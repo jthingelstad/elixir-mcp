@@ -74,6 +74,7 @@ test("op: reads are reads", () => {
     { account_follow: { primary_tag: "#A", player_tag: "#B", dry_run: true } },
     { agent_recordings: { dry_run: true } },
     { verified_tag_census: { dry_run: true } },
+    { comment_delivery: { tag: "#0PYLQ2" } },
     { clan_maintenance: { lane: "actions", clan_tag: "#A" } },
     {
       clan_maintenance: { lane: "draft_packet", clan_tag: "#A", card_id: "c" },
