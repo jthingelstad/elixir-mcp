@@ -112,6 +112,7 @@ function side(w) {
     close_losses: w.close_losses == null ? null : count(w.close_losses),
     longest_win_streak:
       w.longest_win_streak == null ? null : count(w.longest_win_streak),
+    streak_battles: w.streak_battles == null ? null : count(w.streak_battles),
     net_trophies: w.net_trophies ?? null,
   };
 }
@@ -145,7 +146,7 @@ function pair(a, b, mode) {
     y.three_crowned_against_rate != null;
   const both = (k) => x[k] != null && y[k] != null;
   const close = both("close_wins") && both("close_losses");
-  const streak = both("longest_win_streak");
+  const streak = both("longest_win_streak") && both("streak_battles");
   const keep = (s) => ({
     ...s,
     three_crown_rate: crowns ? s.three_crown_rate : null,
@@ -153,6 +154,7 @@ function pair(a, b, mode) {
     close_wins: close ? s.close_wins : null,
     close_losses: close ? s.close_losses : null,
     longest_win_streak: streak ? s.longest_win_streak : null,
+    streak_battles: streak ? s.streak_battles : null,
     net_trophies: trophies ? s.net_trophies : null,
   });
   return { mode, a: keep(x), b: keep(y) };
@@ -274,7 +276,8 @@ export function seasonSide(window, mode, decks = null) {
     // only at the minimum. Null where the answer predates them.
     close_wins: s.close_wins,
     close_losses: s.close_losses,
-    longest_win_streak: s.longest_win_streak,
+    longest_win_streak: s.streak_battles == null ? null : s.longest_win_streak,
+    streak_battles: s.streak_battles,
     head_to_head_battles: s.head_to_head_battles,
     three_crowned_against_rate:
       s.head_to_head_battles >= FORM_MIN_BATTLES

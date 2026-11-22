@@ -392,6 +392,11 @@ const PERF_WINDOW = {
       description:
         "Single-game head-to-head losses by exactly one crown (15.2.0); duels and boat battles are never counted.",
     },
+    streak_battles: {
+      ...COUNT,
+      description:
+        "The won and lost battles current_streak and longest_win_streak read, boat battles included (15.4.0): the count beside a streak, not decided_battles (PvP only).",
+    },
     longest_win_streak: {
       ...COUNT,
       description:

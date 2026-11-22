@@ -777,6 +777,7 @@ describe("the 15.2.0 rows: close games, three-crowned against, the longest win s
     close_losses: 6,
     three_crowned_against_rate: 0.107,
     longest_win_streak: 1,
+    streak_battles: 31,
     decks: 3,
     deck_battles: 31,
     ...over,

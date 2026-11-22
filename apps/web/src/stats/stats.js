@@ -597,8 +597,8 @@ const battlesWord = (n) => `${fmt(n)} ${n === 1 ? "battle" : "battles"}`;
 /** The 15.2.0 rows both tables share (2026-11-22): close games
  *  (won–lost by exactly one crown, over the head-to-head battles),
  *  how often the player was three-crowned (over the same count) and
- *  the longest win streak (over every won and lost battle, boat
- *  battles included, as the tool reads it). A row shows only
+ *  the longest win streak (over the tool's streak_battles: every won
+ *  and lost battle, boat battles included). A row shows only
  *  when every side carries its number; an older answer carries none. */
 function moreRows(list) {
   const rows = [];
@@ -621,14 +621,16 @@ function moreRows(list) {
         count: battlesWord(s.head_to_head_battles),
       })),
     });
-  if (list.every((s) => s.longest_win_streak != null))
+  if (
+    list.every((s) => s.longest_win_streak != null && s.streak_battles != null)
+  )
     rows.push({
       key: "longest_win_streak",
       label: "Longest win streak",
       cells: list.map((s) => ({
         value: fmt(s.longest_win_streak),
         said: `${fmt(s.longest_win_streak)} ${s.longest_win_streak === 1 ? "win" : "wins"} in a row`,
-        count: battlesWord(s.wins + s.losses),
+        count: battlesWord(s.streak_battles),
       })),
     });
   return rows;
