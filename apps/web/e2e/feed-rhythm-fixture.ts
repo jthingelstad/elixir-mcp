@@ -476,6 +476,34 @@ const ITEMS = [
   session(WREN, 600, { results: "l" }),
   session(BRAM, 640, { results: "lw" }),
   session(ELM, 700, { results: "w" }),
+  // A week's form (week_form, 15.3.0): the game week that closed at
+  // 10:00 UTC this morning, beside the four before it.
+  moment(
+    SAGE,
+    810,
+    "week_form",
+    "Sage won 62% of 26 Trophy Road battles in the week to Nov 17, up from 48% over the 4 weeks before.",
+    {
+      mode: "ladder",
+      week: {
+        from: "2026-11-10T10:00:00.000Z",
+        to: "2026-11-17T10:00:00.000Z",
+        battles: 27,
+        decided_battles: 26,
+        wins: 16,
+        losses: 10,
+        win_rate: 0.615,
+      },
+      previous: {
+        from: "2026-10-13T10:00:00.000Z",
+        to: "2026-11-10T10:00:00.000Z",
+        weeks: 4,
+        decided_battles: 60,
+        win_rate: 0.483,
+      },
+    },
+    { section: "battles" },
+  ),
   // Yesterday.
   clanLine(1100, "race_finished", "Ada's Clan finished the river race.", {
     season_id: 137,
