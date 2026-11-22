@@ -594,6 +594,45 @@ export function warLine({ current, weeks, seasonWar }) {
 
 const battlesWord = (n) => `${fmt(n)} ${n === 1 ? "battle" : "battles"}`;
 
+/** The 15.2.0 rows both tables share (2026-11-22): close games
+ *  (won–lost by exactly one crown, over the head-to-head battles),
+ *  how often the player was three-crowned (over the same count) and
+ *  the longest win streak (over the decided battles). A row shows only
+ *  when every side carries its number; an older answer carries none. */
+function moreRows(list) {
+  const rows = [];
+  if (list.every((s) => s.close_wins != null && s.close_losses != null))
+    rows.push({
+      key: "close_games",
+      label: "Close games (one crown)",
+      cells: list.map((s) => ({
+        value: `${fmt(s.close_wins)}–${fmt(s.close_losses)}`,
+        said: `${fmt(s.close_wins)} won and ${fmt(s.close_losses)} lost by one crown`,
+        count: battlesWord(s.head_to_head_battles),
+      })),
+    });
+  if (list.every((s) => s.three_crowned_against_rate != null))
+    rows.push({
+      key: "three_crowned_against_rate",
+      label: "Three-crowned against",
+      cells: list.map((s) => ({
+        value: pct(s.three_crowned_against_rate),
+        count: battlesWord(s.head_to_head_battles),
+      })),
+    });
+  if (list.every((s) => s.longest_win_streak != null))
+    rows.push({
+      key: "longest_win_streak",
+      label: "Longest win streak",
+      cells: list.map((s) => ({
+        value: fmt(s.longest_win_streak),
+        said: `${fmt(s.longest_win_streak)} ${s.longest_win_streak === 1 ? "win" : "wins"} in a row`,
+        count: battlesWord(s.decided_battles),
+      })),
+    });
+  return rows;
+}
+
 /** The rows of a form table: win rate, three-crown rate and (in a mode
  *  where trophies move) net trophies, each side's value and count. A
  *  number the shaping dropped (null on both sides) has no row. */
@@ -627,6 +666,7 @@ export function formRows(a, b) {
         count: battlesWord(s.battles),
       })),
     });
+  rows.push(...moreRows([a, b]));
   return rows;
 }
 
@@ -667,6 +707,7 @@ export function seasonRows(sides) {
         count: battlesWord(s.battles),
       })),
     });
+  rows.push(...moreRows(list));
   rows.push({
     key: "decks",
     label: "Decks played",

@@ -125,6 +125,13 @@ export const battles_performance = {
              select coalesce(min(rn) filter (where outcome <> latest) - 1, count(*))
                     * case when min(latest) = 'loss' then -1 else 1 end as n
              from decided
+           ), runs as (
+             -- Gaps and islands over the decided battles: a run of wins
+             -- shares rn minus its rank among the wins (15.2.0).
+             select count(*) as n
+               from (select rn - row_number() over (order by rn) as island
+                       from decided where outcome = 'win') w
+              group by island
            )
            select count(*)::int as battles,
                   count(*) filter (where outcome = 'win')::int as wins,
@@ -141,6 +148,15 @@ export const battles_performance = {
                                    and not duel)::int as head_to_head,
                   count(*) filter (where crowns = 3 and type_class = 'pvp'
                                    and not duel)::int as three_crowns,
+                  -- Close games (15.2.0): a single-game head-to-head win or
+                  -- loss by one crown. Duels sum crowns across rounds.
+                  count(*) filter (where outcome = 'win' and type_class = 'pvp'
+                                   and not duel and crowns - opp_crowns = 1)::int as close_wins,
+                  count(*) filter (where outcome = 'loss' and type_class = 'pvp'
+                                   and not duel and opp_crowns - crowns = 1)::int as close_losses,
+                  count(*) filter (where opp_crowns = 3 and type_class = 'pvp'
+                                   and not duel)::int as three_crowned_against,
+                  coalesce((select max(n) from runs), 0)::int as longest_win_streak,
                   (select n::int from streak) as current_streak,
                   -- The control beside a pooled rate (DECISIONS: mode
                   -- discipline): the same sample split by mode group.
@@ -156,6 +172,7 @@ export const battles_performance = {
       );
       const {
         three_crowns,
+        three_crowned_against,
         head_to_head,
         decided_wins,
         decided_losses,
@@ -180,6 +197,11 @@ export const battles_performance = {
         three_crown_rate:
           head_to_head > 0
             ? Number((three_crowns / head_to_head).toFixed(3))
+            : null,
+        // The same sweep the other way: the reader's king tower fell.
+        three_crowned_against_rate:
+          head_to_head > 0
+            ? Number((three_crowned_against / head_to_head).toFixed(3))
             : null,
         // With no mode the rate pools modes; the split rides beside it.
         ...(args.mode ? {} : { modes: modes ?? {} }),

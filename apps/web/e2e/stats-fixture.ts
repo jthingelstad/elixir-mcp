@@ -118,9 +118,25 @@ const side = (
   three_crown_rate: Math.round((crowns3 / h2h) * 1000) / 1000,
   net_trophies: net,
 });
+/* The week's sides also carry 15.2.0's close games, three-crowned
+   against and longest win streak; the deck change's and the season's
+   do not, as an answer from before 15.2.0 would not. */
+const more = (
+  s: ReturnType<typeof side>,
+  close: [number, number],
+  against: number,
+  streak: number,
+) => ({
+  ...s,
+  close_wins: close[0],
+  close_losses: close[1],
+  three_crowned_against_rate:
+    Math.round((against / s.head_to_head_battles) * 1000) / 1000,
+  longest_win_streak: streak,
+});
 export const FORM = {
-  week: side(14, 8, 13, 3, 58),
-  previous: side(35, 12, 33, 4, -10),
+  week: more(side(14, 8, 13, 3, 58), [3, 2], 1, 4),
+  previous: more(side(35, 12, 33, 4, -10), [4, 7], 5, 3),
   before: side(12, 3, 12, 1, -40),
   after: side(23, 9, 21, 3, 30),
 };

@@ -71,6 +71,10 @@ const w = (over = {}) => ({
   win_rate: 0.548,
   head_to_head_battles: 30,
   three_crown_rate: 0.2,
+  three_crowned_against_rate: 0.1,
+  close_wins: 4,
+  close_losses: 5,
+  longest_win_streak: 3,
   net_trophies: 45,
   ...over,
 });
@@ -121,6 +125,51 @@ test("a number under the minimum on either side is dropped from both, so a pair 
   assert.equal(form.week.three_crown_rate, null);
   assert.equal(form.previous.three_crown_rate, null);
   assert.equal(form.week.win_rate, 0.548);
+});
+
+test("close games, three-crowned against and the longest win streak ride beside the rest (15.2.0)", () => {
+  const form = weekForm(
+    {
+      window: w(),
+      compare_window: w({ close_wins: 9, longest_win_streak: 6 }),
+    },
+    "war",
+  );
+  assert.equal(form.week.close_wins, 4);
+  assert.equal(form.week.close_losses, 5);
+  assert.equal(form.previous.close_wins, 9);
+  assert.equal(form.week.three_crowned_against_rate, 0.1);
+  assert.equal(form.previous.longest_win_streak, 6);
+  // Three-crowned against shares the three-crown rate's count.
+  const few = weekForm(
+    { window: w({ head_to_head_battles: 4 }), compare_window: w() },
+    "war",
+  );
+  assert.equal(few.week.three_crowned_against_rate, null);
+  assert.equal(few.previous.three_crowned_against_rate, null);
+  // An answer from before 15.2.0 has none of them, so neither side does.
+  const old = weekForm(
+    {
+      window: w({
+        close_wins: undefined,
+        close_losses: undefined,
+        longest_win_streak: undefined,
+        three_crowned_against_rate: undefined,
+      }),
+      compare_window: w(),
+    },
+    "war",
+  );
+  assert.equal(old.previous.close_wins, null);
+  assert.equal(old.previous.longest_win_streak, null);
+  assert.equal(old.previous.three_crowned_against_rate, null);
+  assert.equal(old.previous.win_rate, 0.548);
+  // A season side under the head-to-head minimum drops the rate alone.
+  assert.equal(
+    seasonSide(w({ head_to_head_battles: 9 }), "war")
+      .three_crowned_against_rate,
+    null,
+  );
 });
 
 test("net trophies are shown only in a mode where trophies move", () => {
@@ -253,6 +302,11 @@ test("a season side keeps the tool's numbers, each beside its count", () => {
       decided_battles: 31,
       win_rate: 0.548,
       net_trophies: 45,
+      close_wins: 4,
+      close_losses: 5,
+      longest_win_streak: 3,
+      head_to_head_battles: 30,
+      three_crowned_against_rate: 0.1,
       decks: 4,
       deck_battles: 31,
     },

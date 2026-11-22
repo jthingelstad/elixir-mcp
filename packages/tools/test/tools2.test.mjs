@@ -150,6 +150,62 @@ test("battles_performance: window totals reconcile and before_after splits", asy
   );
 });
 
+test("battles_performance: close games, three-crowned against and the longest win streak match the rows (15.2.0)", async () => {
+  const { body } = await call("battles_performance", { last_n_battles: 500 });
+  const w = body.window;
+  // The same facts read straight from the record, newest first, over the
+  // member's own battles (a boat defense is not theirs).
+  const { rows } = await db.query(
+    `select bp.outcome, bp.crowns, b.type_class, b.type,
+            (select max(o.crowns) from battle_participant o
+              where o.battle_id = bp.battle_id and o.side <> bp.side) as opp
+       from battle_participant bp join battle b using (battle_id)
+      where bp.player_tag = $1 and ${notBoatDefense("bp")}
+      order by bp.battle_time desc, bp.battle_id desc`,
+    [OBSERVER],
+  );
+  const duels = new Set(
+    (
+      await db.query(
+        `select distinct battle_id from battle_participant_round where player_tag = $1`,
+        [OBSERVER],
+      )
+    ).rows.map((r) => r.battle_id),
+  );
+  assert.ok(rows.length > 0);
+  const single = rows.filter(
+    (r) =>
+      r.type_class === "pvp" &&
+      !/duel/i.test(r.type) &&
+      ["win", "loss"].includes(r.outcome),
+  );
+  assert.ok(single.length > 0, "the fixture has single-game battles");
+  assert.ok(duels.size > 0, "the fixture has a duel, which is never close");
+  const close = (o, diff) =>
+    single.filter((r) => r.outcome === o && diff(r) === 1).length;
+  assert.equal(
+    w.close_wins,
+    close("win", (r) => r.crowns - r.opp),
+  );
+  assert.equal(
+    w.close_losses,
+    close("loss", (r) => r.opp - r.crowns),
+  );
+  const against = single.filter((r) => r.opp === 3).length;
+  assert.equal(
+    w.three_crowned_against_rate,
+    Number((against / w.head_to_head_battles).toFixed(3)),
+  );
+  let best = 0;
+  let run = 0;
+  for (const r of rows.filter((x) => ["win", "loss"].includes(x.outcome))) {
+    run = r.outcome === "win" ? run + 1 : 0;
+    best = Math.max(best, run);
+  }
+  assert.equal(w.longest_win_streak, best);
+  assert.ok(w.longest_win_streak >= Math.max(w.current_streak, 0));
+});
+
 test("days/weeks are sugar on EVERY windowed tool, as the instructions promise", async () => {
   // 2026-09-15: a routine sent days: 1 to battles_performance right after
   // clans_standings({days: 1}) had worked, and lost three calls to

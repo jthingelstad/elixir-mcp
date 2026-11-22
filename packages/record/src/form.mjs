@@ -107,6 +107,11 @@ function side(w) {
     win_rate: rate(w.win_rate),
     head_to_head_battles: count(w.head_to_head_battles),
     three_crown_rate: rate(w.three_crown_rate),
+    three_crowned_against_rate: rate(w.three_crowned_against_rate),
+    close_wins: w.close_wins == null ? null : count(w.close_wins),
+    close_losses: w.close_losses == null ? null : count(w.close_losses),
+    longest_win_streak:
+      w.longest_win_streak == null ? null : count(w.longest_win_streak),
     net_trophies: w.net_trophies ?? null,
   };
 }
@@ -130,9 +135,24 @@ function pair(a, b, mode) {
     enough("battles") &&
     x.net_trophies != null &&
     y.net_trophies != null;
+  // The tool's 15.2.0 numbers: three-crowned against shares the
+  // three-crown rate's count; close games and the longest win streak
+  // are counts over the decided battles, already at the minimum here.
+  // Each shows only when both sides carry it (an older answer has none).
+  const against =
+    enough("head_to_head_battles") &&
+    x.three_crowned_against_rate != null &&
+    y.three_crowned_against_rate != null;
+  const both = (k) => x[k] != null && y[k] != null;
+  const close = both("close_wins") && both("close_losses");
+  const streak = both("longest_win_streak");
   const keep = (s) => ({
     ...s,
     three_crown_rate: crowns ? s.three_crown_rate : null,
+    three_crowned_against_rate: against ? s.three_crowned_against_rate : null,
+    close_wins: close ? s.close_wins : null,
+    close_losses: close ? s.close_losses : null,
+    longest_win_streak: streak ? s.longest_win_streak : null,
     net_trophies: trophies ? s.net_trophies : null,
   });
   return { mode, a: keep(x), b: keep(y) };
@@ -230,6 +250,17 @@ export function seasonSide(window, mode, decks = null) {
     decided_battles: s.decided_battles,
     win_rate: s.win_rate,
     net_trophies: TROPHY_MODES.has(mode) ? s.net_trophies : null,
+    // 15.2.0: close games and the longest win streak over the decided
+    // battles; three-crowned against over head-to-head battles, shown
+    // only at the minimum. Null where the answer predates them.
+    close_wins: s.close_wins,
+    close_losses: s.close_losses,
+    longest_win_streak: s.longest_win_streak,
+    head_to_head_battles: s.head_to_head_battles,
+    three_crowned_against_rate:
+      s.head_to_head_battles >= FORM_MIN_BATTLES
+        ? s.three_crowned_against_rate
+        : null,
     decks: decks ? count(decks.total_decks) : null,
     deck_battles: decks ? count(decks.total_battles_in_window) : 0,
   };

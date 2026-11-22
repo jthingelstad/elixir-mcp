@@ -251,7 +251,7 @@ test.describe("Stats signed in", () => {
     await expect(head.nth(1)).toHaveText("This week");
     await expect(head.nth(2)).toHaveText("Last 4 weeks");
     const rows = week.locator("tbody tr");
-    await expect(rows).toHaveCount(3);
+    await expect(rows).toHaveCount(6);
     await expect(rows.nth(0)).toContainText("Win rate");
     await expect(rows.nth(0).locator("td").nth(0)).toContainText("57%");
     await expect(rows.nth(0).locator("td").nth(0)).toContainText("14 battles");
@@ -262,6 +262,16 @@ test.describe("Stats signed in", () => {
     await expect(rows.nth(2)).toContainText("Net trophies");
     await expect(rows.nth(2).locator("td").nth(0)).toContainText("+58");
     await expect(rows.nth(2).locator("td").nth(1)).toContainText("−10");
+    // 15.2.0: close games, three-crowned against, the longest win streak.
+    await expect(rows.nth(3)).toContainText("Close games (one crown)");
+    await expect(rows.nth(3).locator("td").nth(0)).toContainText("3–2");
+    await expect(rows.nth(3).locator("td").nth(0)).toContainText("13 battles");
+    await expect(rows.nth(3).locator("td").nth(1)).toContainText("4–7");
+    await expect(rows.nth(4)).toContainText("Three-crowned against");
+    await expect(rows.nth(4).locator("td").nth(1)).toContainText("15%");
+    await expect(rows.nth(5)).toContainText("Longest win streak");
+    await expect(rows.nth(5).locator("td").nth(0)).toContainText("4");
+    await expect(rows.nth(5).locator("td").nth(0)).toContainText("14 battles");
     await expect(week).toContainText("this one began Mon 5:00 am");
     await expect(week).toContainText("at least 10 battles");
 
