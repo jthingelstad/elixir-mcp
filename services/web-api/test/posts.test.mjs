@@ -713,7 +713,7 @@ test("a post about nothing in the record never reaches the record's timeline, wh
   });
   assert.equal(built.timeline.filter((it) => it.kind === "post").length, 0);
   // And no code outside the canonical post reader, web API writes, schema, account
-  // removal and the sweeps names the table, but for the readers of posts
+  // removal, the comment-delivery op and the sweeps names the table, but for the readers of posts
   // about battles (0292: what highlights were), which read only those.
   const root = fileURLToPath(new URL("../../../", import.meta.url));
   const files = execFileSync("git", ["grep", "-l", "account_post", "--", "."], {
@@ -724,7 +724,7 @@ test("a post about nothing in the record never reaches the record's timeline, wh
     .filter(Boolean)
     .filter(
       (f) =>
-        !/^(db\/|docs\/|packages\/posts\/src\/|services\/web-api\/(src|test)\/|services\/migrate\/(src|test)\/ops-account-remove|services\/jobs\/src\/index|packages\/record\/src\/retention|apps\/web\/|services\/jobs\/test\/)/.test(
+        !/^(db\/|docs\/|packages\/posts\/src\/|services\/web-api\/(src|test)\/|services\/migrate\/(src|test)\/ops-(account-remove|comment-delivery)|services\/jobs\/src\/index|packages\/record\/src\/retention|apps\/web\/|services\/jobs\/test\/)/.test(
           f,
         ),
     )
