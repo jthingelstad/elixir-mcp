@@ -32,20 +32,7 @@ import { battleLinks } from "@elixir-mcp/record/battle-links";
 import { postReaderAllowsSql } from "@elixir-mcp/posts";
 import { battlePostRows, battleOfRow } from "@elixir-mcp/posts/battle";
 import { daysSincePollSql } from "@elixir-mcp/record/read-facts";
-import { notBoatDefenseOf } from "@elixir-mcp/record/boat-defense-sql";
-import {
-  FORM_MIN_BATTLES,
-  FORM_PREVIOUS_WEEKS,
-  formWindows,
-  gameWeekStartMs,
-  weekFormRise,
-} from "@elixir-mcp/record/form";
-import {
-  decidedLossesSql,
-  decidedWinsSql,
-  modeCaseSql,
-  winRate,
-} from "@elixir-mcp/record/win-rate-sql";
+import { weekFormFacts } from "@elixir-mcp/record/week-form-store";
 import { createHash } from "node:crypto";
 import { stampById } from "@elixir-mcp/stamps/catalog";
 import {
@@ -1860,11 +1847,9 @@ async function prefetchPlayers(
       )
     ).rows,
   );
-  const formStarts = weekFormStarts(fromMs, toMs);
   const weekForms = groupBy(
-    formStarts.length
-      ? (await db.query(perTag(weekFormSql("t.tag", formStarts)), [tags])).rows
-      : [],
+    (await db.query(perTag(weekFormsSql("t.tag", fromMs, toMs, basis)), [tags]))
+      .rows,
   );
   const played = new Map(
     tags.map((t) => [t, playedOf(battles.get(t).wide, fromMs, basis)]),
@@ -1984,134 +1969,21 @@ const warWeeksSql = (tagSql, fromMs, toMs, basis) =>
       order by wp.clan_tag, wp.season_id, wp.section_index, e.event_id) ww
     order by event_id`;
 
-/** The modes week_form reads, one at a time and never pooled: Stats'
- *  chips (apps/web/src/stats/stats.js MODES), in their order. */
-const WEEK_FORM_MODES = ["ladder", "ranked", "war", "event", "casual"];
-const WEEK_MS = 7 * DAY_MS;
-
-/** The game weeks a window closes (week_form, 15.3.0): the start of each
- *  week whose end, a Monday 10:00Z, falls in (from, to], oldest first.
- *  Empty for most reads, and then no week_form query runs. */
-export function weekFormStarts(fromMs, toMs) {
-  const starts = [];
-  for (let end = gameWeekStartMs(toMs); end > fromMs; end -= WEEK_MS)
-    starts.unshift(end - WEEK_MS);
-  return starts;
-}
-
-/** The player's battles over the closed weeks and the four before each,
- *  counted per mode and game week as battles_performance's window counts
- *  them (the win rate's one definition, @elixir-mcp/record/win-rate-sql;
- *  the mode filter's rule; boat defenses never; a battle with no outcome
- *  never). `wk` is the game week's index from the first week read. One
- *  statement a player (or one for a batch, through perTag). A decided
- *  battle reads the participant's `type_class`, the battle's own
- *  denormalized (0095), so the scan stays on the covering index; the
- *  battle is read by key once, for its type, event_tag and boat side
- *  (battle_timeline_cover, index-only).
- *
- *  The mode needs each battle's event_tag, a lookup by key per row, so a
- *  gate goes first: an index-only count of the player's decided battles
- *  (`type_class` is the battle's own, denormalized) over each week and
- *  the four before it. A mode's decided battles are a part of that count,
- *  so a player under FORM_MIN_BATTLES on either side for every week can
- *  have no reading, and their rows are never looked up. */
-/** A boat row's side, by key: the covering index has no side, and only
- *  boat rows ask, so the participant scan stays index-only. */
-const WEEK_FORM_SIDE = `(select sp.side from battle_participant sp
-   where sp.battle_id = bp.battle_id and sp.player_tag = bp.player_tag)`;
-
-const weekFormGate = (tagSql, starts, lo, hi) => {
-  const side = (from, to) =>
-    `count(*) filter (where gp.battle_time >= ${ts(from)} and gp.battle_time < ${ts(to)}) >= ${FORM_MIN_BATTLES}`;
-  const any = starts
-    .map(
-      (s) =>
-        `(${side(s, s + WEEK_MS)} and ${side(s - FORM_PREVIOUS_WEEKS * WEEK_MS, s)})`,
-    )
-    .join(" or ");
-  return `(select ${any}
-     from battle_participant gp
-    where gp.player_tag = ${tagSql}
-      and gp.battle_time >= ${ts(lo)} and gp.battle_time < ${ts(hi)}
-      and gp.type_class = 'pvp' and gp.outcome in ('win', 'loss'))`;
+/** A player's stored week_form readings a window selects (0311): observed
+ *  when the weekly run wrote them (computed_at), happened at the game
+ *  week's end, as a ledger row's window (ledgerWindowSql). One
+ *  primary-key read a player, or one for a batch. */
+const weekFormsSql = (tagSql, fromMs, toMs, basis) => {
+  const end = "(f.week_start + interval '7 days')";
+  const observed = `f.computed_at >= ${ts(fromMs + 1)}`;
+  const window =
+    basis === "occurred"
+      ? `${observed} and ${end} >= ${ts(fromMs + 1)} and ${end} < ${ts(toMs + 1)}`
+      : `${observed} and f.computed_at < ${ts(toMs + 1)}`;
+  return `select f.* from player_week_form f
+    where f.player_tag = ${tagSql} and ${window}
+    order by f.week_start`;
 };
-
-const weekFormSql = (tagSql, starts) => {
-  const lo = starts[0] - FORM_PREVIOUS_WEEKS * WEEK_MS;
-  const hi = starts.at(-1) + WEEK_MS;
-  return `select g.mode,
-          floor(extract(epoch from (bp.battle_time - ${ts(lo)})) / ${WEEK_MS / 1000})::int as wk,
-          count(*)::int as battles,
-          count(*) filter (where bp.outcome = 'win')::int as wins,
-          count(*) filter (where bp.outcome = 'loss')::int as losses,
-          count(*) filter (where bp.outcome = 'draw')::int as draws,
-          ${decidedWinsSql("bp.outcome", "bp.type_class")}::int as decided_wins,
-          ${decidedLossesSql("bp.outcome", "bp.type_class")}::int as decided_losses
-     from battle_participant bp
-     cross join lateral (
-       select b.type, b.event_tag, b.boat_battle_side from battle b
-        where b.battle_id = bp.battle_id limit 1) b
-     cross join lateral (select ${modeCaseSql(WEEK_FORM_MODES)} as mode) g
-    where bp.player_tag = ${tagSql} and bp.outcome is not null
-      and bp.battle_time >= ${ts(lo)} and bp.battle_time < ${ts(hi)}
-      and ${notBoatDefenseOf("bp", "b", WEEK_FORM_SIDE)}
-      and g.mode is not null
-      and ${weekFormGate(tagSql, starts, lo, hi)}
-    group by 1, 2`;
-};
-
-/** The week_form readings in `rows` (weekFormSql's, for `starts`): for
- *  each closed week, the mode whose week rose at least WEEK_FORM_RISE
- *  over the four weeks before it with both sides at the minimum
- *  (weekFormRise, Stats' own "This week vs your last 4" reading), and of
- *  several, the one with the most decided battles in the week (ties in
- *  Stats' chip order). At most one a week. */
-function weekFormReadings(rows, starts) {
-  if (!starts.length) return [];
-  const lo = starts[0] - FORM_PREVIOUS_WEEKS * WEEK_MS;
-  const byKey = new Map(rows.map((r) => [`${r.mode}/${r.wk}`, r]));
-  const sideOf = (mode, weeks) => {
-    const s = { battles: 0, wins: 0, losses: 0, draws: 0, dw: 0, dl: 0 };
-    for (const wk of weeks) {
-      const r = byKey.get(`${mode}/${wk}`);
-      if (!r) continue;
-      s.battles += r.battles;
-      s.wins += r.wins;
-      s.losses += r.losses;
-      s.draws += r.draws;
-      s.dw += r.decided_wins;
-      s.dl += r.decided_losses;
-    }
-    const decided = s.dw + s.dl;
-    return {
-      battles: s.battles,
-      wins: s.wins,
-      losses: s.losses,
-      draws: s.draws,
-      decided_battles: decided,
-      win_rate: winRate(s.dw, decided),
-    };
-  };
-  const out = [];
-  for (const start of starts) {
-    const wk = Math.round((start - lo) / WEEK_MS);
-    const before = Array.from(
-      { length: FORM_PREVIOUS_WEEKS },
-      (_, i) => wk - FORM_PREVIOUS_WEEKS + i,
-    );
-    let best = null;
-    for (const mode of WEEK_FORM_MODES) {
-      const window = sideOf(mode, [wk]);
-      const compare = sideOf(mode, before);
-      if (!weekFormRise({ window, compare_window: compare }, mode)) continue;
-      if (!best || window.decided_battles > best.window.decided_battles)
-        best = { mode, start, window, compare };
-    }
-    if (best) out.push(best);
-  }
-  return out;
-}
 
 /** Role-change rows, hydrated, kept to promotions, with their story ids
  *  (the clan's own, so the two copies are one story). */
@@ -2663,17 +2535,10 @@ export async function buildPlayerEntry(
   const warWeeks =
     prefetched?.warWeeks ??
     (await db.query(warWeeksSql("$1", fromMs, toMs, basis), [tag])).rows;
-  // The game weeks the window closes, and the player's battles over them
-  // and the four weeks before each (week_form): no query when the window
-  // holds no Monday 10:00Z.
-  const formStarts = weekFormStarts(fromMs, toMs);
-  const weekForms = weekFormReadings(
+  // The player's stored week_form readings the window learned (0311).
+  const weekForms =
     prefetched?.weekForms ??
-      (formStarts.length
-        ? (await db.query(weekFormSql("$1", formStarts), [tag])).rows
-        : []),
-    formStarts,
-  );
+    (await db.query(weekFormsSql("$1", fromMs, toMs, basis), [tag])).rows;
 
   const presence = await timed(perf, "player.presence", () =>
     presenceOf(db, tag, played, fromMs, toMs, prefetched?.presence ?? null),
@@ -2959,35 +2824,16 @@ export async function buildPlayerEntry(
   // (15.3.0): Stats' "This week vs your last 4", said when it rose. Only
   // a rise: a step down is not put in front of friends, as a demotion is
   // not. The player's own timeline only, never a clan's.
-  for (const r of weekForms) {
-    const w = formWindows(r.start);
+  for (const row of weekForms) {
+    const f = weekFormFacts(row);
     items.push({
       ...subject,
-      at: w.week.to,
-      observed_at: w.week.to,
+      at: f.week.to,
+      observed_at: new Date(row.computed_at).toISOString(),
       kind: "week_form",
       section: "battles",
-      facts: {
-        ...self,
-        mode: r.mode,
-        week: {
-          from: w.week.from,
-          to: w.week.to,
-          battles: r.window.battles,
-          decided_battles: r.window.decided_battles,
-          wins: r.window.wins,
-          losses: r.window.losses,
-          win_rate: r.window.win_rate,
-        },
-        previous: {
-          from: w.previous.from,
-          to: w.previous.to,
-          weeks: FORM_PREVIOUS_WEEKS,
-          decided_battles: r.compare.decided_battles,
-          win_rate: r.compare.win_rate,
-        },
-      },
-      [STORY]: moment("week_form", tag, w.week.from),
+      facts: { ...self, ...f },
+      [STORY]: moment("week_form", tag, f.week.from),
     });
   }
   // A return and a quiet crossing name the player, so the same one on a
@@ -5597,9 +5443,8 @@ export const NEWS_SOURCES = {
     "war_week_played",
   ],
   player_quiet: ["quiet_crossed"],
-  // A closed game week's form (15.3.0): time, not rows. Only a window
-  // that holds a Monday 10:00Z can close one, and only for a player who
-  // played in the week it closes.
+  // A closed game week's form (15.3.0): the weekly run's stored readings
+  // (0311), learned when it wrote them.
   player_week_form: ["week_form"],
   // highlightItems: a followed player's highlights posted or edited in
   // the window.
@@ -5645,7 +5490,6 @@ export async function timelineNews(
     .map((s) => s.tag);
   const inWindow = (col) =>
     `${col} >= ${ts(fromMs + 1)} and ${col} < ${ts(toMs + 1)}`;
-  const formStarts = weekFormStarts(fromMs, toMs);
   // A battle `r` days before the window with none after it until the rung
   // (presenceOf and the clan's battle gaps: a crossing at battle + r in
   // (from, to] whose gap is still open there). Lateral per tag and rung,
@@ -5698,11 +5542,8 @@ export async function timelineNews(
     player_quiet: players.length && quietSql("select unnest(p.players)"),
     player_week_form:
       players.length &&
-      formStarts.length &&
-      `exists (select 1 from battle_participant bp
-                where bp.player_tag = any(p.players)
-                  and bp.battle_time >= ${ts(formStarts[0])}
-                  and bp.battle_time < ${ts(formStarts.at(-1) + WEEK_MS)})`,
+      `exists (select 1 from player_week_form f
+                where f.player_tag = any(p.players) and ${inWindow("f.computed_at")})`,
     player_highlights:
       players.length &&
       // Observed when its words last changed: a post, or an edit (0240).

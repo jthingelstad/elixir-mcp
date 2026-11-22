@@ -83,10 +83,9 @@ const SEEDED = {
   clan_quiet: T + 9 * H,
   account: T + 10 * H,
   attested: T + 11 * H,
-  // week_form: the game week's end, Monday 2026-09-21 10:00Z; the week
-  // holds player_battles' sitting. The check asks whether the week has
-  // battles; the build tells only a rise, so it serves nothing here.
-  player_week_form: T + 22 * H,
+  // week_form: the weekly run stored the friend's reading for the game
+  // week to Monday 2026-09-14 10:00Z.
+  player_week_form: T + 11 * H + 40 * MIN,
 };
 
 before(async () => {
@@ -237,6 +236,13 @@ before(async () => {
              'player', 'drop.poapkings.com', 'skip-empty-2', $5, $5)`,
     [CLAN, GONE, at(SEEDED.attested), ME, at(SEEDED.attested + 20 * MIN)],
   );
+  // player_week_form: the weekly run's stored reading for the friend.
+  await db.query(
+    `insert into player_week_form (player_tag, week_start, mode, week_battles, week_decided,
+       week_wins, week_losses, week_win_rate, prev_decided, prev_win_rate, computed_at)
+     values ($1, '2026-09-07T10:00:00Z', 'ladder', 12, 12, 8, 4, 0.667, 20, 0.5, $2)`,
+    [FRIEND, at(SEEDED.player_week_form)],
+  );
 
   // The invoker on a counting client: a read's query count, as
   // mcp_call_audit.db_queries counts it live.
@@ -295,11 +301,6 @@ test("sweep: a window the build serves an item in is never news-free, for every 
     windows.push([from, from + 5 * MIN]);
   for (let from = T - H; from < T + 12 * H; from += 30 * MIN)
     windows.push([from, from + H]);
-  // The windows that close the game week (week_form's source).
-  windows.push(
-    [SEEDED.player_week_form - 5 * MIN, SEEDED.player_week_form],
-    [SEEDED.player_week_form - 30 * MIN, SEEDED.player_week_form + 30 * MIN],
-  );
   const served = new Set();
   const firedSources = new Set();
   let skippable = 0;
@@ -347,6 +348,7 @@ test("sweep: a window the build serves an item in is never news-free, for every 
     "returned",
     "departure_classified",
     "personal_record",
+    "week_form",
     "account_*",
   ])
     assert.ok(served.has(kind), `the sweep served ${kind}`);
