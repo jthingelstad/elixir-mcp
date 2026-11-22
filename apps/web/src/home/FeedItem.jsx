@@ -11,6 +11,7 @@ import {
   useClock,
 } from "@elixir-mcp/ui";
 import { playerHref } from "../lib/player.js";
+import { modeLabel, statsHref } from "../stats/stats.js";
 import { accountHref, accountOf } from "../lib/account.js";
 import {
   feedRows,
@@ -297,6 +298,11 @@ export function FeedItem({
           Open their account
         </Link>
       ) : null}
+      {it.kind === "week_form" && weekFormHref(it) ? (
+        <Link to={weekFormHref(it)} className="btn btn--sm">
+          See stats
+        </Link>
+      ) : null}
       {/* A sitting opens its own page (2026-11-16): the card is the
           link. A moment's crossing, and a sitting with no page to open,
           still open in place. */}
@@ -388,6 +394,18 @@ const SWITCH_KICKER = {
   war: "New deck in Clan Wars",
 };
 
+/** A rate as a whole percent: 0.615 is "62%". */
+const percent = (r) => `${Math.round(r * 100)}%`;
+
+/** Where a week's form opens (15.3.0): the player's Stats in that mode.
+ *  The player always rides in the address: the item cannot tell your
+ *  primary from an alt, and Stats opens any of your players, or a
+ *  player you follow, from it. */
+export function weekFormHref(it) {
+  const tag = it.facts?.player_tag ?? it.subject_tag;
+  return tag ? statsHref("season", { player: tag, mode: it.facts?.mode }) : null;
+}
+
 /** What a moment's head says above its sentence (2026-11-17), from its
  *  facts only; null when the facts do not say it. */
 export function momentHead(it) {
@@ -459,6 +477,15 @@ export function momentHead(it) {
         ? {
             kicker: `Clan Wars week ${(f.section_index ?? 0) + 1}`,
             title: `${f.decks_used} ${f.decks_used === 1 ? "deck" : "decks"}`,
+          }
+        : null;
+    // A week's form (15.3.0): the two rates, numbers only, in its mode.
+    case "week_form":
+      return typeof f.week?.win_rate === "number" &&
+        typeof f.previous?.win_rate === "number"
+        ? {
+            kicker: `${modeLabel(f.mode)} form`,
+            title: `${percent(f.week.win_rate)} won, up from ${percent(f.previous.win_rate)}`,
           }
         : null;
     case "badge_earned":
