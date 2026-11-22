@@ -252,6 +252,14 @@ export const TIMELINE_KIND_SCHEMAS = {
       "points",
     ],
   },
+  // A closed game week beside the four before it, in one mode (15.3.0):
+  // battles_performance's own numbers for the two windows, posted only
+  // when the week rose at least ten points.
+  week_form: {
+    version: 1,
+    at: "the game week's end, Monday 10:00 UTC",
+    facts: [...MEMBER, "mode", "week", "previous"],
+  },
   quiet_crossed: {
     version: 2,
     at: "the last battle plus the rung's days",

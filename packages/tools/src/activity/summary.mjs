@@ -74,6 +74,17 @@ const SWITCH_PLACE = {
   ranked: "in Ranked",
   war: "in Clan Wars",
 };
+/** A mode as week_form's sentence names its battles ("26 Trophy Road
+ *  battles"): the game's own names. */
+const FORM_MODE_WORDS = {
+  ladder: "Trophy Road",
+  ranked: "Ranked",
+  war: "Clan Wars",
+  event: "event",
+  casual: "casual",
+};
+/** A rate as a whole percent: 0.615 is "62%". */
+const pct = (r) => (typeof r === "number" ? `${Math.round(r * 100)}%` : "?%");
 /** A clan role as it reads in a sentence. The stored value stays. */
 const ROLE_WORDS = {
   member: "Member",
@@ -677,6 +688,14 @@ export function itemText(it, timeZone = "UTC") {
     // most (four a battle day), and its points; never fame (13.10.0).
     case "war_week_played":
       return `${member || subj} played ${f.decks_used >= WAR_WEEK_DECKS ? `all ${WAR_WEEK_DECKS} war decks` : plural(f.decks_used, "war deck")} in ${seasonWeek(f.season_id, (f.section_index ?? 0) + 1)}${f.is_colosseum ? " (Colosseum)" : ""}${typeof f.points === "number" ? `, for ${num(f.points)} points` : ""}.`;
+    // A closed game week beside the four before it, in one mode
+    // (15.3.0): numbers only, the direction stated with them, never a
+    // verdict word (DECISIONS "Form is numbers only").
+    case "week_form": {
+      const w = f.week ?? {};
+      const p = f.previous ?? {};
+      return `${member || subj} won ${pct(w.win_rate)} of ${plural(w.decided_battles ?? 0, `${FORM_MODE_WORDS[f.mode] ?? f.mode} battle`)} in the week to ${w.to ? dayLabel(w.to, timeZone) : "?"}, up from ${pct(p.win_rate)} over the ${p.weeks ?? 4} weeks before.`;
+    }
     case "clan_joined":
       return `${subj} joined ${f.clan_name ?? f.clan_tag}.${f.roster_size_after > 0 ? ` The clan has ${f.roster_size_after} members.` : ""}`;
     case "clan_left":
