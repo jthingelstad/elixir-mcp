@@ -16,6 +16,7 @@ import {
   withComments,
   postComment,
   deleteComment,
+  dismissReports,
 } from "../src/comments.mjs";
 import { setQuestionAnswered } from "../src/posts.mjs";
 import {
@@ -781,4 +782,37 @@ test("someone else's comment joins the item's owner to its conversation: unread 
     ).unread,
     0,
   );
+});
+
+test("a hidden comment restored later joins its owner then, so reading the thread clears it (Codex, #1183)", async () => {
+  const db = scratch.db;
+  const p = await post(901, false, 30);
+  const item = {
+    id: p.item_id,
+    kind: "post",
+    subjects: [{ kind: "player", tag: TAG }],
+  };
+  await comment(p, "Hidden at first", 5, other, "hidden");
+  const joined = async () =>
+    (
+      await db.query(
+        `select 1 from comment_conversation where account_id=$1 and item_id=$2`,
+        [owner, p.item_id],
+      )
+    ).rows.length;
+  assert.equal(await joined(), 0);
+  const { comment_id } = (
+    await db.query(`select comment_id from timeline_comment where item_id=$1`, [
+      p.item_id,
+    ])
+  ).rows[0];
+  await dismissReports(db, comment_id);
+  assert.equal(await joined(), 1);
+  const row = async () =>
+    (
+      await readBell(db, owner, { comments: true, posts: true })
+    ).comments.items.find((c) => c.post_id === p.id);
+  assert.equal((await row()).new, true);
+  await commentsOnItem(db, owner, item);
+  assert.equal((await row()).new, false);
 });
