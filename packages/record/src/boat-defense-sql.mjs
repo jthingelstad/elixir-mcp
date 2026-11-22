@@ -29,3 +29,15 @@ export const notBoatDefense = (
      select 1 from battle bd
       where bd.battle_id = ${bp}.battle_id and bd.boat_battle_side is not null
         and (bd.boat_battle_side = 'defender') = (${side} = 0)))`;
+
+/**
+ * The same test for a read that has already looked the battle up by key
+ * (alias `b`, with `boat_battle_side`): no second lookup. `side` is the
+ * participant's side, read only when the row is a boat battle (the
+ * Timeline's week_form passes a by-key lookup, its covering scan having
+ * no side).
+ */
+export const notBoatDefenseOf = (bp = "bp", b = "b", side = `${bp}.side`) =>
+  `not (${bp}.type = 'boatBattle' and coalesce(case when ${bp}.type = 'boatBattle' then
+     ${b}.boat_battle_side is not null
+       and (${b}.boat_battle_side = 'defender') = (${side} = 0) end, false))`;

@@ -7,11 +7,7 @@ import { test, expect, vi, afterEach } from "vitest";
 import { cleanup, within } from "@testing-library/react";
 import { renderWithProviders } from "./helpers.jsx";
 import { smallMoment } from "../src/home/logic.js";
-import {
-  FeedItem,
-  momentHead,
-  weekFormHref,
-} from "../src/home/FeedItem.jsx";
+import { FeedItem, momentHead, weekFormHref } from "../src/home/FeedItem.jsx";
 
 vi.mock("../src/analytics.js", () => ({ trackEvent: () => {} }));
 
@@ -89,9 +85,7 @@ test("a shared item has no link into Stats", () => {
 
 test("no other kind links into Stats", () => {
   renderWithProviders(
-    <FeedItem
-      it={item({ kind: "card_maxed", facts: { card: "Knight" } })}
-    />,
+    <FeedItem it={item({ kind: "card_maxed", facts: { card: "Knight" } })} />,
   );
   expect(document.querySelector('a[href^="/home/you/stats"]')).toBeNull();
 });
