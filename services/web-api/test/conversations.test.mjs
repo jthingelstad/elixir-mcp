@@ -210,7 +210,13 @@ test("only visible replies by others become unread, and only served thread pages
 test("current source moderation, two-way blocks and audience control every conversation read", async () => {
   const post = await people.post();
   await join(post);
-  await reply(post, { who: "stranger", at: new Date().toISOString() });
+  // A second after now: the reader's read mark is the database's own
+  // now() in microseconds, so a reply stamped with the test's clock in
+  // the same millisecond could sort before it and not count as unread.
+  await reply(post, {
+    who: "stranger",
+    at: new Date(Date.now() + 1000).toISOString(),
+  });
   const list = async () =>
     body(await call("reader", "GET", "/api/me/conversations"));
   assert.equal((await list()).items[0].unread, 1);
