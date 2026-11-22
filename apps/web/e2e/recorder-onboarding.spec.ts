@@ -622,7 +622,7 @@ test("Quickstart starts with browser use and retains client deep links", async (
   await expect(
     page
       .locator("main")
-      .getByRole("link", { name: "Stats", exact: true })
+      .getByRole("link", { name: "your stats", exact: true })
       .first(),
   ).toHaveAttribute("href", "/home/you/stats");
   // The client steps are on their own page.

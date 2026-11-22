@@ -252,10 +252,9 @@ for (const [label, width] of [
       await page.getByRole("link", { name: "Your stats" }).click();
       await expect(page).toHaveURL(/\/home\/you\/stats$/);
       await expect(page).toHaveTitle("Season - Stats - Elixir");
-      const tabs = page.getByRole("tablist", { name: "Profile" });
-      await expect(tabs.getByRole("tab", { name: "Stats" })).toHaveAttribute(
-        "aria-selected",
-        "true",
+      // Stats is a tab of its own (2026-11-22): the shell lights it.
+      await expect(page.getByRole("tablist", { name: "Profile" })).toHaveCount(
+        0,
       );
       // Stats is Ladder unchanged: its scope bar and its four tabs.
       await expect(page.getByRole("group", { name: "Mode" })).toBeVisible();
@@ -265,8 +264,17 @@ for (const [label, width] of [
       await noSideways(page);
       await accessible(page, "You, Stats");
 
-      // Back to your account page by its tab.
-      await tabs.getByRole("tab", { name: "Profile" }).click();
+      // Stats lights its own place: the phone's tab, or the bar's on a wide
+      // screen. Back to your account page: the phone's Profile tab, or Back.
+      const places = page.locator(
+        width > 760 ? ".kit-top__nav" : ".kit-bottom",
+      );
+      await expect(places.getByRole("link", { name: "Stats" })).toHaveAttribute(
+        "aria-current",
+        "page",
+      );
+      if (width > 760) await page.goBack();
+      else await places.getByRole("link", { name: "Profile" }).click();
       await expect(page).toHaveURL(/\/home\/you$/);
       await expect(
         page.getByRole("heading", { level: 1, name: "@owl" }),

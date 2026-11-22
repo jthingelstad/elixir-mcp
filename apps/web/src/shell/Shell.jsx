@@ -43,8 +43,9 @@ const PLACES = {
 };
 
 /** The places a signed-in reader moves between (slice 7, #765; renamed
- *  2026-11-17): Timeline, Find, Clan and Profile, from the manifest. The
- *  phone draws all four; the top bar all but Profile, which is its avatar.
+ *  2026-11-17; Stats added 2026-11-22): Timeline, Find, Stats, Clan and
+ *  Profile, from the manifest. The phone draws all five; the top bar all
+ *  but Profile, which is its avatar.
  *  The bell is in the top bar at every width, beside the avatar (Jamie,
  *  2026-11-17), never a tab. */
 const TABS = SHELL_TABS;
@@ -109,7 +110,7 @@ export function barAccount(me, signOut) {
         href: PLACES.settings,
       },
       // Play Drop's place on a wide screen too since 2026-11-12: the bar
-      // has Timeline, Find, Clan, search, help, Notifications and your
+      // has Timeline, Find, Stats, Clan, search, help, Notifications and your
       // Profile.
       {
         key: "drop",
@@ -265,7 +266,7 @@ function TopBar({ me, area, open, bell, bellOpen }) {
               {...here(t.key, area)}
             >
               <TabIcon tab={t} me={me} size={18} />
-              {t.label}
+              <span className="kit-top__label">{t.label}</span>
             </Link>
           ))}
         </nav>

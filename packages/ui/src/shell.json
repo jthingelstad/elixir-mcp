@@ -46,6 +46,12 @@
       "icon": "search"
     },
     {
+      "key": "stats",
+      "label": "Stats",
+      "path": "/home/you/stats",
+      "icon": "chart-line"
+    },
+    {
       "key": "clan",
       "label": "Clan",
       "path": "/clan",

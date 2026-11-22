@@ -96,9 +96,9 @@ for (const state of ["signed in", "signed out", "checking"] as const) {
         await expect(page.locator("#account-menu")).toHaveCount(0);
         if (width <= 760) {
           const tabs = page.locator(".kit-bottom a, .kit-bottom button");
-          // Timeline, Find, Clan and Profile; the bell is in the bar
-          // (2026-11-17).
-          await expect(tabs).toHaveCount(4);
+          // Timeline, Find, Stats, Clan and Profile; the bell is in the bar
+          // (2026-11-17; Stats since 2026-11-22).
+          await expect(tabs).toHaveCount(5);
           for (const box of await tabs.evaluateAll((all) =>
             all.map((a) => a.getBoundingClientRect().toJSON()),
           ))

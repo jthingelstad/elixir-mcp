@@ -75,7 +75,9 @@ as the fourth phone tab).
   avatar").*
 - **Ladder** leaves the tabs: it is reached from You and from each player's
   page. [engineering, 2026-11-12] Since 2026-11-12 it is **Stats**, You's
-  last tab (below).
+  last tab (below). *2026-11-22: Stats is a tab of its own again, between
+  Find and Clan (a player: "make a separate tab for that"; DECISIONS "Stats
+  is a tab of its own").*
 - **Top bar, signed out:** Logo, Docs, Sign in, Create account; the signed-out
   home is sign in or join; Cards and Updates are in the footer at the same
   public addresses. Until 2026-11-12: Logo, Home, Cards, Docs, Updates, Sign

@@ -97,7 +97,7 @@ describe("the bar on a page", () => {
   };
 
   test(
-    "signed in: Timeline, Find and Clan, the search prompt, help, the bell, Drop, and tabs for the phone",
+    "signed in: Timeline, Find, Stats and Clan, the search prompt, help, the bell, Drop, and tabs for the phone",
     { timeout: 20000 },
     async () => {
       me = SIGNED_IN;
@@ -111,6 +111,7 @@ describe("the bar on a page", () => {
       ).toEqual([
         ["Timeline", "/timeline"],
         ["Find", "/home/find"],
+        ["Stats", "/home/you/stats"],
         ["Clan", "/clan"],
       ]);
       const bar = document.querySelector(".kit-top");
@@ -134,7 +135,7 @@ describe("the bar on a page", () => {
       const tabs = screen.getByRole("navigation", { name: "Main, phone" });
       expect(
         [...tabs.querySelectorAll("a, button")].map((a) => a.textContent),
-      ).toEqual(["Timeline", "Find", "Clan", "Profile"]);
+      ).toEqual(["Timeline", "Find", "Stats", "Clan", "Profile"]);
       // The bell left the phone's tabs for the bar (2026-11-17).
       expect(tabs.querySelector(".kit-bell")).toBeNull();
       // On Find, Find is the lit tab.
@@ -343,8 +344,9 @@ describe("the bar on a page", () => {
     expect(barArea("/home/follow/0PYLQ2", me)).toBe("find");
     expect(barArea("/home/player/%E0%A4%A", me)).toBe("find");
     expect(barArea("/home/you/")).toBe("you");
-    // Ladder is your stats, reached from You.
-    expect(barArea("/home/you/stats/decks")).toBe("you");
+    // Stats is a tab of its own (2026-11-22), whichever of its pages.
+    expect(barArea("/home/you/stats")).toBe("stats");
+    expect(barArea("/home/you/stats/decks")).toBe("stats");
     expect(barArea("/clan/you")).toBe("clan");
     expect(barArea("/console/account/profile")).toBeUndefined();
     expect(barArea("/signin")).toBeUndefined();

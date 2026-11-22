@@ -6,7 +6,6 @@ import {
   Panel,
   Row,
   Rows,
-  Tabs,
   Skeleton,
 } from "@elixir-mcp/ui";
 import { useMe } from "../App.jsx";
@@ -42,15 +41,6 @@ export function YouPage() {
       <YouAccount me={me} />
     </div>
   );
-}
-
-/** Profile's tabs over Stats (StatsPage): back to Profile, then Stats, open. */
-export function YouTabs() {
-  const items = [
-    { key: "you", label: "Profile", href: YOU },
-    { key: "stats", label: "Stats", href: STATS },
-  ];
-  return <Tabs label="Profile" items={items} value="stats" />;
 }
 
 function YouAccountPage({ id, claims }) {

@@ -454,16 +454,16 @@ for (const [label, width] of [
       await accessible(page, "Connections, RSS link");
     });
 
-    test("the tabs: Timeline, Find, Clan and Profile; the bell is in the bar", async ({
+    test("the tabs: Timeline, Find, Stats, Clan and Profile; the bell is in the bar", async ({
       page,
     }) => {
       await mockApi(page, homeApi());
       await page.goto("/home");
       if (width === 390) {
         const tabs = page.getByRole("navigation", { name: "Main, phone" });
-        for (const name of ["Timeline", "Find", "Clan", "Profile"])
+        for (const name of ["Timeline", "Find", "Stats", "Clan", "Profile"])
           await expect(tabs.getByRole("link", { name })).toBeVisible();
-        await expect(tabs.locator("a, button")).toHaveCount(4);
+        await expect(tabs.locator("a, button")).toHaveCount(5);
         await expect(
           page
             .locator(".kit-top")
@@ -482,7 +482,7 @@ for (const [label, width] of [
           name: "Main",
           exact: true,
         });
-        for (const name of ["Timeline", "Find", "Clan"])
+        for (const name of ["Timeline", "Find", "Stats", "Clan"])
           await expect(
             nav.getByRole("link", { name }).locator("svg"),
           ).toBeVisible();
