@@ -122,14 +122,12 @@ const PLAYER_PAGE = {
   // players, one statement (account handles, 2026-11-15).
   // +3: the player's clan role changes and war weeks, one statement each, and a promotion's story id (13.10.0, 2026-11-17).
   // Recent play stories read changes and same-season progress together, then sampled decks and card levels.
-  // +1: week_form (15.3.0), the player's closed game week beside the four
-  // before it, one statement (none when the window holds no Monday 10:00Z).
+  // +1: week_form (15.3.0), the weekly run's stored readings (0311), one
+  // primary-key read of player_week_form; stored so no read counts weeks.
   "/api/player": { statements: 41, buffers: 6000 },
   // 1500 to 900 (2026-11-14): 664 here, as on the battle page.
   // +1: the player's clan news reads (13.10.0, 2026-11-17).
-  // 900 to 1400: week_form (15.3.0) reads five game weeks of the
-  // player's battles, each battle's mode by key (about 400 here).
-  "/api/me/cheers": { statements: 27, buffers: 1400 },
+  "/api/me/cheers": { statements: 27, buffers: 900 },
   // The player's posts, those about battles with their battles (0292:
   // what /api/player read as highlights until then, inside its 6000).
   // 916 cold here, nearly all the battle posts' decks.
@@ -377,9 +375,7 @@ test("the bell stays in its budgets, built and stored, and never counts late cap
       // 35 since #1015: one read of the account's new Stamps.
       // +3: the player's clan role changes and war weeks, one statement each, and a promotion's story id (13.10.0, 2026-11-17).
       statements: 38,
-      // 1100 to 1700: week_form (15.3.0) reads five game weeks of the
-      // account's players' battles, each battle's mode by key.
-      buffers: 1700,
+      buffers: 1100,
     },
   );
   // The late count read every battle the record learned in the week,
@@ -809,11 +805,8 @@ test("the timeline page counts the week's late captures once, and the feed never
       "/api/me/timeline",
       {},
       // Every followed player's reads once for all of them (2026-11-13:
-      // 411 statements, about seven a player, before). 42000 to 70000:
-      // week_form (15.3.0) reads five game weeks of 56 players' battles,
-      // each battle's mode by key on battle_timeline_cover (about 30000
-      // here; an index-only gate skips players under ten decided battles).
-      { statements: TIMELINE_STATEMENTS, buffers: 70000 },
+      // 411 statements, about seven a player, before).
+      { statements: TIMELINE_STATEMENTS, buffers: 42000 },
     ],
   ]);
   const late = timeline.seen.filter((s) => LATE_ANY.test(s.text));
@@ -833,8 +826,7 @@ test("the timeline page counts the week's late captures once, and the feed never
       "rss",
       `/api/rss/${token}`,
       {},
-      // 70000: week_form, as the timeline page.
-      { statements: TIMELINE_STATEMENTS, buffers: 70000 },
+      { statements: TIMELINE_STATEMENTS, buffers: 42000 },
     ],
   ]);
   assert.ok(
@@ -852,8 +844,9 @@ test("Home's week, built, never counts late captures", async () => {
     {},
     // +1: one page-wide block gate for initial social controls, not an
     // item/owner query per card. The record and buffer bounds stay fixed.
-    // +1 and 70000: week_form (15.3.0), as the timeline page.
-    { statements: TIMELINE_STATEMENTS + 8, buffers: 70000 },
+    // +1: week_form (15.3.0), one primary-key read of player_week_form
+    // for the whole batch (0311); the buffer ceiling stays.
+    { statements: TIMELINE_STATEMENTS + 8, buffers: 42000 },
   );
   assert.ok(
     !built.seen.some((s) => LATE_ANY.test(s.text)),
