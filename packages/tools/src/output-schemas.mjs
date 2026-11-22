@@ -395,7 +395,7 @@ const PERF_WINDOW = {
     longest_win_streak: {
       ...COUNT,
       description:
-        "The longest run of consecutive wins among the window's decided battles, in battle order (15.2.0); a loss ends a run, a draw does not. current_streak is the run at the newest battle.",
+        "The longest run of consecutive wins among the window's won and lost battles, in battle order (15.2.0): the same battles current_streak reads, boat battles included, so it is never shorter than a winning current_streak. A loss ends a run, a draw does not; decided_battles (PvP only) is not its count.",
     },
   },
   required: ["battles", "wins", "losses", "decided_battles", "win_rate"],
