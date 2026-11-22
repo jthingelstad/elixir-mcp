@@ -67,6 +67,10 @@ export const JOB_LIMITS = Object.freeze({
   // Retention batches set their own 20 s and 60 s locally, and the run
   // stops itself at 120 s; the session limit sits above both.
   retention_trim: { statementMs: 90 * S, runMs: 300 * S },
+  // A week's form (0311): one counting statement per 50 players, each a
+  // few index reads a player; the run stops 60 s before its deadline and
+  // the async retry runs the week again (idempotent).
+  week_form: { statementMs: 90 * S, runMs: 300 * S },
   // A mail run is many short statements; it stops taking recipients
   // 90 s before its deadline and the async retry carries on.
   email: MAIL,

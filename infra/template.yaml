@@ -2282,6 +2282,27 @@ Resources:
       Principal: events.amazonaws.com
       SourceArn: !GetAtt ArchetypeStampRule.Arn
 
+  # A week's form (0311): each claimed player's reading for the game week
+  # that closed at Monday 10:00Z, stored once its six-hour grace has
+  # passed (WEEK_FORM_GRACE_MS); the Timeline reads it by key.
+  WeekFormRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: elixir-mcp-week-form
+      ScheduleExpression: cron(15 16 ? * MON *)
+      Targets:
+        - Arn: !GetAtt JobsFunction.Arn
+          Id: week-form
+          Input: '{"week_form": true}'
+
+  WeekFormPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref JobsFunction
+      Action: lambda:InvokeFunction
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt WeekFormRule.Arn
+
   # What the battlelog schedule costs and loses, per UTC day (0145;
   # Jamie, 2026-09-19): the last three closed days rewritten at 05:20Z,
   # after the payload sweep and before the archetype stamp; Settings >
