@@ -57,14 +57,20 @@ the four whole game weeks before it, in the chosen mode only. A game week
 runs Monday 10:00 UTC to Monday 10:00 UTC; the page names when this one began in your own timezone. It is
 one [battles_performance](/docs/tools/battles#battles_performance) read,
 the week as its window and the four before as `compare_from`/`compare_to`,
-and it shows three of the tool's own numbers, each with the battles it is
-over:
+and it shows the tool's own numbers, each with the battles it is over:
 
 - **Win rate**, over decided battles (draws outside both sides).
 - **Three-crown rate**, over head-to-head battles (duel rounds and boat
   battles left out, as the tool leaves them out).
 - **Net trophies**, in Trophy Road and Ranked only, where
   trophies move; over the mode's battles.
+- **Close games (one crown)**: head-to-head battles you won, and lost, by
+  exactly one crown, as won–lost.
+- **Three-crowned against**: how often your opponent took all three of
+  your towers, over head-to-head battles.
+- **Longest win streak**: your longest run of wins in a row among the
+  side's decided battles, in battle order. A streak running into the
+  stretch from before it counts only its wins inside.
 
 A side needs at least **10 battles** before it is set beside the other.
 Below that for the win rate, the strip is not drawn at all; below it for
@@ -76,7 +82,7 @@ weeks are the game's, not the season's.
 
 When the deck you played most this season in the chosen mode (a deck is
 its exact cards, as on Decks) arrived after you had played others, the
-Season tab splits the season at its first battle and shows the same three
+Season tab splits the season at its first battle and shows the same
 numbers before and since, from one battles_performance read with
 `before_after`. The deck is named by its archetype label, and the page
 names the deck you played most before it. Both sides count every deck you
@@ -94,6 +100,9 @@ numbers, each with the battles it is over:
 - **Won–lost**, over the side's battles.
 - **Win rate**, over decided battles.
 - **Net trophies**, in Trophy Road and Ranked only.
+- **Close games (one crown)**, **Three-crowned against** and **Longest
+  win streak**, as in the week above. Three-crowned against needs 10
+  head-to-head battles on every side.
 - **Decks played**: how many different decks (a deck is its exact cards,
   as on Decks) you played. In war a duel has no single deck and is not
   counted.

@@ -377,6 +377,26 @@ const PERF_WINDOW = {
     decided_losses: COUNT,
     head_to_head_battles: COUNT,
     three_crown_rate: RATE,
+    three_crowned_against_rate: {
+      ...RATE,
+      description:
+        "Share of head_to_head_battles where the opponent took 3 crowns (15.2.0); null when there are none.",
+    },
+    close_wins: {
+      ...COUNT,
+      description:
+        "Single-game head-to-head wins by exactly one crown (15.2.0); duels and boat battles are never counted.",
+    },
+    close_losses: {
+      ...COUNT,
+      description:
+        "Single-game head-to-head losses by exactly one crown (15.2.0); duels and boat battles are never counted.",
+    },
+    longest_win_streak: {
+      ...COUNT,
+      description:
+        "The longest run of consecutive wins among the window's decided battles, in battle order (15.2.0); a loss ends a run, a draw does not. current_streak is the run at the newest battle.",
+    },
   },
   required: ["battles", "wins", "losses", "decided_battles", "win_rate"],
 };

@@ -762,6 +762,71 @@ describe("formRows: the form tables lay the tool's numbers out, never rate them"
   });
 });
 
+describe("the 15.2.0 rows: close games, three-crowned against, the longest win streak", () => {
+  const side = (over = {}) => ({
+    battles: 31,
+    wins: 17,
+    losses: 14,
+    draws: 0,
+    decided_battles: 30,
+    win_rate: 0.548,
+    head_to_head_battles: 28,
+    three_crown_rate: null,
+    net_trophies: null,
+    close_wins: 4,
+    close_losses: 6,
+    three_crowned_against_rate: 0.107,
+    longest_win_streak: 1,
+    decks: 3,
+    deck_battles: 31,
+    ...over,
+  });
+  test("the week's table shows each beside its count, in words a reader hears", () => {
+    const rows = formRows(side(), side({ longest_win_streak: 5 }));
+    expect(rows.map((r) => r.key)).toEqual([
+      "win_rate",
+      "close_games",
+      "three_crowned_against_rate",
+      "longest_win_streak",
+    ]);
+    expect(rows[1].cells[0]).toEqual({
+      value: "4–6",
+      said: "4 won and 6 lost by one crown",
+      count: "28 battles",
+    });
+    expect(rows[2].cells[0]).toEqual({ value: "11%", count: "28 battles" });
+    expect(rows[3].cells.map((c) => c.said)).toEqual([
+      "1 win in a row",
+      "5 wins in a row",
+    ]);
+    expect(rows[3].cells[0].count).toBe("30 battles");
+    expect(JSON.stringify(rows)).not.toMatch(/better|worse|improv|good|bad/i);
+  });
+  test("the season's table carries them before Decks played; a side without them drops the row", () => {
+    const keys = (r) => r.map((x) => x.key);
+    expect(keys(seasonRows([side(), side()]))).toEqual([
+      "record",
+      "win_rate",
+      "close_games",
+      "three_crowned_against_rate",
+      "longest_win_streak",
+      "decks",
+    ]);
+    expect(
+      keys(
+        seasonRows([
+          side(),
+          side({
+            close_wins: null,
+            three_crowned_against_rate: null,
+            longest_win_streak: null,
+          }),
+        ]),
+      ),
+    ).toEqual(["record", "win_rate", "decks"]);
+  });
+});
+
 describe("seasonRows: this season beside the last, the tool's numbers laid out (2026-10-20)", () => {
   const side = (over = {}) => ({
     battles: 31,
