@@ -83,6 +83,10 @@ const SEEDED = {
   clan_quiet: T + 9 * H,
   account: T + 10 * H,
   attested: T + 11 * H,
+  // week_form: the game week's end, Monday 2026-09-21 10:00Z; the week
+  // holds player_battles' sitting. The check asks whether the week has
+  // battles; the build tells only a rise, so it serves nothing here.
+  player_week_form: T + 22 * H,
 };
 
 before(async () => {
@@ -291,6 +295,11 @@ test("sweep: a window the build serves an item in is never news-free, for every 
     windows.push([from, from + 5 * MIN]);
   for (let from = T - H; from < T + 12 * H; from += 30 * MIN)
     windows.push([from, from + H]);
+  // The windows that close the game week (week_form's source).
+  windows.push(
+    [SEEDED.player_week_form - 5 * MIN, SEEDED.player_week_form],
+    [SEEDED.player_week_form - 30 * MIN, SEEDED.player_week_form + 30 * MIN],
+  );
   const served = new Set();
   const firedSources = new Set();
   let skippable = 0;
