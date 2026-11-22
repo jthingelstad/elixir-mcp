@@ -103,6 +103,10 @@ export const TRIMMED = Object.freeze([
     note: "a day's sums go with the battles they sum",
   },
   {
+    ...plain("player_week_form", "week_start", YEAR),
+    note: "a week's stored form goes with the battles it read (0311)",
+  },
+  {
     table: "war_week",
     column: "coalesce(closed_at, finished_observed_at, started_observed_at)",
     columns: ["closed_at", "finished_observed_at", "started_observed_at"],
