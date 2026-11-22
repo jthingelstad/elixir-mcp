@@ -140,16 +140,21 @@ export const feedItems = (timeline) =>
     )
     .slice(0, FEED_ITEMS);
 
-/** RSS 2.0 for the items. Each item's guid is its story id, so a sitting
+/** RSS 2.0 for the items, untitled. Each item's guid is its story id, so a sitting
  *  that grows is the same entry, updated, not a new one. */
 export function renderRss(items, { now = new Date() } = {}) {
   const entries = items.map((it) => {
     const who = whoOf(it);
     const text = String(it.text ?? "").trim();
     const question = it.kind === "post" && it.facts.question;
-    const title = who
-      ? `${who.name}: ${question ? "Question: " : ""}${text}`
-      : text;
+    // A post is the writer's own words and never names them; every other
+    // line names its player already.
+    const lead =
+      it.kind === "post" && who
+        ? `${who.name}${question ? " asked" : ""}: ${text}`
+        : question
+          ? `Question: ${text}`
+          : text;
     const attachment =
       it.kind === "post"
         ? [
@@ -173,16 +178,19 @@ export function renderRss(items, { now = new Date() } = {}) {
             ...(question && it.facts.answered ? ["Answered"] : []),
           ]
         : [];
-    const description = [text, ...attachment].join("\n\n");
+    // No <title>: it only repeated the line. RSS 2.0 needs a title or a
+    // description, not both; readers show an untitled item as a post, and
+    // dc:creator as its author.
+    const description = [lead, ...attachment].join("\n\n");
     // RSS item descriptions are HTML after XML decoding. Keep names and
     // authored words literal in that HTML, then encode it for the XML.
     const descriptionHtml = xmlText(description);
     const at = new Date(Date.parse(it.observed_at ?? it.at) || now.getTime());
     return [
       "<item>",
-      `<title>${xmlText(title)}</title>`,
       `<link>${xmlText(linkOf(it))}</link>`,
       `<guid isPermaLink="false">${xmlText(it.id)}</guid>`,
+      ...(who ? [`<dc:creator>${xmlText(who.name)}</dc:creator>`] : []),
       `<pubDate>${at.toUTCString()}</pubDate>`,
       `<description>${xmlText(descriptionHtml)}</description>`,
       "</item>",
@@ -190,7 +198,7 @@ export function renderRss(items, { now = new Date() } = {}) {
   });
   return [
     '<?xml version="1.0" encoding="UTF-8"?>',
-    '<rss version="2.0">',
+    '<rss version="2.0" xmlns:dc="http://purl.org/dc/elements/1.1/">',
     "<channel>",
     "<title>Your Elixir timeline</title>",
     `<link>${ELIXIR_ORIGIN}/timeline</link>`,
