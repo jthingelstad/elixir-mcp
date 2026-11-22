@@ -56,6 +56,24 @@ const VALUES = {
   rivals: [{ tag: RIVAL, name: "Example Rival" }],
   // The answer's item names its feedback item as the ledger holds it.
   feedback_id: 9001,
+  // A week's form (week_form): its mode and its two windows.
+  mode: "ladder",
+  week: {
+    from: "2026-10-05T10:00:00.000Z",
+    to: "2026-10-12T10:00:00.000Z",
+    battles: 12,
+    decided_battles: 12,
+    wins: 8,
+    losses: 4,
+    win_rate: 0.667,
+  },
+  previous: {
+    from: "2026-09-07T10:00:00.000Z",
+    to: "2026-10-05T10:00:00.000Z",
+    weeks: 4,
+    decided_battles: 20,
+    win_rate: 0.5,
+  },
 };
 const CLAN_KINDS = new Set([
   "member_joined",
