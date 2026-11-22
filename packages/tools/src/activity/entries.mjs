@@ -32,8 +32,9 @@ import { battleLinks } from "@elixir-mcp/record/battle-links";
 import { postReaderAllowsSql } from "@elixir-mcp/posts";
 import { battlePostRows, battleOfRow } from "@elixir-mcp/posts/battle";
 import { daysSincePollSql } from "@elixir-mcp/record/read-facts";
-import { notBoatDefense } from "@elixir-mcp/record/boat-defense-sql";
+import { notBoatDefenseOf } from "@elixir-mcp/record/boat-defense-sql";
 import {
+  FORM_MIN_BATTLES,
   FORM_PREVIOUS_WEEKS,
   formWindows,
   gameWeekStartMs,
@@ -1862,9 +1863,7 @@ async function prefetchPlayers(
   const formStarts = weekFormStarts(fromMs, toMs);
   const weekForms = groupBy(
     formStarts.length
-      ? (
-          await db.query(perTag(weekFormSql("t.tag", formStarts)), [tags])
-        ).rows
+      ? (await db.query(perTag(weekFormSql("t.tag", formStarts)), [tags])).rows
       : [],
   );
   const played = new Map(
@@ -2005,7 +2004,39 @@ export function weekFormStarts(fromMs, toMs) {
  *  them (the win rate's one definition, @elixir-mcp/record/win-rate-sql;
  *  the mode filter's rule; boat defenses never; a battle with no outcome
  *  never). `wk` is the game week's index from the first week read. One
- *  statement a player (or one for a batch, through perTag). */
+ *  statement a player (or one for a batch, through perTag). A decided
+ *  battle reads the participant's `type_class`, the battle's own
+ *  denormalized (0095), so the scan stays on the covering index; the
+ *  battle is read by key once, for its type, event_tag and boat side
+ *  (battle_timeline_cover, index-only).
+ *
+ *  The mode needs each battle's event_tag, a lookup by key per row, so a
+ *  gate goes first: an index-only count of the player's decided battles
+ *  (`type_class` is the battle's own, denormalized) over each week and
+ *  the four before it. A mode's decided battles are a part of that count,
+ *  so a player under FORM_MIN_BATTLES on either side for every week can
+ *  have no reading, and their rows are never looked up. */
+/** A boat row's side, by key: the covering index has no side, and only
+ *  boat rows ask, so the participant scan stays index-only. */
+const WEEK_FORM_SIDE = `(select sp.side from battle_participant sp
+   where sp.battle_id = bp.battle_id and sp.player_tag = bp.player_tag)`;
+
+const weekFormGate = (tagSql, starts, lo, hi) => {
+  const side = (from, to) =>
+    `count(*) filter (where gp.battle_time >= ${ts(from)} and gp.battle_time < ${ts(to)}) >= ${FORM_MIN_BATTLES}`;
+  const any = starts
+    .map(
+      (s) =>
+        `(${side(s, s + WEEK_MS)} and ${side(s - FORM_PREVIOUS_WEEKS * WEEK_MS, s)})`,
+    )
+    .join(" or ");
+  return `(select ${any}
+     from battle_participant gp
+    where gp.player_tag = ${tagSql}
+      and gp.battle_time >= ${ts(lo)} and gp.battle_time < ${ts(hi)}
+      and gp.type_class = 'pvp' and gp.outcome in ('win', 'loss'))`;
+};
+
 const weekFormSql = (tagSql, starts) => {
   const lo = starts[0] - FORM_PREVIOUS_WEEKS * WEEK_MS;
   const hi = starts.at(-1) + WEEK_MS;
@@ -2015,17 +2046,18 @@ const weekFormSql = (tagSql, starts) => {
           count(*) filter (where bp.outcome = 'win')::int as wins,
           count(*) filter (where bp.outcome = 'loss')::int as losses,
           count(*) filter (where bp.outcome = 'draw')::int as draws,
-          ${decidedWinsSql("bp.outcome", "b.type_class")}::int as decided_wins,
-          ${decidedLossesSql("bp.outcome", "b.type_class")}::int as decided_losses
+          ${decidedWinsSql("bp.outcome", "bp.type_class")}::int as decided_wins,
+          ${decidedLossesSql("bp.outcome", "bp.type_class")}::int as decided_losses
      from battle_participant bp
      cross join lateral (
-       select b.type_class, b.type, b.event_tag from battle b
+       select b.type, b.event_tag, b.boat_battle_side from battle b
         where b.battle_id = bp.battle_id limit 1) b
      cross join lateral (select ${modeCaseSql(WEEK_FORM_MODES)} as mode) g
     where bp.player_tag = ${tagSql} and bp.outcome is not null
       and bp.battle_time >= ${ts(lo)} and bp.battle_time < ${ts(hi)}
-      and ${notBoatDefense("bp", { lookupByKey: true })}
+      and ${notBoatDefenseOf("bp", "b", WEEK_FORM_SIDE)}
       and g.mode is not null
+      and ${weekFormGate(tagSql, starts, lo, hi)}
     group by 1, 2`;
 };
 

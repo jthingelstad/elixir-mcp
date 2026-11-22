@@ -93,9 +93,10 @@ before(async () => {
     kind: "person",
     role: "member",
   };
-  await db.query(`insert into clan (clan_tag, name) values ($1, 'Ember Hall')`, [
-    CLAN,
-  ]);
+  await db.query(
+    `insert into clan (clan_tag, name) values ($1, 'Ember Hall')`,
+    [CLAN],
+  );
   for (const [tag, name] of [
     [PIP, "Pip"],
     [ASH, "Ash"],
@@ -255,7 +256,9 @@ test("a window that holds no week's end says nothing, and runs no week_form read
   });
   assert.deepEqual(forms(timeline), []);
   assert.ok(
-    !queries.some((q) => q.includes("floor(extract(epoch from (bp.battle_time")),
+    !queries.some((q) =>
+      q.includes("floor(extract(epoch from (bp.battle_time"),
+    ),
     "no week_form query",
   );
 });

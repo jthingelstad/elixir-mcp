@@ -403,7 +403,9 @@ const percent = (r) => `${Math.round(r * 100)}%`;
  *  player you follow, from it. */
 export function weekFormHref(it) {
   const tag = it.facts?.player_tag ?? it.subject_tag;
-  return tag ? statsHref("season", { player: tag, mode: it.facts?.mode }) : null;
+  return tag
+    ? statsHref("season", { player: tag, mode: it.facts?.mode })
+    : null;
 }
 
 /** What a moment's head says above its sentence (2026-11-17), from its
