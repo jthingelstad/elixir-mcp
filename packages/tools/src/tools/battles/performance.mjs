@@ -162,6 +162,9 @@ export const battles_performance = {
                   count(*) filter (where opp_crowns = 3 and type_class = 'pvp'
                                    and not duel)::int as three_crowned_against,
                   coalesce((select max(n) from runs), 0)::int as longest_win_streak,
+                  -- The battles both streaks read (15.4.0): every won and
+                  -- lost battle, boat battles included.
+                  (select count(*) from decided)::int as streak_battles,
                   (select n::int from streak) as current_streak,
                   -- The control beside a pooled rate (DECISIONS: mode
                   -- discipline): the same sample split by mode group.

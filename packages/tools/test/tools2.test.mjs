@@ -203,6 +203,10 @@ test("battles_performance: close games, three-crowned against and the longest wi
     best = Math.max(best, run);
   }
   assert.equal(w.longest_win_streak, best);
+  assert.equal(
+    w.streak_battles,
+    rows.filter((x) => ["win", "loss"].includes(x.outcome)).length,
+  );
   assert.ok(w.longest_win_streak >= Math.max(w.current_streak, 0));
 });
 

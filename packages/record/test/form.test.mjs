@@ -77,6 +77,7 @@ const w = (over = {}) => ({
   close_wins: 4,
   close_losses: 5,
   longest_win_streak: 3,
+  streak_battles: 31,
   net_trophies: 45,
   ...over,
 });
@@ -166,6 +167,14 @@ test("close games, three-crowned against and the longest win streak ride beside 
   assert.equal(old.previous.longest_win_streak, null);
   assert.equal(old.previous.three_crowned_against_rate, null);
   assert.equal(old.previous.win_rate, 0.548);
+  // A 15.2 answer has the streak but not its count (15.4.0): no streak.
+  const uncounted = weekForm(
+    { window: w({ streak_battles: undefined }), compare_window: w() },
+    "war",
+  );
+  assert.equal(uncounted.previous.longest_win_streak, null);
+  assert.equal(uncounted.previous.streak_battles, null);
+  assert.equal(uncounted.previous.close_wins, 4);
   // A season side under the head-to-head minimum drops the rate alone.
   assert.equal(
     seasonSide(w({ head_to_head_battles: 9 }), "war")
@@ -307,6 +316,7 @@ test("a season side keeps the tool's numbers, each beside its count", () => {
       close_wins: 4,
       close_losses: 5,
       longest_win_streak: 3,
+      streak_battles: 31,
       head_to_head_battles: 30,
       three_crowned_against_rate: 0.1,
       decks: 4,

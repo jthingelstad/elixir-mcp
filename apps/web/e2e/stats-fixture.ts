@@ -133,6 +133,7 @@ const more = (
   three_crowned_against_rate:
     Math.round((against / s.head_to_head_battles) * 1000) / 1000,
   longest_win_streak: streak,
+  streak_battles: s.wins + s.losses,
 });
 export const FORM = {
   week: more(side(14, 8, 13, 3, 58), [3, 2], 1, 4),
