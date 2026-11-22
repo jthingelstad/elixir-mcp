@@ -165,6 +165,25 @@ export function weekForm(perf, mode) {
   return p ? { mode, week: p.a, previous: p.b } : null;
 }
 
+/** How far a closed game week's win rate must sit above the four weeks
+ *  before it for the Timeline to say so (week_form, 2026-11-22): ten
+ *  percentage points, as battles_performance rounds its rates.
+ *  [engineering default] */
+export const WEEK_FORM_RISE = 0.1;
+
+/** The week reading the Timeline posts (week_form): weekForm's reading
+ *  when the week's win rate is at least WEEK_FORM_RISE above the four
+ *  weeks', else null. Only a rise: a step down is not put in front of
+ *  friends. Compared in thousandths, the rates' own precision, so 0.62
+ *  beside 0.52 is a rise of exactly ten points. */
+export function weekFormRise(perf, mode) {
+  const f = weekForm(perf, mode);
+  if (!f) return null;
+  const rise =
+    Math.round(f.week.win_rate * 1000) - Math.round(f.previous.win_rate * 1000);
+  return rise >= Math.round(WEEK_FORM_RISE * 1000) ? f : null;
+}
+
 /**
  * The deck change in one mode's season, from battles_decks' answer for
  * that season and mode sorted by battles (its first row is the deck

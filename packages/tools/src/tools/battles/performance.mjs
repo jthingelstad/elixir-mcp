@@ -27,6 +27,11 @@ import {
   trophyFloorNote,
 } from "../../controls.mjs";
 import { DENOMINATOR_DOCS, modeClause, ownBattlesClause } from "./common.mjs";
+import {
+  decidedLossesSql,
+  decidedWinsSql,
+  winRate,
+} from "@elixir-mcp/record/win-rate-sql";
 
 export const battles_performance = {
   description:
@@ -138,8 +143,8 @@ export const battles_performance = {
                   count(*) filter (where outcome = 'loss')::int as losses,
                   count(*) filter (where outcome = 'draw')::int as draws,
                   count(*) filter (where type_class = 'boat')::int as boat_battles,
-                  count(*) filter (where outcome = 'win' and type_class = 'pvp')::int as decided_wins,
-                  count(*) filter (where outcome = 'loss' and type_class = 'pvp')::int as decided_losses,
+                  ${decidedWinsSql()}::int as decided_wins,
+                  ${decidedLossesSql()}::int as decided_losses,
                   count(*) filter (where duel)::int as duel_battles,
                   coalesce(sum(crowns),0)::int as crowns_for,
                   coalesce(sum(opp_crowns),0)::int as crowns_against,
@@ -188,8 +193,7 @@ export const battles_performance = {
         decided_battles: decided,
         decided_wins,
         decided_losses,
-        win_rate:
-          decided > 0 ? Number((decided_wins / decided).toFixed(3)) : null,
+        win_rate: winRate(decided_wins, decided),
         head_to_head_battles: head_to_head,
         // Three crowns means the king tower fell, which only reads as a
         // sweep on a single game; duel rows sum crowns across rounds

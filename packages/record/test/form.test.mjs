@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   FORM_MIN_BATTLES,
+  WEEK_FORM_RISE,
   deckChange,
   deckForm,
   formArgs,
@@ -10,6 +11,7 @@ import {
   samePointWindow,
   seasonSide,
   weekForm,
+  weekFormRise,
 } from "../src/form.mjs";
 
 const at = (s) => Date.parse(s);
@@ -340,4 +342,28 @@ test("a season side under the minimum is not a side at all, as in the other read
   );
   assert.equal(seasonSide(w({ win_rate: null }), "ladder"), null);
   assert.equal(seasonSide(null, "ladder"), null);
+});
+
+test("the Timeline's week reading is a rise of at least ten points, never a drop", () => {
+  assert.equal(WEEK_FORM_RISE, 0.1);
+  const perf = (a, b) => ({
+    window: w({ win_rate: a }),
+    compare_window: w({ win_rate: b }),
+  });
+  // Exactly ten points, in the rates' own thousandths.
+  assert.equal(weekFormRise(perf(0.62, 0.52), "ladder").week.win_rate, 0.62);
+  assert.equal(weekFormRise(perf(0.619, 0.52), "ladder"), null);
+  // A drop is never posted, however large.
+  assert.equal(weekFormRise(perf(0.3, 0.6), "ladder"), null);
+  // Below the minimum on a side: weekForm's rule, so nothing.
+  assert.equal(
+    weekFormRise(
+      {
+        window: w({ win_rate: 0.9, decided_battles: FORM_MIN_BATTLES - 1 }),
+        compare_window: w({ win_rate: 0.4 }),
+      },
+      "ladder",
+    ),
+    null,
+  );
 });
