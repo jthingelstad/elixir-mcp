@@ -140,6 +140,8 @@ export const KIND_MODES = {
   week_resolved: () => ["war"],
   // A player's own war week (13.10.0).
   war_week_played: () => ["war"],
+  // A week's form names its mode (15.3.0).
+  week_form: (it) => groups(it.facts?.mode),
   // About the player, not one mode: wins counted in every mode, a level,
   // a card, a badge, a clan's roster, a quiet spell or a return.
   career_wins_step: NO_MODE,

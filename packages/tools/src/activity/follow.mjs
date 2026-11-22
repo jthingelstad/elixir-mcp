@@ -121,6 +121,24 @@ export function followFor(it, window) {
             },
           ]
         : [];
+    // A week's form (15.3.0): battles_performance over the same two
+    // windows in the same mode, which answers the item's own numbers.
+    case "week_form":
+      return tag && f.week?.from && f.week?.to && f.previous?.from
+        ? [
+            {
+              tool: "battles_performance",
+              args: {
+                player_tag: tag,
+                mode: f.mode,
+                from: f.week.from,
+                to: f.week.to,
+                compare_from: f.previous.from,
+                compare_to: f.previous.to,
+              },
+            },
+          ]
+        : [];
     case "collection_level_step":
       return tag
         ? [{ tool: "players_collection", args: { player_tag: tag } }]
