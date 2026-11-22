@@ -699,6 +699,7 @@ export const useConversations = (enabled = true) =>
     retry: false,
   });
 export const useItemComments = (it, enabled = true, around = null) => {
+  const queryClient = useQueryClient();
   const query = useInfiniteQuery({
     queryKey: around ? [...commentsKey(it?.id), around] : commentsKey(it?.id),
     queryFn: ({ pageParam }) =>
@@ -710,7 +711,14 @@ export const useItemComments = (it, enabled = true, around = null) => {
           before: pageParam,
           around: pageParam ? null : around,
         })
-        .then(unwrap),
+        .then(unwrap)
+        .then((read) => {
+          // Your own item's thread read is what clears its comments in the
+          // bell (2026-11-22), so the dot reads again.
+          if (read?.yours === true)
+            queryClient.invalidateQueries({ queryKey: ["me", "bell"] });
+          return read;
+        }),
     initialPageParam: null,
     getNextPageParam: (last) => last.next_before ?? undefined,
     enabled: enabled && Boolean(it?.id),

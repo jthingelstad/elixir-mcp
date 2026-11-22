@@ -7,7 +7,7 @@ order: 3
 navTitle: "Your account"
 icon: user-round
 lede: "One account, opened by verifying your email, signed in with an email and no password. It holds your players, your time zone and your limits, and it shows nobody your address."
-reviewed: "2026-11-17 Notifications drops down from the bell next to your account; 2026-11-15 for one place shown everywhere, with no choice of who sees it; 2026-11-14 for a place staying with its owner; 2026-11-14 for the player map and Near you; 2026-11-14 for Your place on Profile; 2026-11-12 against contract 11.21.0 for What members see's Location and follow slots; 2026-10-13 against contract 11.12.0"
+reviewed: "2026-11-22 threads on your own items join My conversations, a comment stays new until you read it, and each part lists the newest first; 2026-11-17 Notifications drops down from the bell next to your account; 2026-11-15 for one place shown everywhere, with no choice of who sees it; 2026-11-14 for a place staying with its owner; 2026-11-14 for the player map and Near you; 2026-11-14 for Your place on Profile; 2026-11-12 against contract 11.21.0 for What members see's Location and follow slots; 2026-10-13 against contract 11.12.0"
 callout: ["Open it at Settings › Profile", "/settings/profile", "Open Profile"]
 ---
 
@@ -161,18 +161,24 @@ Activity has up to three parts, each shown only when it has something:
 
 - **Needs you**: your clan's Actions waiting on you as a leader, and an old
   key still trying to connect. These stay until they are done.
-- **New**: what came since you last opened the bell.
+- **New**: what came since you last opened the bell, and comments you
+  haven't read yet.
 - **Earlier**: the rest of the last week or month, the same kinds of lines
   you have already seen.
 
+Each part lists the newest first, whatever kind of line it is. Followers
+come last, since a follow shows no time.
+
 **My conversations** keeps the Timeline threads you joined by commenting
-or answering. It shows how many new replies from other people you can
+or answering, and the threads on your own items: when someone comments on
+an item about your verified player, or on your post, you join it too. It shows how many new replies from other people you can
 read. Tap a conversation to open that exact item at its first unread reply.
 Opening Notifications leaves those replies unread; opening the thread
 marks only the replies shown there read. A long thread can have more to
 read after that point.
 
-Your conversations are private. Reading or cheering does not join one.
+Your conversations are private. Reading or cheering someone else's item
+does not join one.
 Deleting your comment keeps your place here. A conversation appears only
 while you can still see its item, with the same blocks and moderation as
 the thread. This adds no email or push notifications.
@@ -193,6 +199,9 @@ The lines are:
   Accounts with no player at all are counted, not named. A named one has
   **Follow back**, unless you already follow or own that player: it
   asks first, with what it costs, like every Follow.
+- **Comments** on your items and posts in the last seven days: who said
+  it and what they said. Tap one to open that item's comments. A comment
+  stays new until you read it there, as in My conversations.
 - **Answers to your feedback**: each answer the maintainer gave in the last
   thirty days, and any you have not read; it opens the answer in Settings ›
   Feedback.
@@ -204,9 +213,9 @@ The lines are:
   in Settings › Sign-ins & devices.
 
 The bell shows a number: what needs you, plus what came since you last
-opened it, plus answers you have not read. Opening the bell marks cheers,
-followers and your account's lines as seen; an answer stays new until you
-open it. If you open a line and come back, the bell opens where you left
+opened it, plus comments and answers you have not read. Opening the bell
+marks cheers, followers and your account's lines as seen. A comment stays
+new until you open its item's comments, and an answer until you open it. If you open a line and come back, the bell opens where you left
 it, with the rest of what was new still marked; once you put the bell away,
 the next opening starts fresh. If the bell can't refresh when you open
 it, it keeps what it showed before, says it may be out of date, and offers

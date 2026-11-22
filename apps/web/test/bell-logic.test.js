@@ -8,6 +8,7 @@ import {
   answerRows,
   bellCount,
   bellGroups,
+  newestFirst,
   bellLabel,
   bellSeenAt,
   commentRows,
@@ -324,12 +325,13 @@ test("one inbox: New then Earlier, every kind keyed; what you left new stays new
     ["cheer", "tl_a"],
     ["answer", "answer-7"],
   ]);
+  // Newest first across kinds (2026-11-22); rows with no time after.
   expect(first.earlier.map((r) => r.key)).toEqual([
-    "tl_b",
-    "#0CR-#0J8",
     "passport-ready-2026-11-14T12:00:00Z",
     // Two lines at one instant keep apart.
     "passport-ready-2026-11-14T12:00:00Z~2",
+    "tl_b",
+    "#0CR-#0J8",
   ]);
   expect(first.counted).toBe("1 more follower with no player added yet");
   // Back from a row: the read says nothing is new any more (the marker
@@ -342,7 +344,7 @@ test("one inbox: New then Earlier, every kind keyed; what you left new stays new
   expect(bellGroups(null)).toEqual({ fresh: [], earlier: [], counted: null });
 });
 
-test("a comment row names who said it, its words, and opens your player's page (2026-11-16)", () => {
+test("a comment row names who said it, its words, and opens its thread or your player's page; new until read (2026-11-16, 2026-11-22)", () => {
   const bell = {
     seen_at: null,
     new: 1,
@@ -376,12 +378,44 @@ test("a comment row names who said it, its words, and opens your player's page (
   expect(row.to).toBe("/home/player/0VJ2QV");
   const { fresh } = bellGroups(bell);
   expect(fresh.map((r) => r.kind)).toEqual(["comment"]);
+  // Opening the bell is not reading it: new until its thread is opened
+  // (2026-11-22), and the badge still counts it.
   const after = bellSeenAt(bell, "2026-11-16T13:00:00.000Z");
-  expect(after.comments.items[0].new).toBe(false);
-  expect(after.comments.new).toBe(0);
+  expect(after.comments.items[0].new).toBe(true);
+  expect(after.comments.new).toBe(1);
+  expect(after.new).toBe(1);
+  expect(bellGroups(after).fresh.map((r) => r.kind)).toEqual(["comment"]);
+  // With its item's locator, a game comment opens that item's thread.
+  const [withRef] = commentRows({
+    items: [
+      {
+        ...bell.comments.items[0],
+        item_ref: {
+          item_id: "tl_0123456789abcdef0123",
+          kind: "pb",
+          source: "game",
+          subject: { kind: "player", tag: "#0VJ2QV" },
+          at: "2026-11-16T11:00:00.000Z",
+        },
+      },
+    ],
+  });
+  expect(withRef.to).toMatch(/^\/home\/item\/tl_0123456789abcdef0123\?ref=/);
+  expect(withRef.to).toContain("reply=");
   // A read with comments off carries none, and opening it adds none.
   expect(commentRows(undefined)).toEqual([]);
   const off = { ...bell };
   delete off.comments;
   expect("comments" in bellSeenAt(off, null)).toBe(false);
+});
+
+test("each part runs newest first across kinds; rows with no time keep their order after (2026-11-22)", () => {
+  const rows = newestFirst([
+    { key: "a", at: "2026-11-20T10:00:00Z" },
+    { key: "f1" },
+    { key: "b", at: "2026-11-22T10:00:00Z" },
+    { key: "f2", at: null },
+    { key: "c", at: "2026-11-21T10:00:00Z" },
+  ]);
+  expect(rows.map((r) => r.key)).toEqual(["b", "c", "a", "f1", "f2"]);
 });
