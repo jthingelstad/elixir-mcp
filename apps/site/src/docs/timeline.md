@@ -281,6 +281,8 @@ follow, or you, can get a line about it:
 - Only a rise shows up. A slower week never does.
 - One mode a week: if a few modes went up, it's the one with the most
   battles that week. Modes are never added together.
+- It shows up a few hours after the reset. Battles recorded after that
+  don't change it.
 - Tap **See stats** to open that player's Stats in that mode.
 
 ### Getting set up

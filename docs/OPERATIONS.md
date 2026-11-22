@@ -61,8 +61,11 @@ ledger should drain, and both doors should serve.
 - **Scheduled jobs** (`/aws/lambda/elixir-mcp-jobs`): the nightly
   efficiency row (05:20Z, `{capture_efficiency}`, yesterday's
   `lost_battles` in `capture_efficiency_daily`), the nightly archetype
-  stamp (05:30Z, `{archetype_stamp}`), the shape census (05:05Z) and
-  Monday's sweeps. The stamp's log carries `archetype_stamp`, the decks
+  stamp (05:30Z, `{archetype_stamp}`), the shape census (05:05Z),
+  Monday's sweeps and Monday's week_form run (16:15Z, `{week_form}`,
+  each claimed player's reading of the game week that closed at 10:00Z
+  into `player_week_form`; idempotent, so a by-hand
+  `{week_form: {week_start}}` rerun of a closed week is safe). The stamp's log carries `archetype_stamp`, the decks
   re-stamped after a vocabulary
   or grammar change: a non-zero `written` on a day with neither, and no
   deploy, needs a reason. The hourly operational sweep carries the war
