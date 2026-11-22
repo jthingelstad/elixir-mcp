@@ -448,6 +448,15 @@ async function dispatch(event, context) {
     console.log(JSON.stringify(result));
     return result;
   }
+  if (event?.comment_delivery) {
+    const { commentDeliveryOp } = await import("./ops-comment-delivery.mjs");
+    const result = await commentDeliveryOp(
+      process.env.DATABASE_URL,
+      event.comment_delivery,
+    );
+    console.log(JSON.stringify(result));
+    return result;
+  }
   if (event?.funnel) {
     const { funnelOp } = await import("./ops-funnel.mjs");
     const result = await funnelOp(process.env.DATABASE_URL, event.funnel);

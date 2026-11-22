@@ -80,6 +80,7 @@ const MIGRATE_READS = {
   sessions: anyArgs,
   war_drift: anyArgs,
   tag_footprint: anyArgs,
+  comment_delivery: anyArgs,
   capture_audit: anyArgs,
   poll_replay: anyArgs,
   audit_census: anyArgs,
