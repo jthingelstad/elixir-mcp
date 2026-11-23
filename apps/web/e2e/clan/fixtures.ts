@@ -39,7 +39,7 @@ const BEN_PAGE = {
   badges: { verified_player: false, discord: false },
   follows: null,
   followers: null,
-  window_days: 30,
+  window_days: 7,
   timeline: [],
   timeline_more: 0,
   moments: [],

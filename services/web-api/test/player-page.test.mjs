@@ -13,13 +13,17 @@ import { emitEvent } from "../../../packages/ingest/src/events.mjs";
 import { createSession } from "@elixir-mcp/auth";
 import { buildTimeline } from "@elixir-mcp/tools/activity/entries";
 import { makeHandler } from "../src/handler.mjs";
+import { TIMELINE_LOOKBACK_DAYS } from "@elixir-mcp/tools/activity/lookback";
 import {
+  PAGE_DAYS,
+  SESSION_REACH_DAYS,
   followAllRefusal,
   followPlan,
   markOf,
   sessionWindow,
   tagsOf,
 } from "../src/routes/player.mjs";
+import { ACCOUNT_PAGE_DAYS } from "../src/account-page.mjs";
 
 // Made-up tags: this repository is public.
 const A = "#0JR2U89V"; // verified by X
@@ -222,7 +226,7 @@ test("a verified player's page: record, badges, follows and followers by game na
   // its timeline carries no record item for them beside.
   assert.equal("highlights" in page, false);
   assert.ok(!page.timeline.some((it) => it.kind === "battle_highlight"));
-  assert.equal(page.window_days, 30);
+  assert.equal(page.window_days, TIMELINE_LOOKBACK_DAYS, "the Timeline's week");
   assert.ok(!r.body.includes(NICK), "no nickname, the reader's included");
   assert.ok(!r.body.includes(DISCORD), "that a Discord is linked, never which");
   assert.ok(!r.body.includes("email"), "no email field");
@@ -666,6 +670,27 @@ test("a session's window: an hour before its start to a day after, else the page
   assert.equal(sessionWindow(undefined, now), null);
   assert.equal(sessionWindow("2026-12-01T00:00:00Z", now), null);
   assert.equal(sessionWindow("2026-09-01T00:00:00Z", now), null);
+  // A session link is a permalink, not the list's look-back: one 20 days
+  // old opens though the page lists a week, and only past its own reach
+  // is it gone.
+  assert.deepEqual(sessionWindow("2026-10-27T10:00:00Z", now), {
+    fromMs: Date.parse("2026-10-27T09:00:00Z"),
+    toMs: Date.parse("2026-10-28T10:00:00Z"),
+  });
+  assert.equal(
+    sessionWindow(
+      new Date(now - (SESSION_REACH_DAYS + 1) * 86_400_000).toISOString(),
+      now,
+    ),
+    null,
+  );
+});
+
+test("the player and account pages list the Timeline's week; a session link reaches further", () => {
+  assert.equal(TIMELINE_LOOKBACK_DAYS, 7);
+  assert.equal(PAGE_DAYS, TIMELINE_LOOKBACK_DAYS);
+  assert.equal(ACCOUNT_PAGE_DAYS, TIMELINE_LOOKBACK_DAYS);
+  assert.ok(SESSION_REACH_DAYS > TIMELINE_LOOKBACK_DAYS);
 });
 
 test("a game's mark says the moment's fact, and nothing for a kind without one", () => {

@@ -188,7 +188,7 @@ The defaults differ by tool, and each says which applied:
 | `players_summary` | fixed 30 days (`source: "fixed"`); not an argument |
 | `players_series`, `clans_members_series` | unbounded, on **game days**: `from`/`to` are `YYYY-MM-DD` game days (inclusive); an instant is floored to its game day, echoed under `applied.window.floored` with a note; `days: N` is N game days, today included |
 | `clans_series` | the last 30 game days (`source: "default"`, with a note naming `series_available_from`); bounds as on the other series |
-| `elixir_timeline` | since your read pointer, or the last day without one (`source: "pointer"` or `"default"`); capped at 30 days |
+| `elixir_timeline` | since your read pointer, or the last day without one (`source: "pointer"` or `"default"`); reaches back one week: an older start is held to it, a window that ends before it is refused |
 | `game_events` | the current season so far |
 | `clans_standings` | 30 days |
 | `clans_participation` | 5 ISO weeks, the current one included (each starts Monday 00:00 UTC, ten hours before the war week; see [Seasons](#seasons)) |

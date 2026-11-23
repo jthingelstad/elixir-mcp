@@ -460,7 +460,7 @@ test(
         badges: { verified_player: true, discord: false },
         follows: { count: 0, players: [] },
         followers: { count: 0, players: [] },
-        window_days: 30,
+        window_days: 7,
         timeline: [],
         timeline_more: 0,
         moments: [],

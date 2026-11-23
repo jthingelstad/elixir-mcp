@@ -61,7 +61,7 @@ const PAGE = {
   badges: { verified_player: true, discord: false },
   follows: { count: 0, players: [] },
   followers: { count: 0, players: [], unnamed: 0 },
-  window_days: 30,
+  window_days: 7,
   timeline: [
     {
       id: "t1",
@@ -126,7 +126,7 @@ const ACCOUNT_PAGE = {
   },
   you: { self: true, following: false, to_follow: [], plan: null },
   passport: null,
-  window_days: 30,
+  window_days: 7,
   timeline: [
     {
       id: "t1",

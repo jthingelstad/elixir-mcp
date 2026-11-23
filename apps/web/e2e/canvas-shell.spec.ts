@@ -85,7 +85,7 @@ const OWN_ACCOUNT = {
   },
   you: { self: true, following: false, to_follow: [], plan: null },
   passport: null,
-  window_days: 30,
+  window_days: 7,
   timeline: [
     {
       id: "t1",

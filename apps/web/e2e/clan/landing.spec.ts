@@ -147,7 +147,7 @@ test.describe("arriving at a clan", () => {
             badges: { verified_player: true, discord: false },
             follows: null,
             followers: null,
-            window_days: 30,
+            window_days: 7,
             timeline: [],
             timeline_more: 0,
             moments: [],

@@ -24,7 +24,7 @@ export const ADA = {
     players: [{ tag: "#0JVRYLGG", name: "Edsger" }],
     unnamed: 1,
   },
-  window_days: 30,
+  window_days: 7,
   timeline: [
     {
       id: "t1",

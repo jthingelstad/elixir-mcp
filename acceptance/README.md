@@ -69,7 +69,10 @@ written - nothing is hand-translated. The vocabulary:
   fair) or `live` (invariants only), `control`, `needs_fixture`
   (BLOCKED, with the text; a bite still runs it), `open_question`
   (UNSPEC) and `retired` (SKIPPED with the text, never run: a case that
-  pinned one particular player, whose invariant another case covers).
+  pinned one particular player, whose invariant another case covers). A
+  case whose `elixir_timeline` read starts before the Timeline's week is
+  PAST THE WEEK live (SKIPPED, said aloud; a bite still runs it): the
+  timeline reaches back one week, so the filed answer is not a live read's.
 - **rejected at load** (a test under `verify`): a duplicate id; a
   finding (`<feedback>.<n>`) with no `control: true` case; an unknown
   verb fails the case at run time.

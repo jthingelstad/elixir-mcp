@@ -36,7 +36,8 @@ import {
 const DAY_MS = 86_400_000;
 
 /** How far back stories are kept, and what a write with no span covers:
- *  the player page's 30 days and a margin. */
+ *  a session link's 30 days (the longest a player-page read reaches; its
+ *  list reads the Timeline's week, lookback.mjs) and a margin. */
 export const STORY_SPAN_DAYS = 35;
 
 /** Items the store never holds. A Drop game is a signed-in follower's
@@ -458,7 +459,7 @@ const GROUPS = 25;
  *  ledger row must be observed after `from`). */
 const WINDOW_EDGE_MS = 2 * DAY_MS;
 /** Built for the window's first battle (presenceOf), so a 35-day write
- *  and a 30-day page can tell it differently anywhere. */
+ *  and the page's shorter window can tell it differently anywhere. */
 const WINDOW_KINDS = new Set(["returned"]);
 /** Objects whose own keys are fixed field names, so a difference is
  *  named one level down; every other key is named at the top. */

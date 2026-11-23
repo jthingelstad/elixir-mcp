@@ -94,7 +94,7 @@ const ADA = {
   badges: { verified_player: true, discord: false },
   follows: { count: 0, players: [] },
   followers: { count: 1, players: [], unnamed: 1 },
-  window_days: 30,
+  window_days: 7,
   timeline: [
     {
       id: "tl_00000000000000000001",

@@ -12,6 +12,10 @@ import {
 } from "../../activity/entries.mjs";
 import { followFor, forCaller } from "../../activity/follow.mjs";
 import {
+  TIMELINE_LOOKBACK_DAYS,
+  TIMELINE_LOOKBACK_MS,
+} from "../../activity/lookback.mjs";
+import {
   EMPTY_POST_PAGE,
   readPostTimeline,
   mergePostTimeline,
@@ -45,25 +49,41 @@ const FORM_MOMENTS_FROM_MS = Date.parse("2026-09-29T00:00:00Z");
  *  48,000-character result cap with room for notes, applied and meta. */
 const PAGE_CHAR_BUDGET = 40_000;
 
+/** A from this little before the week is read as the week without a
+ *  note: "the last 7 days" computed on the caller's clock lands a few
+ *  milliseconds early by the time the server reads it. */
+const WEEK_GRACE_MS = 60_000;
+
+/** Where history older than the timeline's week is read. */
+const OLDER_HISTORY =
+  "battles_query and battles_performance read a player's battles, players_series and clans_series their daily series, and war_history every recorded war week";
+
 export const elixir_timeline = {
   description:
-    "Your newest-first timeline for followed players and clans, plus visible posts/questions for a person's own connection. One item per story plus subject summaries. basis occurred reads what happened; a poller reads what the record learned, and omitting from starts at its pointer (default 24 hours, cap 30 days). evidence_item_id reads canonical games, version-pinned, keeping every pointer. Plain posts are followers-scoped, never publishable here; no comments. Facts, never advice; game_clock supplies timing.",
+    "Your newest-first timeline for followed players and clans, plus visible posts/questions for a person's own connection. One item per story plus subject summaries. basis occurred reads what happened; a poller reads what the record learned, and omitting from starts at its pointer (default 24 hours). Reaches back one week; limit asks for the newest N. evidence_item_id reads canonical games, version-pinned, keeping every pointer. Plain posts are followers-scoped, never publishable here; no comments. Facts, never advice; game_clock supplies timing.",
   inputSchema: {
     type: "object",
     properties: {
       ...WINDOW_ARGS,
       // The stated convention (9.1.0): `season` bounds one season on
-      // every windowed tool; here it is capped at 30 days like any window.
+      // every windowed tool; here it is held to the week like any window.
       season: SEASON_ARG_SCHEMA,
       // The timeline selects by when the record OBSERVED an item, over
       // (from, to] at the millisecond it serves (7.1.5, Gym #273).
       from: {
         type: "string",
-        description: `${WINDOW_OBSERVED_FROM_DESC} With basis occurred, when items happened instead.`,
+        description: `${WINDOW_OBSERVED_FROM_DESC} With basis occurred, when items happened instead. At most ${TIMELINE_LOOKBACK_DAYS} days back: an older from reads from a week ago.`,
       },
       to: {
         type: "string",
-        description: `${WINDOW_OBSERVED_TO_DESC} With basis occurred, when items happened instead.`,
+        description: `${WINDOW_OBSERVED_TO_DESC} With basis occurred, when items happened instead. A to older than a week is refused.`,
+      },
+      limit: {
+        type: "integer",
+        minimum: 1,
+        maximum: 500,
+        description:
+          "The newest N items in the window, after kinds, sections and player_tag; a cut says so like a busy window (has_more, timeline_more_to). A read with limit never moves a read pointer.",
       },
       evidence_item_id: {
         type: "string",
@@ -140,10 +160,27 @@ export const elixir_timeline = {
     additionalProperties: false,
   },
   async handler(ctx, rawArgs) {
+    // The week is counted back from now, taken before the window sugar
+    // (days, weeks) reads the clock, so "the last 7 days" is the week.
+    const nowMs = Date.now();
     const args = withWindowSugar(rawArgs);
     const tz = zoneFor(ctx, args) ?? "UTC";
     const DAY_MS = 86_400_000;
-    const CAP_MS = 30 * DAY_MS;
+    // A Timeline read reaches back one week (Jamie, 2026-11-23).
+    const weekFromMs = nowMs - TIMELINE_LOOKBACK_MS;
+    const limit = args.limit === undefined ? null : Number(args.limit);
+    if (limit !== null && !(Number.isInteger(limit) && limit >= 1))
+      throw new ToolFailure(
+        "bad_request",
+        `limit must be a positive integer (got '${args.limit}').`,
+        "Pass the number of newest items to read, e.g. limit 10.",
+      );
+    if (limit !== null && args.mark_read === true)
+      throw new ToolFailure(
+        "bad_request",
+        "A read with limit never moves a read pointer: it would carry the pointer past the older items the limit left out.",
+        "Poll without limit to move the pointer, or read the newest items with limit and mark_read false.",
+      );
     const reader =
       args.reader === undefined ? null : String(args.reader).trim();
     if (reader !== null && !/^[a-z0-9][a-z0-9-]{0,31}$/.test(reader))
@@ -235,10 +272,19 @@ export const elixir_timeline = {
       fromMs = toMs - DAY_MS;
       source = "default";
     }
+    // A window that ends before the week has nothing the timeline serves:
+    // refused, with where that history is read. One that starts before it
+    // is held to the week and says so.
+    if (toMs <= weekFromMs)
+      throw new ToolFailure(
+        "bad_request",
+        `The timeline reaches back one week (${TIMELINE_LOOKBACK_DAYS} days, from ${new Date(weekFromMs).toISOString()}); this window ends at ${new Date(toMs).toISOString()}, before it.`,
+        `Read older history with the data tools: ${OLDER_HISTORY}. Or omit from and to for the window since your read pointer.`,
+      );
     let capped = false;
-    if (toMs - fromMs > CAP_MS) {
-      fromMs = toMs - CAP_MS;
-      capped = true;
+    if (fromMs < weekFromMs) {
+      capped = fromMs < weekFromMs - WEEK_GRACE_MS;
+      fromMs = weekFromMs;
     }
     if (fromMs >= toMs)
       throw new ToolFailure(
@@ -491,10 +537,19 @@ export const elixir_timeline = {
         break;
       }
     }
+    // limit (the newest N) cuts as the page budget does: on the instant
+    // of the newest item it leaves out, so what it served and what it
+    // counted are split by one `to`, and the older items are read by the
+    // same paging (timeline_more_to). Ties at that instant go with it.
+    const limitCutMs =
+      limit !== null && byObserved.length > limit
+        ? pageMs(byObserved[limit])
+        : null;
     const newestLeftOut = Math.max(
       ...droppedShown.map(pageMs),
       built.post_more_at ? Date.parse(built.post_more_at) : -Infinity,
       sizeCutMs ?? -Infinity,
+      limitCutMs ?? -Infinity,
     );
     let cutMs = Number.isFinite(newestLeftOut) ? newestLeftOut : null;
     let timeline =
@@ -510,6 +565,7 @@ export const elixir_timeline = {
       for (const it of byObserved) {
         size += JSON.stringify(it).length + 1;
         if (timeline.length > 0 && size > PAGE_CHAR_BUDGET) break;
+        if (limit !== null && timeline.length >= limit) break;
         timeline.push(it);
       }
       timeline.sort(
@@ -610,6 +666,7 @@ export const elixir_timeline = {
       !occurred &&
       args.mark_read !== false &&
       !memberTag &&
+      limit === null &&
       !args.evidence_item_id;
     // The pointer only moves forward; read_to reports the one STORED (Gym
     // #251: a past `to` echoed a move that never happened).
@@ -705,6 +762,7 @@ export const elixir_timeline = {
         ...(memberTag ? { player_tag: memberTag } : {}),
         ...(sections ? { sections } : {}),
         ...(kinds ? { kinds } : {}),
+        ...(limit !== null ? { limit } : {}),
         ...(args.skip_empty === true ? { skip_empty: true } : {}),
         verbosity: compact ? "compact" : "full",
       }),
@@ -741,7 +799,13 @@ export const elixir_timeline = {
           ? "quiet lists followed players with nothing in the window; read days_since_poll beside days_quiet before calling the silence theirs."
           : null,
         capped
-          ? "The window was capped at 30 days before to; pass from and to for older history, or use the data tools."
+          ? `The timeline reaches back one week, so this window starts at ${iso(fromMs)}, ${TIMELINE_LOOKBACK_DAYS} days before now. Older history is in the data tools: ${OLDER_HISTORY}.`
+          : null,
+        limitCutMs !== null
+          ? `limit ${limit} cut this window: timeline holds its newest items and timeline_more counts the older ones, read as a busy window's are.`
+          : null,
+        limit !== null && !occurred && args.mark_read !== false && !memberTag
+          ? "A read with limit keeps the read pointer (read_to is where it stays), so nothing the limit left out is skipped; poll without limit to move it."
           : null,
         // The moment ledger's own history (Gym #121): profile-derived
         // moments begin 2026-09-14T04:27Z, and collection_level_step

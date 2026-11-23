@@ -91,6 +91,7 @@ import {
 import { postRevision, readCapped } from "./sync.mjs";
 import { clanStoryFacts } from "./story-facts.mjs";
 import { battleLinks } from "@elixir-mcp/record/battle-links";
+import { TIMELINE_LOOKBACK_MS } from "@elixir-mcp/tools/activity/lookback";
 import {
   clanPageUrl,
   storyBattleIds,
@@ -109,7 +110,9 @@ import {
 } from "./quality.mjs";
 
 const DAY_MS = 24 * 3600_000;
-const REACH_MS = 30 * DAY_MS;
+/** The timeline's reach, its one look-back (lookback.mjs): a pointer
+ *  older than this reads from here. */
+const REACH_MS = TIMELINE_LOOKBACK_MS;
 const TOLD_KEEP_DAYS = 31;
 /** A departure's post edited by a leader's word on it: above any
  *  revision the roster's own item reaches. */

@@ -37,9 +37,10 @@ import {
   windowFacts,
   windowHighlights,
 } from "./entries.mjs";
+import { TIMELINE_LOOKBACK_MS } from "./lookback.mjs";
 
-/** The week Home shows. */
-export const HOME_WEEK_MS = 7 * 86_400_000;
+/** The week Home shows: the Timeline's one look-back (lookback.mjs). */
+export const HOME_WEEK_MS = TIMELINE_LOOKBACK_MS;
 /** A row younger than this is served without a wake. */
 export const HOME_FRESH_MS = 15 * 60_000;
 /** A row older than this is not served: the read builds. */

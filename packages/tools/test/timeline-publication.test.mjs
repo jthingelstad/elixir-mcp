@@ -20,7 +20,12 @@ import {
   missingFacts,
 } from "../src/activity/schemas.mjs";
 import { elixir_timeline } from "../src/tools/elixir/timeline.mjs";
+import { atWindowClock } from "./timeline-clock.mjs";
 import { makeRegistry } from "../src/tools.mjs";
+
+// Each read is made the week its window opens (timeline-clock.mjs).
+const timelineAt = (ctx, args) =>
+  atWindowClock(args, () => elixir_timeline.handler(ctx, args));
 
 const PILOT = "#000880";
 const CLAN = "#0PPPG9";
@@ -332,7 +337,7 @@ test("every item carries its kind's facts and schema, and the docs list every ki
 
 test("basis: an ad hoc window reads what happened and keeps the pointer; a poller reads what was learned; occurred never marks", async () => {
   const ctx = { db, account: { accountId: owner, timezone: TZ } };
-  const adHoc = await elixir_timeline.handler(ctx, {
+  const adHoc = await timelineAt(ctx, {
     from: iso(SAT_FROM),
     to: iso(SAT_TO),
   });
@@ -344,7 +349,7 @@ test("basis: an ad hoc window reads what happened and keeps the pointer; a polle
   );
   assert.equal(rows[0].activity_seen_at, null, "the pointer did not move");
 
-  const poller = await elixir_timeline.handler(ctx, {
+  const poller = await timelineAt(ctx, {
     reader: "example-bot",
     from: iso(SAT_FROM),
     to: iso(SAT_TO),
@@ -355,7 +360,7 @@ test("basis: an ad hoc window reads what happened and keeps the pointer; a polle
 
   await assert.rejects(
     () =>
-      elixir_timeline.handler(ctx, {
+      timelineAt(ctx, {
         from: iso(SAT_FROM),
         basis: "occurred",
         mark_read: true,
@@ -366,7 +371,7 @@ test("basis: an ad hoc window reads what happened and keeps the pointer; a polle
 
 test("a member read whose window cuts a standout sitting says it recurs under the same id (Gym #321, 11.8.0)", async () => {
   const ctx = { db, account: { accountId: owner, timezone: TZ } };
-  const out = await elixir_timeline.handler(ctx, {
+  const out = await timelineAt(ctx, {
     player_tag: PILOT,
     // Learned at 14:40Z, begun at 14:00Z; Friday's games were learned at
     // 16:00Z, outside this window, so the standout is the only sitting.
@@ -413,7 +418,7 @@ test("an occurred window that starts mid-sitting serves the whole sitting (Codex
 test("an evidence read with no basis finds a poller's late item (Codex on #472)", async () => {
   const ctx = { db, account: { accountId: owner, timezone: TZ } };
   const window = { from: iso(SAT_FROM), to: iso(SAT_TO) };
-  const polled = await elixir_timeline.handler(ctx, {
+  const polled = await timelineAt(ctx, {
     ...window,
     reader: "example-bot",
     mark_read: false,
@@ -422,7 +427,7 @@ test("an evidence read with no basis finds a poller's late item (Codex on #472)"
     (it) => it.late && it.kind === "battle_session",
   );
   assert.ok(late, "Friday's sitting reached the poller late");
-  const read = await elixir_timeline.handler(ctx, {
+  const read = await timelineAt(ctx, {
     ...window,
     evidence_item_id: late.id,
   });
@@ -434,7 +439,7 @@ test("an evidence read with no basis finds a poller's late item (Codex on #472)"
 test("a full read's items say where they lead, and a sitting's own address reads it back (11.9.0)", async () => {
   const ctx = { db, account: { accountId: owner, timezone: TZ } };
   const window = { from: iso(SAT_FROM), to: iso(SAT_TO), basis: "occurred" };
-  const read = await elixir_timeline.handler(ctx, window);
+  const read = await timelineAt(ctx, window);
   assert.ok(read.timeline.every((it) => Array.isArray(it.follow)));
   const [sitting] = sittings(read.timeline);
   const tools = sitting.follow.map((x) => x.tool);
@@ -448,10 +453,10 @@ test("a full read's items say where they lead, and a sitting's own address reads
   // (Codex on #476: battle windows end before to).
   assert.equal(span.window.battles, sitting.facts.battles);
   assert.equal(span.window.wins, sitting.facts.won);
-  const back = await elixir_timeline.handler(ctx, sitting.follow[0].args);
+  const back = await timelineAt(ctx, sitting.follow[0].args);
   assert.equal(back.timeline[0].id, sitting.id);
   assert.equal(back.evidence.count, sitting.facts.battles);
-  const compact = await elixir_timeline.handler(ctx, {
+  const compact = await timelineAt(ctx, {
     ...window,
     verbosity: "compact",
   });

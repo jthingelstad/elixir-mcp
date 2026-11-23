@@ -25,7 +25,7 @@ their follows and followers. Under it:
 
 | Tab | What it holds |
 |---|---|
-| Timeline | the player's **Posts** first: their posts about battles, each with its battle and their own words, and any other posts you may see; then what the record holds for the player in the last 30 days, newest first |
+| Timeline | the player's **Posts** first: their posts about battles, each with its battle and their own words, and any other posts you may see; then what the record holds for the player in the last seven days, newest first |
 | Moments | the timeline's moments: a new arena, a promotion in Ranked, a badge, a clan joined or left. A moment Elixir saw happen in a battle, like a promotion won on a 3-0, has **Open the battle** |
 | Follows | who the player's account follows, and who follows it |
 | Record | the recorded profile: the last 30 days in battles, wins, losses, trophies and the deck played most, and the profile's trophies, best and lifetime counts as of its last capture |

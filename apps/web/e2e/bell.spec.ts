@@ -93,7 +93,7 @@ const PAGE = {
   badges: { verified_player: true, discord: false },
   follows: { count: 0, players: [] },
   followers: { count: 0, players: [], unnamed: 0 },
-  window_days: 30,
+  window_days: 7,
   timeline: [],
   timeline_more: 0,
   moments: [],

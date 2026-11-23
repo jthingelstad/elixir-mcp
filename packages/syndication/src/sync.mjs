@@ -18,6 +18,7 @@ import {
   timelineNews,
 } from "@elixir-mcp/tools/activity/entries";
 import { battleLinks } from "@elixir-mcp/record/battle-links";
+import { TIMELINE_LOOKBACK_MS } from "@elixir-mcp/tools/activity/lookback";
 import { discordLine, itemBattleId } from "./lines.mjs";
 import {
   aside,
@@ -28,12 +29,13 @@ import {
 
 const HOUR_MS = 3600_000;
 const DAY_MS = 24 * HOUR_MS;
-/** The timeline's reach: a pointer older than this reads from here. */
-const REACH_MS = 30 * DAY_MS;
+/** The timeline's reach, its one look-back (lookback.mjs): a pointer
+ *  older than this reads from here. */
+const REACH_MS = TIMELINE_LOOKBACK_MS;
 /** An open sitting is re-read from its start for this long, so its edit
  *  tells the whole sitting; longer than any sitting is played. */
 export const OPEN_MS = 12 * HOUR_MS;
-/** Told rows outlive the timeline's reach by a day, then go. */
+/** Told rows are kept well past the timeline's reach, then go. */
 const TOLD_KEEP_DAYS = 31;
 /** A window the timeline's cap cut is narrowed at most this often. */
 const NARROW_MAX = 6;
