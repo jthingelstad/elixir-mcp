@@ -125,6 +125,8 @@ item the record learned since the place it opened from (by `observed_at`)
 **New**, and draws a **New since your last visit** rule under the last of
 them. A first visit has no place yet and marks nothing new.
 
-The two never move each other. Viewing the page leaves your read pointer,
-every `reader`'s and `meta.timeline_pending` where they were, and a
-`mark_read` from your AI never clears that count.
+Viewing the page leaves your read pointer, every `reader`'s and
+`meta.timeline_pending` where they were, and a `mark_read` from your AI
+never moves the page's **New** markers. A `mark_read` does lower
+`meta.timeline_pending`, which counts from the oldest active named
+reader.

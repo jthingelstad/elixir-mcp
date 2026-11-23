@@ -37,7 +37,6 @@ const RECORD = {
     rpc_error_code: null,
     cold_start: true,
     principal_kind: "person",
-    on_behalf_of: "discord:42",
     captured: true,
     args: { clan_tag: "#ABC", weeks: 30 },
   },
@@ -105,7 +104,6 @@ test("the record: tool, metrics strip, folded meta, cut arrays, neighbours, feed
   expect(screen.getByText("459 left")).toBeTruthy();
   expect(screen.getByText("discord-bot")).toBeTruthy();
   expect(screen.getByText("US")).toBeTruthy();
-  expect(screen.getByText(/on behalf of discord:42/)).toBeTruthy();
 
   // The JSON is rendered as text nodes inside <pre>, so read it whole.
   const rendered = () => document.body.textContent;

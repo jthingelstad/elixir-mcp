@@ -15,7 +15,6 @@ import {
   followClanForPlayer,
   playerCost,
   pooledUsage,
-  setAgentStatus,
   setRelationship,
   markVerified,
   VERIFIED_ELSEWHERE,
@@ -278,131 +277,6 @@ test("concurrent adds cannot exceed the slot limit", async () => {
     [capped.accountId],
   );
   assert.equal(rows[0].n, 3, "never more claims than slots");
-});
-
-test("an owner and their agent share one pool of player slots, under one lock", async () => {
-  // Jamie, 2026-09-23: agents use the person's recording slots. A player
-  // both track is one slot; and the owner and the agent adding at once on
-  // separate connections cannot both take the last one.
-  const owner = await account(`pool-${Math.random()}`, { slots: 2 });
-  const {
-    rows: [row],
-  } = await db.query(
-    `insert into account (status, role, kind, owned_by_account_id, public_id)
-     values ('approved', 'member', 'agent', $1, $2) returning account_id`,
-    [owner.accountId, `pool${String(Math.random()).slice(2, 10)}`],
-  );
-  const agent = { accountId: row.account_id };
-  assert.equal((await addPlayer(db, owner, { tag: A, via: "test" })).ok, true);
-  // The same player on the agent costs nothing.
-  assert.equal((await addPlayer(db, agent, { tag: A, via: "test" })).ok, true);
-  const conns = await Promise.all(
-    [0, 1].map(async () => {
-      const c = new pg.Client({ connectionString: URL });
-      await c.connect();
-      return c;
-    }),
-  );
-  try {
-    const results = await Promise.all([
-      addPlayer(conns[0], owner, { tag: C, via: "test" }),
-      addPlayer(conns[1], agent, { tag: D, via: "test" }),
-    ]);
-    assert.equal(
-      results.filter((r) => r.ok).length,
-      1,
-      "one of the two takes the last slot",
-    );
-    assert.equal(results.filter((r) => r.error === "quota_exceeded").length, 1);
-  } finally {
-    await Promise.all(conns.map((c) => c.end()));
-  }
-});
-
-test("only active agents count: suspending frees the slot and stops its recording", async () => {
-  // Jamie, 2026-10-10: "Only active ones should count against usage
-  // slots." A suspended agent's subjects are out of the pool and out of
-  // recording, so suspending cannot be a way to record without a slot.
-  const owner = await account(`active-${Math.random()}`, { slots: 3 });
-  const {
-    rows: [row],
-  } = await db.query(
-    `insert into account (status, role, kind, owned_by_account_id, public_id)
-     values ('approved', 'member', 'agent', $1, $2) returning account_id`,
-    [owner.accountId, `act${String(Math.random()).slice(2, 10)}`],
-  );
-  const agent = { accountId: row.account_id };
-  assert.equal((await addPlayer(db, owner, { tag: A, via: "test" })).ok, true);
-  assert.equal((await addPlayer(db, agent, { tag: C, via: "test" })).ok, true);
-  // Bob tracks D too, so D outlives the agent's suspension. Bob followed
-  // D first, so D is recorded because of Bob and takes none of this
-  // pool's slots (#760).
-  assert.equal((await addPlayer(db, bob, { tag: D, via: "test" })).ok, true);
-  await addPlayer(db, agent, { tag: D, via: "test" });
-  const held = await pooledUsage(db, owner.accountId);
-  assert.equal(held.players_used, 2);
-  assert.equal(held.players_free, 1);
-  assert.equal(held.players_followed, 3);
-
-  const off = await setAgentStatus(
-    db,
-    owner.accountId,
-    agent.accountId,
-    "disabled",
-  );
-  assert.equal(off.ok, true);
-  assert.equal(off.recordings_stopped, 1, "C stops; D is still Bob's");
-  assert.equal(await isRecording(C), false);
-  assert.equal(await isRecording(D), true);
-  assert.equal((await pooledUsage(db, owner.accountId)).players_used, 1);
-
-  // The freed slot is the owner's to spend; with a ceiling of 2, resuming
-  // would be 3 of 2 (D stays free).
-  assert.equal((await addPlayer(db, owner, { tag: B, via: "test" })).ok, true);
-  await db.query(
-    `update account set max_player_recordings = 2 where account_id = $1`,
-    [owner.accountId],
-  );
-  const refused = await setAgentStatus(
-    db,
-    owner.accountId,
-    agent.accountId,
-    "approved",
-  );
-  assert.equal(refused.error, "quota_exceeded");
-  assert.equal(refused.limit, 2);
-  assert.match(refused.message, /Free 1 first/);
-  const {
-    rows: [still],
-  } = await db.query(`select status from account where account_id = $1`, [
-    agent.accountId,
-  ]);
-  assert.equal(still.status, "disabled", "a refused resume changes nothing");
-  assert.equal(await isRecording(C), false);
-
-  // With room again, resuming counts it and records it again.
-  await removePlayer(db, owner, { tag: B, via: "test" });
-  await db.query(
-    `update account set max_player_recordings = 3 where account_id = $1`,
-    [owner.accountId],
-  );
-  const on = await setAgentStatus(
-    db,
-    owner.accountId,
-    agent.accountId,
-    "approved",
-  );
-  assert.equal(on.ok, true, JSON.stringify(on));
-  assert.equal(on.recordings_started, 1);
-  assert.equal(await isRecording(C), true);
-  assert.equal((await pooledUsage(db, owner.accountId)).players_used, 2);
-
-  // Somebody else's agent is not found.
-  assert.equal(
-    (await setAgentStatus(db, bob.accountId, agent.accountId, "disabled"))
-      .error,
-    "not_found",
-  );
 });
 
 test("owner and admin stay exempt from slots", async () => {
@@ -1257,6 +1131,23 @@ test("slots: a free follow whose reason goes away keeps recording and starts cou
   );
 });
 
+test("an agent-kind account left from before follows nothing", async () => {
+  // The rows stay until they are deleted; nothing may add to them.
+  const {
+    rows: [row],
+  } = await db.query(
+    `insert into account (status, role, kind, owned_by_account_id, public_id)
+     values ('approved', 'member', 'agent', $1, $2) returning account_id`,
+    [bob.accountId, `old${String(Math.random()).slice(2, 10)}`],
+  );
+  const r = await addPlayer(
+    db,
+    { accountId: row.account_id },
+    { tag: C, via: "test" },
+  );
+  assert.deepEqual(r, { ok: false, error: "not_entitled", kind: "agent" });
+});
+
 test("slots: a suspended agent's follow is no reason, so it makes nothing free", async () => {
   const {
     rows: [row],
@@ -1276,63 +1167,4 @@ test("slots: a suspended agent's follow is no reason, so it makes nothing free",
   assert.equal((await playerCost(db, alice.accountId, C)).free, false);
   const a = await addPlayer(db, alice, { tag: C, via: "test" });
   assert.equal(a.slot.took, true);
-});
-
-test("slots: resuming an agent prices its restored clan first, so the members stay free", async () => {
-  // Codex on #774: the resume check ran before the agent's recordings
-  // were restored, so the clan it alone records looked stopped and every
-  // member it follows was charged a slot.
-  const owner = await account(`resume760-${Math.random()}`, { slots: 1 });
-  // Partner, so the pool may hold a clan recorded in full.
-  await db.query(`update account set role = 'partner' where account_id = $1`, [
-    owner.accountId,
-  ]);
-  const {
-    rows: [row],
-  } = await db.query(
-    `insert into account (status, role, kind, owned_by_account_id, public_id)
-     values ('approved', 'member', 'agent', $1, $2) returning account_id`,
-    [owner.accountId, `res${String(Math.random()).slice(2, 10)}`],
-  );
-  const agent = { accountId: row.account_id };
-  const clanTag = "#0L9CVQUV";
-  await db.query(
-    `insert into clan (clan_tag) values ($1) on conflict do nothing`,
-    [clanTag],
-  );
-  await db.query(
-    `insert into player (player_tag) values ($1) on conflict do nothing`,
-    [C],
-  );
-  await db.query(
-    `insert into clan_membership (clan_tag, player_tag, joined_observed_at)
-     values ($1, $2, now())`,
-    [clanTag, C],
-  );
-  await addedClan(agent, clanTag, "comprehensive");
-  await reconcileRecording(db, "clan", clanTag, agent.accountId);
-  assert.equal((await addPlayer(db, owner, { tag: A, via: "test" })).ok, true);
-  const c = await addPlayer(db, agent, { tag: C, via: "test" });
-  assert.equal(c.ok, true, JSON.stringify(c));
-  assert.equal(c.slot.free, true);
-  assert.equal((await pooledUsage(db, owner.accountId)).players_used, 1);
-
-  const off = await setAgentStatus(
-    db,
-    owner.accountId,
-    agent.accountId,
-    "disabled",
-  );
-  assert.equal(off.ok, true);
-  assert.equal(await clanRecording(clanTag), undefined);
-
-  const on = await setAgentStatus(
-    db,
-    owner.accountId,
-    agent.accountId,
-    "approved",
-  );
-  assert.equal(on.ok, true, JSON.stringify(on));
-  assert.equal((await clanRecording(clanTag)).scope, "comprehensive");
-  assert.equal((await pooledUsage(db, owner.accountId)).players_used, 1);
 });

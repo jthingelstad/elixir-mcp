@@ -3071,23 +3071,6 @@ Resources:
             FunctionAssociations:
               - EventType: viewer-request
                 FunctionARN: !GetAtt OauthQueryNormalizer.FunctionMetadata.FunctionARN
-          # Agent doors (0054). Same origin, same no-cookie
-          # policy as /mcp -- these are the same protected resource served
-          # under a per-principal identity, and a session cookie must never
-          # reach one. Without these the Lambda's routing is correct and
-          # unreachable: the edge answers /a/* with its own 403 HTML and the
-          # door never sees the request.
-          - PathPattern: /a/*
-            TargetOriginId: mcpapi
-            ViewerProtocolPolicy: https-only
-            AllowedMethods: [GET, HEAD, OPTIONS, PUT, POST, PATCH, DELETE]
-            CachePolicyId: !Ref WebPrivateCachePolicy
-            ResponseHeadersPolicyId: !Ref SecurityHeadersPolicy
-            Compress: true
-            OriginRequestPolicyId: !Ref McpOriginRequestPolicy
-            FunctionAssociations:
-              - EventType: viewer-request
-                FunctionARN: !GetAtt OauthQueryNormalizer.FunctionMetadata.FunctionARN
           # Listed before /oauth/*: CloudFront takes the first pattern
           # that matches. GET and POST both carry the cookie (the consent
           # form posts back here); SameSite=Lax keeps a cross-site POST

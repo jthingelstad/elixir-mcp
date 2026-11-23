@@ -5,14 +5,7 @@ import {
 } from "@elixir-mcp/contracts";
 import { FeedbackError, fileFeedback } from "@elixir-mcp/feedback";
 import { senderRef } from "@elixir-mcp/outbox/notify";
-import { identityFor } from "../../entitlements.mjs";
-import {
-  ON_BEHALF_OF_SCHEMA,
-  ToolFailure,
-  appliedBlock,
-  docsRef,
-  notes,
-} from "../shared.mjs";
+import { ToolFailure, appliedBlock, docsRef, notes } from "../shared.mjs";
 
 /** The door a call came through, as feedback names it. MCP is the only
  *  door that runs this tool since JSON API 5.0.0; feedback the JSON API
@@ -85,11 +78,6 @@ export const elixir_send_feedback = {
         description:
           "The feedback_id of your own item this follows (11.3.0), so the thread reads as one: a reply to an answer, the answer to a needs_info question, or a correction to something you filed.",
       },
-      on_behalf_of: {
-        ...ON_BEHALF_OF_SCHEMA,
-        description:
-          "Agent connections only: the person on your surface this feedback came from (e.g. discord:1234), when you relay theirs. Kept with the report so the maintainer sees it was theirs; the answer still comes to you. A personal connection is its person's, so it has no such argument.",
-      },
     },
     required: ["message"],
     additionalProperties: false,
@@ -117,15 +105,6 @@ export const elixir_send_feedback = {
     ];
     const a = ctx.account;
     const door = DOOR[ctx.surface] ?? DOOR.mcp;
-    const onBehalfOf =
-      a.kind === "agent" && typeof args.on_behalf_of === "string"
-        ? args.on_behalf_of.trim().slice(0, 200) || null
-        : null;
-    // The relayed person's player, when the agent has mapped them: the
-    // maintainer reads who it was without asking the agent.
-    const relayedPlayer = onBehalfOf
-      ? await identityFor(ctx.db, a.accountId, onBehalfOf).catch(() => null)
-      : null;
     let filed;
     try {
       filed = await fileFeedback(ctx.db, {
@@ -141,12 +120,10 @@ export const elixir_send_feedback = {
           principal_kind: a.kind ?? "person",
           client_name: ctx.clientName ?? null,
           request_id: ctx.requestId ?? null,
-          on_behalf_of: onBehalfOf,
-          player_tag: relayedPlayer,
         },
         from: senderRef(a),
         // Jamie hears about it (2026-09-09): best-effort, after the row is
-        // durable, never for the owner's own or an agent the owner runs.
+        // durable, never for the owner's own.
         notifyOwner: ctx.notifyOwner ?? null,
       });
     } catch (err) {
@@ -177,7 +154,6 @@ export const elixir_send_feedback = {
         request_ids: calls.length ? calls : undefined,
         refs: others.length ? others : undefined,
         follows_id: filed.follows_id ?? undefined,
-        on_behalf_of: onBehalfOf ?? undefined,
       }),
       notes: notes(...said),
       docs: docsRef("protocol", "feedback-over-the-wire"),

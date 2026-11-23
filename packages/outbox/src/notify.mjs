@@ -5,8 +5,8 @@
  * sentence, detail is short labelled facts, link is where to act.
  *
  * Never an email address and never a whole message: a feedback excerpt is
- * capped, and the sender is an agent's public id or the first eight hex of
- * the email hash - enough to find them in the console, nothing more.
+ * capped, and the sender is the first eight hex of the email hash - enough
+ * to find them in the console, nothing more.
  */
 
 const SITE = "https://elixir.poapkings.com";
@@ -15,9 +15,8 @@ const EXCERPT = 300;
 const ownerAddress = () =>
   process.env.OWNER_NOTIFY_EMAIL || "elixir@poapkings.com";
 
-/** Who, without saying who: an agent's public id, else 8 hex of the hash. */
+/** Who, without saying who: 8 hex of the email hash. */
 export function senderRef(account) {
-  if (account?.publicId) return `agent ${account.publicId}`;
   if (account?.emailHash)
     return `account ${String(account.emailHash).slice(0, 8)}`;
   return "an account";

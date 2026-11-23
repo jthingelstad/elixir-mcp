@@ -1,7 +1,7 @@
 /**
  * {funnel} (2026-11-09): a read. Of the person accounts made in the
  * window, how many signed in, added a primary, got a first read (the
- * first-answer rule), verified, connected an agent and came back, with
+ * first-answer rule), verified, connected an AI client and came back, with
  * the wait from adding the primary to its first read. Counts only, and
  * it writes nothing.
  */
@@ -84,8 +84,8 @@ test("counts each funnel step for people only, and writes nothing", async () => 
   // B: enrolled by the op with a primary, never signed in, no read yet.
   const b = await person("funnel-b", ago(3));
   await event(b, "enrolled", ago(3));
-  // C: a profile read landed 120 s after the add; verified; an agent with
-  // a live MCP token; signed in again two days later.
+  // C: a profile read landed 120 s after the add; verified; a live MCP
+  // token; signed in again two days later.
   const c = await person("funnel-c", ago(10));
   await event(c, "signed_in", ago(10));
   await event(c, "signed_in", ago(8));
@@ -139,8 +139,15 @@ test("counts each funnel step for people only, and writes nothing", async () => 
     [TD, TX, ago(11)],
   );
 
-  // Principals are excluded: C's agent (with a live MCP token, which
-  // counts for C) and an integration, both with sign-in events.
+  // C's own live MCP token is a connection.
+  await db.query(
+    `insert into service_token (account_id, name, token_hash, audience)
+     values ($1, 'funnel-c', 'th0', 'mcp')`,
+    [c],
+  );
+  // Not people, so not counted: an agent-kind row left from before
+  // 2026-11-23 (its token no longer counts for its owner) and an
+  // integration, both with sign-in events.
   const agent = (
     await db.query(
       `insert into account (status, role, kind, owned_by_account_id, public_id, created_at)

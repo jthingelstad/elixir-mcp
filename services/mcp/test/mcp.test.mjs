@@ -175,10 +175,10 @@ test("protocol basics: batching rejected, notifications 202, unknown method/tool
   assert.equal(badTool.payload.error.code, -32602);
 });
 
-test("tools/list declares all 43 tools, 42 to a person (the identity map is an agent's, 2026-09-25)", async () => {
+test("tools/list declares all 42 tools, the whole catalogue (one surface since 2026-11-23)", async () => {
   const res = await handleMcpMessage(rpc("tools/list"), context());
   assert.equal(res.payload.result.tools.length, 42);
-  assert.equal(makeRegistry().declarations().length, 43);
+  assert.equal(makeRegistry().declarations().length, 42);
   const listed = res.payload.result.tools.map((t) => t.name);
   assert.ok(!listed.includes("elixir_my_identities"));
   const names = res.payload.result.tools.map((t) => t.name);
@@ -208,7 +208,7 @@ test("quota exhaustion returns -32029", async () => {
 
 test("a tools/call at the MCP door still charges the daily counter", async () => {
   // The Console's and Ladder's own reads left the daily quota (#538); the
-  // MCP door, where agents and a person's clients call, did not.
+  // MCP door, where a person's clients call, did not.
   const today = new Date().toISOString().slice(0, 10);
   const count = async () => {
     const { rows } = await db.query(
@@ -223,28 +223,24 @@ test("a tools/call at the MCP door still charges the daily counter", async () =>
   assert.equal(await count(), before + 1, "one call, one charge");
 });
 
-test("one fingerprint: serverInfo.version for every kind, meta.contract_version, and it moves with a declaration or a kind's surface", async () => {
-  const versions = [];
-  for (const kind of ["person", "agent"]) {
-    const res = await handleMcpMessage(
-      rpc("initialize", { protocolVersion: "2025-06-18" }),
-      context({ kind }),
-    );
-    versions.push(res.payload.result.serverInfo.version);
-  }
-  assert.deepEqual(versions, [TOOLS_VERSION, TOOLS_VERSION]);
+test("one fingerprint: serverInfo.version, meta.contract_version, and it moves with a declaration", async () => {
+  const res = await handleMcpMessage(
+    rpc("initialize", { protocolVersion: "2025-06-18" }),
+    context(),
+  );
+  assert.equal(res.payload.result.serverInfo.version, TOOLS_VERSION);
   const { body } = await callTool("game_clock");
-  assert.equal(body.meta.contract_version, versions[0]);
+  assert.equal(body.meta.contract_version, TOOLS_VERSION);
   // tools/list no longer carries the changelog tool.
   const list = await handleMcpMessage(rpc("tools/list", {}), context());
   const names = list.payload.result.tools.map((t) => t.name);
   assert.ok(names.includes("elixir_updates"));
   assert.ok(!names.includes("elixir_changelog"));
-  // Any change to a declaration, or to what a kind is shown, changes the
-  // fingerprint; the same catalogue always gives the same one.
+  // Any change to a declaration changes the fingerprint; the same
+  // catalogue always gives the same one.
   assert.equal(toolsVersion(registry), TOOLS_VERSION);
   const altered = (change) => ({
-    declarations: (kind) => change(registry.declarations(kind), kind),
+    declarations: () => change(registry.declarations()),
   });
   const described = altered((decls) => {
     const out = structuredClone(decls);
@@ -262,10 +258,8 @@ test("one fingerprint: serverInfo.version for every kind, meta.contract_version,
     return out;
   });
   assert.notEqual(toolsVersion(argument), TOOLS_VERSION);
-  const hidden = altered((decls, kind) =>
-    kind === "agent" ? decls.slice(1) : decls,
-  );
-  assert.notEqual(toolsVersion(hidden), TOOLS_VERSION);
+  const dropped = altered((decls) => decls.slice(1));
+  assert.notEqual(toolsVersion(dropped), TOOLS_VERSION);
 });
 
 test("elixir_my_players: primary claim, recording status, meta envelope", async () => {

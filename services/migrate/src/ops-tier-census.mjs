@@ -11,10 +11,10 @@
  *   - which accounts the change moved (`changed`: stored grant higher or
  *     lower than the tier now read), with the direction
  *   - who holds more than their tier's ceilings (players, activity and
- *     comprehensive clans, pooled with their active agents): nobody is
- *     cut; the live count refuses only the next add
+ *     comprehensive clans): nobody is cut; the live count refuses only
+ *     the next add
  *
- * Accounts are named by an id prefix and public id, never an address.
+ * Accounts are named by an id prefix, never an address.
  * A read-only session; `dry_run: true` is the only shape it takes (the
  * name keeps the ops lane's census convention), and it writes nothing.
  */
@@ -37,7 +37,7 @@ export async function tierCensusOp(databaseUrl, spec = {}) {
   try {
     await db.query("set default_transaction_read_only = on");
     const { rows } = await db.query(
-      `select a.account_id, a.public_id, a.status, a.is_owner,
+      `select a.account_id, a.status, a.is_owner,
               a.role as stored_role, ${tierSql("a")} as tier,
               ${familyGroundSql("a")} as family_ground,
               ${leaderGroundSql("a")} as leader_ground,
@@ -49,7 +49,6 @@ export async function tierCensusOp(databaseUrl, spec = {}) {
     const rank = (r) => ROLE_ORDER.indexOf(r);
     const ref = (r) => ({
       account: String(r.account_id).slice(0, 8),
-      public_id: r.public_id ?? null,
       status: r.status,
     });
     const byTier = {};

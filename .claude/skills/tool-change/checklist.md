@@ -21,8 +21,8 @@ only when it does not apply, and say why in the commit message.
 ## The code map
 
 - `packages/tools/src/tools.mjs`, the registry. It assembles the family
-  modules, and `declarations(kind)` filters by `toolsHiddenFrom(kind)`
-  and sorts by `GROUP_ORDER`, then by title. It publishes `verbosity` on
+  modules, and `declarations()` sorts by `GROUP_ORDER`, then by title.
+  Every connection sees the one catalogue. It publishes `verbosity` on
   one-size tools and validates arguments against the published schema.
   It validates every result against `OUTPUT_SCHEMAS[name]`, which throws
   under `node --test` and logs `output_schema_mismatch` in production.
@@ -54,8 +54,7 @@ only when it does not apply, and say why in the commit message.
   `WINDOW_ECHO`, `NOTES`, `DOCS`, `META`, `MODE_SPLIT`, `NAME`, `RATE`
   and `COUNT`.
 - `packages/contracts/src/tool-groups.ts` holds `TOOL_GROUPS` and
-  `GROUP_ORDER`. `principals.ts` holds `PERSON_ONLY_TOOLS`
-  and `NOT_FOR_PERSONS`. `errors.ts` holds
+  `GROUP_ORDER`. `errors.ts` holds
   `ERROR_CODES` and their classes.
 - `services/mcp/src/protocol.mjs` holds `instructionsFor` (the brief);
   `packages/tools/src/result-text.mjs` holds `MCP_RESULT_MAX_CHARS` and
@@ -99,8 +98,7 @@ only when it does not apply, and say why in the commit message.
       `protocol.mjs` names it. The `limits.md` row and the
       `choosing-a-tool.md` count render from the registry. Test:
       `docs-tools` (the rendered pages); the brief is review.
-- [ ] Visibility by principal is set in `principals.ts` and its counts
-      in `principal-surface.test.mjs`.
+- [ ] The catalogue count in `principal-surface.test.mjs` is updated.
 - [ ] `OUTPUT_SCHEMAS[name]` exists, with required keys at the top level
       (`notes` and `docs` among them) and every leaf nullable. Tests:
       `tool-conventions`, plus the registry's runtime validation.
@@ -270,8 +268,8 @@ only when it does not apply, and say why in the commit message.
 - The `choosing-a-tool` live count equals the registry's.
 
 `services/mcp/test/principal-surface.test.mjs`:
-- Each kind sees the surface `principals.ts` says it does.
-- A hidden tool is refused on call.
+- A person sees the whole catalogue, at its count.
+- A tool no longer in the catalogue is refused on call.
 
 `services/web-api/test/sign-in-api-contract.test.mjs`:
 - `/api/v1` declares `GET /me` alone, and `info.version` and its

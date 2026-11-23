@@ -12,9 +12,8 @@
  * recipient. Writing a cheer is this module's and the web's alone; nothing
  * here reaches Discord or mail. The counts are read through
  * @elixir-mcp/tools/activity/cheers, which MCP's elixir_cheers reads
- * (12.0.0): a person's agent reads the counts on
- * items about its owner's player, never who, and never gives a cheer
- * (DECISIONS "Agents read the social layer and never write it").
+ * (12.0.0): a person's MCP client reads the counts, never who, and
+ * never gives a cheer.
  *
  * A cheer is stored on an actual recorded Timeline item the person may
  * read. Its source locator is resolved to the canonical identity and

@@ -71,16 +71,6 @@ const heavyPerson = {
   // The longest clan sentence: the not-recorded clause.
   primaryClan: { ...clans(1)[0], recorded: false },
 };
-const heavyAgent = {
-  kind: "agent",
-  clans: clans(10),
-  leaders: [
-    { ...players(1, "L")[0], role: "leader" },
-    ...players(49, "K").map((p) => ({ ...p, role: "coLeader" })),
-  ],
-  identityCount: 5000,
-};
-
 // Each sentence a model needs, as the start of the text that must arrive.
 const KEY = {
   both: [
@@ -102,22 +92,9 @@ const KEY = {
     "OMIT player_tag and clan_tag",
     "START: elixir_timeline",
   ],
-  agent: [
-    "YOU ACT FOR Clan Name 00000",
-    "Leadership: Player Name 000 (leader)",
-    "clans_roster ONCE",
-    "on_behalf_of",
-    "pass player_tag",
-    "You already know 5000",
-    "START: war_current",
-    "display_name",
-  ],
 };
 
-for (const [kind, identity] of [
-  ["person", heavyPerson],
-  ["agent", heavyAgent],
-]) {
+for (const [kind, identity] of [["person", heavyPerson]]) {
   test(`a ${kind}'s brief with a 50-player, 10-clan identity arrives whole inside ${INSTRUCTIONS_BUDGET} characters`, async () => {
     const text = await brief(kind, identity);
     const delivered = text.slice(0, INSTRUCTIONS_BUDGET);
@@ -141,9 +118,6 @@ test("a heavy identity is counted, a light one named", async () => {
     /You also follow 49 more players \(5 alts, 44 friends\) and 9 more clans: elixir_my_players lists them/,
   );
   assert.ok(!heavy.includes(players(5, "A")[1].player_tag));
-  const agent = await brief("agent", heavyAgent);
-  assert.match(agent, /Also 9 more clans/);
-  assert.match(agent, /\(leader\) and 49 co-leaders/);
 
   const light = await brief("person", {
     kind: "person",
@@ -203,40 +177,24 @@ test("the connection guide lists the supported protocols and the advertised tool
   );
 });
 
-const agentArgs = (d) =>
-  JSON.stringify(d.inputSchema).match(/"(on_behalf_of|display_name)"/g) ?? [];
-
-test("a person's tools/list carries no agent-only argument; an agent's and the catalogue's do", () => {
-  const person = registry.declarations("person");
-  assert.deepEqual(person.flatMap(agentArgs), []);
-  assert.deepEqual(registry.declarations(undefined).flatMap(agentArgs), []);
-  // At least twelve tools take them on an agent connection (thirteen
-  // until cards_card retired in 13.0.0).
-  const agent = registry
-    .declarations("agent")
-    .filter((d) => agentArgs(d).length);
-  assert.ok(agent.length >= 12, `${agent.length} agent tools take them`);
-  assert.ok(registry.declarations().flatMap(agentArgs).length > 0);
+test("tools/list carries no caller-identity argument", () => {
+  const identityArgs = (d) =>
+    JSON.stringify(d.inputSchema).match(/"(on_behalf_of|display_name)"/g) ?? [];
+  assert.deepEqual(registry.declarations().flatMap(identityArgs), []);
 });
 
-test("a person who still sends them is never refused: they are dropped before validation", async () => {
-  const body = await registry.invoke(
-    "game_clock",
-    {},
-    { on_behalf_of: "discord:1", display_name: "Somebody" },
-  );
-  assert.ok(body.meta, "answered");
-  // An agent's own unknown argument is still refused, and the hint names
-  // this server's tool fingerprint and says to reconnect.
+test("an argument a tool does not take is refused with this fingerprint and a reconnect hint", async () => {
+  // A client holding a tool list from before 2026-11-23 may still send
+  // on_behalf_of; it is refused like any unknown argument.
   await assert.rejects(
     registry.invoke(
       "game_clock",
-      { account: { kind: "agent" } },
-      { display_name: "Somebody" },
+      { account: { kind: "person" } },
+      { on_behalf_of: "discord:1" },
     ),
     (err) =>
       err.code === "bad_request" &&
-      /has no property 'display_name'/.test(err.message) &&
+      /has no property 'on_behalf_of'/.test(err.message) &&
       err.hint.includes(TOOLS_VERSION) &&
       /reconnect/.test(err.hint),
   );

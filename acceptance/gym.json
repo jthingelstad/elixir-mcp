@@ -1812,24 +1812,6 @@
     ]
   },
   {
-    "id": "123.1",
-    "feedback": 123,
-    "stability": "live",
-    "tool": "elixir_my_identities",
-    "args": {
-      "verbosity": "compact"
-    },
-    "request_id": "68495d8e-a850-487f-8f55-fa3dd15e1ee0",
-    "assert": [
-      {
-        "has": "notes"
-      },
-      {
-        "notes_match": "one size"
-      }
-    ]
-  },
-  {
     "id": "123.2",
     "feedback": 123,
     "stability": "live",
@@ -4353,25 +4335,6 @@
     "assert": [
       {
         "notes_match": "2026-09-14T04:27Z"
-      }
-    ]
-  },
-  {
-    "id": "168.5",
-    "feedback": 168,
-    "control": true,
-    "stability": "live",
-    "tool": "elixir_my_identities",
-    "args": {
-      "verbosity": "compact"
-    },
-    "request_id": "ac2ce5df-8f8f-4371-a8e4-baf0d1bae5b6",
-    "assert": [
-      {
-        "notes_match": "No humans are mapped"
-      },
-      {
-        "notes_match": "one size"
       }
     ]
   },

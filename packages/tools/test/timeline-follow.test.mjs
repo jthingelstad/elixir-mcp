@@ -6,7 +6,7 @@
  */
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { followFor, forCaller } from "../src/activity/follow.mjs";
+import { followFor } from "../src/activity/follow.mjs";
 import { TIMELINE_KIND_SCHEMAS } from "../src/activity/schemas.mjs";
 import { makeRegistry } from "../src/tools.mjs";
 import { validateArgs } from "../src/validate.mjs";
@@ -184,16 +184,4 @@ test("a player's own clan move names no roster read; a clan feed's move does", (
   assert.deepEqual(tools("clan_joined"), ["players_summary"]);
   assert.deepEqual(tools("clan_left"), ["players_summary"]);
   assert.deepEqual(tools("member_joined"), ["players_summary", "clans_roster"]);
-});
-
-test("a read the caller may not make is no address for it", () => {
-  const item = itemOf(
-    "ranked_promotion",
-    TIMELINE_KIND_SCHEMAS.ranked_promotion,
-  );
-  const all = followFor(item, WINDOW);
-  assert.deepEqual(
-    forCaller(all, (tool) => tool !== "battles_query").map((x) => x.tool),
-    ["players_summary"],
-  );
 });

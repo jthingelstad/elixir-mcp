@@ -130,31 +130,11 @@ test("a person's Timeline reads authored posts and questions without private or 
   );
 });
 
-test("account follows work with no game subject; strangers and clan agents never gain post scope", async () => {
+test("account follows work with no game subject; strangers and non-person principals never gain post scope", async () => {
   await people.post({ at: iso(T + 1000) });
   assert.equal((await read("fan")).timeline.length, 1);
   assert.equal((await read("stranger")).timeline.length, 0);
   assert.equal((await read("reader", {}, "agent")).timeline.length, 0);
-  const agent = makeInvoker({
-    db: ctx.db,
-    registry: makeRegistry(),
-    account: {
-      accountId: people.reader,
-      kind: "agent",
-      role: "member",
-      timezone: "UTC",
-    },
-  });
-  const refused = await agent("elixir_timeline", {
-    kinds: ["post"],
-    on_behalf_of: "discord:42",
-  });
-  assert.equal(
-    refused.isError,
-    true,
-    "Timeline does not accept an identity argument as a grant",
-  );
-  assert.equal(refused.body.timeline, undefined);
   await ctx.db.query(
     `update claim set notify = false where account_id = $1 and player_tag = $2`,
     [people.reader, AUTHOR_TAG],

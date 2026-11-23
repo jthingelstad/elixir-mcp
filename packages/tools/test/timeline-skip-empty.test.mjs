@@ -518,13 +518,18 @@ test("an evidence read always builds", async () => {
 });
 
 test("the editor reads home promotions and summary before pagination, with its own position", async () => {
+  // A named reader on a person's own connection: its home clan is the
+  // primary player's, and its position is its own, apart from the account's.
   const {
-    rows: [agent],
+    rows: [reader],
   } = await db.query(
-    "insert into account(email_hash,kind,status,owned_by_account_id) values('scoped-editor','agent','approved',$1) returning account_id",
-    [owner],
+    "insert into account(email_hash,kind,status) values('scoped-editor','person','approved') returning account_id",
   );
-  const id = agent.account_id;
+  const id = reader.account_id;
+  await db.query(
+    "insert into claim(account_id,player_tag,status,is_primary,relationship,notify) values($1,$2,'unverified',true,'primary',false)",
+    [id, ME],
+  );
   await db.query(
     "insert into account_clan(account_id,clan_tag,scope,notify,is_primary) values($1,$2,'comprehensive',true,true),($1,$3,'comprehensive',true,false)",
     [id, CLAN, OTHER_CLAN],
@@ -546,7 +551,7 @@ test("the editor reads home promotions and summary before pagination, with its o
   }
   const rawCall = makeInvoker({
     db,
-    account: { accountId: id, kind: "agent", timezone: "UTC" },
+    account: { accountId: id, kind: "person", timezone: "UTC" },
     registry: makeRegistry(),
   });
   const call = (name, args = {}) =>

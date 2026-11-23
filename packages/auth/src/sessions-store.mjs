@@ -89,7 +89,7 @@ export async function resolveSession(
         timezone: row.timezone,
         role: row.role,
         // Always 'person' in practice: the join above matches on email_hash,
-        // which agents and integrations do not have, so neither can ever hold
+        // which only a person's account has, so no other kind can ever hold
         // a browser session. Carried anyway so callers can assert rather than
         // rely on that being remembered.
         kind: row.kind,

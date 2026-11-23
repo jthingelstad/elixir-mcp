@@ -14,17 +14,12 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { gunzipSync } from "node:zlib";
-import {
-  makeInvoker,
-  auditRow,
-  onBehalfOfOf,
-  timedDb,
-} from "../src/invoker.mjs";
+import { makeInvoker, auditRow, timedDb } from "../src/invoker.mjs";
 import { captureCall, captureKey } from "../src/capture.mjs";
 
 const account = {
   accountId: "00000000-0000-0000-0000-000000000000",
-  kind: "agent",
+  kind: "person",
 };
 
 /** A db that records every audit insert and can sleep on demand. */
@@ -74,8 +69,7 @@ const COL = {
   serialize_ms: 19,
   cold_start: 20,
   principal_kind: 21,
-  on_behalf_of: 22,
-  rpc_error_code: 23,
+  rpc_error_code: 22,
 };
 
 test("db_ms and db_queries count the tool's queries, not the audit's", async () => {
@@ -101,7 +95,7 @@ test("db_ms and db_queries count the tool's queries, not the audit's", async () 
   assert.ok(row[COL.db_ms] >= 25, `db_ms should be the sum: ${row[COL.db_ms]}`);
   assert.equal(row[COL.live_wait_ms], null, "no live fetch, no wait");
   assert.equal(typeof row[COL.serialize_ms], "number");
-  assert.equal(row[COL.principal_kind], "agent");
+  assert.equal(row[COL.principal_kind], "person");
   assert.equal(row[COL.captured], false, "no bucket, nothing captured");
   assert.equal(row[COL.error_code], null);
   assert.equal(row[COL.rpc_error_code], null);
@@ -141,14 +135,6 @@ test("live_wait_ms measures time blocked on the live lane", async () => {
   });
   await invoke("live_fetch", { path: "/players/%23X" });
   assert.ok(db.writes[0][COL.live_wait_ms] >= 18);
-});
-
-test("on_behalf_of is recorded as given, top-level only since segment retired (13.0.0)", () => {
-  assert.equal(onBehalfOfOf({ on_behalf_of: "discord:42" }), "discord:42");
-  assert.equal(onBehalfOfOf({ segment: { on_behalf_of: "u1" } }), null);
-  assert.equal(onBehalfOfOf({}), null);
-  assert.equal(onBehalfOfOf(undefined), null);
-  assert.equal(onBehalfOfOf({ on_behalf_of: "x".repeat(500) }).length, 200);
 });
 
 test("timedDb never mutates the shared client", async () => {
@@ -219,7 +205,7 @@ test("the body is captured gzipped at calls/dt=<day>/request_id=<id>.json.gz", a
   assert.equal(typeof stored.timings.db_ms, "number");
   assert.equal(typeof stored.timings.cold_start, "boolean");
   assert.equal(stored.surface, "mcp");
-  assert.equal(stored.principal_kind, "agent");
+  assert.equal(stored.principal_kind, "person");
   assert.match(stored.captured_at, /^\d{4}-/);
 });
 
@@ -298,7 +284,7 @@ test("a JSON-RPC-layer refusal audits with rpc_error_code and no error_code", as
     tool: "elixir_add_player",
     args: { player_tag: "#ABC", token: "nope" },
     startedAt: Date.now(),
-    principalKind: "agent",
+    principalKind: "person",
     rpcErrorCode: -32601,
   });
   const row = db.writes[0];
@@ -308,5 +294,5 @@ test("a JSON-RPC-layer refusal audits with rpc_error_code and no error_code", as
   assert.equal(row[COL.captured], false);
   assert.equal(row[COL.db_ms], null, "nothing to time");
   assert.equal(JSON.parse(row[COL.args]).token, "[redacted]");
-  assert.equal(row[COL.principal_kind], "agent");
+  assert.equal(row[COL.principal_kind], "person");
 });

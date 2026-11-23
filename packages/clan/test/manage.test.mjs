@@ -2436,7 +2436,10 @@ test("sharing: always on, nothing to switch; a completed promotion is shared as 
   const view = await api(h, cookies, "GET", "/api/clans/0QC8RCGY/sharing");
   assert.equal(view.status, 200, JSON.stringify(view.body));
   assert.equal(view.body.values, undefined, "no switches");
-  assert.match(view.body.types.departure_classified.sees, /the clan's agent/);
+  assert.match(
+    view.body.types.departure_classified.sees,
+    /^Everyone verified in the clan:/,
+  );
   assert.match(view.body.types.member_away.sees, /leaders and co-leaders only/);
   const put = await api(h, cookies, "PUT", "/api/clans/0QC8RCGY/sharing", {
     values: { departure_classified: false },

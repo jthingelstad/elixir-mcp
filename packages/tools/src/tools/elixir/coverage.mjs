@@ -1,13 +1,5 @@
 import { captureCoverage } from "../../coverage.mjs";
-import {
-  DISPLAY_NAME_SCHEMA,
-  ON_BEHALF_OF_SCHEMA,
-  TAG_SCHEMA,
-  buildMeta,
-  docsRef,
-  notes,
-  subject,
-} from "../shared.mjs";
+import { TAG_SCHEMA, buildMeta, docsRef, notes, subject } from "../shared.mjs";
 
 export const elixir_coverage = {
   description:
@@ -16,22 +8,12 @@ export const elixir_coverage = {
     type: "object",
     properties: {
       player_tag: TAG_SCHEMA,
-      on_behalf_of: ON_BEHALF_OF_SCHEMA,
-      display_name: DISPLAY_NAME_SCHEMA,
     },
     additionalProperties: false,
   },
   async handler(ctx, args) {
-    const tag = (
-      await subject(
-        ctx.db,
-        ctx.account,
-        args.player_tag,
-        "summary",
-        args.on_behalf_of,
-        args.display_name,
-      )
-    ).tag;
+    const tag = (await subject(ctx.db, ctx.account, args.player_tag, "summary"))
+      .tag;
     const polls = await ctx.db.query(
       `select endpoint, last_admitted_at from poll_state where subject_tag = $1 order by endpoint`,
       [tag],

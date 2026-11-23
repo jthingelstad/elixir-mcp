@@ -3,8 +3,7 @@
  * a bearer token, timed. Stateless JSON-RPC - no initialize, no session,
  * no SDK (the boards client proved the shape). The token is a test
  * person's key (`{test_account}`, 0316), read-only scope, at /mcp; the
- * door and the token both come from acceptance/.env (ignored by git), so
- * the agent it replaced at /a/<id>/mcp ran unchanged until the cut-over.
+ * door and the token both come from acceptance/.env (ignored by git).
  * The token is never printed.
  */
 

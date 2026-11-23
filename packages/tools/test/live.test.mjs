@@ -483,69 +483,6 @@ test("a bulk receipt inside the API's cache window IS the live answer; outside i
   );
 });
 
-test("an agent's live fetch is charged to its owner's bucket, and the owner's cap applies", async () => {
-  const profile = await fixture("player/profile.json");
-  const tag = normalizeTag(profile.tag);
-  const day = new Date().toISOString().slice(0, 10);
-  const { rows: owners } = await db.query(
-    `insert into account (email_hash, status, role) values ('live-agent-owner', 'approved', 'member')
-     returning account_id`,
-  );
-  const ownerId = owners[0].account_id;
-  const { rows: agents } = await db.query(
-    `insert into account (email_hash, status, role, kind, owned_by_account_id, public_id)
-     values ('live-agent', 'approved', 'leader', 'agent', $1, 'abcdef012345')
-     returning account_id`,
-    [ownerId],
-  );
-  const agent = {
-    accountId: agents[0].account_id,
-    role: "leader",
-    kind: "agent",
-    isOwner: false,
-    timezone: null,
-    // What validateServiceToken resolves for an agent (auth budgetFor).
-    budget: {
-      accountId: ownerId,
-      role: "member",
-      override: null,
-      liveOverride: null,
-    },
-  };
-  await db.query(`delete from api_receipt where entity_key = $1`, [tag]);
-  await db.query(`delete from live_fetch_result where entity_key = $1`, [tag]);
-  await db.query(`delete from job where entity_key = $1`, [tag]);
-  const live = fakeGatewayLive({ [`player:${tag}`]: profile });
-  const invoke = makeInvoker({
-    db,
-    account: agent,
-    registry: makeRegistry(),
-    live,
-  });
-  const first = await invoke("live_fetch", { path: `/players/${tag}` });
-  assert.equal(first.body.error?.code, "live_pending", "queued and charged");
-  const { rows: buckets } = await db.query(
-    `select bucket, count from rate_limit where bucket like 'liveday#%' and window_start = $1::date
-       and bucket in ($2, $3)`,
-    [day, `liveday#${ownerId}`, `liveday#${agent.accountId}`],
-  );
-  assert.deepEqual(
-    buckets.map((b) => [b.bucket, b.count]),
-    [[`liveday#${ownerId}`, 1]],
-    "the owner's bucket, and only the owner's",
-  );
-  // The owner's member cap (20/day) is the agent's cap: fill it and the
-  // agent is refused, even though its own leader tier would allow 100.
-  await db.query(
-    `update rate_limit set count = 20 where bucket = $1 and window_start = $2::date`,
-    [`liveday#${ownerId}`, day],
-  );
-  const refused = await invoke("live_fetch", { path: `/players/#0PPYJRC` });
-  assert.equal(refused.isError, true);
-  assert.equal(refused.body.error.code, "quota_exceeded");
-  assert.match(refused.body.error.message, /20\/day for the member tier/);
-});
-
 // Review 2026-09-27 §4.1 (#64): a live mint is charged to the one global
 // bucket, so the live reserve is a reservation and not the planner
 // abstaining.
@@ -836,21 +773,14 @@ test("live_fetch of a race in matchmaking serves the API's body as no race yet, 
   assert.deepEqual({ ...n }, { receipts: 0, held: 1 });
 });
 
-test("free first reads are bounded per person per UTC day, agents included: cycling fresh tags stops minting at the pool's player slots (#371 review)", async () => {
+test("free first reads are bounded per person per UTC day: cycling fresh tags stops minting at the person's player slots (#371 review)", async () => {
   const day = new Date().toISOString().slice(0, 10);
-  // A member with three player slots, and one agent spending them too.
+  // A member with three player slots.
   const { rows: people } = await db.query(
     `insert into account (email_hash, status, role, max_player_recordings)
      values ('first-read-person', 'approved', 'member', 3) returning account_id`,
   );
   const personId = people[0].account_id;
-  const { rows: agents } = await db.query(
-    `insert into account (email_hash, status, role, kind, owned_by_account_id, public_id)
-     values ('first-read-agent', 'approved', 'member', 'agent', $1, 'f1r57ead0001')
-     returning account_id`,
-    [personId],
-  );
-  const agentId = agents[0].account_id;
   const live = makeLive({ enqueue: enqueueJob });
   const tags = ["#000880", "#09CCYU", "#0GLP0L", "#0Q9998", "#0CQGPR"];
   const jobsFor = async (keys) =>
@@ -862,30 +792,26 @@ test("free first reads are bounded per person per UTC day, agents included: cycl
     ).rows[0].n;
 
   // Add, remove, add a fresh tag: each add is a new tag and asks.
-  for (const [tag, who] of [
-    [tags[0], personId],
-    [tags[1], agentId],
-    [tags[2], personId],
-  ]) {
-    const r = await requestFirstRead(db, live, tag, who);
+  for (const tag of tags.slice(0, 3)) {
+    const r = await requestFirstRead(db, live, tag, personId);
     assert.equal(r.requested, true, `${tag} gets its first read`);
   }
-  // The pool's three are spent: the fourth fresh tag mints nothing, and
+  // The person's three are spent: the fourth fresh tag mints nothing, and
   // the global token it took goes back.
   const before = await tokens();
-  const spent = await requestFirstRead(db, live, tags[3], agentId);
+  const spent = await requestFirstRead(db, live, tags[3], personId);
   assert.deepEqual(spent, { requested: false, reason: "first_reads_spent" });
   assert.equal(await tokens(), before, "the token is given back");
   assert.equal(await jobsFor(tags), 3);
   const { rows: bucket } = await db.query(
     `select bucket from rate_limit where bucket like 'firstread#%' and window_start = $1::date
-       and bucket in ($2, $3)`,
-    [day, `firstread#${personId}`, `firstread#${agentId}`],
+       and bucket = $2`,
+    [day, `firstread#${personId}`],
   );
   assert.deepEqual(
     bucket.map((b) => b.bucket),
     [`firstread#${personId}`],
-    "one bucket, the person's",
+    "the person's bucket",
   );
 
   // A tag with an open job asks nothing new and costs nothing.
@@ -893,7 +819,7 @@ test("free first reads are bounded per person per UTC day, agents included: cycl
   assert.equal(open.requested, true);
   assert.equal(await jobsFor(tags), 3);
 
-  // The next UTC day the pool has its first reads again.
+  // The next UTC day the person has their first reads again.
   await db.query(
     `update rate_limit set window_start = window_start - interval '1 day'
       where bucket = $1`,

@@ -1,7 +1,5 @@
 {
   "*": {
-    "on_behalf_of": "an argument on agent connections, named in notes about the caller",
-    "display_name": "same",
     "request_id": "meta, named by hints",
     "contract_version": "meta",
     "trophy_change": "a loss on the arena's trophy floor carries trophy_change null: the note says the game omits the field",
@@ -13,8 +11,8 @@
     "drop_game": "A completed Drop game appears only for its verified player and permitted followers. packages/tools/test/timeline-drop-game.test.mjs exercises the MCP result and reader boundary on scratch game data.",
     "game_id": "Stable identifier in facts on a drop_game. A permitted window can contain none. The registered elixir_timeline handler is exercised in packages/tools/test/timeline-drop-game.test.mjs.",
     "attested_by": "Required on an authorized attested fact's facts object, absent from windows with no visible attested fact. packages/tools/src/activity/entries.mjs emits its app/player_tag/name/role shape; packages/tools/test/timeline-attested-provenance.test.mjs pins actor and app-only facts, the required-field contract, and unauthorized/quiet-window absence on scratch data. Never create a live attestation or label a synthetic fixture as a captured bite for acceptance.",
-    "filed_at": "Only an owner-visible account_feedback_responded item carries this field; the acceptance clan agent has no account-feedback answers. packages/tools/test/timeline-feedback-answer.test.mjs pins it on scratch account events.",
-    "answered_at": "Only an owner-visible account_feedback_responded item carries this field; the acceptance clan agent has no account-feedback answers. packages/tools/test/timeline-feedback-answer.test.mjs pins it on scratch account events.",
+    "filed_at": "Only an owner-visible account_feedback_responded item carries this field; the acceptance test person has no account-feedback answers. packages/tools/test/timeline-feedback-answer.test.mjs pins it on scratch account events.",
+    "answered_at": "Only an owner-visible account_feedback_responded item carries this field; the acceptance test person has no account-feedback answers. packages/tools/test/timeline-feedback-answer.test.mjs pins it on scratch account events.",
     "award_id": "Only an attested award_standing item carries this field; a natural window may contain no leader-attested standings. packages/clan/test/standings.test.mjs pins the emitted fact. Never manufacture a live award for acceptance.",
     "short_id": "Only a nonempty canonical evidence page carries game short IDs. The dynamic contract reads naturally visible evidence within seven days; a quiet window has none. Invented scratch fixtures pin this conditional field; no production event is manufactured.",
     "evidence_changed": "A refusal reason of an evidence page read (docs/timeline, Recorded evidence). A healthy run produces none: evidence_changed appears only when a capture lands mid-read, so requiring it made the audit pass or fail by timing (2026-10-10). Pinned by packages/tools/test/timeline-evidence-refusals.test.mjs and timeline-evidence.test.mjs.",
@@ -47,7 +45,7 @@
     "previous": "on a week_form timeline item only, a kind a run's window may not hold",
     "rating": "on a ranked_season_finished timeline item only, a kind a run's window may not hold",
     "overtime_wins": "on a sitting item only when the tiebreaker decided one of its wins, a rare case (13.5.0). Pinned by services/web-api/test/home-feed.test.mjs and packages/tools/test/profile-moments-text.test.mjs.",
-    "item_ref": "Only facts.moment on a person-visible milestone post carries this game-only locator. The acceptance clan agent cannot read plain posts, and natural windows may contain no milestone post. services/web-api/test/milestone-posts.test.mjs invokes the real elixir_timeline handler against a saved canonical achievement and pins its follower/block audience on scratch data. Never manufacture a live post or label a synthetic fixture as a captured bite for acceptance."
+    "item_ref": "Only facts.moment on a person-visible milestone post carries this game-only locator. The acceptance test person follows no player, so it reads no plain posts, and natural windows may contain no milestone post. services/web-api/test/milestone-posts.test.mjs invokes the real elixir_timeline handler against a saved canonical achievement and pins its follower/block audience on scratch data. Never manufacture a live post or label a synthetic fixture as a captured bite for acceptance."
   },
   "players_names": {
     "in_corpus": "on unknown[] rows, present only when a tag is unknown"
@@ -74,7 +72,7 @@
     "modal_arena": "on trophy_floor only for a player with a floor in the window",
     "last_battle_at": "on a `returned` timeline item, a rare kind",
     "returned_after_days": "same",
-    "player_activity": "a timeline entry kind for a player subject; the acceptance principal is a clan agent and follows no player",
+    "player_activity": "a timeline entry kind for a player subject; the acceptance test person follows no player",
     "training_today": "deprecated at 7.2.x (decks_today covers every race-week day); war_current serves it only on a training day, so a war-day run never sees it",
     "roster_and_war_only": "an activity basis served only for an activity-scope clan (members' logs not recorded); a run over recorded clans never sees it",
     "account_role_changed": "timeline: an account item written only when an admin changes the account's role; the suite's account has had none",

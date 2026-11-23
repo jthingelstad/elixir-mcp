@@ -64,8 +64,9 @@ test("a doc's variables are rendered and its links are absolute", () => {
   }
   const m = DOCS.find((d) => d.slug === "methodology").markdown;
   assert.match(m, /Card levels: described, not adjusted for/);
-  const a = DOCS.find((d) => d.slug === "agents").markdown;
-  assert.match(a, /has \d\d tools/);
+  // A generated value reaches the corpus: the protocol page's fingerprint.
+  const p = DOCS.find((d) => d.slug === "protocol").markdown;
+  assert.match(p, /tools\.[0-9a-f]{12}/);
   // Three short pages (about, privacy, terms) have no H2s; the rest do.
   assert.ok(
     DOCS.filter((d) => d.sections.length > 0).length >= 17,

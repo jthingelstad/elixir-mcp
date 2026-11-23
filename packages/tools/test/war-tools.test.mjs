@@ -485,9 +485,9 @@ test("war_current: decks_today names untouched/partial/finished on a live war da
   assert.match(body.notes.join(" "), /observed so far/);
 });
 
-test("the registry declares 43 tools, every one classified and annotated", () => {
+test("the registry declares 42 tools, every one classified and annotated", () => {
   const decls = makeRegistry().declarations();
-  assert.equal(decls.length, 43);
+  assert.equal(decls.length, 42);
   for (const d of decls) {
     assert.ok(d.annotations, `${d.name} has annotations`);
     assert.match(

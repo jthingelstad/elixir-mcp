@@ -72,7 +72,7 @@ test("op: reads are reads", () => {
     { reindex: { table: "battle" } },
     { account_remove: { email: "x", dry_run: true } },
     { account_follow: { primary_tag: "#A", player_tag: "#B", dry_run: true } },
-    { agent_recordings: { dry_run: true } },
+    { test_account: { list: true } },
     { verified_tag_census: { dry_run: true } },
     { comment_delivery: { tag: "#0PYLQ2" } },
     { clan_maintenance: { lane: "actions", clan_tag: "#A" } },
@@ -114,8 +114,9 @@ test("op: everything else is a write, and takes the lock", () => {
     { account_remove: { email: "x" } }, // defaults to a dry run; not counted
     { account_enroll: { dry_run: false } },
     { account_follow: { primary_tag: "#A" } }, // defaults to a REAL run
-    { agent_recordings: { dry_run: false } },
-    { agent_recordings: {} }, // defaults to a dry run; not counted
+    { test_account: { name: "gym", clan_tag: "#A", token_hash: "h" } },
+    { test_account: { list: true, name: "gym" } },
+    { test_account: { list: false } },
     { verified_tag_census: { dry_run: false } },
     { verified_tag_census: {} },
     { clan_maintenance: { lane: "reconcile_removal", card_id: "c" } },

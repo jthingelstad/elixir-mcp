@@ -9,7 +9,6 @@ export * from "./season.js";
 export * from "./levels.js";
 export * from "./tool-groups.js";
 export * from "./roles.js";
-export * from "./principals.js";
 export * from "./archetypes.js";
 export * from "./facts.js";
 export * from "./collector-release.js";

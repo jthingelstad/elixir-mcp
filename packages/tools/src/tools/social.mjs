@@ -10,19 +10,17 @@ import {
 } from "./shared.mjs";
 
 /**
- * The social layer's player reads (DECISIONS "Agents read the social layer
- * and never write it"): who a player follows and who follows them, and the
- * posts about battles they wrote (the highlights they posted; since 0292 a
- * highlight is a post with a battle attached), newest first. A
- * person's own connection reads as that person; an agent reads as its
- * owner. Never a nickname, an email or a
- * Discord username.
+ * The social layer's player reads: who a player follows and who follows
+ * them, and the posts about battles they wrote (the highlights they
+ * posted; since 0292 a highlight is a post with a battle attached),
+ * newest first. A connection reads as its person. Never a nickname, an
+ * email or a Discord username.
  */
 
 const SOCIAL_REFUSAL = [
   "not_entitled",
-  "The social layer is read by a person's own connection and their agents.",
-  "Connect as yourself at /mcp, or through an agent of yours whose owner is approved.",
+  "The social layer is read by an approved person's own connection.",
+  "Connect as yourself at /mcp.",
 ];
 
 /** The reader, or the refusal every social read gives. */
@@ -33,7 +31,7 @@ export async function socialReaderOrRefuse(ctx) {
 }
 
 /** The player a social read is about: the tag named, or the reader's
- *  primary (the owner's, for an agent). Must be a recorded player. */
+ *  primary. Must be a recorded player. */
 async function socialSubject(ctx, reader, input) {
   let tag;
   if (input === undefined || input === null || input === "") {
@@ -41,9 +39,7 @@ async function socialSubject(ctx, reader, input) {
     if (!tag)
       throw new ToolFailure(
         "no_subject",
-        reader.asOwner
-          ? "Your owner has no primary player in Elixir."
-          : "You have no primary player in Elixir.",
+        "You have no primary player in Elixir.",
         "Name a player with player_tag, or set a primary player in Settings, Players & following.",
       );
   } else {
@@ -72,14 +68,13 @@ async function socialSubject(ctx, reader, input) {
 
 const PLAYER_TAG = {
   type: "string",
-  description:
-    "Player tag like #20JJJ2CCRU. Omit to mean your primary player (your owner's, for an agent).",
+  description: "Player tag like #20JJJ2CCRU. Omit to mean your primary player.",
 };
 
 export const socialTools = {
   players_follows: {
     description:
-      "Who a player follows and who follows them, exactly as their player page shows it: badges (verified_player, discord: that the account linked one, never which), follows (the players their account follows) and followers (people following them, each named by the player their account verified, else by the player it claims with verified false; an account with no player is counted in no_player, and unnamed counts every follower not listed). follows and followers are null when no account has verified the player. Defaults to your primary player. For a person's own connection and their agents.",
+      "Who a player follows and who follows them, exactly as their player page shows it: badges (verified_player, discord: that the account linked one, never which), follows (the players their account follows) and followers (people following them, each named by the player their account verified, else by the player it claims with verified false; an account with no player is counted in no_player, and unnamed counts every follower not listed). follows and followers are null when no account has verified the player. Defaults to your primary player.",
     inputSchema: {
       type: "object",
       properties: { player_tag: PLAYER_TAG },
@@ -109,7 +104,7 @@ export const socialTools = {
   },
   players_highlights: {
     description:
-      "The highlights a player posted, newest first: their posts about one of their battles (a highlight is a post with a battle attached), each one's sentence, the words they wrote and a link to the battle. Every one they posted, not a window's; posts about no battle are not here. Defaults to your primary player. For a person's own connection and their agents; reading never posts or cheers.",
+      "The highlights a player posted, newest first: their posts about one of their battles (a highlight is a post with a battle attached), each one's sentence, the words they wrote and a link to the battle. Every one they posted, not a window's; posts about no battle are not here. Defaults to your primary player. Reading never posts or cheers.",
     inputSchema: {
       type: "object",
       properties: {

@@ -2,9 +2,7 @@ import { cardDisplayName, modeGroupSql } from "@elixir-mcp/contracts";
 import {
   ARCHETYPE_ARG,
   ARCHETYPE_NOTE,
-  DISPLAY_NAME_SCHEMA,
   MODE_SCHEMA,
-  ON_BEHALF_OF_SCHEMA,
   SEASON_ARG_SCHEMA,
   TAG_SCHEMA,
   VERBOSITY,
@@ -53,8 +51,6 @@ export const battles_decks = {
     type: "object",
     properties: {
       player_tag: TAG_SCHEMA,
-      on_behalf_of: ON_BEHALF_OF_SCHEMA,
-      display_name: DISPLAY_NAME_SCHEMA,
       ...WINDOW_ARGS,
       season: SEASON_ARG_SCHEMA,
       mode: MODE_SCHEMA,
@@ -91,16 +87,8 @@ export const battles_decks = {
     additionalProperties: false,
   },
   async handler(ctx, args) {
-    const tag = (
-      await subject(
-        ctx.db,
-        ctx.account,
-        args.player_tag,
-        "summary",
-        args.on_behalf_of,
-        args.display_name,
-      )
-    ).tag;
+    const tag = (await subject(ctx.db, ctx.account, args.player_tag, "summary"))
+      .tag;
     const win = await resolveSeasonWindow(ctx, args, {
       seasonDefault: false,
     });

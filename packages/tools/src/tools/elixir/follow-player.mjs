@@ -10,7 +10,7 @@ import { RECORDING_DOCS } from "./common.mjs";
 
 export const elixir_follow_player = {
   description:
-    "Follow a player and record them. It spends a player slot only when Elixir records them because of you (an agent uses its owner's pool); slot says. relationship is primary (you), alt (also you), or friend (any other player). A person's first unnamed tag is primary; later tags and agent follows default to friend. A tag another account verified is friend-only. A person's friend follow also follows that account and its verified players. action remove releases the claim; notify_on / notify_off set the Timeline feed.",
+    "Follow a player and record them. It spends a player slot only when Elixir records them because of you; slot says. relationship is primary (you), alt (also you), or friend (any other player). A person's first unnamed tag is primary; later tags default to friend. A tag another account verified is friend-only. A person's friend follow also follows that account and its verified players. action remove releases the claim; notify_on / notify_off set the Timeline feed.",
   inputSchema: {
     type: "object",
     properties: {
@@ -112,12 +112,6 @@ export const elixir_follow_player = {
         "Remove a player who uses a slot (elixir_my_players lists them), or follow players Elixir already records, which stays free.",
       );
     }
-    if (!r.ok && r.error === "not_entitled")
-      throw new ToolFailure(
-        "not_entitled",
-        "An agent follows players as friends only.",
-        "A player an agent follows is never it: omit relationship, or pass friend.",
-      );
     // A verified tag is its owner's (#556): the answer every door gives.
     if (!r.ok && r.error === "verified_elsewhere")
       throw new ToolFailure(
@@ -133,8 +127,8 @@ export const elixir_follow_player = {
     // tag the game does not have is known in seconds, not at the next
     // scheduled poll, and the primary player's clan with it; then its
     // battle log on the same lane (2026-11-09), so the last 30 battles
-    // land with it. Every door's add is a person's (or their agent's, or a
-    // family app's for the signed-in person), so every door asks the same.
+    // land with it. Every door's add is a person's (or a family app's for
+    // the signed-in person), so every door asks the same.
     const first = r.added
       ? await requestFirstRead(ctx.db, ctx.live, tag, ctx.account.accountId, {
           battles: true,
@@ -144,8 +138,6 @@ export const elixir_follow_player = {
     // Linked follows (Jamie, 2026-11-15): a person's friend follow of a
     // player another account verified follows that account and its other
     // verified players.
-    // linkAfterFollow links only a person's friend claim, so an agent's
-    // followed player links nothing.
     const linked = await linkAfterFollow(ctx.db, ctx.account, tag, {
       via: "mcp",
     });

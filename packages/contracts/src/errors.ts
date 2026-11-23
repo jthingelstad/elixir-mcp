@@ -14,7 +14,7 @@ export const ERROR_CODES = [
   "live_unavailable", // the live lane is not configured, or the fetched payload was rejected at admission
   "live_pending", // live: true asked for a fresh read and none was in hand; a fetch is queued, call again in retry_after_s (1.7.0); or a clan's race is still matchmaking, no race yet (11.6.1)
   "bad_request", // structurally invalid input other than tags
-  "no_subject", // nothing to answer about: no default player, an unmapped on_behalf_of, or a clanless agent (1.0.0)
+  "no_subject", // nothing to answer about: no default player or clan (1.0.0)
   "result_too_large", // the request was fine; the result exceeded the delivery cap - narrow the arguments (1.0.0)
   "query_timeout", // analytical work exceeded its cancellable query budget; retry or narrow the window (3.2.0)
   "internal", // the server failed, not the arguments: retrying the same call is reasonable, and the request_id is what to report (3.13.0)

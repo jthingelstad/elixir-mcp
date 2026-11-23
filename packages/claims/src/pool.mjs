@@ -1,19 +1,7 @@
 /**
- * Recording slots belong to the PERSON, pooled across them and every agent
- * they own (Jamie, 2026-09-23: "Agents use the user's recording slots").
- *
- * A subject counts once however many of the pool track it, and a clan
- * counts once, at the widest scope any of them gives it. So making agents
- * never multiplies what one person can record, and an agent tracking a clan
- * its owner already tracks costs nothing. This replaced the creation-time
- * gate ("a clan you have already added") as the general statement of the
- * same guarantee, and closes the gap that gate left: an owner who removed a
- * clan left their agents' copies recording against no slot.
- *
- * Only ACTIVE agents are in the pool (Jamie, 2026-10-10: "Only active ones
- * should count against usage slots."). A suspended agent's subjects free
- * their slots and stop being a reason to record (reconcileRecording), and
- * resuming it is refused when it would take the pool past a ceiling.
+ * Recording slots belong to the person: the "pool" is the account whose
+ * follows spend them. A clan counts once, at the widest scope the account
+ * gives it.
  *
  * A followed player costs a slot only when Elixir records them because of
  * this pool (Jamie, 2026-11-11, #760: quotas built in from the start, and
@@ -23,13 +11,10 @@
  */
 import { roleQuotas, tierSql } from "@elixir-mcp/contracts";
 
-/** The pool's accounts, for owner $1: the person and their active agents. */
-const POOL = `select account_id from account
-               where account_id = $1
-                  or (owned_by_account_id = $1 and kind = 'agent'
-                      and status = 'approved')`;
+/** The pool's accounts, for owner $1: the person. */
+const POOL = `select account_id from account where account_id = $1`;
 
-/** The person whose slots an account spends: itself, or its owner. With
+/** The person whose slots an account spends: itself. With
  *  what the ceiling needs: the tier (earned in the game, read now, #530)
  *  and the per-account player override. Running a collector earns the
  *  Family tier and no bonus slots on top (#539). */
@@ -37,9 +22,8 @@ export async function poolOwner(db, accountId) {
   const { rows } = await db.query(
     `select o.account_id, ${tierSql("o")} as role, o.is_owner,
             o.max_player_recordings as override
-       from account a
-       join account o on o.account_id = coalesce(a.owned_by_account_id, a.account_id)
-      where a.account_id = $1`,
+       from account o
+      where o.account_id = $1`,
     [accountId],
   );
   return rows[0] ?? null;
@@ -57,9 +41,11 @@ export function poolLimits(owner) {
   };
 }
 
-/** An account `a` whose tracking is a reason to record: anyone but a
- *  suspended agent. reconcileRecording (index.mjs) and the slot count
- *  read this one text, so what records and what pays cannot disagree. */
+/** An account `a` whose tracking is a reason to record. reconcileRecording
+ *  (index.mjs) and the slot count read this one text. Agent-kind accounts
+ *  still exist as rows until they are deleted (DECISIONS, "The old agent
+ *  accounts are deleted"): an approved one's tracking still records, a
+ *  suspended one's does not, so nothing recorded changes before then. */
 export const COUNTS = `(a.kind <> 'agent' or a.status = 'approved')`;
 
 /**
@@ -173,8 +159,8 @@ export async function playerCosts(db, ownerId, tags) {
  * prices them: the same set (a player once, however many of the pool
  * follow them) and the same playerCostSql, so the rows that are not free
  * are exactly pooledUsage's players_used. Each row names who in the pool
- * follows the player: `claims`, one per account, with its kind, its
- * relationship and, for an agent, its public id. Settings' slot meter
+ * follows the player: `claims`, one per account, with its kind and its
+ * relationship. Settings' slot meter
  * reads it (2026-11-12): what uses a slot because of you, and what is
  * recorded anyway.
  */
@@ -192,10 +178,9 @@ export async function pooledFollows(db, ownerId) {
             (select json_agg(json_build_object(
                        'account_id', a.account_id,
                        'kind', a.kind,
-                       'public_id', a.public_id,
                        'relationship', case when c.is_primary then 'primary'
                                             else c.relationship end)
-                     order by a.kind = 'agent', a.created_at)
+                     order by a.created_at)
                from claim c join account a using (account_id)
               where c.player_tag = p.player_tag
                 and c.account_id in (select account_id from pool)) as claims

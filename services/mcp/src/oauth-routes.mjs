@@ -358,8 +358,7 @@ function codeFailure(reason) {
 }
 
 /** What a connection cannot do without each capability, for the page
- *  and the confirmation (Jamie 2026-09-24: say what an unticked box
- *  will stop). */
+ *  (Jamie 2026-09-24: say what an unticked box will stop). */
 const WITHOUT = {
   [OAUTH_SCOPE.FOLLOWS_WRITE]:
     "follow or stop following players and clans for you",
@@ -367,27 +366,9 @@ const WITHOUT = {
   "feedback:write": "send feedback to the Elixir maintainer for you",
 };
 
-/** The capabilities offered ticked before anyone touches the page
- *  (Jamie 2026-09-24): on a person's own connection none, every write is
- *  theirs to choose; on an agent every write but following,
- *  which spends the owner's slots and is ticked on purpose. */
-function defaultTicked(kind) {
-  return kind === "person" || kind === "api"
-    ? []
-    : STANDARD_OAUTH_SCOPES.filter(
-        (s) => s !== OAUTH_SCOPE.READ && s !== OAUTH_SCOPE.FOLLOWS_WRITE,
-      );
-}
-
 /** The consent form's ticked boxes in today's scope names. */
 function grantValues(event) {
   return currentScopeNames(formValues(event, "grant").join(" "));
-}
-
-/** The standard capabilities a request did not ask for: the checkboxes. */
-function optionalScopes(scope) {
-  const granted = new Set(scope.split(" "));
-  return STANDARD_OAUTH_SCOPES.filter((s) => !granted.has(s));
 }
 
 /** The capabilities a request names, as a list with no boxes. */
@@ -406,19 +387,16 @@ function askedCapabilities(scope) {
  * to do.
  *
  * The requested capabilities are fixed: a client that asked for them needs
- * them. The rest are checkboxes, because this page is the only place a
- * human can widen a grant: ticked or not by the connection's kind
- * (defaultTicked), or as the person left them when they come back from
- * the confirmation. Each box says what the connection cannot do without
- * it.
+ * them. The rest are checkboxes, unticked, because this page is the only
+ * place a human can widen a grant. Each box says what the connection
+ * cannot do without it.
  *
  * RFC 6749 section 3.3 permits issuing a scope different from the one
  * requested provided the token response says so, which it does: the
  * granted scope is stored on the auth code and echoed back at redemption.
  */
-function consentCapabilities(scope, { kind, ticked = null } = {}) {
+function consentCapabilities(scope) {
   const granted = new Set(scope.split(" "));
-  const on = new Set(ticked ?? defaultTicked(kind));
   const line = ({ title, description }) =>
     `<strong>${esc(title)}</strong> — ${esc(description)}`;
   // A non-standard capability (account:email) is never offered unasked:
@@ -434,51 +412,11 @@ function consentCapabilities(scope, { kind, ticked = null } = {}) {
          <ul>${rest
            .map(
              (d) =>
-               `<li><label><input type="checkbox" name="grant" value="${esc(d.scope)}"${on.has(d.scope) ? " checked" : ""}> ${line(d)}</label>${WITHOUT[d.scope] ? `<br><small>Unticked, it will not be able to ${esc(WITHOUT[d.scope])}.</small>` : ""}</li>`,
+               `<li><label><input type="checkbox" name="grant" value="${esc(d.scope)}"> ${line(d)}</label>${WITHOUT[d.scope] ? `<br><small>Unticked, it will not be able to ${esc(WITHOUT[d.scope])}.</small>` : ""}</li>`,
            )
            .join("")}</ul>
-         <p>You can change these later under Settings, Connections &amp; agents.</p>`)
+         <p>You can change these later under Settings, Connections.</p>`)
   );
-}
-
-/** A box that started ticked and was unticked: what the confirmation
- *  names before the grant is made. */
-function uncheckedDefaults(v, ticked) {
-  const offered = new Set(optionalScopes(v.scope));
-  return defaultTicked(v.target.kind).filter(
-    (s) => offered.has(s) && !ticked.includes(s),
-  );
-}
-
-/**
- * Which principal a requested audience names, and whether the signed-in person
- * may speak for it.
- *
- * Consenting to act AS an agent is a different act from signing in as yourself,
- * and the ONLY person who may do it is the agent's owner. The check is an
- * ownership comparison against the authenticated account — not a role, not a
- * capability — because owning the agent is the entire basis of the authority.
- */
-async function principalForTarget(db, target) {
-  // A JSON API grant (/api/v1) is the signed-in person's, as /mcp is.
-  if (target.kind === "person" || target.kind === "api")
-    return { ok: true, principal: null };
-  const { rows } = await db.query(
-    `select a.account_id, a.kind, a.public_id, a.owned_by_account_id,
-            (select ac.clan_tag from account_clan ac
-              where ac.account_id = a.account_id and ac.is_primary limit 1) as clan_tag,
-            (select t.name from service_token t
-              where t.account_id = a.account_id and t.revoked_at is null
-              order by t.token_id limit 1) as name
-     from account a
-     where a.public_id = $1 and a.kind = $2 and a.status = 'approved'
-       and not exists (select 1 from integration i where i.account_id = a.account_id)`,
-    [target.publicId, target.kind],
-  );
-  // Deliberately the same refusal whether the principal is missing or simply
-  // not yours: otherwise the consent screen becomes a way to discover which
-  // agents exist.
-  return rows[0] ? { ok: true, principal: rows[0] } : { ok: false };
 }
 
 async function validatedAuthRequest(db, q, targetFor) {
@@ -537,7 +475,7 @@ export function makeOauthRoutes({
    *  consent POST comes from it or from nowhere a browser will name. */
   const ownOrigin = new URL(issuer).origin;
 
-  /** The three legal audiences: the personal door and one per principal. */
+  /** The two legal audiences: /mcp and /api/v1. */
   const targetFor = (value) => {
     const canonical = canonicalResource(value);
     if (!canonical) return null;
@@ -581,12 +519,10 @@ export function makeOauthRoutes({
    * signing the person in as themselves, for their own door or the JSON
    * API. It is granted exactly the scope it asked for, which
    * validatedAuthRequest has already held to what a family client may
-   * ask; there are no boxes, so nothing widens it. Acting as an agent is
-   * a different act and keeps its page, whoever asks.
+   * ask; there are no boxes, so nothing widens it.
    * Every other client keeps its consent page.
    */
   const signsInOnly = (v) =>
-    (v.target.kind === "person" || v.target.kind === "api") &&
     isFirstPartyClient({
       redirectUris: v.client.redirectUris,
       provisioned: Boolean(v.client.family),
@@ -636,28 +572,18 @@ export function makeOauthRoutes({
         ? `<p>${esc(v.client.clientName)} is one of Elixir&rsquo;s own apps. Approving sends you back to <strong>${esc(redirectHost(v.redirectUri))}</strong>.</p>`
         : `<p>${esc(v.client.clientName)} named itself; Elixir has not checked it. Approving sends a code to <strong>${esc(redirectHost(v.redirectUri))}</strong>. Continue only if you started this connection and you trust that address.</p>`;
 
-  /** What the client will be able to do, worded for the target's kind.
-   *  A family sign-in lists what the app gets, with no boxes: it asked
-   *  for it and there is nothing to choose. */
-  const capabilitiesBlock = (v, verb, ticked = null) => {
-    if (signsInOnly(v))
-      return `${clientBlock(v)}<p><strong>${esc(v.client.clientName)} will be able to:</strong></p>${askedCapabilities(v.scope)}`;
-    const caps = consentCapabilities(v.scope, {
-      kind: v.target.kind,
-      ticked,
-    });
-    return v.target.kind === "person" || v.target.kind === "api"
-      ? `${clientBlock(v)}<p><strong>${verb} authorizes ${esc(v.client.clientName)} to:</strong></p>${caps}`
-      : `${clientBlock(v)}<p><strong>This connects ${esc(v.client.clientName)} as one of your agents, not as you.</strong></p>
-         <p>It will act with that principal&rsquo;s own identity and see its data, not your players or your feed. You can only do this for a principal you own.</p>
-         ${caps}`;
-  };
+  /** What the client will be able to do. A family sign-in lists what the
+   *  app gets, with no boxes: it asked for it and there is nothing to
+   *  choose. */
+  const capabilitiesBlock = (v, verb) =>
+    signsInOnly(v)
+      ? `${clientBlock(v)}<p><strong>${esc(v.client.clientName)} will be able to:</strong></p>${askedCapabilities(v.scope)}`
+      : `${clientBlock(v)}<p><strong>${verb} authorizes ${esc(v.client.clientName)} to:</strong></p>${consentCapabilities(v.scope)}`;
 
-  /** The signed-in consent page (a GET, or back from the confirmation). */
-  const sessionConsentPage = (v, q, me, ticked = null) => {
-    const { step, confirm, grant, ...rest } = q;
+  /** The signed-in consent page. */
+  const sessionConsentPage = (v, q, me) => {
+    const { step, grant, ...rest } = q;
     void step;
-    void confirm;
     void grant;
     const switchUrl = `/oauth/authorize?${new URLSearchParams({ ...rest, switch: "1" })}`;
     return page(
@@ -665,7 +591,7 @@ export function makeOauthRoutes({
       `<h1>Connect ${esc(v.client.clientName)}</h1>
        <p>You are signed in to Elixir${me.email ? ` as <strong>${esc(me.email)}</strong>` : ""}.</p>
        <form method="post" action="/oauth/authorize">
-         ${capabilitiesBlock(v, "Authorizing", ticked)}
+         ${capabilitiesBlock(v, "Authorizing")}
          <input type="hidden" name="step" value="session">${hiddenAuthFields(q)}
          <button>Authorize</button>
        </form>
@@ -673,16 +599,15 @@ export function makeOauthRoutes({
     );
   };
 
-  /** The code-entry page (after the email step, or back from the
-   *  confirmation with the code still in hand). The same page for every
+  /** The code-entry page, after the email step. The same page for every
    *  address, whether or not a code was sent (never an oracle). */
-  const codeEntryPage = (v, form, ticked = null, lead = "") =>
+  const codeEntryPage = (v, form, lead = "") =>
     page(
       "Enter your code",
       `<h1>Check your email</h1>
        ${lead || `<p>A 6-digit code is on its way to ${esc(form.email)}. Entering it signs you in to Elixir, and creates your Elixir account if you are new.</p>`}
        <form method="post" action="/oauth/authorize">
-         ${capabilitiesBlock(v, "Entering it", ticked)}
+         ${capabilitiesBlock(v, "Entering it")}
          <input type="hidden" name="step" value="code">${hiddenAuthFields(form)}
          <input type="hidden" name="email" value="${esc(form.email)}">
          <input inputmode="numeric" autocomplete="one-time-code" name="code" placeholder="123456" value="${esc(form.code ?? "")}" required autofocus>
@@ -691,49 +616,8 @@ export function makeOauthRoutes({
     );
 
   /**
-   * Before the grant: a box that started ticked and was unticked is named,
-   * with what the connection will not be able to do, and the person
-   * confirms or goes back (Jamie 2026-09-24). It runs BEFORE a code is
-   * verified, so going back spends nothing.
-   */
-  const confirmPage = (v, form, ticked, missing) =>
-    page(
-      "Confirm what it can do",
-      `<h1>Before you connect ${esc(v.client.clientName)}</h1>
-       <p>You unticked ${missing.length === 1 ? "a capability" : "capabilities"} it would normally have. Without ${missing.length === 1 ? "it" : "them"}, this connection will not be able to:</p>
-       <ul>${missing.map((s) => `<li>${esc(WITHOUT[s] ?? s)}</li>`).join("")}</ul>
-       <p>When it tries, Elixir will refuse and name the capability; you can grant it later under Settings, Connections &amp; agents.</p>
-       <form method="post" action="/oauth/authorize">
-         <input type="hidden" name="step" value="${esc(form.step)}">${hiddenAuthFields(form)}
-         ${form.email !== undefined ? `<input type="hidden" name="email" value="${esc(form.email)}">` : ""}
-         ${form.code !== undefined ? `<input type="hidden" name="code" value="${esc(form.code)}">` : ""}
-         ${ticked.map((s) => `<input type="hidden" name="grant" value="${esc(s)}">`).join("")}
-         <button name="confirm" value="1">Connect without ${missing.length === 1 ? "it" : "them"}</button>
-         <button name="confirm" value="back">Go back and change</button>
-       </form>`,
-    );
-
-  /** The confirmation gate for a consent POST: null to proceed. */
-  const confirmGate = (event, v, form, backPage) => {
-    // A family sign-in has no boxes, so nothing to confirm.
-    if (signsInOnly(v)) return null;
-    // A page rendered before a rename can post an old name.
-    const ticked = grantValues(event).filter((s) =>
-      STANDARD_OAUTH_SCOPES.includes(s),
-    );
-    const missing = uncheckedDefaults(v, ticked);
-    if (missing.length === 0 || form.confirm === "1") return null;
-    return html(
-      200,
-      form.confirm === "back"
-        ? backPage(ticked)
-        : confirmPage(v, form, ticked, missing),
-    );
-  };
-
-  /**
-   * The consent act itself, once the person is known: the principal
-   * check, the widening checkboxes, the auth code, the redirect. The
+   * The consent act itself, once the person is known: the widening
+   * checkboxes, the auth code, the redirect. The
    * same whether the person proved themselves with a code just now or
    * was already signed in; only the log line names which. A family
    * sign-in had no boxes, so whatever the form posts widens nothing.
@@ -743,30 +627,6 @@ export function makeOauthRoutes({
     event,
     { v, account, hash, boundScope, how },
   ) {
-    // The person proved who they are. If the audience names a principal,
-    // the grant belongs to THAT account -- so every token minted from this
-    // code carries the agent's identity, budget and tool surface, and the
-    // person's own data is not reachable through it at all.
-    const owned = await principalForTarget(db, v.target);
-    if (
-      !owned.ok ||
-      (owned.principal &&
-        owned.principal.owned_by_account_id !== account.account_id)
-    ) {
-      authLog("oauth_principal_refused", {
-        email: emailRef(hash),
-        resource: v.resource,
-        kind: v.target.kind,
-      });
-      return html(
-        403,
-        page(
-          "Elixir",
-          `<h1>Not yours to connect</h1><p>That agent is not one you own.</p>`,
-        ),
-      );
-    }
-
     // The human is the only party who can widen a grant, and only to
     // capabilities this server defines. The base is the scope BOUND at
     // the email step (or shown on the signed-in page), never a re-posted
@@ -788,7 +648,7 @@ export function makeOauthRoutes({
       });
     const code = await createAuthCode(db, {
       clientId: v.client.clientId,
-      accountId: owned.principal?.account_id ?? account.account_id,
+      accountId: account.account_id,
       redirectUri: v.redirectUri,
       scope: grantedScope,
       resource: v.resource,
@@ -958,10 +818,6 @@ export function makeOauthRoutes({
               "<p>Your Elixir sign-in has ended; sign in with a code to continue.</p>",
             ),
           );
-        const gated = confirmGate(event, v, form, (ticked) =>
-          sessionConsentPage(v, form, me, ticked),
-        );
-        if (gated) return gated;
         authLog("oauth_session_accepted", {
           email: emailRef(me.email_hash),
           request: requestRef(v.codeChallenge),
@@ -1024,7 +880,6 @@ export function makeOauthRoutes({
             codeEntryPage(
               v,
               { ...form, email, code: "" },
-              null,
               "<p>That is the limit on sign-in emails for now. The most recent code still works for fifteen minutes; after an hour you can ask for another.</p>",
             ),
           );
@@ -1084,15 +939,6 @@ export function makeOauthRoutes({
       const hash = emailHash(form.email);
 
       if (form.step === "code") {
-        const gated = confirmGate(event, v, form, (ticked) =>
-          codeEntryPage(
-            v,
-            form,
-            ticked,
-            "<p>Enter the code from your email.</p>",
-          ),
-        );
-        if (gated) return gated;
         const verified = await verifyMagicCode(db, {
           emailHash: hash,
           code: form.code,
@@ -1392,7 +1238,7 @@ export function makeOauthRoutes({
       // Userinfo is the issuer's, not a door's: a person's grant for either
       // personal audience answers here (a family app that signs in for the
       // JSON API, Drop since 2026-09-25, needs the stable sub as an MCP
-      // client did). An agent's audience (/mcp/agent/<id>) never does.
+      // client did).
       const token = auth.slice(7).trim();
       const account =
         (await validateAccessToken(db, token, {

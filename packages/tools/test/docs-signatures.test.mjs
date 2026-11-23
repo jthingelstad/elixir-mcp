@@ -3,20 +3,17 @@
  *
  * The docs name tool calls in prose as `tool({ a, b?, c: 1 })`. The tool
  * reference (/docs/tools) is generated from the registry and cannot drift;
- * these sentences can, and did: protocol.md listed `on_behalf_of?` on
- * elixir_send_feedback, an argument a personal connection is never served
- * (AGENT_ARGS in tools.mjs), so an agent on one read the docs, tried it,
- * and met additionalProperties: false.
+ * these sentences can, and did: protocol.md once listed an argument on
+ * elixir_send_feedback that a connection was never served, so a client
+ * read the docs, tried it, and met additionalProperties: false.
  *
- * Two rules, checked against the schema each kind of connection is
- * actually served (`declarations(kind)`), not the whole catalogue:
+ * Two rules, checked against the schema every connection is served
+ * (`declarations()`):
  *
- *   1. Every argument a signature names exists for every kind that can
- *      call the tool. An agent-only argument is described in prose
- *      ("Agent connections only: ..."), never put in a signature.
+ *   1. Every argument a signature names exists on the tool.
  *   2. A full signature (one marking optional arguments with `?`) names
- *      every argument a personal connection is served, so a new argument
- *      cannot ship with the docs' list of them left short.
+ *      every argument the tool is served with, so a new argument cannot
+ *      ship with the docs' list of them left short.
  */
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -27,18 +24,12 @@ import { makeRegistry } from "../src/tools.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const DOCS = path.join(here, "../../../apps/site/src/docs");
-const KINDS = ["person", "agent"];
 
 const registry = makeRegistry();
 const served = new Map(
-  KINDS.map((kind) => [
-    kind,
-    new Map(
-      registry
-        .declarations(kind)
-        .map((d) => [d.name, new Set(Object.keys(d.inputSchema.properties))]),
-    ),
-  ]),
+  registry
+    .declarations()
+    .map((d) => [d.name, new Set(Object.keys(d.inputSchema.properties))]),
 );
 const toolNames = new Set(registry.declarations().map((d) => d.name));
 
@@ -115,31 +106,24 @@ test("the docs write tool signatures, and this test reads them", () => {
   assert.ok(all.some((s) => s.tool === "elixir_send_feedback"));
 });
 
-test("every argument a docs signature names is served to every kind that can call the tool (#377)", () => {
+test("every argument a docs signature names is served (#377)", () => {
   const wrong = [];
-  for (const sig of signatures())
-    for (const kind of KINDS) {
-      const props = served.get(kind).get(sig.tool);
-      if (!props) continue; // hidden from this kind
-      for (const { name } of sig.args)
-        if (!props.has(name))
-          wrong.push(
-            `${sig.where}: ${sig.tool} names '${name}', which a ${kind} connection is not served`,
-          );
-    }
-  assert.deepEqual(
-    wrong,
-    [],
-    "Name an agent-only argument in prose ('Agent connections only: ...'), never in a signature; fix a misspelt one.",
-  );
+  for (const sig of signatures()) {
+    const props = served.get(sig.tool);
+    for (const { name } of sig.args)
+      if (!props.has(name))
+        wrong.push(
+          `${sig.where}: ${sig.tool} names '${name}', which is not served`,
+        );
+  }
+  assert.deepEqual(wrong, [], "Fix a misspelt or removed argument.");
 });
 
-test("a full signature (with ? marks) names every argument a personal connection is served", () => {
+test("a full signature (with ? marks) names every argument the tool is served with", () => {
   const short = [];
   for (const sig of signatures()) {
     if (!sig.args.some((a) => a.optional)) continue;
-    const props =
-      served.get("person").get(sig.tool) ?? served.get("agent").get(sig.tool);
+    const props = served.get(sig.tool);
     const named = new Set(sig.args.map((a) => a.name));
     // A one-size tool's verbosity is the registry's, said once in the
     // protocol docs, not each tool's.

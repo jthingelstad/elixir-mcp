@@ -260,21 +260,6 @@ const META = {
     feedback_responses_pending: COUNT,
     timeline_pending: COUNT,
     posts_pending: { type: "boolean" },
-    asker: {
-      type: "object",
-      description:
-        "An agent's call with on_behalf_of: who that is (#531). via discord_link is a Discord account the person linked themselves; agent_mapping is a mapping the agent made before 12.0.0; null, nobody yet. verified says the player's claim is proven in game.",
-      properties: {
-        external_id: { type: "string" },
-        player_tag: { type: ["string", "null"] },
-        via: {
-          type: ["string", "null"],
-          enum: ["discord_link", "agent_mapping", null],
-        },
-        verified: { type: "boolean" },
-      },
-      required: ["external_id", "player_tag", "via", "verified"],
-    },
     quota: { type: "object" },
     request_id: { type: "string" },
     disclaimer: { type: "string" },
@@ -832,7 +817,7 @@ const TIMELINE_ITEM_BASE = {
       type: "string",
       enum: ["public", "clan", "player", "leaders", "owner", "followers"],
       description:
-        "Who may see it. public is the game record; clan, player and leaders are an attested fact's rule; owner is the account's own administration; followers is a post in the person's current follow audience, never a clan-agent grant.",
+        "Who may see it. public is the game record; clan, player and leaders are an attested fact's rule; owner is the account's own administration; followers is a post in the person's current follow audience, never a clan grant.",
     },
     publishable: {
       type: "boolean",
@@ -1070,27 +1055,6 @@ export const OUTPUT_SCHEMAS = {
       notes: NOTES,
     },
     required: ["applied", "clan_tag", "meta", "notes", "docs"],
-  },
-  elixir_my_identities: {
-    type: "object",
-    properties: {
-      identities: {
-        type: "array",
-        items: {
-          type: "object",
-          properties: {
-            external_id: { type: "string" },
-            player_tag: TAG,
-            name: { type: ["string", "null"] },
-            created_at: { type: ["string", "null"] },
-          },
-        },
-      },
-      docs: DOCS,
-      meta: META,
-      notes: NOTES,
-    },
-    required: ["identities", "docs", "meta", "notes"],
   },
   elixir_nickname: {
     type: "object",

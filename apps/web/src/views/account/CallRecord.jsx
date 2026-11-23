@@ -240,7 +240,6 @@ export function CallRecord({ id, navigate }) {
         {call.principal_kind
           ? ` · ${WHOSE[call.principal_kind] ?? call.principal_kind}`
           : ""}
-        {call.on_behalf_of ? ` · on behalf of ${call.on_behalf_of}` : ""}
       </p>
 
       <div className="stats" style={{ marginBottom: "14px" }}>

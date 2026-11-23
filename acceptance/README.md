@@ -79,7 +79,7 @@ written - nothing is hand-translated. The vocabulary:
 - **fresh**: `fresh: true` on a live cross-tool case replaces its cached reads before comparison. Use it for counters that can change during a long run; the assertions and captured negative controls remain unchanged.
 - **rules**: `args` as the call was MADE, defaults not filled in (the
   acceptance identity follows #J2RGCRVG, and the run sends a person's
-  omitted clan as #J2RGCRVG (`argsForKind` in `lib.mjs`), so a defaulted
+  omitted clan as #J2RGCRVG (`withClanDefault` in `lib.mjs`), so a defaulted
   clan matches the capture) - but a player is always named, since the
   identity has no player of its own; `request_id` is the answer that
   SHOWED the defect, which `bites/fetch.mjs` turns into a bite that must
@@ -111,8 +111,7 @@ cannot: `cr:read` only. A test pins that no case names a write tool.
 
 ## The credential
 
-A **test account** named `acceptance` (since 2026-11-23; the agent
-principal of that name before it): a person with no address, following
+A **test account** named `acceptance`: a person with no address, following
 `#J2RGCRVG`, holding one key with scope `cr:read`, at `/mcp`. People
 cannot mint keys; only the `{test_account}` op makes one, for an account
 it made (docs/notes/2026-11-23-test-identities-are-people.md). Minted

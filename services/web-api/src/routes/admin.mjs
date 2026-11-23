@@ -330,15 +330,13 @@ export function adminRoutes({
         );
         return json(200, { ok: true });
       }
-      // No new key acts AS a person: a bot holding one
-      // read what only that person should, leaders-only facts among it.
-      // A headless caller is an agent with its own key (Account ->
-      // Agents). Keys already issued still
-      // work, and are revoked here.
+      // No new key is minted here: a bot holding one read what only that
+      // person should, leaders-only facts among it. A test account's key
+      // comes from the ops lane ({test_account}). Keys already issued
+      // still work, and are revoked here.
       return json(410, {
         error: "mint_moved",
-        message:
-          "Person-bound service keys are no longer issued. Create an agent (Account -> Agents) for its own key.",
+        message: "Person-bound service keys are no longer issued here.",
       });
     },
 

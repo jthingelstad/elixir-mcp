@@ -110,6 +110,7 @@ const MIGRATE_READS = {
   account_role: (v) => exactly(v, { list: true }),
   integration: (v) => exactly(v, { action: "list" }),
   family_clients: (v) => exactly(v, { list: true }),
+  test_account: (v) => exactly(v, { list: true }),
   oauth_grants: (v) =>
     exactly(v, { redirect_host: (h) => typeof h === "string" && h !== "" }),
   // The report names only the table; a rebuild or a drop names more.
@@ -119,7 +120,6 @@ const MIGRATE_READS = {
   account_remove: (v) => isObject(v) && v.dry_run === true,
   account_enroll: (v) => isObject(v) && v.dry_run === true,
   account_follow: (v) => isObject(v) && v.dry_run === true,
-  agent_recordings: (v) => exactly(v, { dry_run: true }),
   // A dry run is the default; the pairs alone, with no apply key, read.
   avatar_import: (v) => exactly(v, { pairs: Array.isArray }),
   tier_census: (v) => exactly(v, { dry_run: true }),

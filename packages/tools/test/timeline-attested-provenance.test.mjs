@@ -94,8 +94,8 @@ const read = (accountId, extra = {}) =>
   });
 
 test("authorized clan facts carry actor or app attester metadata required by their contract", async () => {
-  for (const id of [member, agent]) {
-    const items = await read(id);
+  {
+    const items = await read(member);
     assert.equal(items.length, 2);
     assert.deepEqual(
       items.find((it) => it.kind === "role_change_made").facts.attested_by,
@@ -123,6 +123,8 @@ test("authorized clan facts carry actor or app attester metadata required by the
 
 test("no attester metadata is returned without clan membership or an in-window fact", async () => {
   assert.deepEqual(await read(stranger), []);
+  // An agent-kind account left from before 2026-11-23 holds no seat.
+  assert.deepEqual(await read(agent), []);
   assert.deepEqual(await read(undefined), []);
   assert.deepEqual(
     await read(member, {

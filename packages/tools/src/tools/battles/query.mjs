@@ -3,9 +3,7 @@ import { battleLinks, resolveBattleRef } from "@elixir-mcp/record/battle-links";
 import { formatLocal } from "../../time.mjs";
 import {
   ARCHETYPE_NOTE,
-  DISPLAY_NAME_SCHEMA,
   MODE_SCHEMA,
-  ON_BEHALF_OF_SCHEMA,
   SEASON_ARG_SCHEMA,
   TAG_SCHEMA,
   ToolFailure,
@@ -53,8 +51,6 @@ export const battles_query = {
     type: "object",
     properties: {
       player_tag: TAG_SCHEMA,
-      on_behalf_of: ON_BEHALF_OF_SCHEMA,
-      display_name: DISPLAY_NAME_SCHEMA,
       ...WINDOW_ARGS,
       season: SEASON_ARG_SCHEMA,
       mode: MODE_SCHEMA,
@@ -135,14 +131,7 @@ export const battles_query = {
     const byBattle = args.battle_id !== undefined;
     let tag = null;
     if (!byBattle) {
-      const s = await subject(
-        ctx.db,
-        ctx.account,
-        args.player_tag,
-        "battles",
-        args.on_behalf_of,
-        args.display_name,
-      );
+      const s = await subject(ctx.db, ctx.account, args.player_tag, "battles");
       tag = s.tag;
     }
     let live = null;

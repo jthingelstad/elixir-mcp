@@ -400,7 +400,7 @@ test("a player fact Drop wrote on its key before 5.0.0 stays stored and labelled
   assert.equal(r.statusCode, 404, r.body);
 });
 
-test("the timeline shows each fact only to the reader its type allows; a departure reaches the clan and its agent, an away only leaders", async () => {
+test("the timeline shows each fact only to the reader its type allows; a departure reaches the clan, an away only leaders", async () => {
   const clanSubject = [{ kind: "clan", tag: CLAN, scope: "activity" }];
   const leader = as(accounts.leader);
   const awarded = await write(
@@ -448,20 +448,17 @@ test("the timeline shows each fact only to the reader its type allows; a departu
   assert.ok(!memberSees.includes("member_away"));
   // Someone outside the clan sees none of it.
   assert.deepEqual(await kinds(accounts.outsider), []);
-  // The leader's own agent reads as its owner: the clan's facts, the
-  // departure included, never a leaders' fact.
+  // An agent-kind account left from before 2026-11-23 reads nothing,
+  // even one a leader owned.
   const agent = (
     await db.query(
       "insert into account(kind,owned_by_account_id,status,role) values ('agent',$1,'approved','member') returning account_id",
       [accounts.leader],
     )
   ).rows[0].account_id;
-  const agentSees = await kinds(agent);
-  assert.ok(agentSees.includes("award_granted"));
-  assert.ok(agentSees.includes("departure_classified:kick"));
-  assert.ok(!agentSees.includes("member_away"));
+  assert.deepEqual(await kinds(agent), []);
   // A departure written under 9.2.0 carries visibility 'leaders' in its
-  // row; who sees it is the type's rule now, so the agent sees it too.
+  // row; who sees it is the type's rule now, so a member sees it too.
   await db.query(
     `insert into attested_fact
        (subject_kind, clan_tag, player_tag, fact_type, detail, visibility,
@@ -471,7 +468,7 @@ test("the timeline shows each fact only to the reader its type allows; a departu
     [CLAN, LEFT_TAG],
   );
   const legacy = (
-    await factItems(db, clanSubject, { accountId: agent, ...window })
+    await factItems(db, clanSubject, { accountId: accounts.member, ...window })
   ).find((i) => i.kind === "departure_classified" && i.facts.kind === "leave");
   assert.ok(legacy, "a 9.2.0 row follows the type's rule");
   assert.equal(legacy.facts.visibility, "clan");
@@ -550,17 +547,11 @@ test("Clan's morning run records its computed award standing; a person cannot, a
     as(accounts.leader),
   );
   assert.equal(asPerson.statusCode, 403);
-  // The clan's agent sees it, in words.
+  // A member of the clan sees it, in words.
   const window = { fromMs: Date.now() - 86_400_000, toMs: Date.now() + 1000 };
-  const agent = (
-    await db.query(
-      "insert into account(kind,owned_by_account_id,status,role) values ('agent',$1,'approved','member') returning account_id",
-      [accounts.leader],
-    )
-  ).rows[0].account_id;
   const seen = (
     await factItems(db, [{ kind: "clan", tag: CLAN, scope: "activity" }], {
-      accountId: agent,
+      accountId: accounts.member,
       ...window,
     })
   ).filter((i) => i.kind === "award_standing");

@@ -1,14 +1,11 @@
 /** Approved private-context seam. Public game tools never read private Clan
  * state. Two readers, each authorizing and projecting in one statement:
  * `readOwnClanView` gives a person their own view of one clan (#535);
- * `readClanDirectory` gives a signed-in person, or an agent reading for its
- * approved owner (12.0.0), the clan directory's tiles, the policy's public
- * part only (#768). People's places (`place#<tag>` rows) are read here
+ * `readClanDirectory` gives a signed-in person the clan directory's tiles,
+ * the policy's public part only (#768). People's places (`place#<tag>` rows) are read here
  * too, under one rule: a place belongs to the claim that wrote it
  * (`placeOwnedBy`), for Clan's own view and clan map (`readOwnedPlaces`),
- * the player map and Near you. The agent policy-context reader retired with
- * `clans_context` in 12.0.0, and its grant storage and op in 0256
- * (DECISIONS "`clans_context` retires"). */
+ * the player map and Near you. */
 import { ELIXIR_ORIGIN } from "@elixir-mcp/contracts";
 import {
   actionsWaitingFor,
@@ -76,8 +73,8 @@ const actionUrl = (clanTag, number) =>
  * member's line or clock, never a removal Action, never evidence, a log or a
  * decision; reads only the saved snapshot and writes nothing.
  *
- * `{ refused: "not_a_person" }` for an agent or an integration (the person's
- * own connection only, never an owned agent); `{ refused: "not_verified_member" }`
+ * `{ refused: "not_a_person" }` for any account that is not a person;
+ * `{ refused: "not_verified_member" }`
  * when none of the person's verified own players is a current member;
  * otherwise `{ view }`.
  */
@@ -173,8 +170,7 @@ const DIRECTORY_POLICY_FIELDS = [
 export const DIRECTORY_LIMIT = 500;
 
 // Authorization and projection in one statement: only an approved person
-// reads, or an approved agent whose owner is an approved person, reading as
-// that owner (`yours` is the owner's); the policy leaves the database
+// reads; the policy leaves the database
 // already cut to the tile's fields. Listed: every recorded clan whose policy pointer names a saved
 // version (saving a policy is how a clan opts in, DECISIONS); the pattern
 // below is word for word the predicate of the partial index
@@ -183,13 +179,9 @@ export const DIRECTORY_LIMIT = 500;
 // name, then tag: never by size, trophies or anything a ranking could read.
 const DIRECTORY_SQL = `
 with allowed as (
-  select case when a.kind = 'agent' then o.account_id else a.account_id end
-           as account_id
+  select a.account_id
     from account a
-    left join account o on o.account_id = a.owned_by_account_id
-   where a.account_id = $1 and a.status = 'approved'
-     and (a.kind = 'person'
-          or (a.kind = 'agent' and o.kind = 'person' and o.status = 'approved'))
+   where a.account_id = $1 and a.status = 'approved' and a.kind = 'person'
 ), listed as (
   select substr(pointer.pk, length('policy#') + 1) as clan_tag,
          (pointer.body ->> 'version')::int as version,
@@ -266,20 +258,18 @@ function directoryTile(row) {
 
 /**
  * The clan directory (#768): every recorded clan with a saved policy, for a
- * signed-in, approved person, or an approved agent of an approved person
- * reading as its owner (12.0.0, `clans_directory`). A tile is the clan's recorded name, type, size,
+ * signed-in, approved person (`clans_directory` too). A tile is the clan's recorded name, type, size,
  * trophies to join and in-game description, and its policy's public part:
  * Clan Wars intent, how strict, playing together, what counts, and the day a
  * removal Action comes. Never who saved it, a note, a minimum, a member's
  * standing, the Recruit pitch, or any other Clan state.
  *
- * `{ refused: "not_a_person" }` for an integration, an unapproved person, and
- * an agent that is not approved or whose owner is not an approved person;
- * otherwise `{ directory }`.
+ * `{ refused: "not_a_person" }` for any other account; otherwise
+ * `{ directory }`.
  */
 export async function readClanDirectory(db, account, clanTag = null) {
   const kind = account?.kind ?? null;
-  if ((kind !== "person" && kind !== "agent") || !account.accountId)
+  if (kind !== "person" || !account.accountId)
     return { refused: "not_a_person" };
   const { rows } = await db.query(DIRECTORY_SQL, [
     account.accountId,
@@ -291,10 +281,8 @@ export async function readClanDirectory(db, account, clanTag = null) {
     // An unapproved account reads no row at all; say so rather than "none".
     const ok = await db.query(
       `select 1 from account a
-         left join account o on o.account_id = a.owned_by_account_id
         where a.account_id = $1 and a.status = 'approved'
-          and (a.kind = 'person' or (a.kind = 'agent' and o.kind = 'person'
-                                     and o.status = 'approved'))`,
+          and a.kind = 'person'`,
       [account.accountId],
     );
     if (ok.rows.length === 0) return { refused: "not_a_person" };
@@ -413,7 +401,7 @@ const onMap = (where = "true") => `
    order by c.account_id, c.is_primary desc, c.verified_at nulls last,
             c.player_tag`;
 
-/** Only an approved person reads either: never an agent or an integration. */
+/** Only an approved person reads either. */
 const READER = `
   select a.account_id from account a
    where a.account_id = $1 and a.kind = 'person' and a.status = 'approved'`;
@@ -487,7 +475,7 @@ const placeCodes = (country, region, city) => ({
  * person. Each entry is a player's game name and tag, `you` for the
  * reader's own, and the place codes; never an account, a nickname or
  * anything finer than the picked place. `{ refused: "not_a_person" }` for
- * an agent, an integration or an account that is not approved.
+ * any other account, or one that is not approved.
  */
 export async function readPlayerMap(db, account) {
   if (account?.kind !== "person" || !account.accountId)

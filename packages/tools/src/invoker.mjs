@@ -14,10 +14,8 @@ import { ToolFailure, TOOLS_VERSION } from "./tools.mjs";
 import { pendingHints } from "./tools/shared.mjs";
 import { MCP_RESULT_MAX_CHARS } from "./result-text.mjs";
 import { captureCall } from "./capture.mjs";
-import { askerFor } from "./entitlements.mjs";
 
 const MAX_AUDIT_ARG_BYTES = 4000;
-const MAX_ON_BEHALF_OF_CHARS = 200;
 
 /** Flipped after the first call this sandbox serves. A Lambda module is
  *  evaluated once per sandbox, so "first invocation since load" IS the
@@ -121,15 +119,14 @@ export async function auditRow(
     timings = {},
     coldStart: cold = null,
     principalKind = null,
-    onBehalfOf = null,
     rpcErrorCode = null,
   },
 ) {
   try {
     await db.query(
       `insert into mcp_call_audit (account_id, token_id, request_id, surface, tool, args, duration_ms, result_bytes, truncated, error_code, viewer_ip, viewer_country, client_name, oauth_family_id,
-         created_at, captured, db_ms, db_queries, live_wait_ms, serialize_ms, cold_start, principal_kind, on_behalf_of, rpc_error_code)
-       values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24)`,
+         created_at, captured, db_ms, db_queries, live_wait_ms, serialize_ms, cold_start, principal_kind, rpc_error_code)
+       values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23)`,
       [
         accountId,
         tokenId ?? null,
@@ -156,7 +153,6 @@ export async function auditRow(
         timings.serialize_ms ?? null,
         cold,
         principalKind,
-        onBehalfOf,
         rpcErrorCode,
       ],
     );
@@ -166,14 +162,6 @@ export async function auditRow(
     // used to be a silent hole. Say so, and keep serving.
     console.error("audit_write_failed", tool, surface, err?.message);
   }
-}
-
-/** The delegated id as the caller gave it, for the census; bounded so a
- *  hostile argument cannot grow the row. */
-export function onBehalfOfOf(args) {
-  const v = args?.on_behalf_of ?? null;
-  if (v === null || v === undefined) return null;
-  return String(v).slice(0, MAX_ON_BEHALF_OF_CHARS);
 }
 
 /**
@@ -552,18 +540,6 @@ export function makeInvoker({
       if (body && typeof body === "object" && body.meta) {
         const hints = await pendingHints(db, account);
         for (const [k, v] of Object.entries(hints)) body.meta[k] = v;
-        // Who an agent's on_behalf_of names, and how we know (#531): a
-        // Discord link the person made, or the agent's own mapping.
-        const asking = account.kind === "agent" ? onBehalfOfOf(args) : null;
-        if (asking) {
-          const who = await askerFor(db, account.accountId, asking);
-          body.meta.asker = {
-            external_id: asking,
-            player_tag: who?.tag ?? null,
-            via: who?.via ?? null,
-            verified: who?.verified ?? false,
-          };
-        }
       }
       const s0 = performance.now();
       const resultBytes = JSON.stringify(body).length;
@@ -681,7 +657,6 @@ export function makeInvoker({
         timings: rounded,
         coldStart: cold,
         principalKind,
-        onBehalfOf: onBehalfOfOf(args),
       });
     }
     return { body: outcome.body, isError: outcome.isError };

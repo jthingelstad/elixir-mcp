@@ -25,42 +25,6 @@ const label = (row) =>
   row?.name ? `${row.name} ${row.player_tag}` : (row?.player_tag ?? null);
 
 export async function describeIdentity(db, account) {
-  const kind = account?.kind ?? "person";
-  if (kind === "agent") {
-    const { rows: clans } = await db.query(
-      `select ac.clan_tag, c.name,
-              (select count(*)::int from clan_membership m
-                where m.clan_tag = ac.clan_tag and m.left_observed_at is null) as members
-       from account_clan ac
-       left join clan c on c.clan_tag = ac.clan_tag
-       where ac.account_id = $1
-       order by ac.is_primary desc, ac.clan_tag`,
-      [account.accountId],
-    );
-    if (clans.length === 0) return { kind };
-
-    // Leadership only, never the whole roster. The roster is volatile — joins,
-    // leaves and promotions land daily — and a long-lived agent holds these
-    // instructions until it reconnects, so an embedded roster would be
-    // confidently wrong by evening in the most authoritative place in its
-    // context. Leadership changes rarely and answers "who do I escalate to".
-    const { rows: leaders } = await db.query(
-      `select m.player_tag, p.name, m.role
-       from clan_membership m
-       left join player p on p.player_tag = m.player_tag
-       where m.clan_tag = $1 and m.left_observed_at is null
-         and m.role in ('leader', 'coLeader')
-       order by case m.role when 'leader' then 0 else 1 end, p.name`,
-      [clans[0].clan_tag],
-    );
-    return {
-      kind,
-      clans,
-      leaders,
-      identityCount: await countIdentities(db, account),
-    };
-  }
-
   const { rows: players } = await db.query(
     `select c.player_tag, c.relationship, c.is_primary, p.name
      from claim c
@@ -111,15 +75,7 @@ export async function describeIdentity(db, account) {
     const rel = row.is_primary ? "primary" : (row.relationship ?? "friend");
     (grouped[rel] ??= []).push(row);
   }
-  return { kind, grouped, clans, primaryClan: primaryClan ?? null };
-}
-
-async function countIdentities(db, account) {
-  const { rows } = await db.query(
-    `select count(*)::int as n from agent_identity where account_id = $1`,
-    [account.accountId],
-  );
-  return rows[0].n;
+  return { kind: "person", grouped, clans, primaryClan: primaryClan ?? null };
 }
 
 const plural = (n, one, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
@@ -127,8 +83,7 @@ const plural = (n, one, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
 /**
  * The identity paragraph, or null when there is nothing true to say.
  *
- * `compact` names only the primary and "your clan" (an agent: its clan and
- * its leader) and counts the rest. The brief takes it when the full list
+ * `compact` names only the primary and "your clan" and counts the rest. The brief takes it when the full list
  * would push the brief past what a client shows (protocol.mjs,
  * INSTRUCTIONS_BUDGET): a heavy account's fifty
  * players used to fill Claude Code's 2,048 characters alone.
@@ -138,136 +93,86 @@ export function identitySentences(identity, { compact = false } = {}) {
   if (!identity) return null;
   const out = [];
 
-  if (identity.kind === "person") {
-    const primary = identity.grouped?.primary?.[0];
-    // Players but no primary: the primary ended when another account
-    // verified its tag (#556), and nothing is promoted in its place.
-    const tracked = RELATIONSHIP_ORDER.slice(1).some(
-      (rel) => (identity.grouped?.[rel] ?? []).length > 0,
+  const primary = identity.grouped?.primary?.[0];
+  // Players but no primary: the primary ended when another account
+  // verified its tag (#556), and nothing is promoted in its place.
+  const tracked = RELATIONSHIP_ORDER.slice(1).some(
+    (rel) => (identity.grouped?.[rel] ?? []).length > 0,
+  );
+  if (!primary && tracked) {
+    out.push(
+      "You follow players but have no primary, so nothing here defaults to you: elixir_follow_player with relationship primary names yours, and elixir_my_players lists who you follow.",
     );
-    if (!primary && tracked) {
+  } else if (!primary) {
+    out.push(
+      "You have no player yet. elixir_follow_player follows one and your first becomes your primary; until then nothing here defaults to you.",
+    );
+  } else {
+    out.push(`YOU ARE ${label(primary)}.`);
+    const clan = identity.primaryClan;
+    if (clan)
       out.push(
-        "You follow players but have no primary, so nothing here defaults to you: elixir_follow_player with relationship primary names yours, and elixir_my_players lists who you follow.",
+        `Your clan is ${clan.name ? `${clan.name} ` : ""}${clan.clan_tag}${clan.recorded ? "" : " (not recorded yet: an omitted clan_tag refuses until elixir_follow_clan records it)"}.`,
       );
-    } else if (!primary) {
-      out.push(
-        "You have no player yet. elixir_follow_player follows one and your first becomes your primary; until then nothing here defaults to you.",
+    // Silence about the others is what made the mismatch unresolvable:
+    // a tester could not tell a wrong default from a second clan. They
+    // are clans you TRACK, which is not the same as being in them.
+    const others = (identity.clans ?? []).filter(
+      (c) => c.clan_tag !== clan?.clan_tag,
+    );
+    const named = [];
+    const counts = [];
+    let tracked = 0;
+    for (const rel of RELATIONSHIP_ORDER.slice(1)) {
+      const rows = identity.grouped[rel] ?? [];
+      if (rows.length === 0) continue;
+      tracked += rows.length;
+      const names = rows.map(label).join(", ");
+      named.push(
+        rel === "alt"
+          ? `Also you, under ${rows.length === 1 ? "another tag" : "other tags"}: ${names}.`
+          : `Friends you follow: ${names}.`,
       );
-    } else {
-      out.push(`YOU ARE ${label(primary)}.`);
-      const clan = identity.primaryClan;
-      if (clan)
-        out.push(
-          `Your clan is ${clan.name ? `${clan.name} ` : ""}${clan.clan_tag}${clan.recorded ? "" : " (not recorded yet: an omitted clan_tag refuses until elixir_follow_clan records it)"}.`,
-        );
-      // Silence about the others is what made the mismatch unresolvable:
-      // a tester could not tell a wrong default from a second clan. They
-      // are clans you TRACK, which is not the same as being in them.
-      const others = (identity.clans ?? []).filter(
-        (c) => c.clan_tag !== clan?.clan_tag,
-      );
-      const named = [];
-      const counts = [];
-      let tracked = 0;
-      for (const rel of RELATIONSHIP_ORDER.slice(1)) {
-        const rows = identity.grouped[rel] ?? [];
-        if (rows.length === 0) continue;
-        tracked += rows.length;
-        const names = rows.map(label).join(", ");
-        named.push(
-          rel === "alt"
-            ? `Also you, under ${rows.length === 1 ? "another tag" : "other tags"}: ${names}.`
-            : `Friends you follow: ${names}.`,
-        );
-        counts.push(
-          rel === "alt"
-            ? plural(rows.length, "alt")
-            : plural(rows.length, "friend"),
-        );
-      }
-      if (others.length > 0)
-        named.push(
-          `You also follow ${others
-            .map((c) => (c.name ? `${c.name} ${c.clan_tag}` : c.clan_tag))
-            .join(", ")} - name the tag to mean those.`,
-        );
-      // Counted when compact (an alt is still you, so the count says
-      // which kind each is).
-      if (!compact) out.push(...named);
-      else if (tracked || others.length) {
-        const players = counts.length
-          ? `${plural(tracked, "more player")} (${counts.join(", ")})`
-          : "";
-        const clans = others.length ? plural(others.length, "more clan") : "";
-        out.push(
-          `You also follow ${[players, clans].filter(Boolean).join(" and ")}: elixir_my_players lists them; name the tag to mean those.`,
-        );
-      }
-      out.push(
-        "OMIT player_tag and clan_tag to mean these; never look yourself up, and name a tag only for somebody else.",
+      counts.push(
+        rel === "alt"
+          ? plural(rows.length, "alt")
+          : plural(rows.length, "friend"),
       );
     }
-    return out.join(" ");
-  }
-
-  if (identity.kind === "agent") {
-    const clan = identity.clans?.[0];
-    if (!clan) return "You act for a clan, but none is on this connection yet.";
-    out.push(
-      `YOU ACT FOR ${clan.name ? `${clan.name} ` : ""}${clan.clan_tag}${
-        clan.members ? ` (${clan.members} members)` : ""
-      }.`,
-    );
-    const extra = identity.clans.slice(1);
-    if (extra.length)
-      out.push(
-        compact
-          ? `Also ${plural(extra.length, "more clan")}: name the clan_tag to mean one.`
-          : `Also: ${extra
-              .map((c) => `${c.name ?? ""} ${c.clan_tag}`.trim())
-              .join(", ")}.`,
+    if (others.length > 0)
+      named.push(
+        `You also follow ${others
+          .map((c) => (c.name ? `${c.name} ${c.clan_tag}` : c.clan_tag))
+          .join(", ")} - name the tag to mean those.`,
       );
-    if (identity.leaders?.length) {
-      const role = (l) => (l.role === "leader" ? "leader" : "co-leader");
-      // Compact: the leader, and the co-leaders counted (clans_roster
-      // has every role).
-      const leader = identity.leaders.filter((l) => l.role === "leader");
-      const co = identity.leaders.length - leader.length;
+    // Counted when compact (an alt is still you, so the count says
+    // which kind each is).
+    if (!compact) out.push(...named);
+    else if (tracked || others.length) {
+      const players = counts.length
+        ? `${plural(tracked, "more player")} (${counts.join(", ")})`
+        : "";
+      const clans = others.length ? plural(others.length, "more clan") : "";
       out.push(
-        compact
-          ? `Leadership: ${[
-              ...leader.map((l) => `${l.name ?? l.player_tag} (leader)`),
-              ...(co ? [plural(co, "co-leader")] : []),
-            ].join(" and ")}.`
-          : `Leadership: ${identity.leaders
-              .map((l) => `${l.name ?? l.player_tag} (${role(l)})`)
-              .join(", ")}.`,
+        `You also follow ${[players, clans].filter(Boolean).join(" and ")}: elixir_my_players lists them; name the tag to mean those.`,
       );
     }
     out.push(
-      "OMIT clan_tag to mean it. Pull clans_roster ONCE per run and reuse it (the roster is not here: it changes daily).",
+      "OMIT player_tag and clan_tag to mean these; never look yourself up, and name a tag only for somebody else.",
     );
-    out.push(
-      "Nothing defaults to 'you': for a human asking about themselves, pass on_behalf_of (discord:<user id> resolves itself once they link Discord in their Elixir Settings); not linked, ask who they are and pass player_tag.",
-    );
-    if (identity.identityCount)
-      out.push(`You already know ${identity.identityCount} of them.`);
-    return out.join(" ");
   }
-
-  return "You have no subject of your own: name player_tag and clan_tag on every call. Nothing here defaults to 'yours', because there is no yours.";
+  return out.join(" ");
 }
 
 /**
  * Who this connection is, as DATA rather than prose.
  *
- * `instructions` already says "YOU ACT FOR POAP KINGS #J2RGCRVG", which is
+ * `instructions` already says "YOU ARE King Thing #20JJJ2CCRU", which is
  * the right shape for the model reading it and the wrong shape for the client
- * hosting the model. A Discord bot that wants to refuse to boot on a person
- * token, or label its channel with the clan it serves, had two options: regex
- * the prose, or infer the kind from which tools are absent. Both break the
- * moment the wording changes -- and the wording is tuned for the model, so it
- * changes often. (Reported by the elixir-mcp-discord author.)
+ * hosting the model. A client that wants to label itself with the player it
+ * serves would otherwise regex the prose, which breaks the moment the
+ * wording changes -- and the wording is tuned for the model, so it changes
+ * often.
  *
  * This rides in `_meta` on the initialize result, not on `serverInfo`.
  * serverInfo is a spec-defined shape (name, title, version, websiteUrl) and
@@ -287,44 +192,20 @@ export function principalBlock(
   identity,
   personClan = identity?.clans?.[0],
 ) {
-  const resolved = kind ?? "person";
-  const block = { kind: resolved };
-
-  if (resolved === "agent") {
-    const clan = identity?.clans?.[0];
-    if (clan)
-      block.subject = {
-        type: "clan",
-        tag: clan.clan_tag,
-        ...(clan.name ? { name: clan.name } : {}),
-        ...(clan.members ? { members: clan.members } : {}),
-      };
-    // An agent with no clan is a misconfiguration a client SHOULD be able to
-    // catch at boot, so say so rather than omitting the key and looking the
-    // same as a client that did not ask.
-    else block.subject = null;
-    return block;
-  }
-
-  if (resolved === "person") {
-    const primary = identity?.grouped?.primary?.[0];
-    block.subject = primary
-      ? {
-          type: "player",
-          tag: primary.player_tag,
-          ...(primary.name ? { name: primary.name } : {}),
-        }
-      : null;
-    const clan = personClan;
-    if (clan)
-      block.clan = {
-        tag: clan.clan_tag,
-        ...(clan.name ? { name: clan.name } : {}),
-      };
-    return block;
-  }
-
-  // Any other principal has no subject of its own.
-  block.subject = null;
+  const block = { kind: kind ?? "person" };
+  const primary = identity?.grouped?.primary?.[0];
+  block.subject = primary
+    ? {
+        type: "player",
+        tag: primary.player_tag,
+        ...(primary.name ? { name: primary.name } : {}),
+      }
+    : null;
+  const clan = personClan;
+  if (clan)
+    block.clan = {
+      tag: clan.clan_tag,
+      ...(clan.name ? { name: clan.name } : {}),
+    };
   return block;
 }

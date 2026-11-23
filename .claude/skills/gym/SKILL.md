@@ -28,8 +28,7 @@ and mirrors no tool, so no Gym fix reaches it.
 
 ## The Gym's account
 
-- **Principal:** the `gym` test account (2026-11-23; the `gym` agent at
-  `/a/cd9e89e10d09/mcp` before it, from 2026-09-23): a person with no
+- **Principal:** the `gym` test account: a person with no
   address and no player, following POAP KINGS `#J2RGCRVG`
   (docs/notes/2026-11-23-test-identities-are-people.md).
   - Scope: `cr:read feedback:write`.
@@ -37,7 +36,7 @@ and mirrors no tool, so no Gym fix reaches it.
 - **Subjects:** it has no player and no primary clan, so an omitted
   `player_tag` or `clan_tag` refuses `no_subject`. Name both, always.
   The regression pass (`acceptance/run.mjs --gym`) fills an omitted clan
-  with `#J2RGCRVG` for a person, as the agent's default did.
+  with `#J2RGCRVG` (`withClanDefault`, `acceptance/lib.mjs`).
 - **Budget and history:** it spends from its own hourly bucket and its
   own daily quota (`mcp_daily_quota` on the account), not Jamie's. The
   feedback it files is its own, so the call audit and the queue can tell

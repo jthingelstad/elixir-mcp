@@ -1,5 +1,5 @@
 /** The account, feed, help and service tools: elixir_my_players ·
- *  elixir_my_identities · elixir_coverage · elixir_send_feedback ·
+ *  elixir_coverage · elixir_send_feedback ·
  *  elixir_my_feedback · elixir_docs · elixir_examples ·
  *  elixir_updates · elixir_timeline · elixir_cheers · elixir_nickname ·
  *  elixir_follow_player · elixir_follow_clan · elixir_collectors. 1.0.0
@@ -7,7 +7,6 @@
  *  tools (12.0.0: "Follow, never track"). */
 
 import { elixir_my_players } from "./elixir/my-players.mjs";
-import { elixir_my_identities } from "./elixir/my-identities.mjs";
 import { elixir_coverage } from "./elixir/coverage.mjs";
 import { elixir_send_feedback } from "./elixir/send-feedback.mjs";
 import { elixir_my_feedback } from "./elixir/my-feedback.mjs";
@@ -23,7 +22,6 @@ import { elixir_collectors } from "./elixir/collectors.mjs";
 
 export const elixirTools = {
   elixir_my_players,
-  elixir_my_identities,
   elixir_coverage,
   elixir_send_feedback,
   elixir_my_feedback,

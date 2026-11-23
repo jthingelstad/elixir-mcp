@@ -991,7 +991,7 @@ const ts = (ms) => `to_timestamp(${Math.floor(ms)} / 1000.0)`;
 /**
  * The subjects an account hears about (§13.5): every claim with notify on
  * as a player entry, every added clan with notify on as a clan entry.
- * Members of an agent's clan are NOT subjects; they live inside the clan
+ * Members of a followed clan are NOT subjects; they live inside the clan
  * entry and on the clan's timeline.
  */
 export async function subjectsFor(db, accountId) {
@@ -4371,7 +4371,7 @@ export async function peopleItems(
  * timeline id, kept by 0292), so cheers and comments name one item. Only
  * a visible post by an approved person, never one by anyone in a block
  * with the reader. Its share link is the owner's alone: served only when
- * the reader is the account that posted it, or one of its agents.
+ * the reader is the account that posted it.
  * Section "battles"; public, like the battle it names.
  */
 async function highlightItems(
@@ -4802,7 +4802,7 @@ export async function factItems(
       playerTags: [],
     });
   const { rows: who } = await db.query(
-    `select kind, coalesce(owned_by_account_id, account_id) as seat_account
+    `select kind, account_id as seat_account
        from account where account_id = $1`,
     [accountId],
   );

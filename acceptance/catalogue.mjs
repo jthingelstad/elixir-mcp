@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * The call catalogue: what agents actually called this week, as the
+ * The call catalogue: what clients actually called this week, as the
  * input every generic rule runs over (checks/catalogue.mjs). Derived,
  * not written: the migrate lambda's {acceptance_catalogue} op returns
  * the most frequent argument sets per read-only tool among calls that
@@ -16,10 +16,10 @@
  * (subjects.mjs), and a set naming any other tag is dropped.
  *
  * What is dropped: write tools (the token could not call them anyway),
- * live-lane reads, caller identity (the op already drops on_behalf_of and
- * display_name), and the tools whose answer is the caller's own private
- * state (PRIVATE_TO_THE_CALLER) - the acceptance identity, a test person
- * with no player since 2026-11-23, has none.
+ * live-lane reads, caller identity arguments (the op drops them), and the
+ * tools whose answer is the caller's own private state
+ * (PRIVATE_TO_THE_CALLER) - the acceptance identity, a test person with
+ * no player, has none.
  */
 
 import { readFileSync, writeFileSync } from "node:fs";
@@ -114,7 +114,6 @@ const PRIVATE_TO_THE_CALLER = new Set([
   "clans_my_view",
   "elixir_cheers",
   "elixir_my_feedback",
-  "elixir_my_identities",
   "elixir_my_players",
   "elixir_send_feedback",
 ]);
@@ -149,7 +148,7 @@ export function shapeCatalogue(raw, declarations, { stale = [] } = {}) {
     // A caller-default read (omit player_tag to mean you) has no "you"
     // for the acceptance identity, which has no player: the owner's
     // primary player stands in. An omitted clan is sent as CLAN at run
-    // time (lib.mjs argsForKind).
+    // time (lib.mjs withClanDefault).
     const props = decl.inputSchema?.properties ?? {};
     if (
       "player_tag" in props &&
@@ -211,9 +210,8 @@ if (isMain) {
   const raw = JSON.parse(Buffer.from(res.Payload).toString("utf8"));
   if (raw.errorMessage) throw new Error(raw.errorMessage);
   const stale = [];
-  // What a person is offered; the private reads above are dropped, so
-  // what is left is what the agent it replaced was offered too
-  // (acceptance.test.mjs holds both).
+  // What a person is offered, less the private reads above
+  // (acceptance.test.mjs holds it).
   const declarations = makeRegistry().declarations("person");
   const byName = new Map(declarations.map((d) => [d.name, d]));
   const shaped = shapeCatalogue(raw, declarations, { stale });

@@ -107,7 +107,6 @@ export const VOCABULARY = new Set([
   "clan_tag",
   "season_id",
   "section_index",
-  "on_behalf_of",
   "from_to",
   "min_battles",
   "group_by",
@@ -174,24 +173,6 @@ export function everyRowHas(rows, key, what) {
 export const CLAN = "#J2RGCRVG";
 export const JAMIE = "#20JJJ2CCRU";
 
-/**
- * Which kind of principal a tools/list was served to: "person" (it lists
- * elixir_my_players and not elixir_my_identities), "agent" (the reverse),
- * or null when it cannot tell (a bite replays the declarations of every
- * kind). The acceptance identity is a person since 2026-11-23
- * (docs/notes/2026-11-23-test-identities-are-people.md); the agent it
- * replaced still answers until its key is retired, so a case that differs
- * by kind asks this rather than assuming.
- */
-export function principalKind(toolNames) {
-  const names = new Set(toolNames);
-  const person = names.has("elixir_my_players");
-  const agent = names.has("elixir_my_identities");
-  if (person && !agent) return "person";
-  if (agent && !person) return "agent";
-  return null;
-}
-
 /** The reads whose omitted clan_tag means the caller's clan. */
 export const CLAN_DEFAULT_TOOLS = new Set([
   "clans_members_series",
@@ -205,17 +186,26 @@ export const CLAN_DEFAULT_TOOLS = new Set([
 ]);
 
 /**
- * The args a call is sent with. An agent's omitted clan meant its own
- * clan, #J2RGCRVG; a person's means their primary player's clan, and the
- * test person has no player, so it would refuse no_subject. Cases and the
- * Gym's filings are written as the call was made (`args` without the
- * clan), so for a person the door is sent CLAN, the clan the test account
- * follows, while the cache and every report keep the args as written.
- * A call that names a clan or a player is sent as it is.
+ * The args a call is sent with. A person's omitted clan means their
+ * primary player's clan, and the test person has no player, so it would
+ * refuse no_subject. Cases and the Gym's filings are written without the
+ * clan, so the live door is sent CLAN, the clan the test account follows,
+ * while the cache and every report keep the args as written. A call that
+ * names a clan or a player is sent as it is.
  */
-export function argsForKind(kind, tool, args) {
-  if (kind !== "person" || !CLAN_DEFAULT_TOOLS.has(tool)) return args;
+export function withClanDefault(tool, args) {
+  if (!CLAN_DEFAULT_TOOLS.has(tool)) return args;
   const given = args ?? {};
   if ("clan_tag" in given || "player_tag" in given) return given;
   return { ...given, clan_tag: CLAN };
+}
+
+/** The live door with withClanDefault applied to every call. Bite
+ *  replays keep the args they were captured with, so only a live run
+ *  wraps its door. */
+export function clanDefaultDoor(door) {
+  return {
+    ...door,
+    call: (name, args) => door.call(name, withClanDefault(name, args)),
+  };
 }

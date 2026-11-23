@@ -12,13 +12,12 @@ import { ToolFailure, docsRef, entitledClan, notes } from "./shared.mjs";
 
 const LEADERS = new Set(["leader", "coLeader"]);
 
-/** The social reads are a person's and their agents' (DECISIONS "Agents
- *  read the social layer and never write it"): an agent or person not
- *  approved reads none of them. */
+/** The directory is an approved person's read: anyone else reads none of
+ *  it. */
 const SOCIAL_REFUSAL = [
   "not_entitled",
-  "The clan directory is read by a person's own connection and their agents.",
-  "Connect as yourself at /mcp, or through an agent of yours whose owner is approved.",
+  "The clan directory is read by an approved person's own connection.",
+  "Connect as yourself at /mcp.",
 ];
 
 /** What a refused caller is told: the view is a person's own, for a player
@@ -26,7 +25,7 @@ const SOCIAL_REFUSAL = [
 const OWN_VIEW_REFUSALS = {
   not_a_person: [
     "Your own Clan view is read only by a person's own connection.",
-    "An agent never reads a person's Clan view: connect as yourself at /mcp. A clan's war intent is public in the clan directory (clans_directory).",
+    "Connect as yourself at /mcp. A clan's war intent is public in the clan directory (clans_directory).",
   ],
   not_verified_member: [
     "None of your verified players is a current member of this clan.",
@@ -37,7 +36,7 @@ const OWN_VIEW_REFUSALS = {
 export const clanContextTools = {
   clans_directory: {
     description:
-      "The clan directory, as Home's Clans page lists it: every recorded clan whose leaders saved a policy in Clan, each with its recorded name, type, size, trophies to join and description, and the policy's public part (Clan Wars intent, posture, playing together, what counts, the removal day). yours marks a clan one of your verified players is in (an agent reads as its owner). Ordered by name, never ranked. For a person's own connection and their agents.",
+      "The clan directory, as Home's Clans page lists it: every recorded clan whose leaders saved a policy in Clan, each with its recorded name, type, size, trophies to join and description, and the policy's public part (Clan Wars intent, posture, playing together, what counts, the removal day). yours marks a clan one of your verified players is in. Ordered by name, never ranked.",
     inputSchema: {
       type: "object",
       properties: {
@@ -72,14 +71,11 @@ export const clanContextTools = {
         applied: tag ? { clan_tag: tag } : {},
         notes: notes(
           "A clan is listed once its leaders save a policy in Clan; policy is the saved policy's public part, never who saved it, a note, a minimum or a member's standing.",
-          ctx.account?.kind === "agent"
-            ? "yours is your owner's: a clan one of their verified players is in now."
-            : null,
           directory.truncated
             ? `The directory holds more clans than one read returns; these are the first ${directory.clans.length} by name.`
             : null,
         ),
-        docs: docsRef("clan-directory", "agents"),
+        docs: docsRef("clan-directory"),
         meta: responseMeta({ as_of: directory.read_at }),
       };
     },

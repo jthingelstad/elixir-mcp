@@ -696,14 +696,14 @@ test("call record: own rows open; others 404; admin opens any; capture reads bac
     `insert into mcp_call_audit
        (account_id, request_id, surface, tool, args, duration_ms, result_bytes,
         created_at, captured, db_ms, db_queries, live_wait_ms, serialize_ms,
-        cold_start, principal_kind, on_behalf_of, client_name, viewer_country)
+        cold_start, principal_kind, client_name, viewer_country)
      values
        ($1, $2, 'web', 'game_clock', '{}', 12, 200, now() - interval '3 minutes',
-        false, 1, 1, null, 0, true, 'person', null, null, 'US'),
+        false, 1, 1, null, 0, true, 'person', null, 'US'),
        ($1, $3, 'web', 'war_current', '{"clan_tag":"#ABC"}', 340, 9000, now() - interval '2 minutes',
-        true, 210, 7, 95, 3, false, 'person', 'discord:1', null, 'US'),
+        true, 210, 7, 95, 3, false, 'person', null, 'US'),
        ($1, $4, 'web', 'players_profile', '{}', 50, 300, now() - interval '1 minute',
-        false, 20, 2, null, 1, false, 'person', null, null, 'US')`,
+        false, 20, 2, null, 1, false, 'person', null, 'US')`,
     [me, ids.first, ids.mine, ids.later],
   );
   await db.query(
@@ -727,7 +727,6 @@ test("call record: own rows open; others 404; admin opens any; capture reads bac
   assert.equal(rec.call.serialize_ms, 3);
   assert.equal(rec.call.cold_start, false);
   assert.equal(rec.call.principal_kind, "person");
-  assert.equal(rec.call.on_behalf_of, "discord:1");
   assert.equal(rec.call.captured, true);
   assert.equal(
     rec.prev.request_id,
@@ -1169,7 +1168,7 @@ test("Stats opens for your own players and the players you follow, and refuses t
     403,
   );
 
-  // No tag, a bad tag, a tool Stats never reads, an end user: refused.
+  // No tag, a bad tag, a tool Stats never reads: refused.
   assert.equal((await stats("battles_query", {})).statusCode, 400);
   assert.equal(
     (await stats("battles_query", { player_tag: "not a tag!" })).statusCode,
@@ -1177,15 +1176,6 @@ test("Stats opens for your own players and the players you follow, and refuses t
   );
   assert.equal(
     (await stats("elixir_my_players", { player_tag: STRANGER })).statusCode,
-    400,
-  );
-  assert.equal(
-    (
-      await stats("battles_performance", {
-        player_tag: own?.player_tag ?? STRANGER,
-        on_behalf_of: "discord:1",
-      })
-    ).statusCode,
     400,
   );
   assert.equal(

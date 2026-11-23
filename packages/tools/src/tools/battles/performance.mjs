@@ -1,9 +1,7 @@
 import { eventContentSql, modeGroupSql } from "@elixir-mcp/contracts";
 import { resolveInstant } from "../../time.mjs";
 import {
-  DISPLAY_NAME_SCHEMA,
   MODE_SCHEMA,
-  ON_BEHALF_OF_SCHEMA,
   SEASON_ARG_SCHEMA,
   TAG_SCHEMA,
   ToolFailure,
@@ -40,8 +38,6 @@ export const battles_performance = {
     type: "object",
     properties: {
       player_tag: TAG_SCHEMA,
-      on_behalf_of: ON_BEHALF_OF_SCHEMA,
-      display_name: DISPLAY_NAME_SCHEMA,
       ...WINDOW_ARGS,
       season: SEASON_ARG_SCHEMA,
       last_n_battles: {
@@ -72,16 +68,8 @@ export const battles_performance = {
     additionalProperties: false,
   },
   async handler(ctx, args) {
-    const tag = (
-      await subject(
-        ctx.db,
-        ctx.account,
-        args.player_tag,
-        "summary",
-        args.on_behalf_of,
-        args.display_name,
-      )
-    ).tag;
+    const tag = (await subject(ctx.db, ctx.account, args.player_tag, "summary"))
+      .tag;
     const win = await resolveSeasonWindow(ctx, args, {
       seasonDefault: false,
     });

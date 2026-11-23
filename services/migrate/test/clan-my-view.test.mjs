@@ -230,17 +230,10 @@ test("a leader who would decide a removal never sees it; counts exclude it; the 
   assert.equal((await ledger.card(CLAN, "wl")).number, undefined);
 });
 
-test("an agent, a stored integration account, an unverified claimant and a non-member are refused, and read nothing", async () => {
+test("a stored integration account, an unverified claimant and a non-member are refused, and read nothing", async () => {
   await seedClan();
   const registry = makeRegistry();
   for (const account of [
-    {
-      accountId: me,
-      kind: "agent",
-      credentialType: "service",
-      tokenId: "t",
-      scopes: ["cr:read"],
-    },
     { accountId: me, kind: "integration", credentialType: "service" },
   ]) {
     await assert.rejects(
@@ -256,8 +249,6 @@ test("an agent, a stored integration account, an unverified claimant and a non-m
       refused: "not_a_person",
     });
   }
-  assert.equal(registry.availableTo("clans_my_view", "agent"), false);
-  assert.equal(registry.availableTo("clans_my_view", "person"), true);
   // Unverified: the claimant gets nothing, even for their own player.
   await assert.rejects(
     invoke(unverified, { clan_tag: CLAN }),

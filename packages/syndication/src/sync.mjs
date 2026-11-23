@@ -96,10 +96,9 @@ async function syncLocked(db, accountId, { outbox, readStatus, now }) {
     rows: [row],
   } = await db.query(
     `select d.webhook_sealed, d.webhook_fp, d.enabled, d.enabled_at, d.synced_to, d.updated_at,
-            a.status, coalesce(a.timezone, o.timezone, 'UTC') as timezone
+            a.status, coalesce(a.timezone, 'UTC') as timezone
        from timeline_discord d
        join account a on a.account_id = d.account_id
-       left join account o on o.account_id = a.owned_by_account_id
       where d.account_id = $1
         for update of d`,
     [accountId],

@@ -208,8 +208,7 @@ class FirstReadsSpent extends Error {}
  * in, which is what follows the primary player's clan.
  * Bounded: nothing when the record has a profile of this tag, or a
  * failed fetch of it, from the last day, and liveFetch never queues a
- * second job for a subject that has one open. And per person: a pool (a
- * person and their agents) mints at most one first read per player slot
+ * second job for a subject that has one open. And per person: a person mints at most one first read per player slot
  * per UTC day (FIRST_READS bucket), so adding, removing and re-adding
  * fresh tags cannot drain the global bucket (#371 review). Past that the
  * add still happens and the scheduler's first read comes as for any new

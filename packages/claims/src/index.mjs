@@ -1,4 +1,3 @@
-export { createPrincipal, normalizePrincipalName } from "./principals.mjs";
 import { blockedSql } from "./blocks.mjs";
 import { readMembershipCapture } from "@elixir-mcp/record/membership-capture";
 import {
@@ -174,8 +173,6 @@ export async function reconcileRecording(
        -- EVERY reason a subject is recorded, counted in one place. An
        -- account associates with a player through claim and with a clan
        -- through account_clan. Retired Collections and boards do not count.
-       -- A suspended agent's are no reason (2026-10-10): its subjects
-       -- are out of its owner's pool, so they are out of recording too.
        ($2 = 'player'
         and exists (select 1 from claim c join account a using (account_id)
                      where c.player_tag = $1 and ${COUNTS})) as claimed,
@@ -287,33 +284,20 @@ export async function addPlayer(
       return { ok: false, error: "not_found" };
     }
 
-    // An integration has no self at all. An agent tracks players (Jamie,
-    // 2026-09-23: "a randomly tracked account", a rival's star), but never
-    // as "me": a claim's primary/alt say "this player is me", and an agent
-    // acts FOR a clan, so every tool that defaults to "your tag" would
-    // start answering for a bot. Its players are followed, only.
-    const agent = acct.kind === "agent";
-    if (acct.kind && acct.kind !== "person" && !agent) {
+    // Only a person follows players: an account of any other kind has no
+    // self and no follows.
+    if (acct.kind && acct.kind !== "person") {
       await db.query("rollback");
       return { ok: false, error: "not_entitled", kind: acct.kind };
     }
-    if (
-      agent &&
-      (makePrimary === true || (relationship && relationship !== "friend"))
-    ) {
-      await db.query("rollback");
-      return { ok: false, error: "not_entitled", kind: "agent" };
-    }
 
-    // Slots are the person's, pooled across them and their agents: the
-    // owner's row is the pool's lock, so two of them adding at once cannot
-    // both take the last slot. Account, then owner, then subject, always.
+    // Slots are the person's: their row (locked above) serializes the
+    // check, so two adds at once cannot both take the last slot. Account,
+    // then subject, always.
     const owner = await poolOwner(db, account.accountId);
-    if (owner.account_id !== account.accountId)
-      await lockAccount(db, owner.account_id);
     await lockSubject(db, tag);
 
-    if (follow && !agent) {
+    if (follow) {
       const { rows: own } = await db.query(
         `select 1 from claim where account_id = $1
             and (is_primary or relationship in ('primary', 'alt')) limit 1`,
@@ -332,20 +316,18 @@ export async function addPlayer(
          from claim where account_id = $1`,
       [account.accountId, tag],
     );
-    // A person's first player is them; an agent never has a primary.
-    const first = counted[0].n === 0 && !agent;
+    // A person's first player is them.
+    const first = counted[0].n === 0;
     // A tag another account has verified is theirs (#556): claiming it as
     // you is refused, which is the primary, an alt, or a first player with
     // no relationship named (a person's first player is them). A friend
     // follow is not a claim to be them: it is added as asked and
     // never made the primary.
     const self =
-      !agent &&
-      (makePrimary === true ||
-        SELF_RELATIONSHIPS.includes(relationship) ||
-        (first && !relationship));
-    const owned =
-      !agent && (await verifiedElsewhere(db, account.accountId, tag));
+      makePrimary === true ||
+      SELF_RELATIONSHIPS.includes(relationship) ||
+      (first && !relationship);
+    const owned = await verifiedElsewhere(db, account.accountId, tag);
     if (owned && self) {
       await db.query("rollback");
       return { ok: false, ...VERIFIED_ELSEWHERE };
@@ -355,7 +337,6 @@ export async function addPlayer(
     // named on the way in stays that (2026-11-06), and the
     // account has no player of its own until it names one.
     const wantPrimary =
-      !agent &&
       !owned &&
       !follow &&
       (makePrimary === true ||
@@ -374,7 +355,6 @@ export async function addPlayer(
         : (counted[0].relationship ?? insertRelationship);
     if (
       resultingRelationship === "friend" &&
-      !agent &&
       (await blockedPlayerFollow(db, account.accountId, tag))
     ) {
       await db.query("rollback");
@@ -528,11 +508,7 @@ export async function setRelationship(db, account, { tag, relationship }) {
     return { ok: false, error: "bad_relationship" };
   await db.query("begin");
   try {
-    const acct = await lockAccount(db, account.accountId);
-    if (acct?.kind === "agent" && relationship !== "friend") {
-      await db.query("rollback");
-      return { ok: false, error: "not_entitled", kind: "agent" };
-    }
+    await lockAccount(db, account.accountId);
     await lockSubject(db, tag);
     if (
       SELF_RELATIONSHIPS.includes(relationship) &&
@@ -543,7 +519,6 @@ export async function setRelationship(db, account, { tag, relationship }) {
     }
     if (
       relationship === "friend" &&
-      acct?.kind !== "agent" &&
       (await blockedPlayerFollow(db, account.accountId, tag))
     ) {
       await db.query("rollback");
@@ -754,13 +729,12 @@ export async function removePlayer(db, account, { tag, via }) {
 }
 
 /**
- * Add (track) a clan: tracked means recorded, within the POOL's clan slots
- * (the person's, shared with their agents; pool.mjs). One function for the
+ * Add (track) a clan: tracked means recorded, within the person's clan
+ * slots (pool.mjs). One function for the
  * console and elixir_follow_clan, which had each carried a copy of the slot
  * check and neither locked anything; this takes the same locks addPlayer
  * does. A clan counts once, at the widest scope any of the pool gives it,
  * and changing your own copy is never refused for a slot it already had.
- * An agent's first clan is its primary: the clan it acts for.
  *
  * Returns {ok:false, error:"quota_exceeded", scope, limit, role},
  * {ok:false, error:"not_entitled"|"not_found"}, or
@@ -780,8 +754,6 @@ export async function addClan(db, account, { tag, scope, via }) {
       return { ok: false, error: "not_entitled", kind: acct.kind };
     }
     const owner = await poolOwner(db, account.accountId);
-    if (owner.account_id !== account.accountId)
-      await lockAccount(db, owner.account_id);
     await lockSubject(db, tag);
     const limits = poolLimits(owner);
     if (!limits.exempt) {
@@ -824,14 +796,6 @@ export async function addClan(db, account, { tag, scope, via }) {
       [account.accountId, tag, want],
     );
     const added = rows[0].inserted === true;
-    if (acct.kind === "agent")
-      await db.query(
-        `update account_clan set is_primary = true
-          where account_id = $1 and clan_tag = $2
-            and not exists (select 1 from account_clan
-                             where account_id = $1 and is_primary)`,
-        [account.accountId, tag],
-      );
     if (added)
       await logEvent(db, account.accountId, "clan_added", {
         clan_tag: tag,
@@ -859,34 +823,13 @@ export async function addClan(db, account, { tag, scope, via }) {
 }
 
 /**
- * Remove (untrack) a clan. An agent keeps the clan it acts for: its
- * primary cannot be removed while it is primary (make another one primary
- * first), and its last clan not at all, or it would be a principal with no
- * "me".
- *
- * Returns {ok:false, error:"primary_clan"|"last_clan"} or
- * {ok:true, removed, recordingStopped}.
+ * Remove (untrack) a clan. Returns {ok:true, removed, recordingStopped}.
  */
 export async function removeClan(db, account, { tag, via }) {
   await db.query("begin");
   try {
     const acct = await lockAccount(db, account.accountId);
     await lockSubject(db, tag);
-    if (acct?.kind === "agent") {
-      const { rows } = await db.query(
-        `select clan_tag, is_primary from account_clan where account_id = $1`,
-        [account.accountId],
-      );
-      const row = rows.find((r) => r.clan_tag === tag);
-      if (row && rows.length === 1) {
-        await db.query("rollback");
-        return { ok: false, error: "last_clan" };
-      }
-      if (row?.is_primary) {
-        await db.query("rollback");
-        return { ok: false, error: "primary_clan" };
-      }
-    }
     const { rowCount } = await db.query(
       `delete from account_clan where account_id = $1 and clan_tag = $2`,
       [account.accountId, tag],
@@ -914,52 +857,6 @@ export async function removeClan(db, account, { tag, via }) {
     }
     await db.query("commit");
     return { ok: true, removed: rowCount > 0, recordingStopped: stopped };
-  } catch (err) {
-    await db.query("rollback").catch(() => {});
-    throw err;
-  }
-}
-
-/**
- * Re-point an agent: the clan it acts for (Jamie, 2026-09-23: "it is a user
- * account so you could change the clan that is flagged as 'its'"). One of
- * its own clans; the old primary stays tracked. Only an agent has one.
- */
-export async function setPrimaryClan(db, account, { tag, via }) {
-  await db.query("begin");
-  try {
-    const acct = await lockAccount(db, account.accountId);
-    if (acct?.kind !== "agent") {
-      await db.query("rollback");
-      return { ok: false, error: "not_entitled" };
-    }
-    const { rows } = await db.query(
-      `select 1 from account_clan where account_id = $1 and clan_tag = $2`,
-      [account.accountId, tag],
-    );
-    if (rows.length === 0) {
-      await db.query("rollback");
-      return { ok: false, error: "not_found" };
-    }
-    // Clear, then set: the one-primary index refuses a second one first.
-    await db.query(
-      `update account_clan set is_primary = false
-        where account_id = $1 and is_primary and clan_tag <> $2`,
-      [account.accountId, tag],
-    );
-    // Choosing it as the primary clan makes the follow the person's own:
-    // Elixir never moves it after that (0205, followPrimaryClan).
-    await db.query(
-      `update account_clan set is_primary = true, auto_followed_at = null
-        where account_id = $1 and clan_tag = $2`,
-      [account.accountId, tag],
-    );
-    await logEvent(db, account.accountId, "primary_clan_changed", {
-      clan_tag: tag,
-      via,
-    });
-    await db.query("commit");
-    return { ok: true, clan_tag: tag };
   } catch (err) {
     await db.query("rollback").catch(() => {});
     throw err;
@@ -1047,7 +944,6 @@ export async function followPrimaryClan(db, accountId, { via }) {
     const previous = follows.find((f) => f.auto_followed_at)?.clan_tag ?? null;
 
     const owner = await poolOwner(db, accountId);
-    if (owner.account_id !== accountId) await lockAccount(db, owner.account_id);
     for (const subject of [clan, previous].filter(Boolean).sort())
       await lockSubject(db, subject);
 
@@ -1173,110 +1069,6 @@ export async function followClanForPlayer(
   for (const { account_id } of rows)
     out.push(await followPrimaryClanSafely(db, account_id, { via }));
   return out;
-}
-
-const BUCKETS = [
-  ["players_used", "player_slots", "players"],
-  ["activity_used", "activity", "activity clans"],
-  ["comprehensive_used", "comprehensive", "comprehensive clans"],
-];
-
-/**
- * Suspend or resume an agent, and settle what it records (2026-10-10).
- *
- * Only active agents are in their owner's pool (pool.mjs), so the status
- * decides both what the agent's tracking costs and whether it is a reason
- * to record. Suspending frees its slots and stops every recording only it
- * kept alive (game data stays). Resuming starts them again, and is refused
- * (`quota_exceeded`, with a message saying what to free) when it would take
- * the pool past a ceiling it is not already past. Resuming also restores a
- * removed agent (0215).
- *
- * Account, then owner, then subjects in tag order: the owner's row
- * serializes the pool as it does for every add, and a fixed subject order
- * keeps two of these from deadlocking each other.
- */
-export async function setAgentStatus(
-  db,
-  ownerAccountId,
-  agentAccountId,
-  status,
-) {
-  if (status !== "approved" && status !== "disabled")
-    return { ok: false, error: "bad_status" };
-  await db.query("begin");
-  try {
-    const { rows: found } = await db.query(
-      `select account_id from account
-        where account_id = $1 and owned_by_account_id = $2
-          and kind = 'agent'
-        for update`,
-      [agentAccountId, ownerAccountId],
-    );
-    if (!found[0]) {
-      await db.query("rollback");
-      return { ok: false, error: "not_found" };
-    }
-    const owner = await poolOwner(db, agentAccountId);
-    await lockAccount(db, owner.account_id);
-    const limits = poolLimits(owner);
-    const before =
-      status === "approved" && !limits.exempt
-        ? await pooledUsage(db, owner.account_id)
-        : null;
-    await db.query(
-      `update account
-          set status = $2,
-              removed_at = case when $2 = 'approved' then null else removed_at end
-        where account_id = $1`,
-      [agentAccountId, status],
-    );
-    // Settle the agent's recordings first, then price the pool: a clan
-    // recording the resume restores makes its members free again (#760),
-    // so the check must see it running. A refusal rolls all of it back.
-    const { rows: subjects } = await db.query(
-      `select 'player' as kind, player_tag as tag from claim where account_id = $1
-       union
-       select 'clan', clan_tag from account_clan where account_id = $1
-       order by tag, kind`,
-      [agentAccountId],
-    );
-    let started = 0;
-    let stopped = 0;
-    for (const { kind, tag } of subjects) {
-      await lockSubject(db, tag);
-      const r = await reconcileRecording(db, kind, tag, agentAccountId);
-      if (r.started) started += 1;
-      if (r.stopped) stopped += 1;
-    }
-    if (before) {
-      const after = await pooledUsage(db, owner.account_id);
-      for (const [used, limit, noun] of BUCKETS) {
-        if (after[used] > limits[limit] && after[used] > before[used]) {
-          await db.query("rollback");
-          return {
-            ok: false,
-            error: "quota_exceeded",
-            scope: limit,
-            limit: limits[limit],
-            used: after[used],
-            role: owner.role ?? "member",
-            message: `Resuming it would follow ${after[used]} ${noun} against your ${limits[limit]}. Free ${after[used] - limits[limit]} first, here or on your other agents, then resume it.`,
-          };
-        }
-      }
-    }
-    await db.query("commit");
-    return {
-      ok: true,
-      status,
-      recordings_started: started,
-      recordings_stopped: stopped,
-    };
-  } catch (err) {
-    await db.query("rollback").catch(() => {});
-    throw err;
-  }
 }
 
 // Derived member-only relationships; never added to MCP or stored claims.

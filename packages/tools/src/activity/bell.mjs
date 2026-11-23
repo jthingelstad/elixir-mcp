@@ -16,7 +16,7 @@
  *    push carry the counts only (`fresh_by`), never who.
  *  - Answers: your own feedback's answers.
  *
- * An agent has no bell, and none of this reaches MCP or `/api/v1`.
+ * None of this reaches MCP or `/api/v1`.
  */
 import { visibleClanInteractionSql } from "@elixir-mcp/record/clan-lifecycle";
 import { blockedSql } from "@elixir-mcp/claims";

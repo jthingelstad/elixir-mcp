@@ -9,7 +9,7 @@
 import { test, before, after, beforeEach } from "node:test";
 import assert from "node:assert/strict";
 import pg from "pg";
-import { ROLES, tierSql } from "@elixir-mcp/contracts";
+import { ROLES } from "@elixir-mcp/contracts";
 import {
   addPlayer,
   addClan,
@@ -39,17 +39,6 @@ async function person(role = "member") {
     `insert into account (email_hash, status, role) values ($1, 'approved', $2)
      returning account_id`,
     [`tier-${process.pid}-${++n}`, role],
-  );
-  return { accountId: a.account_id };
-}
-
-async function agent(owner, role = "leader") {
-  const {
-    rows: [a],
-  } = await db.query(
-    `insert into account (status, role, kind, owned_by_account_id, public_id)
-     values ('approved', $2, 'agent', $1, $3) returning account_id`,
-    [owner.accountId, role, `tierag${++n}`],
   );
   return { accountId: a.account_id };
 }
@@ -110,7 +99,6 @@ beforeEach(async () => {
   await db.query(`delete from claim`);
   await db.query(`delete from account_clan`);
   await db.query(`delete from recording`);
-  await db.query(`delete from account where kind = 'agent'`);
   await db.query(`delete from account`);
 });
 
@@ -231,25 +219,4 @@ test("losing a tier cuts nothing: what is recorded stays, the next add is refuse
     via: "test",
   });
   assert.equal(refused.ok, false, "the live count refuses the next add");
-});
-
-test("an agent follows its owner's earned tier, never above leader", async () => {
-  const owner = await person();
-  const ag = await agent(owner, "leader");
-  const agTier = async () =>
-    (
-      await db.query(
-        `select ${tierSql("a")} as role
-           from account a where a.account_id = $1`,
-        [ag.accountId],
-      )
-    ).rows[0].role;
-  assert.equal(await agTier(), "member", "a member's agent, stored leader");
-  await collector(owner, "active");
-  assert.equal(
-    await agTier(),
-    "leader",
-    "a Family owner's agent is capped at leader",
-  );
-  assert.equal(await tier(ag), "family", "the pool spends the owner's tier");
 });

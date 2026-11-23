@@ -169,12 +169,6 @@ export function toolBridgeRoutes({ resolveAccount, toolRegistry }) {
           error: "bad_request",
           message: `Stats does not read ${tool || "that"}.`,
         });
-      // An agent's end user would read past the one player.
-      if ("on_behalf_of" in args)
-        return json(400, {
-          error: "bad_request",
-          message: "Stats reads one player, named by player_tag.",
-        });
       if (tool === "war_current") {
         // The clan's race, which names no player.
         if ("player_tag" in args)

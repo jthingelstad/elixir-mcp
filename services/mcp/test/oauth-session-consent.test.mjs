@@ -5,17 +5,17 @@
  *
  * What must hold: a signed-in browser is shown a consent page with no
  * email step and can authorize in one POST; the grant it produces is the
- * ordinary grant (same scope rules, same widening rules, same principal
- * ownership rule); a client that wants account:email from an account with
- * no address on file is still sent the code way; ?switch=1 is a way out;
- * and the code path now sets the session cookie on its redirect.
+ * ordinary grant (same scope rules, same widening rules); a client that
+ * wants account:email from an account with no address on file is still
+ * sent the code way; ?switch=1 is a way out; and the code path now sets
+ * the session cookie on its redirect.
  *
  * And (2026-10-12, Jamie: "Consent to what? I think no.") a family app
  * signing the person in as themselves is never shown a consent page: a
  * signed-in browser goes straight back with exactly the scope asked for,
- * and the code way has no boxes. Every other client, and a family app
- * acting as an agent, keeps its page. This replaced the 2026-09-29 rule
- * that spared only Clan, and only under a standing grant.
+ * and the code way has no boxes. Every other client keeps its page. This
+ * replaced the 2026-09-29 rule that spared only Clan, and only under a
+ * standing grant.
  */
 
 import { test, before, after } from "node:test";
@@ -166,7 +166,7 @@ test("a signed-in browser consents in one POST, with no email step and no mail",
   assert.doesNotMatch(page.body, /type="email"/, "no address to type");
   assert.match(page.body, /switch=1/, "a way out for a shared browser");
   // The widening checkboxes are the same ones the code page offers,
-  // unticked on a person's own connection (Jamie 2026-09-24).
+  // unticked (Jamie 2026-09-24).
   assert.match(
     page.body,
     /<input type="checkbox" name="grant" value="follows:write">/,
@@ -177,7 +177,7 @@ test("a signed-in browser consents in one POST, with no email step and no mail",
     event({
       path: "/oauth/authorize",
       cookie,
-      form: { step: "session", confirm: "1", ...q, grant: "feedback:write" },
+      form: { step: "session", ...q, grant: "feedback:write" },
     }),
   );
   assert.equal(consent.statusCode, 303, consent.body);
@@ -229,7 +229,7 @@ test("a session POST without a live session falls back to the email step, never 
     event({
       path: "/oauth/authorize",
       cookie: "not-a-session-token",
-      form: { step: "session", confirm: "1", ...q },
+      form: { step: "session", ...q },
     }),
   );
   assert.equal(res.statusCode, 200);
@@ -283,7 +283,7 @@ test("consent by code signs the browser in to the site", async () => {
   const done = await handler(
     event({
       path: "/oauth/authorize",
-      form: { step: "code", confirm: "1", email: EMAIL, code, ...q },
+      form: { step: "code", email: EMAIL, code, ...q },
     }),
   );
   assert.equal(done.statusCode, 303, done.body);
@@ -303,27 +303,6 @@ test("consent by code signs the browser in to the site", async () => {
     last_seen_from: "203.0.113.7",
     last_seen_country: "US",
   });
-});
-
-test("consent by session cannot reach an agent the person does not own", async () => {
-  // A stranger's agent door: same refusal as before, by session too.
-  const { rows } = await db.query(
-    `insert into account (kind, status, public_id, owned_by_account_id)
-     values ('agent', 'approved', 'strangerbot', $1) returning account_id`,
-    [noAddressId],
-  );
-  assert.ok(rows[0].account_id);
-  const cookie = await siteSession(EMAIL, accountId);
-  const q = { ...authQuery(), resource: `${ISSUER}/a/strangerbot/mcp` };
-  const res = await handler(
-    event({
-      path: "/oauth/authorize",
-      cookie,
-      form: { step: "session", confirm: "1", ...q },
-    }),
-  );
-  assert.equal(res.statusCode, 403);
-  assert.match(res.body, /Not yours to connect/);
 });
 
 // ---- family sign-in (2026-10-12) ------------------------------------------
@@ -491,22 +470,6 @@ test("the code way to a family app has no consent boxes and grants what is asked
   ]);
 });
 
-test("a family app acting as an agent keeps its page", async () => {
-  const p = await newPerson();
-  await db.query(
-    `insert into account (kind, status, public_id, owned_by_account_id)
-     values ('agent', 'approved', 'familybot', $1)`,
-    [p.id],
-  );
-  const res = await authorize(
-    { ...familyAsk("cr:read"), resource: `${ISSUER}/a/familybot/mcp` },
-    p.cookie,
-  );
-  assert.equal(res.statusCode, 200, res.body);
-  assert.match(res.body, /name="step" value="session"/);
-  assert.deepEqual(await codesFor(p.id), []);
-});
-
 test("any other client keeps its consent page, even under a standing grant", async () => {
   const p = await newPerson();
   await mintTokens(db, {
@@ -551,7 +514,7 @@ test("a consent POST another site or subdomain sent is refused and grants nothin
         headers,
         form: {
           step: "session",
-          confirm: "1",
+
           ...authQuery(),
           grant: "feedback:write",
         },
@@ -590,7 +553,7 @@ test("a consent POST from Elixir's own page, or naming nowhere, still grants", a
         path: "/oauth/authorize",
         cookie: p.cookie,
         headers,
-        form: { step: "session", confirm: "1", ...authQuery() },
+        form: { step: "session", ...authQuery() },
       }),
     );
     assert.equal(res.statusCode, 303, `${label}: ${res.body}`);

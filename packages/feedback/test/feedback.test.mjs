@@ -27,6 +27,7 @@ let person;
 let other;
 let agent;
 const CALL = "11111111-1111-4111-8111-111111111111";
+const CALL_TOO = "77777777-7777-4777-8777-777777777777";
 const AGENT_CALL = "22222222-2222-4222-8222-222222222222";
 const OTHER_CALL = "33333333-3333-4333-8333-333333333333";
 const SEND = "44444444-4444-4444-8444-444444444444";
@@ -45,6 +46,7 @@ before(async () => {
     ).rows[0].account_id;
   person = { accountId: await make("feedback-person") };
   other = { accountId: await make("feedback-other") };
+  // An agent-kind account left from before 2026-11-23.
   agent = {
     accountId: (
       await db.query(
@@ -53,10 +55,10 @@ before(async () => {
         [person.accountId],
       )
     ).rows[0].account_id,
-    publicId: "fbagent001",
   };
   for (const [account, id] of [
     [person.accountId, CALL],
+    [person.accountId, CALL_TOO],
     [agent.accountId, AGENT_CALL],
     [other.accountId, OTHER_CALL],
   ])
@@ -121,7 +123,7 @@ test("cleanContext keeps small labelled facts and cuts the rest", () => {
   assert.equal(cleanContext(null), null);
 });
 
-test("filing keeps the filer's own calls and emails and an owned agent's call; another's are dropped as not_yours", async () => {
+test("filing keeps the filer's own calls and emails; another's, and an agent-kind account's, are dropped as not_yours", async () => {
   const notified = [];
   const out = await fileFeedback(db, {
     account: person,
@@ -132,6 +134,7 @@ test("filing keeps the filer's own calls and emails and an owned agent's call; a
     context: { path: "/ladder/decks", mode: "ladder" },
     refs: [
       { kind: "call", ref: CALL },
+      { kind: "call", ref: CALL_TOO },
       { kind: "call", ref: AGENT_CALL },
       { kind: "call", ref: OTHER_CALL },
       { kind: "email", ref: SEND },
@@ -144,16 +147,11 @@ test("filing keeps the filer's own calls and emails and an owned agent's call; a
   });
   assert.deepEqual(
     out.refs.map((r) => `${r.kind}:${r.ref}`),
-    [
-      `call:${CALL}`,
-      `call:${AGENT_CALL}`,
-      `email:${SEND}`,
-      "player:#20JJJ2CCRU",
-    ],
+    [`call:${CALL}`, `call:${CALL_TOO}`, `email:${SEND}`, "player:#20JJJ2CCRU"],
   );
   assert.deepEqual(
     out.dropped.map((d) => `${d.kind}:${d.reason}`),
-    ["call:not_yours", "email:not_yours"],
+    ["call:not_yours", "call:not_yours", "email:not_yours"],
   );
   const { rows } = await db.query(
     `select surface, area, message, request_id, send_id, context, via from feedback where feedback_id = $1`,
@@ -164,7 +162,7 @@ test("filing keeps the filer's own calls and emails and an owned agent's call; a
   // The old columns still carry the first call and email (one release).
   assert.equal(rows[0].request_id, CALL);
   assert.equal(rows[0].send_id, SEND);
-  assert.deepEqual(rows[0].context.request_ids, [CALL, AGENT_CALL]);
+  assert.deepEqual(rows[0].context.request_ids, [CALL, CALL_TOO]);
   assert.equal(rows[0].context.path, "/ladder/decks");
   assert.deepEqual(rows[0].via, {
     principal_kind: "person",
@@ -325,27 +323,6 @@ test("a follow-up must follow the filer's own item; another's is dropped", async
   );
 });
 
-test("an agent files as itself with its relayed person; listMine is its own", async () => {
-  const out = await fileFeedback(db, {
-    account: agent,
-    surface: "mcp",
-    area: "mcp",
-    category: "praise",
-    message: "A member loved the war recap.",
-    refs: [{ kind: "call", ref: AGENT_CALL }],
-    via: {
-      principal_kind: "agent",
-      on_behalf_of: "discord:1234",
-      request_id: "66666666-6666-4666-8666-666666666666",
-    },
-  });
-  assert.equal(out.refs.length, 1);
-  const mineList = await listMine(db, agent.accountId, {});
-  assert.equal(mineList.items.length, 1);
-  assert.equal(mineList.items[0].refs[0].ref, AGENT_CALL);
-  assert.equal(mineList.items[0].area, "mcp");
-});
-
 test("the queue filters by area and pages; pending counts per area", async () => {
   for (let i = 0; i < 3; i++)
     await fileFeedback(db, {
@@ -429,13 +406,20 @@ test("an item names the filer's own related items, never another's; each end sho
 });
 
 test("needs_info is an answer: it raises the pending count and the filer replies with follows_id (11.10.0, #378)", async () => {
+  const filer = {
+    accountId: (
+      await db.query(
+        `insert into account (email_hash, status) values ('feedback-asker', 'approved') returning account_id`,
+      )
+    ).rows[0].account_id,
+  };
   const { feedback_id: id } = await fileFeedback(db, {
-    account: agent,
+    account: filer,
     surface: "mcp",
     area: "mcp",
     message: "The war tally looks wrong.",
   });
-  const before = await unseenCount(db, agent.accountId);
+  const before = await unseenCount(db, filer.accountId);
   const a = await answerFeedback(db, {
     feedbackId: id,
     status: "needs_info",
@@ -444,14 +428,14 @@ test("needs_info is an answer: it raises the pending count and the filer replies
   assert.equal(a.updated, 1);
   assert.equal(a.status, "needs_info");
   assert.equal(a.answered, true);
-  assert.equal(await unseenCount(db, agent.accountId), before + 1);
-  const listed = await listMine(db, agent.accountId, { status: "needs_info" });
+  assert.equal(await unseenCount(db, filer.accountId), before + 1);
+  const listed = await listMine(db, filer.accountId, { status: "needs_info" });
   assert.deepEqual(
     listed.items.map((r) => String(r.feedback_id)),
     [String(id)],
   );
   const reply = await fileFeedback(db, {
-    account: agent,
+    account: filer,
     surface: "mcp",
     area: "mcp",
     message: "POAP KINGS, war day 4.",
@@ -469,7 +453,7 @@ test("needs_info is an answer: it raises the pending count and the filer replies
 
 test("needs_info carries a new question: none, or the current response, is refused (Codex on #479)", async () => {
   const { feedback_id: id } = await fileFeedback(db, {
-    account: agent,
+    account: other,
     surface: "mcp",
     area: "mcp",
     message: "Something is off.",

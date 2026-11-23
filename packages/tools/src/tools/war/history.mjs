@@ -2,8 +2,6 @@ import { responseMeta } from "@elixir-mcp/contracts";
 import { sectionsInSeason } from "@elixir-mcp/record/war-clock";
 import { finishInstant } from "../../time.mjs";
 import {
-  DISPLAY_NAME_SCHEMA,
-  ON_BEHALF_OF_SCHEMA,
   ToolFailure,
   appliedBlock,
   entitledClan,
@@ -26,7 +24,7 @@ import {
 
 export const war_history = {
   description:
-    "Recorded war weeks for a clan, yours by default: final ranks and boat fame. With player_tag (or on_behalf_of), returns one member's per-week points and decks used (weekly totals; nothing is split by war day). With season_id and section_index together, returns that exact week plus every recorded participant in member_weeks. seasons says how far back otherwise; from/to are not needed here.",
+    "Recorded war weeks for a clan, yours by default: final ranks and boat fame. With player_tag, returns one member's per-week points and decks used (weekly totals; nothing is split by war day). With season_id and section_index together, returns that exact week plus every recorded participant in member_weeks. seasons says how far back otherwise; from/to are not needed here.",
   inputSchema: {
     type: "object",
     properties: {
@@ -35,8 +33,6 @@ export const war_history = {
         type: "string",
         description: "Focus one member's participation (member_weeks).",
       },
-      on_behalf_of: ON_BEHALF_OF_SCHEMA,
-      display_name: DISPLAY_NAME_SCHEMA,
       seasons: {
         type: "integer",
         minimum: 1,
@@ -63,19 +59,9 @@ export const war_history = {
   async handler(ctx, args) {
     const clanTag = await entitledClan(ctx.db, ctx.account, args.clan_tag);
     let focus = null;
-    // on_behalf_of alone is enough: an agent asked "how did I do in war"
-    // by a human it knows means focus THAT member, not the whole clan.
-    if (args.player_tag || args.on_behalf_of)
-      focus = (
-        await subject(
-          ctx.db,
-          ctx.account,
-          args.player_tag,
-          "summary",
-          args.on_behalf_of,
-          args.display_name,
-        )
-      ).tag;
+    if (args.player_tag)
+      focus = (await subject(ctx.db, ctx.account, args.player_tag, "summary"))
+        .tag;
     const seasons = Number(args.seasons ?? 3);
     if (!Number.isInteger(seasons) || seasons < 1 || seasons > 12)
       throw new ToolFailure(

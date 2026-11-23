@@ -1845,7 +1845,7 @@ test("elixir_send_feedback notifies the owner through the door's notify hook; ow
   const registry = makeRegistry();
   const member = makeInvoker({
     db,
-    account: { ...account, publicId: "abc123def456", role: "member" },
+    account: { ...account, role: "member" },
     registry,
     notifyOwner: async (spec) => notes.push(spec),
   });
@@ -1857,25 +1857,27 @@ test("elixir_send_feedback notifies the owner through the door's notify hook; ow
   assert.equal(notes.length, 1);
   assert.equal(notes[0].kind, "feedback");
   assert.equal(notes[0].surface, "mcp");
-  assert.equal(notes[0].from, "agent abc123def456");
+  assert.equal(
+    notes[0].from,
+    `account ${String(account.emailHash).slice(0, 8)}`,
+  );
   assert.equal(notes[0].feedbackId, filed.body.feedback_id);
 
-  const ownerAgent = makeInvoker({
+  const owner = makeInvoker({
     db,
-    account: {
-      ...account,
-      role: "leader",
-      kind: "agent",
-      budget: { accountId: account.accountId, role: "owner" },
-    },
+    account: { ...account, role: "owner" },
     registry,
     notifyOwner: async (spec) => notes.push(spec),
   });
-  const own = await ownerAgent("elixir_send_feedback", {
-    message: "owner's own agent",
+  const own = await owner("elixir_send_feedback", {
+    message: "the owner's own note",
   });
   assert.equal(own.isError, false);
-  assert.equal(notes.length, 1, "the owner's agents do not mail the owner");
+  assert.equal(
+    notes.length,
+    1,
+    "the owner's own feedback does not mail the owner",
+  );
 
   // A notify hook that throws never fails the filing.
   const flaky = makeInvoker({
