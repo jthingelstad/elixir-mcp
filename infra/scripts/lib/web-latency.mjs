@@ -6,8 +6,11 @@
  *
  * The web-api door logs two lines per request. The outer one
  * (`packages/http/src/server.mjs`, `event: "http_request"`) carries the
- * real path, the status, `ms` and the build, and is what this report
- * times. The handler's own line carries a route key and `timed_out`;
+ * route's shape (`GET /api/rss/*`; a Clan path and an unmatched one as
+ * asked, masked: `packages/http/src/log-path.mjs`), the status, `ms` and
+ * the build, and is what this report times. Until 2026-11-22 it carried
+ * the real path, so `normaliseRoute` still collapses what those lines
+ * hold, a feed link's token among it, before anything is printed. The handler's own line carries a route key and `timed_out`;
  * only its timeouts are read, joined to the outer line by `request_id`
  * (the key is `GET /api/v1/*` for the whole JSON API, so it cannot name
  * the route). For Clan's routes the handler's line also carries Clan's
@@ -48,7 +51,15 @@ const ID_AFTER = new Set([
   "sends",
   "profile-refreshes",
   "accounts",
+  // A feed link's token and a share's capability: credentials.
+  "rss",
+  "share",
+  "shared-items",
+  "passports",
+  "timeline-items",
 ]);
+// A long random segment (a token or an id), as log-path.mjs reads one.
+const OPAQUE = /^(?=.*[0-9A-Z])[A-Za-z0-9_-]{20,}$/;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /** `GET /api/clan/clans/J2RGCRVG/actions/96` → `GET /api/clan/clans/*\/actions/*`:
@@ -64,6 +75,7 @@ export function normaliseRoute(http) {
     if (segment === "*") return segment;
     if (ID_AFTER.has(segments[i - 1])) return "*";
     if (UUID.test(segment) || /^\d+$/.test(segment)) return "*";
+    if (OPAQUE.test(segment)) return "*";
     if (/^(%23|#)/i.test(segment)) return "*";
     return segment;
   });

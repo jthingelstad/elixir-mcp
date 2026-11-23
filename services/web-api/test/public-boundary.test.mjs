@@ -197,6 +197,29 @@ test("every other route refuses a request with no credential", async () => {
   assert.deepEqual(opened, [], "routes answering with no sign-in");
 });
 
+// A wildcard's value can be a credential (a feed link's token, a share
+// id), and the request line is kept for years: the handler names the
+// route's shape to the door's log (packages/http server.mjs), so no
+// wildcard value of any route, today's or a new one, is ever in it.
+test("the request line gets every wildcard route's shape, never its value", async () => {
+  const value = "v4Lu3-0f_A-w1LdC4rD";
+  for (const key of handler.routeKeys) {
+    if (!key.endsWith("/*")) continue;
+    const [method, route] = key.split(" ");
+    const context = { requestId: "boundary", remainingMs: () => 20_000 };
+    await handler(
+      {
+        path: `${route.slice(0, -1)}${value}`,
+        method,
+        headers: {},
+        body: method === "GET" ? undefined : "{}",
+      },
+      context,
+    );
+    assert.equal(context.route, route, key);
+  }
+});
+
 test("the doors by prefix refuse with no credential", async () => {
   // The JSON API needs a bearer for its one operation; a path it has
   // none for is a 404 to the docs (sign-in-api.test.mjs).
