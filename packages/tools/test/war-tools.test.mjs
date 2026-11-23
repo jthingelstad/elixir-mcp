@@ -867,6 +867,88 @@ test("one win rate on every tool: boat attacks and draws are counted and never i
   }
 });
 
+test("players_summary: best_deck's floor is ten decided battles, so boat attacks never reach it", async () => {
+  const tag = (
+    await db.query(
+      `select cm.player_tag from clan_membership cm
+        where cm.clan_tag = $1 and cm.left_observed_at is null
+          and not exists (select 1 from battle_participant bp
+                           where bp.player_tag = cm.player_tag)
+        order by cm.player_tag desc limit 1`,
+      [CLAN],
+    )
+  ).rows[0].player_tag;
+  const noon = new Date();
+  noon.setUTCHours(12, 0, 0, 0);
+  const base = noon.getTime() - 2 * 86_400_000;
+  const deckOf = (n) =>
+    [1, 2, 3, 4, 5, 6, 7, 8].map((i) => ({ id: 26_882_000 + n * 100 + i }));
+  const [most, steady, boats] = [deckOf(1), deckOf(2), deckOf(3)];
+  const pvp = (deck, wins, losses) => [
+    ...Array.from({ length: wins }, () => ["PvP", "pvp", null, "win", deck]),
+    ...Array.from({ length: losses }, () => ["PvP", "pvp", null, "loss", deck]),
+  ];
+  const rows = [
+    // The most played deck, so best_deck is another deck's to take.
+    ...pvp(most, 4, 8),
+    // Ten decided battles, six won.
+    ...pvp(steady, 6, 4),
+    // Ten battles too, one of them decided: nine boat attacks and a win.
+    ...pvp(boats, 1, 0),
+    ...Array.from({ length: 9 }, () => [
+      "boatBattle",
+      "boat",
+      "attacker",
+      "win",
+      boats,
+    ]),
+  ];
+  const hash = {};
+  for (const [i, [type, cls, boat, outcome, cards]] of rows.entries()) {
+    const id = `bf-${String(i).padStart(2, "0")}`;
+    const at = new Date(base + i * 60_000);
+    const deck = await seedDeck(db, { cards });
+    hash[cards[0].id] = deck;
+    await db.query(
+      `insert into battle (battle_id, battle_time, type, type_class, boat_battle_side)
+       values ($1, $2, $3, $4, $5)`,
+      [id, at, type, cls, boat],
+    );
+    await db.query(
+      `insert into battle_participant (battle_id, player_tag, battle_time, side, outcome, type, type_class, clan_tag, deck_hash)
+       values ($1, $2, $3, 0, $4, $5, $6, $7, $8)`,
+      [id, tag, at, outcome, type, cls, CLAN, deck],
+    );
+    await seedPlayedDeck(db, { battle_id: id, player_tag: tag, cards });
+  }
+  const pairs = await rollupPairs(db, "bf-%");
+  await refreshDailyRollups(db, pairs);
+  try {
+    const r = await call(invoke, "players_summary", { player_tag: tag });
+    assert.equal(r.isError, false, JSON.stringify(r.body));
+    const { top_deck: top, best_deck: best, notes } = r.body;
+    assert.equal(top.deck_hash, hash[most[0].id]);
+    assert.ok(best, "a deck with ten decided battles is there to name");
+    assert.equal(
+      best.deck_hash,
+      hash[steady[0].id],
+      "not the boat deck: 10 of 10 won, one of them decided",
+    );
+    assert.equal(best.battles, 10);
+    assert.equal(best.decided_battles, 10);
+    assert.equal(best.win_rate, 0.6);
+    assert.ok(
+      notes.some((l) => /best_deck needs 10\+ decided battles/.test(l)),
+    );
+  } finally {
+    await db.query(
+      `delete from battle_participant where battle_id like 'bf-%'`,
+    );
+    await db.query(`delete from battle where battle_id like 'bf-%'`);
+    await refreshDailyRollups(db, pairs);
+  }
+});
+
 test("clans_standings: ranked by win rate with floor, median, and honest basis", async () => {
   // Give two members decided battles inside the window; leave the rest below floor.
   const members = (
