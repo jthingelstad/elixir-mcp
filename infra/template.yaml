@@ -2232,7 +2232,9 @@ Resources:
       SourceArn: !GetAtt DiscordSittingsRule.Arn
   # Home's stored weeks (home_feed, 0245; #649): every five minutes the
   # jobs function wakes the timeline-sync build of each account that read
-  # Home in the last three days and whose week is past fifteen minutes.
+  # Home in the last three days and whose week is past fifteen minutes,
+  # and of each recorded player whose stored stories no admission will
+  # refresh (stage 2 of the stored Timeline, 2026-11-23).
   HomeFeedsRule:
     Type: AWS::Events::Rule
     Properties:

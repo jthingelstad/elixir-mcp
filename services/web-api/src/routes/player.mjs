@@ -416,7 +416,11 @@ const SHADOW_MS = 300;
  * stories only computed, only stored, at another revision or with other
  * content, up to five ids of each, and the newest stored row's built_at,
  * so a difference in a story newer than every write is one no write has
- * seen. Never an item's contents, never the tag. The page is already
+ * seen. Stage 2 (2026-11-23) adds the subject's last write (written_at,
+ * lag_s), the newest thing the record knows for the window
+ * (newest_learned_at, stale), and one `timeline_story_shadow_diff` line
+ * per group of differences (kind, bucket, cause, field, n) before the
+ * summary. Never an item's contents or a value, never the tag. The page is already
  * built and is served whatever happens here: the select runs in its own
  * transaction under a SHADOW_MS statement timeout, and any error is a
  * `timeline_story_shadow_failed` line. Nothing is served from the rows.
@@ -444,7 +448,19 @@ export async function shadowStories(
         { ...window, visibilities: ["public", "member"] },
       );
       await db.query("commit");
-      log(JSON.stringify({ at: "timeline_story_shadow", ...diff, ms: ms() }));
+      // One line per group, so Logs Insights can sum `n` by kind,
+      // bucket, cause and field; then the page's summary, last.
+      const { groups = [], ...summary } = diff;
+      for (const g of groups)
+        log(JSON.stringify({ at: "timeline_story_shadow_diff", ...g }));
+      log(
+        JSON.stringify({
+          at: "timeline_story_shadow",
+          ...summary,
+          groups: groups.length,
+          ms: ms(),
+        }),
+      );
       return diff;
     } catch (err) {
       await db.query("rollback").catch(() => {});

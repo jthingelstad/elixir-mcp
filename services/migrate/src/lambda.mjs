@@ -419,6 +419,17 @@ async function dispatch(event, context) {
     console.log(JSON.stringify(result));
     return result;
   }
+  if (event?.timeline_story_staleness) {
+    // How fresh the stored Timeline is (stage 2): counts, read only.
+    const { timelineStoryStalenessOp } =
+      await import("./ops-timeline-story-staleness.mjs");
+    const result = await timelineStoryStalenessOp(
+      process.env.DATABASE_URL,
+      event.timeline_story_staleness,
+    );
+    console.log(JSON.stringify(result));
+    return result;
+  }
   if (event?.linked_follow_convert) {
     // Existing follows to linked follows (2026-11-15): account_follow,
     // friend claims and their account_event lines; the dry run reads.

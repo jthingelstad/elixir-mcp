@@ -179,6 +179,10 @@ export const TRIMMED = Object.freeze([
     ...plain("timeline_story", "sort_at", DAYS_35),
     note: "a subject's stored stories (0314); rebuilt from the record, kept as far back as a timeline read reaches",
   },
+  {
+    ...plain("timeline_story_subject", "written_at", DAYS_35),
+    note: "when each subject's stories were last written (0315); a recorded player is rewritten every six hours, so only a subject no longer recorded ages out",
+  },
 ]);
 
 /** Time-keyed rows another sweep deletes on a shorter clock. */
