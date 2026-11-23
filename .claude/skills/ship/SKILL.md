@@ -272,7 +272,7 @@ who changed it, and restoring it is Jamie's call), migrations (a failure
 stops the deploy before code flips), vocabulary import, stack, the
 endpoint grant and its read-back, the first migrations (`--create`
 only), the public statistics snapshot (platform lane; a failed snapshot
-stops the deploy), card art, site publish (only what
+warns, the deploy finishes and exits 1), card art, site publish (only what
 changed, by MD5 and headers; assets first, never deleted; then documents;
 `lib/site-publish.mjs`), CloudFront invalidation and the prune of assets
 no deploy has shipped for 14 days (the `deploys/site-assets/`
