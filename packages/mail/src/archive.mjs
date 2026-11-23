@@ -14,7 +14,7 @@ import { gzip, gunzip } from "node:zlib";
 import {
   PutObjectCommand,
   GetObjectCommand,
-  DeleteObjectCommand,
+  DeleteObjectsCommand,
 } from "@aws-sdk/client-s3";
 
 const gzipAsync = promisify(gzip);
@@ -77,26 +77,35 @@ export async function readSentMail({ store, at, sendId }) {
   return JSON.parse((await gunzipAsync(raw)).toString("utf8"));
 }
 
-/** A deleted account's archived mail (2026-11-23): each body removed,
- *  best-effort, after the removal has committed. Never throws; answers
- *  how many went and how many did not, so the caller logs counts and
- *  never a key. Absent store = nothing deleted. */
-export async function deleteSentMail({ store, sends }) {
+/** A deleted account's archived mail (2026-11-23): the bodies removed,
+ *  best-effort, after the removal has committed. S3's batch delete, a
+ *  thousand keys a call, each call capped at five seconds, so a long mail
+ *  history stays inside the web handler's deadline (Codex on #1218).
+ *  Never throws; answers how many went and how many did not, so the
+ *  caller logs counts and never a key. Absent store = nothing deleted. */
+export async function deleteSentMail({ store, sends, timeoutMs = 5_000 }) {
   if (!store?.s3 || !store?.bucket || !sends?.length)
     return { deleted: 0, failed: 0 };
+  const keys = sends.map(({ enqueued_at: at, send_id: sendId }) =>
+    sentMailKey(at, sendId),
+  );
   let deleted = 0;
   let failed = 0;
-  for (const { enqueued_at: at, send_id: sendId } of sends) {
+  for (let i = 0; i < keys.length; i += 1000) {
+    const batch = keys.slice(i, i + 1000);
     try {
-      await store.s3.send(
-        new DeleteObjectCommand({
+      const out = await store.s3.send(
+        new DeleteObjectsCommand({
           Bucket: store.bucket,
-          Key: sentMailKey(at, sendId),
+          Delete: { Objects: batch.map((Key) => ({ Key })), Quiet: true },
         }),
+        { abortSignal: AbortSignal.timeout(timeoutMs) },
       );
-      deleted += 1;
+      const errors = out?.Errors?.length ?? 0;
+      failed += errors;
+      deleted += batch.length - errors;
     } catch {
-      failed += 1;
+      failed += batch.length;
     }
   }
   return { deleted, failed };

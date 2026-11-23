@@ -90,7 +90,7 @@ before(async () => {
       bucket: "archive",
       s3: {
         send: async (cmd) => {
-          deleted.push(cmd.input.Key);
+          for (const { Key } of cmd.input.Delete.Objects) deleted.push(Key);
           return {};
         },
       },
