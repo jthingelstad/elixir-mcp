@@ -34,8 +34,7 @@ import {
 import { compareStories } from "@elixir-mcp/tools/activity/story-store";
 import { TIMELINE_LOOKBACK_DAYS } from "@elixir-mcp/tools/activity/lookback";
 
-import { battleLinks } from "@elixir-mcp/record/battle-links";
-import { proofOf, scoresOf, sparkOf } from "../feed.mjs";
+import { annotateFeed, proofOf, scoresOf, sparkOf } from "../feed.mjs";
 import { claimantsOf } from "../account-page.mjs";
 import { json } from "../http.mjs";
 import { withTimelineSocial } from "../timeline-social.mjs";
@@ -521,26 +520,22 @@ async function readPlayerPage(
       fromMs: now - PAGE_DAYS * 86_400_000,
       toMs: now,
     });
-  // A moment the record proved names its battle, as Home's feed links it
-  // (feed.mjs proofOf): one statement for the page's proofs, and no link
-  // where the record does not know the battle.
-  const proofs = (built.timeline ?? []).map(proofOf);
-  const links = await battleLinks(db, proofs.filter(Boolean));
   // A post about a battle (what was a highlight, 0292) is the page's
   // Posts list's, read as the post it is (GET /api/me/posts?player=), so
   // the record's own line for it is left out here: one item, not two.
+  // The rest carry what the Timeline draws them with (feed.mjs
+  // annotateFeed, 2026-11-23): a moment's proving battle, its card's or
+  // badge's art, a deck switch's deck and the player's profile image, so
+  // the page draws each item as the Timeline does.
   const timeline = await withTimelineSocial(
     db,
-    (built.timeline ?? [])
-      .map((it, i) => {
-        if (it.kind === "battle_highlight") return null;
-        const item = pageItem(it);
-        const link = proofs[i] ? links.get(proofs[i]) : null;
-        return link && !item.battle_url
-          ? { ...item, battle_url: link.url }
-          : item;
-      })
-      .filter(Boolean),
+    await annotateFeed(
+      db,
+      (built.timeline ?? [])
+        .filter((it) => it.kind !== "battle_highlight")
+        .map((it) => pageItem(it)),
+      [],
+    ),
     account.accountId,
     { comments },
   );

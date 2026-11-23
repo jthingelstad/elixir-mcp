@@ -8136,7 +8136,9 @@ a.kit-line__go:hover {
 }
 /* A badge's own art (0288): the game's icon, whole and unaltered, sized
    by width alone so its own proportions hold. No background, border,
-   radius, filter or overlay. */
+   radius, filter or overlay. A badge in a one-line moment is as wide as a
+   deck row's card (Jamie, 2026-11-23: "show the badge at a similar size
+   to the cards"), not the line's small mark. */
 .kit-mart--badge img {
   display: block;
   width: 56px;
@@ -8144,7 +8146,7 @@ a.kit-line__go:hover {
 }
 .kit-line__art--badge img {
   display: block;
-  width: 24px;
+  width: 48px;
   height: auto;
 }
 /* A day's Mastery cards side by side, each whole. */
@@ -8954,14 +8956,6 @@ a.kit-scard:focus-visible {
   background: none;
   min-width: 0;
 }
-/* On a player's page the games open inside the item's own card. */
-.kit-pitem .kit-sgames {
-  margin: var(--s-2) 0 0;
-  padding: 10px 0 0;
-  border-top: 1px solid var(--line);
-  border-radius: 0;
-  background: none;
-}
 .kit-sgames__head {
   display: flex;
   flex-wrap: wrap;
@@ -9758,35 +9752,6 @@ a.kit-bell__hit:focus-visible::after {
   gap: 10px;
 }
 
-.kit-pitem__body {
-  display: flex;
-  align-items: flex-start;
-  gap: 14px;
-}
-.kit-pitem__main {
-  display: grid;
-  gap: var(--s-1);
-  flex: 1;
-  min-width: 0;
-}
-.kit-pitem__main .kit-feed__text {
-  margin: 0;
-  font-size: var(--t-body);
-}
-.kit-medal--tile {
-  width: 44px;
-  height: 44px;
-  border-radius: var(--r-control);
-}
-.kit-medal--clan {
-  border: 0;
-  background: var(--panel-raised);
-  color: var(--ink-dim);
-}
-.kit-pitem .kit-feed__foot {
-  margin-top: var(--s-1);
-}
-
 .kit-hcard {
   display: grid;
   gap: 6px;
@@ -9818,34 +9783,6 @@ a.kit-bell__hit:focus-visible::after {
   font-size: var(--t-body);
 }
 
-.kit-moments {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
-  gap: var(--s-3);
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-.kit-moment {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-width: 0;
-  padding: var(--s-3);
-  border-radius: var(--r-control);
-  background: var(--panel);
-  overflow-wrap: anywhere;
-}
-.kit-moment .kit-medal {
-  width: 40px;
-  height: 40px;
-  border-radius: var(--r-control);
-}
-.kit-moment__main {
-  display: grid;
-  gap: 2px;
-  min-width: 0;
-}
 .kit-moment__title {
   color: var(--ink);
   font-size: var(--t-body-sm);

@@ -230,12 +230,12 @@ for (const [label, width] of [
       await expect(
         page.getByRole("heading", { level: 1, name: "Ada" }),
       ).toBeVisible();
-      // Each item is its own card (canvas Player .item, 2026-11-13).
+      // Each item is drawn as the Timeline draws it (2026-11-23).
       const legends = page
-        .locator(".kit-pitem")
+        .locator(".kit-feed__item")
         .filter({ hasText: "Reached Path of Legends." });
       const badge = page
-        .locator(".kit-pitem")
+        .locator(".kit-feed__item")
         .filter({ hasText: "Earned a badge." });
       await expect(
         legends.locator(".kit-cheers .sr-only").filter({ hasText: "1 person" }),

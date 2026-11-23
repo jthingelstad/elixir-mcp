@@ -142,7 +142,15 @@ test("the card is one link to the session's page, with its deck's eight cards", 
   expect(link.getAttribute("href")).toBe(href);
   const row = link.querySelector("ul.kit-deckrow");
   expect(row.querySelectorAll("li")).toHaveLength(8);
-  expect(row.querySelectorAll(".kit-deckrow__cost")[7].textContent).toBe("8");
+  // The card art alone (2026-11-23): no elixir cost and no form ribbon,
+  // though the Hero card's own art and its name still say its form.
+  expect(row.querySelectorAll(".kit-deckrow__cost")).toHaveLength(0);
+  expect(row.querySelectorAll(".card-art__form")).toHaveLength(0);
+  expect(
+    [...row.querySelectorAll(".card-art")].map((c) =>
+      c.getAttribute("aria-label"),
+    ),
+  ).toContain("Hero Card 0");
   expect(document.querySelector("b")?.textContent).not.toBe("Quill");
   // A deck kept for another label (an old row) is not drawn, and an item
   // with no evidence has no page.

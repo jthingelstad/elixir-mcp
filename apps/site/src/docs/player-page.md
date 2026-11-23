@@ -31,7 +31,10 @@ their follows and followers. Under it:
 | Record | the recorded profile: the last 30 days in battles, wins, losses, trophies and the deck played most, and the profile's trophies, best and lifetime counts as of its last capture |
 | Together | on a followed friend's page, your verified player's recorded games with them: **Teamed up** and **Played against**, one mode at a time |
 
-A session on the Timeline tab is the same card as on your Timeline: its headline,
+Every item on the Timeline and Moments tabs looks just as it does on your
+Timeline: a moment shows its card's or its badge's art, a deck change shows
+the new deck, and a short session or a small moment is one line. A session
+is the same card as on your Timeline: its headline,
 its figures and bar chart, and the deck played most. Tap it for the
 session's own page ([Your timeline](/docs/timeline)), which you can share
 with anyone ([Share a session](/docs/timeline#share-a-session)). Profile's Timeline tab is the same.

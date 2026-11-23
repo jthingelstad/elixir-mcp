@@ -366,7 +366,12 @@ function PostCards({ cards, onRemove = null }) {
           ) : (
             <span className="kit-written__card">
               <span aria-hidden="true">
-                <CardArt card={c} size={48} showLevel={false} />
+                <CardArt
+                  card={c}
+                  size={48}
+                  showLevel={false}
+                  showForm={false}
+                />
               </span>
               <span className="kit-written__name">{c.name}</span>
             </span>
@@ -499,7 +504,7 @@ function PostBattle({ battle: b, versus: v, who }) {
       </p>
       {v?.mine && v?.theirs && known ? (
         <DeckVersus
-          showCost
+          showForm={false}
           left={{
             name: <TagText>{who?.name ?? who?.player_tag ?? "Them"}</TagText>,
             label: v.mine.label ? <TagText>{v.mine.label}</TagText> : null,
@@ -573,7 +578,7 @@ function PostDeck({ deck, post }) {
     <div className="kit-written__deck">
       <DeckRow
         cards={deck.cards}
-        showCost
+        showForm={false}
         label={
           deck.label
             ? `${deck.label}, the deck in this post`

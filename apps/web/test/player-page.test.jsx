@@ -339,7 +339,7 @@ test(
 );
 
 test(
-  "a sitting draws as Home draws it, and its card opens the session's own page",
+  "a sitting draws as Home draws it, and its line opens the session's own page",
   { timeout: 20000 },
   async () => {
     page = {
@@ -350,6 +350,7 @@ test(
           kind: "battle_session",
           at: "2026-11-10T14:00:00.000Z",
           text: "Copper Fern played two battles",
+          subjects: [{ kind: "player", tag: "#0VJ2QV", name: "Copper Fern" }],
           facts: {
             battles: 2,
             won: 1,
@@ -370,17 +371,17 @@ test(
     };
     window.history.pushState({}, "", "/home/player/0VJ2QV");
     render(<App />);
-    // The card's headline is its facts; the timeline's sentence is not
-    // repeated on it.
+    // Drawn by the Timeline's own rows (2026-11-23): two battles on Trophy
+    // Road is a short session, one line whose words are its facts; the
+    // timeline's sentence is not repeated on it.
     const card = await screen.findByRole("link", {
-      name: "Open session: Won 1 of 2 on Trophy Road, lost 1, +4 trophies",
+      name: "Open Copper Fern’s session: Won 1 of 2 on Trophy Road, lost 1, +4 trophies",
     });
     expect(screen.queryByText("Copper Fern played two battles")).toBeNull();
     expect(card.getAttribute("href")).toBe(
       "/home/player/0VJ2QV/session/s1?at=2026-11-10T14%3A00%3A00.000Z",
     );
-    // Two battles is the compact card: the result and its trophies on one
-    // line, no figures and no strip.
+    // The result and its trophies on one line, no figures and no strip.
     expect(card.querySelector(".kit-sfacts, .kit-spark")).toBeNull();
     expect(card.textContent).toContain("Won 1 of 2 on Trophy Road +4 trophies");
     expect(screen.queryByRole("button", { name: "Open session" })).toBeNull();
