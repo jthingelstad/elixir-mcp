@@ -31,6 +31,7 @@ import {
   sessionSpark,
   shownAt,
 } from "@elixir-mcp/tools/activity/entries";
+import { compareStories } from "@elixir-mcp/tools/activity/story-store";
 
 import { battleLinks } from "@elixir-mcp/record/battle-links";
 import { proofOf, scoresOf, sparkOf } from "../feed.mjs";
@@ -405,13 +406,70 @@ export async function readSessionPage(
   };
 }
 
+/** The stored-story shadow's statement budget (stage 1 of the stored
+ *  Timeline, 2026-11-23): one select, and the page never waits longer. */
+const SHADOW_MS = 300;
+
+/**
+ * The page's computed timeline beside the player's stored stories
+ * (timeline_story, 0314), logged as one line of differences: counts of
+ * stories only computed, only stored, at another revision or with other
+ * content, up to five ids of each, and the newest stored row's built_at,
+ * so a difference in a story newer than every write is one no write has
+ * seen. Never an item's contents, never the tag. The page is already
+ * built and is served whatever happens here: the select runs in its own
+ * transaction under a SHADOW_MS statement timeout, and any error is a
+ * `timeline_story_shadow_failed` line. Nothing is served from the rows.
+ */
+export async function shadowStories(
+  db,
+  tag,
+  built,
+  window,
+  { compare = compareStories, log = console.info } = {},
+) {
+  const started = performance.now();
+  const ms = () => Math.round(performance.now() - started);
+  try {
+    await db.query("begin");
+    try {
+      await db.query("select set_config('statement_timeout', $1, true)", [
+        String(SHADOW_MS),
+      ]);
+      const diff = await compare(
+        db,
+        "player",
+        tag,
+        [...(built.timeline ?? []), ...(built.timeline_dropped ?? [])],
+        { ...window, visibilities: ["public", "member"] },
+      );
+      await db.query("commit");
+      log(JSON.stringify({ at: "timeline_story_shadow", ...diff, ms: ms() }));
+      return diff;
+    } catch (err) {
+      await db.query("rollback").catch(() => {});
+      throw err;
+    }
+  } catch (err) {
+    // The error's class only: its message can carry a value.
+    log(
+      JSON.stringify({
+        at: "timeline_story_shadow_failed",
+        error: err?.code ?? err?.name ?? "error",
+        ms: ms(),
+      }),
+    );
+    return null;
+  }
+}
+
 /** The whole page, for one signed-in reader. */
 async function readPlayerPage(
   db,
   account,
   tag,
   now = Date.now(),
-  { comments = false } = {},
+  { comments = false, storyShadow = null } = {},
 ) {
   const { rows } = await db.query(
     `select p.player_tag, p.name, cm.clan_tag, cm.clan_name,
@@ -437,6 +495,13 @@ async function readPlayerPage(
   const built = await pageTimeline(db, tag, timezone, now, null, {
     pageGameReader: account.accountId,
   });
+  // The stored stories beside it, logged (stage 1): the stack's
+  // TimelineStoryShadow switch; bounded, and never fails the page.
+  if (storyShadow)
+    await storyShadow(db, tag, built, {
+      fromMs: now - PAGE_DAYS * 86_400_000,
+      toMs: now,
+    });
   // A moment the record proved names its battle, as Home's feed links it
   // (feed.mjs proofOf): one statement for the page's proofs, and no link
   // where the record does not know the battle.
@@ -767,7 +832,16 @@ export function playerRoutes({
   resolveAccount,
   live = null,
   comments = false,
+  // The stored-story shadow on the page (stage 1, 2026-11-23): true runs
+  // shadowStories, a function runs that instead (tests); false, none.
+  storyShadow = false,
 }) {
+  const shadow =
+    typeof storyShadow === "function"
+      ? storyShadow
+      : storyShadow
+        ? shadowStories
+        : null;
   const liveRead = live ?? makeLive({ enqueue: enqueueJob });
   const rate = (db, account) =>
     checkRateLimit(db, {
@@ -786,6 +860,7 @@ export function playerRoutes({
         return json(429, { error: "rate_limited" });
       const page = await readPlayerPage(db, account, tag, Date.now(), {
         comments,
+        storyShadow: shadow,
       });
       if (!page)
         return json(404, {

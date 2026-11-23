@@ -8,7 +8,8 @@
  * services/jobs/test/retention.test.mjs fails on a table in none:
  *
  *  - TRIMMED: time-keyed history this module deletes past its window
- *    (one year, or 28 days for an operational log). An entry with
+ *    (one year, 28 days for an operational log, 35 days for the stored
+ *    Timeline, a cache of the builder's output). An entry with
  *    `held` is declared but not run: the reason says what still reads
  *    rows older than the window. The dry run counts it all the same.
  *  - OWN_TRIMS: time-keyed rows another sweep already deletes on a
@@ -31,6 +32,9 @@ import {
 
 const YEAR = "1 year";
 const DAYS_28 = "28 days";
+/** The stored Timeline's window (timeline_story, 0314): the player page's
+ *  30 days and a margin. A cache of the builder's output, not the record. */
+const DAYS_35 = "35 days";
 
 /** Rows per batch, batches per table per run, batches per run. */
 export const TRIM_LIMITS = Object.freeze({
@@ -169,6 +173,12 @@ export const TRIMMED = Object.freeze([
     note: "only once no token and no call log row points at it",
   },
   plain("capture_efficiency_daily", "day", YEAR),
+
+  // Derived caches with a window of their own.
+  {
+    ...plain("timeline_story", "sort_at", DAYS_35),
+    note: "a subject's stored stories (0314); rebuilt from the record, kept as far back as a timeline read reaches",
+  },
 ]);
 
 /** Time-keyed rows another sweep deletes on a shorter clock. */
@@ -563,7 +573,7 @@ export async function retentionDryRun(db) {
     await db.query("rollback").catch(() => {});
   }
   return {
-    windows: { operational: DAYS_28, record: YEAR },
+    windows: { operational: DAYS_28, record: YEAR, stories: DAYS_35 },
     tables,
   };
 }
