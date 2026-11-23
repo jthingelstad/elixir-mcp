@@ -534,8 +534,7 @@ test("limit reads the newest N, says it cut, pages the rest without a gap, and n
 
   const first = await call("elixir_timeline", { ...window, limit: 3 });
   assert.equal(first.isError, false, JSON.stringify(first.body));
-  assert.ok(first.body.timeline.length <= 3);
-  assert.ok(first.body.timeline.length > 0);
+  assert.ok(first.body.timeline.length >= 3);
   assert.deepEqual(
     first.body.timeline.map((it) => it.id),
     ids.slice(0, first.body.timeline.length),
@@ -1921,4 +1920,64 @@ test("2026-11-16: a challenge is told as a run, with a one-line name; a drafted 
     /in King of Cards Quick Wit Challenge \(5W-1L, up to 5 wins\), C\.H\.A\.O\.S Draft \(1W-0L, drafted decks\)/,
   );
   assert.ok(!item.text.includes("\n"));
+});
+
+test("limit never cuts inside items that share one instant, so every item is reached", async () => {
+  // One poll learns a burst at one instant, and no `to` splits an instant:
+  // a cut inside it would serve part and offer no continuation (Codex on
+  // #1207). The items that share the Nth's instant come with it.
+  await ctx.db.query(
+    `insert into card (card_id, name, kind, rarity) values (26000021, 'Hog Rider', 'card', 'rare')
+     on conflict (card_id) do nothing`,
+  );
+  const write = (type, payload, minute) =>
+    emitEvent(ctx.db, type, {
+      tag: PROFILE,
+      windowStart: "2026-09-27T09:00:00Z",
+      windowEnd: `2026-09-27T10:${minute}:00Z`,
+      payload,
+    });
+  await write(
+    "twelve_win_run",
+    { name: "Grand12Wins", runs: 8, runs_before: 7 },
+    "01",
+  );
+  await write(
+    "card_maxed",
+    { card_id: 26000021, name: "Hog Rider", rarity: "rare", level: 16 },
+    "05",
+  );
+  await write("king_tower_leveled", { level: 16, prior_level: 15 }, "05");
+  await write("challenge_best_run", { best: 11, best_before: 10 }, "05");
+  const window = {
+    from: "2026-09-27T10:00:00Z",
+    to: "2026-09-27T11:00:00Z",
+    mark_read: false,
+    basis: "occurred",
+  };
+  const full = await call("elixir_timeline", window);
+  assert.equal(full.isError, false, JSON.stringify(full.body));
+  const ids = full.body.timeline.map((it) => it.id);
+  assert.equal(ids.length, 4, JSON.stringify(full.body.timeline));
+  for (const limit of [1, 2, 3]) {
+    const first = (await call("elixir_timeline", { ...window, limit })).body;
+    assert.equal(first.timeline.length, 3, `limit ${limit}: the instant whole`);
+    assert.equal(first.has_more, true, `limit ${limit}`);
+    assert.equal(first.timeline_more, 1);
+    if (limit < 3) assert.match(first.notes.join(" "), /one instant/);
+    const rest = (
+      await call("elixir_timeline", {
+        ...window,
+        to: first.timeline_more_to,
+        limit,
+      })
+    ).body;
+    assert.equal(rest.has_more, false);
+    assert.equal(rest.timeline_more, 0);
+    assert.deepEqual(
+      [...first.timeline, ...rest.timeline].map((it) => it.id),
+      ids,
+      `limit ${limit}: each item once`,
+    );
+  }
 });
