@@ -671,20 +671,14 @@ test("usage: member sees own daily counts and quota; admin sees the fleet", asyn
   assert.equal(nonOwner.statusCode, 403);
 });
 
-test("call record: own rows and owned agents' rows open; others 404; admin opens any; capture reads back", async () => {
-  // A member's call, an agent-of-theirs' call, and somebody else's call.
+test("call record: own rows open; others 404; admin opens any; capture reads back", async () => {
+  // A member's call and somebody else's call.
   const cookie = memberCookie;
   const { rows: acct } = await db.query(
     `select account_id from account where email_hash = $1`,
     [emailHash(NEWCOMER)],
   );
   const me = acct[0].account_id;
-  const { rows: agentRows } = await db.query(
-    `insert into account (email_hash, status, kind, owned_by_account_id)
-     values ('call-record-agent', 'approved', 'agent', $1) returning account_id`,
-    [me],
-  );
-  const agent = agentRows[0].account_id;
   const { rows: strangerRows } = await db.query(
     `insert into account (email_hash, status) values ('call-record-stranger', 'approved')
      returning account_id`,
@@ -694,7 +688,6 @@ test("call record: own rows and owned agents' rows open; others 404; admin opens
     first: crypto.randomUUID(),
     mine: crypto.randomUUID(),
     later: crypto.randomUUID(),
-    agents: crypto.randomUUID(),
     theirs: crypto.randomUUID(),
   };
   // Three calls by the console explorer on the member's account (same
@@ -712,11 +705,6 @@ test("call record: own rows and owned agents' rows open; others 404; admin opens
        ($1, $4, 'web', 'players_profile', '{}', 50, 300, now() - interval '1 minute',
         false, 20, 2, null, 1, false, 'person', null, null, 'US')`,
     [me, ids.first, ids.mine, ids.later],
-  );
-  await db.query(
-    `insert into mcp_call_audit (account_id, request_id, surface, tool, principal_kind)
-     values ($1, $2, 'mcp', 'clans_roster', 'agent')`,
-    [agent, ids.agents],
   );
   await db.query(
     `insert into mcp_call_audit (account_id, request_id, surface, tool)
@@ -752,11 +740,7 @@ test("call record: own rows and owned agents' rows open; others 404; admin opens
   assert.equal(rec.capture_error, "unconfigured");
   assert.equal(rec.request, null);
 
-  // An owned agent's row opens; a stranger's does not exist here.
-  assert.equal(
-    (await get(`/api/me/activity/calls/${ids.agents}`)).statusCode,
-    200,
-  );
+  // A stranger's row does not exist here.
   assert.equal(
     (await get(`/api/me/activity/calls/${ids.theirs}`)).statusCode,
     404,
@@ -2097,7 +2081,7 @@ test("activity APIs: own request log, read-only notification view, collector det
   assert.ok(Array.isArray(ev.timeline));
   assert.ok(Array.isArray(ev.entries));
   assert.ok("seen_to" in ev, "the Console's own place, before this read");
-  assert.ok(!("read_to" in ev), "the agents' pointer is not the page's");
+  assert.ok(!("read_to" in ev), "the MCP pointer is not the page's");
   const after = await db.query(
     `select activity_seen_at from account where email_hash = $1`,
     [emailHash(JAMIE)],
@@ -2105,7 +2089,7 @@ test("activity APIs: own request log, read-only notification view, collector det
   assert.equal(
     String(before.rows[0].activity_seen_at),
     String(after.rows[0].activity_seen_at),
-    "web view never moves the agents' read pointer",
+    "web view never moves the MCP read pointer",
   );
 
   // Collector detail: owner-scoped; someone else's gateway 404s.
@@ -2785,7 +2769,7 @@ test("re-provisioning invalidates the previous bearer in the same statement", as
  * claim.relationship had a reader and no writer.
  *
  * 0055 added the column and describeIdentity groups the MCP identity block by
- * it, so an agent is told "you are watching N players". Nothing could ever set
+ * it, so an MCP client is told "you are watching N players". Nothing could ever set
  * it -- no console control, no API action, no MCP tool -- so every non-primary
  * player was announced as "watching" from the day it shipped, and the
  * alt/friend vocabulary in the docs described something unreachable.
@@ -2962,19 +2946,6 @@ test("usage reports the tier's real ceilings, not member's hardcoded ones", asyn
 });
 
 test("malformed ids are 400s, never uuid or bigint syntax errors", async () => {
-  const cookie = memberCookie;
-
-  for (const p of ["rotate", "rename", "status"]) {
-    const res = await handler(
-      event({
-        path: `/api/me/principals/${p}`,
-        cookie,
-        body: { account_id: "not-a-uuid", name: "x", status: "suspended" },
-      }),
-    );
-    assert.equal(res.statusCode, 400, p);
-    assert.equal(parse(res).error, "invalid_account_id", p);
-  }
   const revoke = await handler(
     event({
       path: "/api/admin/service-tokens",
@@ -3050,8 +3021,8 @@ test("the app's tool bridge takes the hourly bucket but no daily quota, and is r
     200,
   );
 
-  // The daily quota is the MCP door's alone: an account whose agents and
-  // clients have spent the whole day still reads its own record here.
+  // The daily quota is the MCP door's alone: an account whose clients
+  // have spent the whole day still reads its own record here.
   await db.query(
     `insert into rate_limit (bucket, window_start, count) values ($1, $2::date, 100000)
      on conflict (bucket, window_start) do update set count = 100000`,
@@ -3219,16 +3190,13 @@ test("feedback notifies the owner; the owner's own feedback does not", async () 
 });
 
 /**
- * Capabilities are editable after the connection exists, on the personal
- * door AND on every agent door the account owns.
+ * Capabilities are editable after the connection exists.
  *
  * Scope arrives in the client's own authorize request, so an app that never
  * asks for a capability could not be allowed one, and an app granted more
- * than it needs could not be narrowed without disconnecting it. Owner
- * report, 2026-09-09: agent doors were not even listed here, because their
- * grant is bound to the AGENT's account rather than the owner's.
+ * than it needs could not be narrowed without disconnecting it.
  */
-test("connection capabilities can be edited afterwards, including on an owned agent's door", async () => {
+test("connection capabilities can be edited afterwards", async () => {
   const cookie = memberCookie;
   const { rows: acct } = await db.query(
     `select account_id from account where email_hash = $1`,
@@ -3247,22 +3215,7 @@ test("connection capabilities can be edited afterwards, including on an owned ag
      returning family_id`,
     [owner],
   );
-  // An agent this person owns, connected at its own door.
-  const { rows: agent } = await db.query(
-    `insert into account (email_hash, status, role, kind, owned_by_account_id, public_id)
-     values (null, 'approved', 'leader', 'agent', $1, 'scopeagent1')
-     returning account_id`,
-    [owner],
-  );
-  const { rows: agentFam } = await db.query(
-    `insert into oauth_family (client_id, account_id, absolute_expires_at, scope)
-     values ('cid-scope', $1, now() + interval '90 days', 'cr:read')
-     returning family_id`,
-    [agent[0].account_id],
-  );
-
-  // Your Connections lists your door; the agent's is on the agent's own
-  // console (2026-09-23), which runs the same route as the agent.
+  // Your Connections lists your door.
   const list = parse(
     await handler(
       event({
@@ -3275,25 +3228,6 @@ test("connection capabilities can be edited afterwards, including on an owned ag
   );
   const ids = list.connections.map((c) => c.family_id);
   assert.ok(ids.includes(mine[0].family_id), "the personal door");
-  assert.ok(
-    !ids.includes(agentFam[0].family_id),
-    "the agent's door is not on yours",
-  );
-  const agentList = parse(
-    await handler(
-      event({
-        method: "GET",
-        path: "/api/agent/scopeagent1/connections",
-        cookie,
-        body: undefined,
-      }),
-    ),
-  );
-  assert.deepEqual(
-    agentList.connections.map((c) => c.family_id),
-    [agentFam[0].family_id],
-    "the agent's console lists its door",
-  );
 
   // Widen the personal door.
   const widened = parse(
@@ -3301,27 +3235,12 @@ test("connection capabilities can be edited afterwards, including on an owned ag
       event({
         path: "/api/me/connections/scope",
         cookie,
-        body: { family_id: mine[0].family_id, scope: "cr:read feedback:write" },
-      }),
-    ),
-  );
-  assert.equal(widened.scope, "cr:read feedback:write");
-
-  // Widen the AGENT's door - the case that had no surface at all.
-  const agentWidened = parse(
-    await handler(
-      event({
-        path: "/api/me/connections/scope",
-        cookie,
-        body: {
-          family_id: agentFam[0].family_id,
-          scope: "feedback:write cr:read",
-        },
+        body: { family_id: mine[0].family_id, scope: "feedback:write cr:read" },
       }),
     ),
   );
   assert.equal(
-    agentWidened.scope,
+    widened.scope,
     "cr:read feedback:write",
     "canonical order, whatever order was sent",
   );

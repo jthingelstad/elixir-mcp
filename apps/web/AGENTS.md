@@ -91,11 +91,11 @@ search and a player page's Record tab still read through `POST
 /api/me/tool`, the tool bridge, which answers only the tools the app
 calls (`APP_TOOLS` in `services/web-api/src/routes/tool-bridge.mjs`); a
 new call through it adds its tool there. `src/views/` holds the pages,
-`src/views/account/` the Settings and agent pages; the route table is in
+`src/views/account/` the Settings pages; the route table is in
 `App.jsx`. `src/lib/settings.js` is Settings' rail and paths. Settings (`/settings`:
-profile, players, emails, connections and agents, sign-ins, usage, feedback,
-collectors), an agent's own page (`/settings/agents/<public_id>`, five tabs),
-and Admin (`/settings/admin/<page>`, its own route, rail and lazy chunk, with
+profile, players, emails, connections, sign-ins, usage, feedback,
+collectors; the Agents pages went on 2026-11-23, and their old addresses
+are the missing page), and Admin (`/settings/admin/<page>`, its own route, rail and lazy chunk, with
 Service, Fleet and Efficiency; Settings offers it to staff only). Admin pages
 are gated on the server; the client only hides them. The service's public
 half is the site's `/data`.

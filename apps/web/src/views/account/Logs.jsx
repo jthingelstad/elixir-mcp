@@ -1,13 +1,6 @@
 import { Icon, Link, LogTable, Row, useClock } from "@elixir-mcp/ui";
-import {
-  useActivityEvents,
-  useMyEmailSends,
-  useMyRequests,
-} from "../../lib/queries.js";
-import { useScopedPath } from "../../lib/scope.js";
+import { useMyEmailSends, useMyRequests } from "../../lib/queries.js";
 import { SETTINGS } from "../../lib/settings.js";
-import { eventDetail, eventLabel } from "./events.js";
-import { Crumb } from "./parts.jsx";
 
 /** Usage's busiest-tools links land already filtered. Read once, at open;
  *  after that the filter is state, so clearing it works like any other. */
@@ -40,7 +33,6 @@ export function Requests({
   search = typeof window === "undefined" ? "" : window.location.search,
 }) {
   const { when } = useClock();
-  const path = useScopedPath();
   const query = useMyRequests(true);
   const rows = (query.data?.requests ?? []).map((r) => {
     const out = outcome(r);
@@ -51,7 +43,7 @@ export function Requests({
       {
         text: r.tool ?? "",
         href: r.request_id
-          ? path(`${SETTINGS}/usage/requests/${r.request_id}`)
+          ? `${SETTINGS}/usage/requests/${r.request_id}`
           : undefined,
         title: `${r.token_name ?? r.surface ?? ""} · ${when(r.created_at)} · ${r.duration_ms ?? "?"} ms`,
       },
@@ -61,7 +53,7 @@ export function Requests({
   return (
     <LogTable
       crumb={
-        <Link to={path(`${SETTINGS}/usage`)}>
+        <Link to={`${SETTINGS}/usage`}>
           <Icon name="chevron-left" size={16} />
           Usage and limits
         </Link>
@@ -159,46 +151,5 @@ export function Sent() {
       }
       footnote="The last 200. The id is the one printed in the mail's footer. Sign-in codes are not listed."
     />
-  );
-}
-
-/** Changes to an agent's own account, one of its logs under Usage. */
-export function AgentEvents({ agent }) {
-  const { when } = useClock();
-  const query = useActivityEvents(true);
-  const rows = (query.data?.events ?? []).map((e) => [
-    eventLabel(e.kind),
-    eventDetail(e),
-    when(e.created_at),
-  ]);
-  return (
-    <>
-      <Crumb to={`${SETTINGS}/agents/${agent}/usage`}>Usage</Crumb>
-      <LogTable
-        title="Account events"
-        note="Changes to this agent's account, its access and what it records."
-        loading={query.isPending}
-        error={
-          query.isError
-            ? "This agent's account events could not be read just now. Try again in a moment."
-            : null
-        }
-        cols={[
-          ["Event", "left"],
-          ["Detail", "left"],
-          ["When", "left"],
-        ]}
-        rows={rows}
-        filters={[{ key: "event", label: "Event", any: "Every event", col: 0 }]}
-        renderRow={(row) => (
-          <Row
-            title={row[0]}
-            detail={row[1] || null}
-            right={<span className="hint">{row[2]}</span>}
-          />
-        )}
-        empty="Nothing yet."
-      />
-    </>
   );
 }

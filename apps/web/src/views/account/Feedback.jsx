@@ -18,7 +18,6 @@ import {
   useMyFeedback,
   useMyFeedbackItem,
 } from "../../lib/queries.js";
-import { useScopedPath, useScope } from "../../lib/scope.js";
 import { SETTINGS } from "../../lib/settings.js";
 import { Crumb } from "./parts.jsx";
 
@@ -119,8 +118,6 @@ function Shipped({ when }) {
 
 export function FeedbackItem({ id }) {
   const { whenDay } = useClock();
-  const path = useScopedPath();
-  const scoped = Boolean(useScope());
   const query = useMyFeedbackItem(id);
   const item = query.data?.feedback ?? null;
   const [replying, setReplying] = useState(false);
@@ -130,7 +127,7 @@ export function FeedbackItem({ id }) {
       <Empty
         title={<>No feedback item #{id}</>}
         action={
-          <Link className="btn" to={path(`${SETTINGS}/feedback`)}>
+          <Link className="btn" to={`${SETTINGS}/feedback`}>
             All feedback
           </Link>
         }
@@ -144,7 +141,7 @@ export function FeedbackItem({ id }) {
         Reading this item.
       </p>
     );
-  const itemPath = (n) => path(`${SETTINGS}/feedback/${n}`);
+  const itemPath = (n) => `${SETTINGS}/feedback/${n}`;
   const refs = item.refs ?? [];
   const calls = refs.filter((r) => r.kind === "call");
   const emails = refs.filter((r) => r.kind === "email");
@@ -155,7 +152,7 @@ export function FeedbackItem({ id }) {
   return (
     <div className="st-page">
       <PageHead
-        crumb={<Crumb to={path(`${SETTINGS}/feedback`)}>Feedback</Crumb>}
+        crumb={<Crumb to={`${SETTINGS}/feedback`}>Feedback</Crumb>}
         // The id is the title: a filed note has no name of its own, and the
         // number is what a reply and the timeline call it.
         title={
@@ -197,7 +194,7 @@ export function FeedbackItem({ id }) {
               <Link
                 key={`c${r.ref}`}
                 className="mono"
-                to={path(`${SETTINGS}/usage/requests/${r.ref}`)}
+                to={`${SETTINGS}/usage/requests/${r.ref}`}
                 title="The call, as it was answered"
               >
                 call {r.ref.slice(0, 8)}
@@ -275,9 +272,8 @@ export function FeedbackItem({ id }) {
       )}
 
       {/* Answering an answer (0204): a new item that follows this one,
-          so the thread reads as one and the reply is answered too. Your
-          own settings only: an agent replies with elixir_send_feedback. */}
-      {item.response && !scoped && (
+          so the thread reads as one and the reply is answered too. */}
+      {item.response && (
         <div className="max-w-[70ch]">
           {replying ? (
             <Compose
@@ -344,7 +340,6 @@ function Compose({
   const [message, setMessage] = useState(context ? `${context}\n\n` : "");
   const [sent, setSent] = useState(null);
   const [failed, setFailed] = useState("");
-  const path = useScopedPath();
   return (
     <Panel
       title={title}
@@ -364,10 +359,7 @@ function Compose({
                 <>
                   {" "}
                   It is{" "}
-                  <Link
-                    className="mono"
-                    to={path(`${SETTINGS}/feedback/${sent}`)}
-                  >
+                  <Link className="mono" to={`${SETTINGS}/feedback/${sent}`}>
                     fb_{sent}
                   </Link>
                   .
@@ -464,12 +456,6 @@ function Compose({
 
 export function Feedback({ search } = {}) {
   const { when } = useClock();
-  const path = useScopedPath();
-  // An agent's page lists what the AGENT filed (it files with
-  // elixir_send_feedback). New feedback is always filed as you, from your
-  // own settings, so this page has no compose (2026-09-23).
-  const agent = useScope();
-  const scoped = Boolean(agent);
   const feedbackQuery = useMyFeedback();
   const feedback = feedbackQuery.data;
   const items = feedback ? (feedback.feedback ?? feedback.items ?? []) : null;
@@ -498,11 +484,6 @@ export function Feedback({ search } = {}) {
 
   return (
     <LogTable
-      crumb={
-        agent ? (
-          <Crumb to={`${SETTINGS}/agents/${agent}/overview`}>Overview</Crumb>
-        ) : null
-      }
       loading={feedbackQuery.isPending}
       error={
         feedbackQuery.isError
@@ -510,25 +491,19 @@ export function Feedback({ search } = {}) {
           : null
       }
       title="Feedback"
-      note={
-        scoped
-          ? "What this agent has told us, and what we did about it. New feedback is filed as you, from your own settings."
-          : "What you have told us, and what we did about it. Every item gets a response. The answer appears here, and by email if that's on."
-      }
+      note="What you have told us, and what we did about it. Every item gets a response. The answer appears here, and by email if that's on."
       actions={
-        scoped ? null : (
-          <button
-            type="button"
-            className="btn btn--primary"
-            onClick={() => setComposing((v) => !v)}
-          >
-            <Icon name="plus" size={16} />
-            Send feedback
-          </button>
-        )
+        <button
+          type="button"
+          className="btn btn--primary"
+          onClick={() => setComposing((v) => !v)}
+        >
+          <Icon name="plus" size={16} />
+          Send feedback
+        </button>
       }
       above={
-        composing && !scoped ? (
+        composing ? (
           <Compose
             onSent={load}
             onClose={() => setComposing(false)}
@@ -565,15 +540,11 @@ export function Feedback({ search } = {}) {
             right={
               <span className={`chip ${statusChip(f.status)}`}>{row[2]}</span>
             }
-            href={path(`${SETTINGS}/feedback/${f.feedback_id}`)}
+            href={`${SETTINGS}/feedback/${f.feedback_id}`}
           />
         );
       }}
-      empty={
-        scoped
-          ? "Nothing filed by this agent yet. It files with elixir_send_feedback."
-          : "Nothing filed yet. Your agent can file too, with elixir_send_feedback. Every item gets a response. The answer appears here, and by email if that's on."
-      }
+      empty="Nothing filed yet. Your MCP client can file too, with elixir_send_feedback. Every item gets a response. The answer appears here, and by email if that's on."
       footnote="Open an item to read the whole note and the answer. A filed note cannot be edited. Send another if something changed."
     />
   );

@@ -1,4 +1,4 @@
-import { describe, test, expect, vi, beforeEach } from "vitest";
+import { test, expect, vi, beforeEach } from "vitest";
 import {
   render,
   screen,
@@ -571,13 +571,13 @@ test(
     // The old REDIRECTS rendered the new page under the old address, so a
     // link credited the old path in the report and the new one looked
     // unvisited. The router replaces the entry, and the query rides along.
-    window.history.pushState({}, "", "/settings/agents?x=1");
+    window.history.pushState({}, "", "/settings?x=1");
     global.fetch = mockFetch({
       "GET /api/me": [200, { authenticated: false }],
     });
     render(<App />);
     await waitFor(() =>
-      expect(window.location.pathname).toBe("/settings/connections"),
+      expect(window.location.pathname).toBe("/settings/profile"),
     );
     expect(window.location.search).toBe("?x=1");
     // The folded Console's addresses are not the app's at all since
@@ -1078,199 +1078,6 @@ test(
     expect(document.body.textContent).not.toContain("Unread by connections");
   },
 );
-
-describe("an agent's pages in Settings", () => {
-  const PERSON = {
-    authenticated: true,
-    kind: "person",
-    role: "owner",
-    is_owner: true,
-    email: "jamie@example.com",
-    claims: [
-      {
-        player_tag: "#20JJJ2CCRU",
-        is_primary: true,
-        name: "King Thing",
-        nickname: "Jamie",
-      },
-    ],
-    recordings: [],
-    signals: { tracking: 3, connections: 2, feedback: 0 },
-    agents: [
-      {
-        public_id: "abcd1234",
-        name: "poap-bot",
-        role: "leader",
-        status: "approved",
-        clan: { clan_tag: "#J2RGCRVG", name: "POAP KINGS" },
-      },
-    ],
-  };
-  const AGENT = {
-    authenticated: true,
-    kind: "agent",
-    public_id: "abcd1234",
-    name: "poap-bot",
-    role: "leader",
-    clans: [{ clan_tag: "#J2RGCRVG", name: "POAP KINGS", is_primary: true }],
-    claims: [],
-    recordings: [],
-    signals: { tracking: 1, connections: 0, feedback: 2, timeline_pending: 1 },
-  };
-  const timeline = (text) => ({
-    seen_to: null,
-    timeline: [
-      {
-        at: "2026-09-12T10:00:00Z",
-        subject_tag: "#J2RGCRVG",
-        subject_name: "POAP KINGS",
-        kind: "member_joined",
-        section: "roster",
-        text,
-        facts: {},
-      },
-    ],
-    timeline_more: 0,
-    entries: [],
-    quiet: [],
-  });
-
-  const PRINCIPALS = {
-    agents: [
-      {
-        account_id: 7,
-        public_id: "abcd1234",
-        name: "poap-bot",
-        status: "approved",
-        clans: [{ clan_tag: "#J2RGCRVG", name: "POAP KINGS" }],
-        tokens: [],
-      },
-    ],
-  };
-
-  test(
-    "the switcher is gone: an agent is a page with five tabs, and each reads only its own account",
-    { timeout: 20000 },
-    async () => {
-      const fetch = mockFetch({
-        "GET /api/me": [200, PERSON],
-        "GET /api/me/principals": [200, PRINCIPALS],
-        "GET /api/me/timeline": [200, timeline("Yours.")],
-        "GET /api/agent/abcd1234": [200, AGENT],
-        "GET /api/agent/abcd1234/timeline": [200, timeline("The agent's.")],
-      });
-      global.fetch = fetch;
-      window.history.pushState({}, "", "/settings/agents/abcd1234/overview");
-      render(<App />);
-      const tabs = await screen.findByRole("tablist", { name: "This agent" });
-      expect(
-        within(tabs)
-          .getAllByRole("tab")
-          .map((t) => t.textContent),
-      ).toEqual([
-        "Overview",
-        "What it reads",
-        "Usage",
-        "Connections",
-        "Settings",
-      ]);
-      // Its Timeline reads the agent's route and never yours.
-      fireEvent.click(screen.getByRole("link", { name: "Open its timeline" }));
-      await screen.findByText("The agent's.");
-      const paths = fetch.mock.calls.map(([p]) => p);
-      expect(paths).toContain("/api/agent/abcd1234/timeline");
-      expect(
-        paths.filter((p) => p === "/api/me/timeline").length,
-        "yours is not read on the agent's pages",
-      ).toBe(0);
-    },
-  );
-
-  test(
-    "its Tracking: the clan it acts for, a rival it watches, and re-pointing it",
-    { timeout: 20000 },
-    async () => {
-      const posts = [];
-      global.fetch = mockFetch({
-        "GET /api/me": [200, PERSON],
-        "GET /api/me/principals": [200, PRINCIPALS],
-        "GET /api/agent/abcd1234": [
-          200,
-          {
-            ...AGENT,
-            claims: [
-              {
-                player_tag: "#022YGRRL",
-                name: "Rival Star",
-                relationship: "friend",
-                notify: true,
-              },
-            ],
-            entitlements: {
-              player_slots: { used: 4, limit: 50 },
-              activity_clans: { used: 2, limit: 3 },
-              comprehensive_clans: { used: 1, limit: 3 },
-            },
-          },
-        ],
-        "GET /api/agent/abcd1234/clans": [
-          200,
-          {
-            clans: [
-              {
-                clan_tag: "#J2RGCRVG",
-                name: "POAP KINGS",
-                scope: "comprehensive",
-                notify: true,
-                is_primary: true,
-              },
-              {
-                clan_tag: "#0GC0GG2P",
-                name: "Rivals",
-                scope: "activity",
-                notify: true,
-                is_primary: false,
-              },
-            ],
-          },
-        ],
-        "POST /api/agent/abcd1234/clans": (init) => {
-          posts.push(JSON.parse(init.body));
-          return [200, { ok: true }];
-        },
-      });
-      window.history.pushState({}, "", "/settings/agents/abcd1234/reads");
-      render(<App />);
-      await screen.findByText("Rivals");
-      expect(screen.getByText("Rival Star")).toBeTruthy();
-      // The clan it acts for offers no removal; the rival can take its place.
-      expect(screen.getAllByRole("button", { name: "Remove" })).toHaveLength(2);
-      fireEvent.click(
-        screen.getByRole("button", { name: "Make it the clan it acts for" }),
-      );
-      await waitFor(() =>
-        expect(posts).toEqual([{ clan_tag: "#0GC0GG2P", action: "primary" }]),
-      );
-    },
-  );
-
-  test(
-    "an agent that is not yours says so, and shows nothing of anyone's",
-    { timeout: 20000 },
-    async () => {
-      global.fetch = mockFetch({
-        "GET /api/me": [200, PERSON],
-        "GET /api/me/principals": [200, PRINCIPALS],
-        "GET /api/agent/zzzz9999": [404, { error: "not_found" }],
-      });
-      window.history.pushState({}, "", "/settings/agents/zzzz9999/timeline");
-      render(<App />);
-      expect(
-        await screen.findByText(/No agent here on your account/),
-      ).toBeTruthy();
-    },
-  );
-});
 
 test(
   "a session that ends under Clan's read turns into the app's sign-in page",

@@ -2,7 +2,7 @@
  * Readiness, and the questions it unlocks.
  *
  * The 2026-09-09 design split one panel into two jobs. Overview's
- * readiness list answers "can my agent answer about me yet, and if not
+ * readiness list answers "can my AI answer about me yet, and if not
  * what is it waiting for". The starter questions moved to Connections,
  * where a connection is the thing you are working on. Both read the same
  * derived record, so the tests that were about prompts now render
@@ -102,11 +102,6 @@ test(
           break;
         case "/api/me/connections":
           data = { connections: [] };
-          break;
-        // Connections lists agents beside clients now: one table for
-        // everything that can call with your authority.
-        case "/api/me/principals":
-          data = { agents: [] };
           break;
         case "/api/claims":
           expect(init.method).toBe("POST");

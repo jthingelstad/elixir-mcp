@@ -131,8 +131,8 @@ test.describe("at computer width", () => {
             days: [],
             top_tools: [],
             by_caller: [
-              { kind: "agent", name: "Most", calls: 100 },
-              { kind: "agent", name: "Half", calls: 50 },
+              { kind: "client", name: "Most", calls: 100 },
+              { kind: "client", name: "Half", calls: 50 },
             ],
           },
         ],

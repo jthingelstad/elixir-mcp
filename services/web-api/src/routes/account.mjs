@@ -82,8 +82,7 @@ export function accountRoutes({
   // profile and then its battle log: the live lane Verify uses, charged
   // to nobody's live quota.
   const liveRead = live ?? makeLive({ enqueue: enqueueJob });
-  /** Track, untrack, or set notify or relationship on a player; yours,
-   *  or on an agent's console the agent's (which watches, only). */
+  /** Track, untrack, or set notify or relationship on a player. */
   async function followPlayer(db, event, body) {
     const account = await resolveAccount(db, event, {
       requireContractHeader: true,
@@ -107,10 +106,8 @@ export function accountRoutes({
       return json(200, { ok: true, notify: action === "notify_on" });
     }
     // A close friend (0281): the reader's private mark on a friend follow,
-    // kept in step across a linked account's players (close.mjs). An
-    // agent cannot mark close friends.
+    // kept in step across a linked account's players (close.mjs).
     if (action === "close_on" || action === "close_off") {
-      if (account.kind === "agent") return json(403, { error: "not_entitled" });
       const r = await setClose(db, account, {
         tag,
         close: action === "close_on",
@@ -130,8 +127,6 @@ export function accountRoutes({
     // Primary changes use addPlayer's atomic move. This action only
     // changes an existing non-primary between friend and alt.
     if (action === "relationship") {
-      // Agents have no self claims, so they have no relationship selector.
-      if (account.kind === "agent") return json(403, { error: "not_entitled" });
       const REL = ["alt", "friend"];
       if (!REL.includes(body.relationship))
         return json(400, { error: "bad_relationship", allowed: REL });
@@ -146,8 +141,7 @@ export function accountRoutes({
       // -- and demoting a primary by renaming it would leave you with none.
       if (!r.ok) return json(404, { error: "not_found_or_primary" });
       // Full Roster, or a follow (#1015), once the change committed.
-      if (account.kind !== "agent")
-        await playersChangedAfter(db, account.accountId, "relationship");
+      await playersChangedAfter(db, account.accountId, "relationship");
       return json(200, {
         ok: true,
         relationship: body.relationship,
@@ -217,14 +211,11 @@ export function accountRoutes({
     // also make the followed player's verified owner a Mutual.
     // Linked follows (Jamie, 2026-11-15): a Verified player's follow is
     // its account's follow, with the account's other Verified players.
-    const linked =
-      follow && account.kind !== "agent"
-        ? await linkAfterFollow(db, account, tag, { via: "web" })
-        : null;
-    if (account.kind !== "agent") {
-      await playersChangedAfter(db, account.accountId, "player_added");
-      if (follow) await settleFollowedOwner(db, account.accountId, tag);
-    }
+    const linked = follow
+      ? await linkAfterFollow(db, account, tag, { via: "web" })
+      : null;
+    await playersChangedAfter(db, account.accountId, "player_added");
+    if (follow) await settleFollowedOwner(db, account.accountId, tag);
     // claims logs recording_started; logging it here too wrote it twice.
     // A person's add asks for the battle log live too (2026-11-09), so
     // the last 30 battles land with the profile, in seconds.
@@ -241,9 +232,7 @@ export function accountRoutes({
       first_read: first.requested,
       not_found: first.not_found === true,
       clan_followed: r.clanFollowed ?? null,
-      ...(account.kind !== "agent"
-        ? (await playerConnections(db, account.accountId, [tag])).get(tag)
-        : {}),
+      ...(await playerConnections(db, account.accountId, [tag])).get(tag),
       slot: slotWire(r.slot),
       ...(follow ? { added: r.added, relationship: r.relationship } : {}),
       ...(linked
@@ -362,9 +351,7 @@ export function accountRoutes({
         [account.accountId],
       );
       const e = ent[0];
-      // Recording slots are the PERSON's, pooled across them and their
-      // agents (Jamie, 2026-09-23): the same numbers on your console and
-      // on each agent's, because they are the same slots.
+      // Recording slots are the pool's (@elixir-mcp/claims pool.mjs).
       const owner = await poolOwner(db, account.accountId);
       const limits = poolLimits(owner);
       const used = await pooledUsage(db, owner.account_id);
@@ -385,13 +372,6 @@ export function accountRoutes({
         c.slot = cost?.free ? "free" : "used";
         c.slot_reason = cost?.reason ?? null;
       }
-      // So are the daily budgets: an agent spends its owner's calls.
-      const budget = account.owner
-        ? {
-            mcp: account.owner.mcpDailyQuota,
-            live: account.owner.liveDailyQuota,
-          }
-        : { mcp: e.mcp_daily_quota, live: e.live_daily_quota };
       const lim = (v) => (v === Infinity ? null : v); // null = unlimited on the wire
       // The rail's signals (design 2026-09-09): a count of the reader's
       // own things on Connections and Feedback, an unread dot on
@@ -400,21 +380,18 @@ export function accountRoutes({
       // here rather than by the pages, so the rail can show them on
       // every screen without every screen fetching four lists.
       // timeline_pending counts SUBJECTS polled since the page's own place
-      // (a hint behind the agent rail's dot, not a count of items: Home's tab
-      // asks GET /api/me/timeline?news=1 instead). Its place is
-      // console_timeline_seen_at (0228), never an agent's read pointer:
+      // (a hint, not a count of items: Home's tab asks
+      // GET /api/me/timeline?news=1 instead). Its place is
+      // console_timeline_seen_at (0228), never an MCP read pointer:
       // "timeline should be independent of what agents have seen via
-      // MCP" (Jamie, 2026-10-20). An agent's mark_read leaves this dot
-      // lit; meta.timeline_pending (packages/tools shared.mjs) is the
-      // agents' count and never reads the app's place.
+      // MCP" (Jamie, 2026-10-20). meta.timeline_pending (packages/tools
+      // shared.mjs) is MCP's count and never reads the app's place.
       const { rows: sig } = await db.query(
         `select
            (select count(*)::int from oauth_family f
             where f.account_id = $1
               and f.revoked_at is null and f.absolute_expires_at > now())
-           + (select count(*)::int from account a
-              where a.owned_by_account_id = $1 and a.kind = 'agent'
-                and a.status <> 'disabled') as connections,
+             as connections,
            (select count(*)::int from feedback where account_id = $1) as feedback,
            (select count(*)::int from (
               select c.player_tag as tag from claim c
@@ -434,8 +411,7 @@ export function accountRoutes({
            (select count(*)::int from credential_refusal
              where account_id = $1 and day > current_date - 7
                and dismissed_at is null) as refusals_7d,
-           -- What THIS account tracks, for the rail's Tracking count: the
-           -- pooled slot figures below cover the owner and every agent.
+           -- What THIS account tracks, for the rail's Tracking count.
            (select count(*)::int from claim where account_id = $1)
            + (select count(*)::int from account_clan where account_id = $1)
              as tracking`,
@@ -456,54 +432,9 @@ export function accountRoutes({
           used: used.comprehensive_used,
           limit: lim(limits.comprehensive),
         },
-        mcp_calls_per_day: lim(budget.mcp ?? q.mcp_calls_per_day),
-        live_fetches_per_day: lim(budget.live ?? q.live_fetches_per_day),
+        mcp_calls_per_day: lim(e.mcp_daily_quota ?? q.mcp_calls_per_day),
+        live_fetches_per_day: lim(e.live_daily_quota ?? q.live_fetches_per_day),
       };
-      if (account.kind === "agent") {
-        // An agent's own console (/api/agent/<id>): who it is, the clans it
-        // acts for, and the person's clock and slots.
-        const { rows: clans } = await db.query(
-          `select ac.clan_tag, cl.name, ac.scope, ac.notify, ac.is_primary
-             from account_clan ac left join clan cl on cl.clan_tag = ac.clan_tag
-            where ac.account_id = $1
-            order by ac.is_primary desc, ac.clan_tag`,
-          [account.accountId],
-        );
-        return json(200, {
-          authenticated: true,
-          features: { discord_login: discordLogin, comments, posts },
-          kind: "agent",
-          public_id: account.publicId,
-          name: account.name,
-          status: account.status,
-          role: e.role,
-          is_owner: false,
-          is_admin: false,
-          timezone: account.timezone,
-          signals: sig[0],
-          entitlements,
-          clans,
-          claims: claims.rows,
-          recordings: recordings.rows,
-        });
-      }
-      // The agents this person can switch the console into, for the rail
-      // header's selector: a few rows, so every page can offer it.
-      const { rows: agents } = await db.query(
-        `select a.public_id, ${tierSql("a")} as role, a.status, a.removed_at,
-                (select t.name from service_token t
-                  where t.account_id = a.account_id
-                  order by (t.revoked_at is null) desc, t.created_at desc
-                  limit 1) as name,
-                (select json_build_object('clan_tag', ac.clan_tag, 'name', cl.name)
-                   from account_clan ac left join clan cl on cl.clan_tag = ac.clan_tag
-                  where ac.account_id = a.account_id
-                  order by ac.is_primary desc, ac.clan_tag limit 1) as clan
-           from account a
-          where a.owned_by_account_id = $1 and a.kind = 'agent'
-          order by a.created_at`,
-        [account.accountId],
-      );
       // A self claim that ended because another account verified its tag,
       // or a signup tag refused for it (#556): said where the primary is
       // shown for as long as the account has no primary (a friend
@@ -537,7 +468,6 @@ export function accountRoutes({
       return json(200, {
         authenticated: true,
         features: { discord_login: discordLogin, comments, posts },
-        kind: "person",
         claim_notice: notice[0]
           ? {
               kind:
@@ -572,15 +502,7 @@ export function accountRoutes({
           d ? { username: d.username, linked_at: d.linked_at } : null,
         ),
         role: e.role,
-        entitlements: {
-          ...entitlements,
-          // The one the ladder publishes that this payload did not, so
-          // the console's limits table and /docs/roles are the same rows
-          // from the same source (roles.ts). Integrations are admin-
-          // provisioned, not a tier row (2026-09-25).
-          agents: { limit: lim(q.agents) },
-        },
-        agents: agents.map((a) => ({ ...a, name: a.name ?? a.public_id })),
+        entitlements,
         claims: claims.rows.map((row) => ({
           ...row,
           ...connections.get(row.player_tag),
@@ -620,14 +542,12 @@ export function accountRoutes({
 
     // The profile image (2026-11-14, Jamie: "I want to wholesale move that
     // into Elixir"): one card from the catalog, never a tower troop, or
-    // null to go back to initials. A person's only: an agent is refused,
-    // and no agent console reaches it (AGENT_SCOPED_ROUTES).
+    // null to go back to initials.
     "POST /api/me/avatar": async (db, event, body) => {
       const account = await resolveAccount(db, event, {
         requireContractHeader: true,
       });
       if (!account) return json(401, { error: "unauthenticated" });
-      if (account.kind === "agent") return json(403, { error: "not_entitled" });
       const raw = body?.card_id;
       let card = null;
       if (raw !== null && raw !== undefined) {
@@ -678,7 +598,6 @@ export function accountRoutes({
         requireContractHeader: true,
       });
       if (!account) return json(401, { error: "unauthenticated" });
-      if (account.kind === "agent") return json(403, { error: "not_entitled" });
       const raw = body?.handle;
       if (raw !== null && typeof raw !== "string")
         return json(400, {
@@ -706,7 +625,6 @@ export function accountRoutes({
     "GET /api/me/handle-check": async (db, event) => {
       const account = await resolveAccount(db, event);
       if (!account) return json(401, { error: "unauthenticated" });
-      if (account.kind === "agent") return json(403, { error: "not_entitled" });
       const raw = event.queryStringParameters?.handle;
       if (raw == null || raw === "")
         return json(200, {
@@ -742,8 +660,7 @@ export function accountRoutes({
       const used = await pooledUsage(db, owner.account_id);
       // Linked follows: following a Verified player follows its account's
       // other Verified players too, so the price counts them.
-      const verifier =
-        tag && account.kind === "person" ? await verifierOf(db, tag) : null;
+      const verifier = tag ? await verifierOf(db, tag) : null;
       const extra =
         verifier && verifier !== account.accountId
           ? await linkedTagsToFollow(db, account.accountId, verifier, tag)
@@ -767,8 +684,7 @@ export function accountRoutes({
       });
     },
     "POST /api/claims": followPlayer,
-    // The same writer at a /api/me address, so an agent's console can run it
-    // as the agent (/api/agent/<id>/players; 2026-09-23).
+    // The same writer at a /api/me address (docs: recording).
     "POST /api/me/players": followPlayer,
 
     "GET /api/me/first-answer": async (db, event) => {
@@ -811,24 +727,9 @@ export function accountRoutes({
                           'country', (array_agg(m.viewer_country order by m.created_at desc)
                                       filter (where m.viewer_country is not null))[1])
                  from mcp_call_audit m
-                 where m.oauth_family_id = f.family_id) as usage,
-                -- WHOSE door this grant is for. An agent or integration
-                -- connects at its own path and its grant is bound to that
-                -- principal's account, not the owner's, so this list showed
-                -- only personal connections and the per-agent ones were
-                -- unmanageable from anywhere (owner report, 2026-09-09).
-                case when f.account_id = $1 then null else json_build_object(
-                  'kind', a.kind,
-                  'public_id', a.public_id,
-                  'name', (select st.name from service_token st
-                           where st.account_id = a.account_id
-                           order by st.token_id limit 1)) end as principal
+                 where m.oauth_family_id = f.family_id) as usage
          from oauth_family f
          join oauth_client c on c.client_id = f.client_id
-         join account a on a.account_id = f.account_id
-         -- Yours only: a client connected AS one of your agents is listed
-         -- on that agent's console (/api/agent/<id>/connections), which
-         -- runs this same query as the agent (2026-09-23).
          where f.account_id = $1
            and f.revoked_at is null
            and f.absolute_expires_at > now()
@@ -892,9 +793,7 @@ export function accountRoutes({
       const { rowCount } = await db.query(
         `update oauth_family set revoked_at = now()
          where family_id::text = $1 and revoked_at is null
-           and account_id in (
-             select account_id from account
-             where account_id = $2 or owned_by_account_id = $2)`,
+           and account_id = $2`,
         [String(body.family_id ?? ""), account.accountId],
       );
       if (rowCount === 0) return json(404, { error: "not_found" });
@@ -904,8 +803,7 @@ export function accountRoutes({
       return json(200, { ok: true });
     },
 
-    // Capabilities are editable AFTER the fact, on the personal door and on
-    // every agent or integration door the account owns.
+    // Capabilities are editable AFTER the fact, on your own connections.
     //
     // The grant is the person's, not the client's: scope arrives in the
     // client's ?scope= parameter, so an app that never asks for a capability
@@ -941,9 +839,7 @@ export function accountRoutes({
       const { rows } = await db.query(
         `update oauth_family f set scope = $3
          where f.family_id::text = $1 and f.revoked_at is null
-           and f.account_id in (
-             select account_id from account
-             where account_id = $2 or owned_by_account_id = $2)
+           and f.account_id = $2
            and $4::text[] <@ string_to_array(f.scope, ' ')
          returning f.family_id, f.scope`,
         [String(body.family_id ?? ""), account.accountId, scope, nonStandard],
@@ -1006,12 +902,6 @@ export function accountRoutes({
     "GET /api/me/usage": async (db, event) => {
       const account = await resolveAccount(db, event);
       if (!account) return json(401, { error: "unauthenticated" });
-      // EVERY account whose calls this budget pays for: yours, and your
-      // agents'. An agent charges `mcpday#<owner>` (auth/oauth.mjs, "an agent
-      // spends its OWNER's budget") while its audit rows carry its own
-      // account_id -- so counting only $1 showed "42 of 500" to somebody the
-      // limiter had already counted to 500. The page whose whole job is "am I
-      // near my limit" has to count what the limiter counts.
       // Fourteen days, because the page draws them as a bar per day and
       // a week is too short a run to see a shape in.
       // Only what the daily limiter charges counts (CHARGED, above): the
@@ -1023,104 +913,69 @@ export function accountRoutes({
         `select (created_at at time zone 'UTC')::date::text as day,
                 count(*) filter (where ${CHARGED})::int as calls,
                 count(*) filter (where ${CHARGED} and error_code is not null)::int as errors,
-                count(*) filter (where ${CHARGED} and account_id <> $1)::int as agent_calls,
                 count(*) filter (where ${WEB_READS})::int as web_calls
          from mcp_call_audit
-         where (account_id = $1 or account_id = any(coalesce(
-                 (select array_agg(account_id) from account where owned_by_account_id = $1),
-                 '{}'::uuid[])))
+         where account_id = $1
            and created_at > now() - interval '14 days'
          group by 1 order by 1 desc`,
         [account.accountId],
       );
-      // WHO spent it: a client signed in as you (its registered name),
-      // an agent of yours (its key's name), a service token on your own
-      // account, or the console's explorer. Seven days, like the tools.
+      // WHO spent it: a client signed in as you (its registered name), a
+      // service token on your own account, or the website. Seven days,
+      // like the tools.
       const { rows: callers } = await db.query(
         `select coalesce(
-                  case when m.account_id <> $1 then
-                    (select st.name from service_token st
-                      where st.account_id = m.account_id
-                      order by st.token_id limit 1) end,
                   case when m.token_id is not null then
                     'svc:' || (select st.name from service_token st
                                where st.token_id = m.token_id) end,
                   m.client_name,
                   case when m.surface = 'web' then 'Website' end,
                   'unnamed client') as name,
-                case when m.account_id <> $1 then 'agent'
-                     when m.token_id is not null then 'service token'
+                case when m.token_id is not null then 'service token'
                      when m.surface = 'web' then 'website'
                      else 'client' end as kind,
-                -- An agent's row opens its pages (2026-09-23).
-                max((select a.public_id from account a
-                      where a.account_id = m.account_id
-                        and m.account_id <> $1)) as public_id,
                 count(*)::int as calls
          from mcp_call_audit m
-         where (m.account_id = $1 or m.account_id = any(coalesce(
-                 (select array_agg(account_id) from account where owned_by_account_id = $1),
-                 '{}'::uuid[])))
+         where m.account_id = $1
            and m.created_at > now() - interval '7 days'
          group by 1, 2 order by calls desc limit 8`,
         [account.accountId],
       );
       const { rows: tools } = await db.query(
         `select tool, count(*)::int as calls from mcp_call_audit
-         where (account_id = $1 or account_id = any(coalesce(
-                 (select array_agg(account_id) from account where owned_by_account_id = $1),
-                 '{}'::uuid[])))
+         where account_id = $1
            and created_at > now() - interval '7 days'
          group by 1 order by 2 desc limit 5`,
         [account.accountId],
       );
       const today = new Date().toISOString().slice(0, 10);
-      // On an agent's console the budget is still its owner's: the calls
-      // and live fetches it spends are counted against the person
-      // (auth/oauth.mjs budgetFor), so the ceilings, the live counter and
-      // the day's total are theirs, and the agent's calls are its share.
-      const holder = account.owner ?? account;
       const { rows: live } = await db.query(
         `select count from rate_limit where bucket = $1 and window_start = $2::date`,
-        [`liveday#${holder.accountId}`, today],
+        [`liveday#${account.accountId}`, today],
       );
-      const pool = account.owner
-        ? await db.query(
-            `select count(*)::int as calls from mcp_call_audit
-              where (account_id = $1 or account_id in (
-                       select account_id from account where owned_by_account_id = $1))
-                and created_at >= $2::date and ${CHARGED}`,
-            [holder.accountId, today],
-          )
-        : null;
       // The tier's real ceilings (contracts roles.ts), beaten by the
       // per-account overrides; null = unlimited on the wire. This used to
       // hardcode member's numbers for every tier.
-      const q = roleQuotas(holder.role);
-      const unlimited = holder.isOwner || holder.role === "admin";
+      const q = roleQuotas(account.role);
+      const unlimited = account.isOwner || account.role === "admin";
       const lim = (v) => (unlimited || v === Infinity ? null : v);
       return json(200, {
-        ...(pool ? { budget_today_calls: pool.rows[0].calls } : {}),
         days,
         by_caller: callers,
         top_tools: tools,
         today_calls: days.find((d) => d.day === today)?.calls ?? 0,
-        // Broken out so the page can say where the spend went rather than
-        // leaving somebody to wonder why their own usage looks bigger than
-        // their own usage.
-        agent_calls_today: days.find((d) => d.day === today)?.agent_calls ?? 0,
         // The app's and Stats' own reads today: the same tools, but
         // not counted against the daily budget (docs/limits, #538).
         web_calls_today: days.find((d) => d.day === today)?.web_calls ?? 0,
         live_today: live[0]?.count ?? 0,
-        live_max: lim(holder.liveDailyQuota ?? q.live_fetches_per_day),
-        quota_max: lim(holder.mcpDailyQuota ?? q.mcp_calls_per_day),
+        live_max: lim(account.liveDailyQuota ?? q.live_fetches_per_day),
+        quota_max: lim(account.mcpDailyQuota ?? q.mcp_calls_per_day),
       });
     },
 
     "GET /api/me/requests": async (db, event) => {
-      // Activity tab 1: the MCP requests this account's
-      // agents made - the user's own audit slice, newest first.
+      // The MCP requests this account's connections made: the
+      // person's own audit slice, newest first.
       const account = await resolveAccount(db, event);
       if (!account) return json(401, { error: "unauthenticated" });
       const { rows } = await db.query(
@@ -1139,8 +994,7 @@ export function accountRoutes({
     "GET /api/me/activity/calls/*": async (db, event) => {
       // One call, opened from the Activity log (review 2026-09-10 Part
       // 5): the row with its timings, and the captured request and
-      // response when they landed. Own rows and owned agents' rows only;
-      // the id is the request_id the caller was handed in meta.
+      // response when they landed. Own rows only; the id is the request_id the caller was handed in meta.
       const account = await resolveAccount(db, event);
       if (!account) return json(401, { error: "unauthenticated" });
       const requestId = String(event.pathParam ?? "");
@@ -1159,10 +1013,9 @@ export function accountRoutes({
       // synthesized exactly as elixir_timeline would. Reading here moves
       // nothing. seen_to is the app's own place (0228) as it stood
       // before this read, for the page's "New since your last visit"
-      // divider; the page moves it with POST /api/me/timeline/seen. The
-      // agents' read pointers (activity_seen_at, timeline_reader) are
-      // theirs: this route neither reads nor moves them (Jamie,
-      // 2026-10-20).
+      // divider; the page moves it with POST /api/me/timeline/seen. MCP's
+      // read pointers (activity_seen_at, timeline_reader) are its own:
+      // this route neither reads nor moves them (Jamie, 2026-10-20).
       const account = await resolveAccount(db, event);
       if (!account) return json(401, { error: "unauthenticated" });
       const { rows } = await db.query(
@@ -1205,7 +1058,6 @@ export function accountRoutes({
       const built = await buildTimeline(db, subjects, {
         fromMs,
         toMs,
-        // The reader's clock: on an agent's console, its owner's.
         timezone: account.timezone ?? rows[0]?.timezone ?? "UTC",
         accountId: account.accountId,
         // The console is a browser session: the person, interactively.
@@ -1248,11 +1100,10 @@ export function accountRoutes({
     "POST /api/me/timeline/seen": async (db, event, body) => {
       // The app showed this account's Timeline through `to` (the
       // window end GET /api/me/timeline served): its own place moves
-      // there, forward only, and the rail's dot counts from it. On an
-      // agent's console it is the agent's row, moved by its owner. Never
-      // an agent's read pointer or meta.timeline_pending (Jamie,
-      // 2026-10-20: "timeline should be independent of what agents have
-      // seen via MCP").
+      // there, forward only, and the rail's dot counts from it. Never an
+      // MCP read pointer or meta.timeline_pending (Jamie, 2026-10-20:
+      // "timeline should be independent of what agents have seen via
+      // MCP").
       const account = await resolveAccount(db, event, {
         requireContractHeader: true,
       });

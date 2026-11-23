@@ -1,9 +1,8 @@
 /** Cheers and the RSS link (social slice 7's second part, #765).
  *
  *  `PUT /api/me/cheers` sets, changes or takes back the signed-in person's
- *  cheer on a timeline item: the contract header required, a person only
- *  (an agent is refused, and no agent console reaches it:
- *  AGENT_SCOPED_ROUTES does not list it), rate limited.
+ *  cheer on a timeline item: the contract header required, rate
+ *  limited.
  *
  *  `GET /api/me/cheers?player=<tag>` or `?battle=<ref>` answers which of a
  *  player page's or a battle page's actual recorded items and their counts.
@@ -48,11 +47,6 @@ import {
 } from "../feed-link.mjs";
 
 const unauthenticated = () => json(401, { error: "unauthenticated" });
-const notEntitled = () =>
-  json(403, {
-    error: "not_entitled",
-    message: "Cheers and the RSS link are a person's own; an agent has none.",
-  });
 const limited = () =>
   json(
     429,
@@ -97,7 +91,6 @@ export function cheersRoutes({ resolveAccount, posts = false, wake = null }) {
       requireContractHeader: write,
     });
     if (!account) return { refused: unauthenticated() };
-    if (account.kind === "agent") return { refused: notEntitled() };
     return { account };
   };
 

@@ -35,7 +35,7 @@ import { ClanmateState, isClanmateConnection } from "./Connection.jsx";
  * timeline of all its players and its own news. Following an account brings
  * that news to your feed and follows each player it has verified.
  *
- * Never an email, a Discord username, a nickname or an agent: what DECISIONS
+ * Never an email, a Discord username or a nickname: what DECISIONS
  * "What is public about an account" makes public and nothing past it.
  */
 export function AccountPage() {

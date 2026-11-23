@@ -8,7 +8,7 @@ import { ME, mockApi, signedIn } from "./fixtures.ts";
  * it records and the clan slot it takes, then writes Elixir's own clan
  * follow (`POST /api/me/clans`, activity scope) and reads "Following".
  * Followed already, it reads "Following" and offers nothing. Full slots
- * leave it open (a clan an agent follows costs no new slot) and the
+ * leave it open (a clan your pool follows already costs no new slot) and the
  * server's refusal is shown. The fixtures' invented clan; local mocks only.
  */
 

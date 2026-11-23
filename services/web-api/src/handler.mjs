@@ -49,9 +49,7 @@ import { adminRoutes } from "./routes/admin.mjs";
 import { onboardAccount } from "@elixir-mcp/tools/onboard";
 import { makeLive, requestFirstRead } from "@elixir-mcp/tools/live";
 import { enqueueJob } from "@elixir-mcp/ledger";
-import { resolveOwnedAgent } from "./agent-scope.mjs";
 import { deadlineMs } from "./deadline.mjs";
-import { principalsRoutes } from "./routes/principals.mjs";
 import { battleRoutes } from "./routes/battle.mjs";
 import { itemSharingRoutes } from "./routes/item-sharing.mjs";
 import { timelineItemRoutes } from "./routes/timeline-items.mjs";
@@ -100,48 +98,6 @@ function wildcardRoute(routes, method, path, event) {
   }
   return route;
 }
-
-/**
- * An agent's console:
- * `/api/agent/<public_id>/<tail>` runs the `/api/me/<tail>` route AS that
- * agent, for the person who owns it. The scope lives in the path, never in
- * a header or the session, so the access log and the audit say whose page
- * was read, and nothing ambient can make a write land on the wrong account.
- *
- * Only the routes listed here take the scope. Everything else under the
- * prefix is a 404, and so is an agent that is not yours: the answer never
- * confirms that another owner's agent exists.
- */
-export const AGENT_SCOPED_ROUTES = new Set([
-  "GET /api/me",
-  "GET /api/me/timeline",
-  // The app's own place in the agent's timeline (0228), moved when
-  // its owner views it there; never the agent's read pointer.
-  "POST /api/me/timeline/seen",
-  // The agent's timeline cross-posted to Discord (0213), set by its owner.
-  "GET /api/me/timeline/discord",
-  "PUT /api/me/timeline/discord",
-  "POST /api/me/timeline/discord/rate",
-  "GET /api/me/requests",
-  "GET /api/me/activity/calls/*",
-  "GET /api/me/activity",
-  "GET /api/me/feedback",
-  "GET /api/me/feedback/*",
-  "GET /api/me/usage",
-  "GET /api/me/connections",
-  "POST /api/me/connections/revoke",
-  "POST /api/me/connections/scope",
-  "POST /api/me/connections/refusals/dismiss",
-  // Configuring the agent (phase 2): what it tracks, and the clan it acts
-  // for, in the person's pooled slots (@elixir-mcp/claims).
-  "GET /api/me/clans",
-  "POST /api/me/clans",
-  "POST /api/me/players",
-  // What a follow would cost before the tap (#760), priced in the pool.
-  "GET /api/me/follow-cost",
-]);
-
-const AGENT_PATH = /^\/api\/agent\/([a-z0-9]{8,16})(\/.*)?$/;
 
 export { CLAN_UNSIGNED } from "./routes/clan.mjs";
 
@@ -283,25 +239,6 @@ export function makeHandler({
       ? { unsubscribe: unsubscribeSecret, session: secret }
       : null;
   async function resolveAccount(
-    db,
-    event,
-    { requireContractHeader = false } = {},
-  ) {
-    // An agent-scoped request was resolved before the route ran (the
-    // owner's session, then the agent it owns); the contract header rule
-    // still applies to it exactly as to the owner's own requests.
-    if (event.scopedAccount) {
-      if (
-        requireContractHeader &&
-        !bearer(event) &&
-        !event.headers?.[CONTRACT_HEADER]
-      )
-        return null;
-      return event.scopedAccount;
-    }
-    return resolvePerson(db, event, { requireContractHeader });
-  }
-  async function resolvePerson(
     db,
     event,
     { requireContractHeader = false } = {},
@@ -511,7 +448,6 @@ export function makeHandler({
       logEvent,
       capture,
     }),
-    ...principalsRoutes({ resolveAccount, logEvent }),
     ...verifyRoutes({ resolveAccount, logEvent }),
     ...battleRoutes({ siteShell, shareImage, resolveAccount }),
     // A session's public page, picture and JSON (2026-11-17).
@@ -583,7 +519,7 @@ export function makeHandler({
     ...passportRoutes({ resolveAccount }),
     ...accountsRoutes({ resolveAccount, blocks: comments?.enabled === true }),
     // Clan, a part of Elixir: its routes under /api/clan (routes/clan.mjs).
-    ...clanRoutes({ clan, resolvePerson }),
+    ...clanRoutes({ clan, resolvePerson: resolveAccount }),
     ...emailRoutes({
       resolveAccount,
       secret: unsubscribeKeys,
@@ -620,7 +556,6 @@ export function makeHandler({
       }
     }
     const isApi = path.startsWith("/api/v1/");
-    const agentPath = isApi ? null : AGENT_PATH.exec(path);
     const found = isApi
       ? {
           route: (db, event, body) => signInApi(db, event, body),
@@ -628,12 +563,7 @@ export function makeHandler({
           // The line names the operation the key cannot (review 2026-10-21).
           operation: v1Operation(method, path),
         }
-      : findRoute(
-          routes,
-          method,
-          agentPath ? `/api/me${agentPath[2] ?? ""}` : path,
-          event,
-        );
+      : findRoute(routes, method, path, event);
     // The site bucket missed and the edge failed over here: the site's
     // own 404 page, never for a path under /api/, whose callers read JSON.
     if (
@@ -644,8 +574,6 @@ export function makeHandler({
     )
       return siteMiss(method);
     if (!found) return json(404, { error: "not_found" });
-    if (agentPath && !AGENT_SCOPED_ROUTES.has(found.key))
-      return json(404, { error: "not_found" });
     const { route } = found;
     let body = {};
     // The one-click unsubscribe POST (RFC 8058) carries
@@ -678,17 +606,12 @@ export function makeHandler({
     // itself a little before the kill, so the line says which route,
     // and the client gets JSON rather than a gateway error page.
     const started = Date.now();
-    // An agent's public id is a name too: the scoped key logs the prefix
-    // with a star and the route it ran (`GET /api/agent/*/timeline`).
-    const routeKey = agentPath
-      ? found.key.replace(" /api/me", " /api/agent/*")
-      : found.key;
     // The request line (packages/http server.mjs) names this route by its
     // shape, so a wildcard's value (a feed link's token, a share id) is
     // never logged. A family (`/**`, Clan) and the JSON API's one
     // operation keep their path, masked there: their keys name no route.
     if (context && !found.key.endsWith("/**") && !isApi)
-      context.route = routeKey.slice(routeKey.indexOf(" ") + 1);
+      context.route = found.key.slice(found.key.indexOf(" ") + 1);
     const requestId = context?.requestId ?? null;
     let status = 500;
     let connectMs = 0;
@@ -719,13 +642,6 @@ export function makeHandler({
               return unavailable(isApi, requestId);
             }
             connectMs = Date.now() - started;
-          }
-          if (agentPath) {
-            const person = await resolvePerson(db, event);
-            if (!person) return json(401, { error: "unauthenticated" });
-            const agent = await resolveOwnedAgent(db, person, agentPath[1]);
-            if (!agent) return json(404, { error: "not_found" });
-            event.scopedAccount = agent;
           }
           return withPlayerVerifications(
             db,
@@ -770,7 +686,7 @@ export function makeHandler({
         delete story[own];
       (trace?.level === "warn" ? console.warn : console.info)({
         at: new Date().toISOString(),
-        http: trace?.http ?? routeKey,
+        http: trace?.http ?? found.key,
         ...(found.operation ? { operation: found.operation } : {}),
         status,
         ms: Date.now() - started,

@@ -2,8 +2,8 @@
  * Your follow slots (Settings › What members see, 2026-11-12), against a
  * real PostgreSQL database. The page's meter must say what every Follow
  * dialog says: `used` here is follow-cost's `used`, and the rows that use a
- * slot are exactly that many. Each row names who in the reader's own pool
- * follows the player; nothing names another account.
+ * slot are exactly that many. Each row says how the reader follows the
+ * player; nothing names another account.
  */
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
@@ -15,16 +15,14 @@ import { makeHandler } from "../src/handler.mjs";
 // Made-up tags: this repository is public.
 const OWN = "#0JR2U89V"; // the reader's main player, in no recorded clan
 const PAID = "#0PYP8RQ2"; // the reader follows; nobody else does
-const SHARED = "#0YLPUQU8"; // the reader follows; the agent tracks too
 const CLANNED = "#0UCCGLUQ"; // in a clan recorded in full
 const FIRST = "#0RPYVQ9R"; // another account followed first
 const WATCHED = "#0C8VR2CG"; // the reader only watches
-const AGENTS = "#0C2P8LJR"; // only the reader's agent tracks
 const OTHERS = "#0L8P9LLJ"; // only the other account follows
 const CLAN = "#00YQ9Q90";
 const OTHER_EMAIL = "other-account-hash";
 
-let scratch, handler, reader, other, agent;
+let scratch, handler, reader, other;
 const sessions = new Map();
 const data = (r) => JSON.parse(r.body);
 
@@ -70,11 +68,9 @@ before(async () => {
   for (const [tag, name] of [
     [OWN, "Oakmoss"],
     [PAID, "Pinecone"],
-    [SHARED, "Sorrel"],
     [CLANNED, "Clover"],
     [FIRST, "Fennel"],
     [WATCHED, "Wren"],
-    [AGENTS, "Aster"],
     [OTHERS, "Osier"],
   ])
     await db.query("insert into player(player_tag,name) values ($1,$2)", [
@@ -84,16 +80,6 @@ before(async () => {
   handler = makeHandler({ databaseUrl: scratch.url, secret: "test" });
   reader = await person("slots-reader");
   other = await person(OTHER_EMAIL);
-  agent = (
-    await db.query(
-      "insert into account(kind,owned_by_account_id,status,role,public_id) values ('agent',$1,'approved','member','agslots1') returning account_id",
-      [reader],
-    )
-  ).rows[0].account_id;
-  await db.query(
-    "insert into service_token(account_id,name,token_hash) values ($1,'Scout Bot','not-a-real-hash')",
-    [agent],
-  );
   // A clan recorded in full, with CLANNED open on its roster.
   await db.query("insert into clan(clan_tag,name) values ($1,'Grove')", [CLAN]);
   await db.query(
@@ -111,12 +97,9 @@ before(async () => {
   await claim(other, OTHERS, "friend");
   await claim(reader, OWN, "primary");
   await claim(reader, PAID, "friend");
-  await claim(reader, SHARED, "friend");
   await claim(reader, CLANNED, "friend");
   await claim(reader, FIRST, "friend");
   await claim(reader, WATCHED, "friend");
-  await claim(agent, SHARED, "friend");
-  await claim(agent, AGENTS, "friend");
 });
 after(async () => scratch?.drop());
 
@@ -146,7 +129,7 @@ test("the meter's numbers are the Follow dialogs' numbers, player by player", as
   const row = Object.fromEntries(slots.players.map((p) => [p.player_tag, p]));
   assert.deepEqual(
     Object.keys(row).sort(),
-    [OWN, PAID, SHARED, CLANNED, FIRST, WATCHED, AGENTS].sort(),
+    [OWN, PAID, CLANNED, FIRST, WATCHED].sort(),
     "the pool's players, once each, and nobody only another account follows",
   );
   assert.deepEqual(
@@ -156,37 +139,26 @@ test("the meter's numbers are the Follow dialogs' numbers, player by player", as
     {
       [OWN]: ["used", null, "primary"],
       [PAID]: ["used", null, "friend"],
-      [SHARED]: ["used", null, "friend"],
       [CLANNED]: ["free", "in_recorded_clan", "friend"],
       [FIRST]: ["free", "followed_by_others", "friend"],
       [WATCHED]: ["used", null, "friend"],
-      [AGENTS]: ["used", null, null],
     },
   );
-  assert.equal(slots.used, 5);
+  assert.equal(slots.used, 3);
   assert.equal(row[PAID].name, "Pinecone");
-  // The reader's agent, by its name; the other account, never.
-  assert.deepEqual(row[AGENTS].agents, [
-    { public_id: "agslots1", name: "Scout Bot", relationship: "friend" },
-  ]);
-  assert.deepEqual(
-    row[SHARED].agents.map((a) => a.name),
-    ["Scout Bot"],
-  );
-  assert.deepEqual(row[FIRST].agents, []);
+  // The other account, never.
   assert.ok(!r.body.includes(other), "no other account's id");
   assert.ok(!r.body.includes(OTHER_EMAIL));
   assert.ok(!r.body.includes(OTHERS), "nobody only another account follows");
   assert.ok(!r.body.includes("account_id"), "no account ids at all");
 });
 
-test("pooledFollows prices what pooledUsage counts, for the agent's view too", async () => {
+test("pooledFollows prices what pooledUsage counts", async () => {
   const rows = await pooledFollows(scratch.db, reader);
   const usage = await pooledUsage(scratch.db, reader);
   assert.equal(rows.filter((r) => !r.free).length, usage.players_used);
   assert.equal(rows.filter((r) => r.free).length, usage.players_free);
   assert.equal(rows.length, usage.players_followed);
-  // The agent spends its owner's slots: its own read is the same pool.
   const r = await call(reader, "GET", "/api/me/follow-slots");
   assert.equal(data(r).used, usage.players_used);
 });
@@ -203,13 +175,4 @@ test("stopping a follow frees its slot at once, and both reads say so", async ()
   assert.equal(after.used, before.used - 1);
   assert.equal(after.used, cost.used);
   assert.ok(!after.players.some((p) => p.player_tag === PAID));
-  // A follow the agent also tracks keeps its slot when the reader stops.
-  await call(reader, "POST", "/api/claims", {
-    player_tag: SHARED,
-    action: "remove",
-  });
-  const shared = data(await call(reader, "GET", "/api/me/follow-slots"));
-  const row = shared.players.find((p) => p.player_tag === SHARED);
-  assert.deepEqual([row.slot, row.yours], ["used", null]);
-  assert.equal(shared.used, after.used);
 });

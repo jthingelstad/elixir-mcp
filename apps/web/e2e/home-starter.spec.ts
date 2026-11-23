@@ -271,10 +271,14 @@ test("small phone: enlarged text reflows and keeps the starter controls usable",
   const elm = set.getByRole("checkbox", { name: "Follow Elm" });
   await expect(elm).toBeVisible();
   await page.evaluate(() => document.fonts.ready);
-  await set.locator(".kit-starter__row").nth(2).scrollIntoViewIfNeeded();
-  await expect(set.locator(".kit-starter__row").nth(2)).toBeInViewport({
-    ratio: 1,
-  });
+  // The feed below the starter can still be laying out when the row is
+  // scrolled to, which moves it back out of view (seen 2026-11-23 under a
+  // full run). Scroll and look again until the page has settled.
+  const third = set.locator(".kit-starter__row").nth(2);
+  await expect(async () => {
+    await third.scrollIntoViewIfNeeded();
+    await expect(third).toBeInViewport({ ratio: 1, timeout: 250 });
+  }).toPass();
   await expect(set).toContainText("2v2 teammate twice · last 30 days");
   const tick = await elm.locator("..").boundingBox();
   expect(tick!.width).toBeGreaterThanOrEqual(44);

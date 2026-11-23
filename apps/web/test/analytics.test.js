@@ -61,7 +61,7 @@ describe("analyticsLocation", () => {
     expect(seen.url).not.toContain("abcdefghijklmnopqrstuvwx");
   });
 
-  test("Settings reports the kind of page, never which player, agent or record", () => {
+  test("Settings reports the kind of page, never which player or record", () => {
     // Report hygiene: one row per kind of record page, never one per
     // record (docs/ENGINEERING.md, "Product identifiers versus measurement").
     for (const [path, kind] of [
@@ -74,8 +74,6 @@ describe("analyticsLocation", () => {
       ["/settings/usage/requests/5c1c5dbf", "/settings/usage/requests"],
       ["/settings/feedback/812", "/settings/feedback"],
       ["/settings/connections/discord", "/settings/connections/discord"],
-      ["/settings/agents/a1b2c3d4e5f6/reads", "/settings/agents/reads"],
-      ["/settings/agents/a1b2c3d4e5f6", "/settings/agents"],
       ["/settings/admin/accounts/42", "/settings/admin/accounts"],
       ["/settings/admin/emails/5c1c5dbf", "/settings/admin/emails"],
     ]) {
@@ -200,28 +198,13 @@ describe("loadTinylytics", () => {
     ["/settings/usage/requests/5c1c5dbf", "/settings/usage/requests"],
     ["/settings/feedback/812", "/settings/feedback"],
     ["/settings/collectors/5c1c5dbf", "/settings/collectors"],
-    ["/settings/agents/a1b2c3d4e5f6", "/settings/agents"],
-    ["/settings/agents/a1b2c3d4e5f6/overview", "/settings/agents/overview"],
-    ["/settings/agents/a1b2c3d4e5f6/reads", "/settings/agents/reads"],
-    ["/settings/agents/a1b2c3d4e5f6/usage", "/settings/agents/usage"],
-    [
-      "/settings/agents/a1b2c3d4e5f6/usage/requests/5c1c5dbf",
-      "/settings/agents/usage",
-    ],
-    ["/settings/agents/a1b2c3d4e5f6/feedback/812", "/settings/agents/feedback"],
-    ["/settings/agents/a1b2c3d4e5f6/timeline", "/settings/agents/timeline"],
-    [
-      "/settings/agents/a1b2c3d4e5f6/connections",
-      "/settings/agents/connections",
-    ],
-    ["/settings/agents/a1b2c3d4e5f6/settings", "/settings/agents/settings"],
   ])("a direct visit to %s reports its kind by beacon", async (path, kind) => {
     await load(path);
     expect(embeds()).toEqual([]);
     settle();
     expect(beacons).toHaveLength(1);
     expect(new URL(beacons[0]).searchParams.get("path")).toBe(kind);
-    expect(beacons[0]).not.toMatch(/2ABC|5c1c5dbf|812|a1b2c3d4e5f6/);
+    expect(beacons[0]).not.toMatch(/2ABC|5c1c5dbf|812/);
   });
 
   test.each([
@@ -559,10 +542,6 @@ describe("failure events", async () => {
     );
     expect(routeLabel("GET", "/api/me/gateways")).toBe("GET /api/me/gateways");
     expect(routeLabel("POST", "/api/me/tool")).toBe("POST /api/me/tool");
-    // Which agent is never reported (2026-09-25).
-    expect(routeLabel("GET", "/api/agent/a1b2c3d4e5f6/usage")).toBe(
-      "GET /api/agent/*/*",
-    );
   });
 
   test("an event is one click on a hidden collector node, then gone", () => {

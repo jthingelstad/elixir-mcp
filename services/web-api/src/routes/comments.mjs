@@ -15,8 +15,7 @@
  *    `{ id }`, `POST /api/admin/comments/dismiss` `{ id }`,
  *    `POST /api/admin/comment-suspensions` `{ account_id, days }`.
  *
- *  A person's only: an agent is refused, and no agent console reaches
- *  them (AGENT_SCOPED_ROUTES does not list them). With comments off
+ *  A person's only. With comments off
  *  (the stack's CommentsEnabled false) every write here answers 404
  *  `comments_off` and the reads answer nothing. */
 import { checkRateLimit } from "@elixir-mcp/auth";

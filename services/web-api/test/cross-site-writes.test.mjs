@@ -102,14 +102,6 @@ test("every cookie-carrying write from another origin is refused before it runs"
     }
   }
   assert.deepEqual(missed, []);
-  // An agent's console takes the same door.
-  const agent = await handler(
-    event({
-      path: "/api/agent/x/timeline/seen",
-      headers: { cookie, origin: "https://other.poapkings.com" },
-    }),
-  );
-  assert.ok(refused(agent));
 });
 
 test("the app's own writes, and a browser naming nowhere, still go through", async () => {

@@ -160,7 +160,7 @@ async function costsOf(db, ownerId, tags) {
     costs.map((c) => [
       c.player_tag,
       {
-        // Recorded for this pool already, including an agent's follow: free.
+        // Recorded for this pool already: free.
         free: c.free || c.following,
         reason: c.reason ?? (c.following ? "recorded_for_you" : null),
       },

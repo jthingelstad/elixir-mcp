@@ -18,8 +18,7 @@
  *    `POST /api/admin/posts/dismiss` `{ id }`; the queue rides
  *    `GET /api/admin/comments` (routes/comments.mjs).
  *
- *  A person's only: an agent is refused, and no agent console reaches
- *  them (AGENT_SCOPED_ROUTES does not list them). A post about nothing in
+ *  A person's only. A post about nothing in
  *  the record needs posts on (the stack's PostsEnabled with
  *  CommentsEnabled; else 404 `posts_off`); a post about a battle, what a
  *  highlight was, works either way (0292). Blocking from a post rides

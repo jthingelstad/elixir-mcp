@@ -66,11 +66,10 @@ export function discordRoutes({
       let account = null;
       if (intent === "link") {
         // A browser's own session only: a bearer token is not a person
-        // at a screen, and an agent's console never links a Discord.
-        account =
-          readSessionCookie(event) && !event.scopedAccount
-            ? await resolveAccount(db, event)
-            : null;
+        // at a screen.
+        account = readSessionCookie(event)
+          ? await resolveAccount(db, event)
+          : null;
         if (!account)
           return redirect(`${SIGNIN}?return_to=${encodeURIComponent(PROFILE)}`);
       }
@@ -233,7 +232,6 @@ export function discordRoutes({
         requireContractHeader: true,
       });
       if (!account) return json(401, { error: "unauthorized" });
-      if (event.scopedAccount) return json(403, { error: "forbidden" });
       const removed = await unlinkDiscord(db, account.accountId);
       if (removed) {
         await logEvent(db, account.accountId, "discord_unlinked");

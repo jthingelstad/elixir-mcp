@@ -17,7 +17,7 @@ import { readFile } from "node:fs/promises";
 import pg from "pg";
 import { processResult } from "../../../packages/ingest/src/pipeline.mjs";
 import { emailHash } from "../../../packages/auth/src/index.mjs";
-import { AGENT_SCOPED_ROUTES, makeHandler } from "../src/handler.mjs";
+import { makeHandler } from "../src/handler.mjs";
 import { CHEER_KEYS, CHEERS_PER_HOUR } from "../src/cheers.mjs";
 import { feedItems, hashToken, xmlText } from "../src/feed-link.mjs";
 import {
@@ -323,9 +323,6 @@ test("a cheer's refusals: signed out, no contract header, a bad cheer or id, the
   const badId = await cheer("friend", { ...item, id: "not-an-item" }, "ha");
   assert.equal(badId.status, 400);
   assert.equal(badId.body.error, "invalid_item");
-  // No agent's console reaches the cheers or the RSS link.
-  for (const key of AGENT_SCOPED_ROUTES)
-    assert.equal(/cheers|\/rss/.test(key), false, key);
   // The hour's cap.
   await db.query(
     `insert into rate_limit (bucket, window_start, count)

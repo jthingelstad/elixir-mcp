@@ -4,16 +4,12 @@ import { OAUTH_SCOPE_DETAILS, OAUTH_SCOPES } from "@elixir-mcp/contracts";
 /**
  * What a credential may do, edited in place.
  *
- * TWO credentials carry capabilities and neither could be changed after it
- * was issued: an OAuth connection, whose scope lives on the grant, and an
- * agent's service key, whose scope lives on the token. One editor for
- * both, because the rules are identical and two copies would drift.
+ * An OAuth connection's scope lives on its grant, and could not be changed
+ * after it was issued; this edits it.
  *
- * The caller passes the RESOLVED scope. A service key with a null scope
- * holds every capability - that is what keys minted before the column
- * existed still carry - so null must be resolved to the full set before it
- * reaches here, or the checkboxes would show nothing and read as "can do
- * nothing" for a key that can do everything.
+ * The caller passes the RESOLVED scope: a null scope must be resolved to
+ * its set before it reaches here, or the checkboxes would show nothing and
+ * read as "can do nothing".
  */
 export function CapabilityEditor({ scope, onSave, disabled = false, name }) {
   const current = scope.split(" ").filter(Boolean);

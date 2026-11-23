@@ -26,7 +26,7 @@ export const SETTINGS_HELP = {
     title: "Players & following",
     docs: "players",
     lines: [
-      "The players and clans you added. Added means recorded. Each one takes a slot from the pool you share with your agents.",
+      "The players and clans you added. Added means recorded. Each one that Elixir records only for you takes a slot.",
       "Your main player is who your Profile, Stats and Timeline open on. Verify is what makes a player yours: one battle proves it.",
     ],
   },
@@ -71,10 +71,10 @@ export const SETTINGS_HELP = {
     ],
   },
   connections: {
-    title: "Connections & agents",
+    title: "Connections",
     docs: "connections:clients",
     lines: [
-      "The apps you signed in to Elixir, and the agents you run. An app acts as you. An agent has its own key and its own name, and acts for a clan or for you.",
+      "The apps you signed in to Elixir. Each one acts as you.",
       "A credential that no longer works shows here when something is still presenting it.",
     ],
   },
@@ -82,7 +82,7 @@ export const SETTINGS_HELP = {
     title: "Discord",
     docs: "connections:clients",
     lines: [
-      "Your Discord link, and where your timeline posts. The link is for signing in and being known to a clan's agent. Your timeline goes only to a channel you choose.",
+      "Your Discord link, and where your timeline posts. The link is for signing in. Your timeline goes only to a channel you choose.",
     ],
   },
   usage: {
@@ -139,25 +139,6 @@ export const SETTINGS_HELP = {
     docs: "status:collectors",
     lines: [
       "Name the machine, pick its card and raise your hand. The token waits on the collector's page, to reveal once.",
-    ],
-  },
-  agent: {
-    title: "An agent",
-    docs: "agent:overview",
-    lines: [
-      "One agent: its key, what it reads, what it spent, who it answers for. Its limits come out of your pool. Suspending it stops every call at once.",
-    ],
-  },
-  "agent-events": {
-    title: "An agent's events",
-    docs: "agent:settings",
-    lines: ["What happened to this agent's account, newest first."],
-  },
-  timeline: {
-    title: "An agent's timeline",
-    docs: "timeline",
-    lines: [
-      "What this agent has read. It comes from the same record as yours, kept apart so its reads never clear your dot.",
     ],
   },
 };

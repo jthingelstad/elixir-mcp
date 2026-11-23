@@ -267,7 +267,7 @@ test("unknown profile, no clan, declined clan and no existing clan slot never mi
 });
 
 test("the progress route is person-only and never accepts another subject", async () => {
-  for (const account of [null, { accountId, kind: "agent" }]) {
+  for (const account of [null, { accountId, kind: "integration" }]) {
     const routes = onboardingPeopleRoutes({
       resolveAccount: async () => account,
       live,

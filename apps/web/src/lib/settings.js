@@ -31,17 +31,6 @@ const ADMIN_RECORDS = new Set(["accounts", "feedback", "emails", "discord"]);
 export const isSettings = (path) =>
   path === SETTINGS || path.startsWith(`${SETTINGS}/`);
 
-/** An agent's five tabs. Its timeline and feedback are pages linked from
- *  Overview, and its logs sit under Usage. */
-export const AGENT_TABS = [
-  { slug: "overview", label: "Overview" },
-  { slug: "reads", label: "What it reads" },
-  { slug: "usage", label: "Usage" },
-  { slug: "connections", label: "Connections" },
-  { slug: "settings", label: "Settings" },
-];
-const AGENT_LINKED = ["timeline", "feedback"];
-
 /** The rail. "Collectors" draws only for someone who runs one. */
 export const SETTINGS_RAIL = [
   {
@@ -80,7 +69,7 @@ export const SETTINGS_RAIL = [
   },
   {
     key: "connections",
-    label: "Connections & agents",
+    label: "Connections",
     icon: "plug",
     to: `${SETTINGS}/connections`,
   },
@@ -120,8 +109,7 @@ export const SETTINGS_RAIL = [
 ];
 
 /** The parts of a Settings path: `key` is the rail item it belongs to, `page`
- *  names the frame to draw, `agent` the agent it is scoped to, and `id` the
- *  record it opens. Null when the address is not a page. Segments are as the
+ *  names the frame to draw, and `id` the record it opens. Null when the address is not a page. Segments are as the
  *  address has them, still encoded. */
 export function settingsHere(path) {
   const clean = path.length > 1 ? path.replace(/\/$/, "") : path;
@@ -175,8 +163,6 @@ export function settingsHere(path) {
       return second
         ? at("collectors", "collector", { id: second })
         : at("collectors", "collectors");
-    case "agents":
-      return agentHere(second, third, fourth, clean);
     case "admin":
       // Admin keeps its own rail: `key` is its page there.
       if (!second)
@@ -193,49 +179,17 @@ export function settingsHere(path) {
   }
 }
 
-function agentHere(agent, tab, item, clean) {
-  if (!agent) return null;
-  const parts = clean.split("/");
-  const rest = parts[6];
-  const base = { agent };
-  const at = (page, more = {}) => ({
-    key: "connections",
-    page,
-    tab,
-    ...base,
-    ...more,
-  });
-  if (tab === undefined) return at("agent", { tab: "overview" });
-  if (tab === "usage") {
-    if (!item) return rest ? null : at("agent");
-    if (item === "events") return rest ? null : at("agent-events");
-    if (item !== "requests" || parts[7]) return null;
-    return rest ? at("call", { id: rest }) : at("requests");
-  }
-  if (tab === "feedback") {
-    if (rest) return null;
-    return item ? at("feedback-item", { id: item }) : at("feedback");
-  }
-  if (item) return null;
-  if (AGENT_LINKED.includes(tab)) return at(tab);
-  return AGENT_TABS.some((t) => t.slug === tab) ? at("agent") : null;
-}
-
 /** The address itself when it is a page, the bare prefixes' landing when it
  *  is partial, null when it was never a page. */
 export function settingsLegal(path) {
   const clean = path.length > 1 ? path.replace(/\/$/, "") : path;
   if (clean === SETTINGS) return `${SETTINGS}/profile`;
-  if (clean === `${SETTINGS}/agents`) return `${SETTINGS}/connections`;
   if (clean === ADMIN) return `${ADMIN}/accounts`;
   // A page Admin never had, or no longer has (Requests and Beta pulse went
   // with the approval era, 2026-11-12), lands on its first one.
   if (clean.startsWith(`${ADMIN}/`) && !settingsHere(clean))
     return `${ADMIN}/accounts`;
-  const here = settingsHere(clean);
-  if (!here) return null;
-  if (here.agent && clean.split("/").length === 4) return `${clean}/overview`;
-  return path;
+  return settingsHere(clean) ? path : null;
 }
 
 const TITLES = {
@@ -249,7 +203,7 @@ const TITLES = {
   comments: "Comments & blocks",
   sent: "Sent to you",
   email: "Email",
-  connections: "Connections & agents",
+  connections: "Connections",
   discord: "Discord",
   "sign-ins": "Sign-ins & devices",
   usage: "Usage and limits",
@@ -260,9 +214,6 @@ const TITLES = {
   collectors: "Collectors",
   collector: "Collector",
   raise: "Run a collector",
-  agent: "Agent",
-  "agent-events": "Account events",
-  timeline: "Timeline",
 };
 
 /** The tab title's lead for a Settings path. */

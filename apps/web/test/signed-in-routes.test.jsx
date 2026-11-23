@@ -76,13 +76,12 @@ for (const page of Object.keys(ADMIN_PAGES)) routes.push(`${ADMIN}/${page}`);
 /**
  * Detail pages, which the section walk above cannot discover.
  *
- * AgentDetail shipped referencing a hook Dashboard.jsx did not import, and
- * every check in the repo passed: `verify` was green, the route sweep covered
- * /account/agents and stopped there. A page nothing renders is a page nothing
+ * A detail page once shipped referencing a hook its parent did not import,
+ * and every check in the repo passed: `verify` was green, the route sweep
+ * covered the list and stopped there. A page nothing renders is a page nothing
  * tests.
  */
 routes.push(
-  "/settings/agents/00000000-0000-0000-0000-0000000000ag",
   "/settings/feedback/1",
   "/settings/admin/accounts/00000000-0000-0000-0000-000000000001",
   "/home/player/2ABC",
@@ -174,117 +173,5 @@ test(
       expect(screen.getAllByText(/poap-kings-agent/).length).toBeGreaterThan(0),
     );
     expect(screen.queryByText(/This section failed to render/)).toBeNull();
-  },
-);
-
-/**
- * The agent detail page shows what you need in order to USE the agent.
- *
- * Reported by Jamie: the screen listed a slug but never the URL to connect a
- * client to, and there was no way to rename an agent once created. Both are
- * the difference between "an agent exists" and "an agent is usable", so they
- * are pinned here rather than left to a screenshot.
- */
-test(
-  "the agent detail page offers its connect URL and a rename",
-  { timeout: 20000 },
-  async () => {
-    const AGENT = {
-      account_id: "00000000-0000-0000-0000-0000000000ag",
-      kind: "agent",
-      public_id: "272bd891a21d",
-      role: "leader",
-      status: "approved",
-      clans: [{ clan_tag: "#J2RGCRVG", name: "POAP KINGS", is_primary: true }],
-      tokens: [{ token_id: 1, name: "poap-kings", revoked_at: null }],
-    };
-    global.fetch = vi.fn(async (path) => {
-      const body =
-        path === "/api/me" ? ME : { agents: [AGENT], integrations: [] };
-      return {
-        ok: true,
-        status: 200,
-        json: async () => body,
-        text: async () => JSON.stringify(body),
-      };
-    });
-
-    window.history.pushState({}, "", `/settings/agents/${AGENT.account_id}`);
-    render(<App />);
-
-    // The agent's own door, not the personal /mcp. Asserting the whole path
-    // because /a/<id>/mcp is the part a person cannot guess.
-    const url = await screen.findByText(
-      `${window.location.origin}/a/272bd891a21d/mcp`,
-    );
-    expect(url).toBeTruthy();
-    expect(window.location.pathname).toBe(
-      "/settings/agents/272bd891a21d/overview",
-    );
-    // The clan it acts for is named, with the tag beside the name - never
-    // the tag alone (the lede and the Clan row both render it).
-    expect(screen.getAllByText("POAP KINGS").length).toBeGreaterThanOrEqual(2);
-    expect(screen.getAllByText("#J2RGCRVG").length).toBeGreaterThanOrEqual(2);
-
-    // What you change is its Settings.
-    cleanup();
-    window.history.pushState({}, "", "/settings/agents/272bd891a21d/settings");
-    render(<App />);
-    expect(await screen.findByLabelText("Name")).toBeTruthy();
-    // The documented emergency path. /docs/agents has promised "Account →
-    // Agents → Revoke key" since agents shipped, while the route, the client
-    // method and no button at all existed.
-    expect(screen.getByText("Revoke key")).toBeTruthy();
-  },
-);
-
-test(
-  "an agent whose new key has never been used says so, rather than looking idle",
-  { timeout: 20000 },
-  async () => {
-    // The failure this exists for: rotate a key, the runtime keeps presenting
-    // the old one, every call 401s before it can be audited — so the page shows
-    // an agent that was active minutes ago and no error anywhere.
-    const AGENT = {
-      account_id: "00000000-0000-0000-0000-0000000000ag",
-      kind: "agent",
-      public_id: "272bd891a21d",
-      role: "leader",
-      status: "approved",
-      last_call_at: "2026-09-09T02:51:00.000Z",
-      clans: [{ clan_tag: "#J2RGCRVG", is_primary: true }],
-      tokens: [
-        {
-          token_id: 2,
-          name: "poap-kings",
-          created_at: "2026-09-09T02:55:00.000Z",
-          last_used_at: null,
-          revoked_at: null,
-        },
-        {
-          token_id: 1,
-          name: "poap-kings",
-          created_at: "2026-09-08T01:00:00.000Z",
-          last_used_at: "2026-09-09T02:51:00.000Z",
-          revoked_at: "2026-09-09T02:55:00.000Z",
-        },
-      ],
-    };
-    global.fetch = vi.fn(async (path) => {
-      const body =
-        path === "/api/me" ? ME : { agents: [AGENT], integrations: [] };
-      return {
-        ok: true,
-        status: 200,
-        json: async () => body,
-        text: async () => JSON.stringify(body),
-      };
-    });
-
-    window.history.pushState({}, "", `/settings/agents/${AGENT.account_id}`);
-    render(<App />);
-    expect(
-      await screen.findByText(/current key has never been used/i),
-    ).toBeTruthy();
   },
 );

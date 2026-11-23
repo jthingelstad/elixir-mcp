@@ -5,7 +5,7 @@
  * follow time; answers are your own feedback's; opening the bell moves the
  * account's seen marker, and what came before it is no longer new (an
  * unread answer stays new until it is read); a person's only, the contract
- * header required to move the marker, and no agent console reaches it.
+ * header required to move the marker.
  * Synthetic names; the fixture's tag.
  */
 import { test, before, after } from "node:test";
@@ -17,7 +17,7 @@ import { readFile } from "node:fs/promises";
 import pg from "pg";
 import { processResult } from "../../../packages/ingest/src/pipeline.mjs";
 import { emailHash } from "../../../packages/auth/src/index.mjs";
-import { AGENT_SCOPED_ROUTES, makeHandler } from "../src/handler.mjs";
+import { makeHandler } from "../src/handler.mjs";
 import { BELL_READS_PER_HOUR } from "../src/bell.mjs";
 import {
   createScratch,
@@ -414,7 +414,7 @@ test("an unread answer is never pushed past the cap by newer read ones", async (
   assert.equal(bell.body.new, 1);
 });
 
-test("the bell's refusals: signed out, no contract header, agents, the hour's cap", async () => {
+test("the bell's refusals: signed out, no contract header, the hour's cap", async () => {
   assert.equal((await call("GET", "/api/me/bell")).status, 401);
   assert.equal((await call("PUT", "/api/me/bell/seen")).status, 401);
   assert.notEqual(
@@ -427,8 +427,6 @@ test("the bell's refusals: signed out, no contract header, agents, the hour's ca
       .rowCount,
     0,
   );
-  for (const key of AGENT_SCOPED_ROUTES)
-    assert.equal(/bell/.test(key), false, key);
   await db.query(
     `insert into rate_limit (bucket, window_start, count)
      values ($1, date_trunc('hour', now()), $2)

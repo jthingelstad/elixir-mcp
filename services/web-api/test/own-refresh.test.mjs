@@ -4,8 +4,8 @@
  * read in the last two minutes is skipped; one ask per account per five
  * minutes however many arrive at once; no token in the global bucket and a
  * spent daily allowance answer `queued: false` quietly and charge nothing;
- * the allowance is its own bucket, never the MCP live quota's; an agent is
- * refused; the follow-up read says when a read landed and wakes Home's
+ * the allowance is its own bucket, never the MCP live quota's; the
+ * follow-up read says when a read landed and wakes Home's
  * stored week once per read. Invented tags only.
  */
 import { test, before, after, beforeEach } from "node:test";
@@ -13,7 +13,7 @@ import assert from "node:assert/strict";
 import pg from "pg";
 import { enqueueJob } from "../../../packages/ledger/src/ledger.mjs";
 import { makeLive } from "../../../packages/tools/src/live.mjs";
-import { AGENT_SCOPED_ROUTES, makeHandler } from "../src/handler.mjs";
+import { makeHandler } from "../src/handler.mjs";
 import { refreshRoutes } from "../src/routes/refresh.mjs";
 import {
   FLOOR_S,
@@ -273,16 +273,7 @@ test("the day's allowance spent: queued false, and the token goes back", async (
   assert.equal(rows.length, 0);
 });
 
-test("an agent is refused, and no agent console reaches the route", async () => {
-  for (const method of ["POST", "GET"]) {
-    const r = await call(method, { ...person, kind: "agent" });
-    assert.equal(r.status, 403);
-    assert.equal(r.body.error, "not_entitled");
-  }
-  for (const key of AGENT_SCOPED_ROUTES)
-    assert.equal(/\/refresh$/.test(key), false, key);
-  assert.deepEqual(await openJobs(), []);
-  // Wired into the web API: signed out is a 401, not a missing route.
+test("the route is wired into the web API: signed out is a 401, not a missing route", async () => {
   const handler = makeHandler({
     databaseUrl,
     secret: "own-refresh-secret",
@@ -534,7 +525,7 @@ test("another player: the live quota spent, or no token, answers quietly", async
   assert.equal(await liveday(), 0);
 });
 
-test("another player: unknown, invalid, an agent, and your own player", async () => {
+test("another player: unknown, invalid, and your own player", async () => {
   const unknown = await call("POST", person, { tag: UNKNOWN });
   assert.deepEqual(unknown.body, {
     queued: false,
@@ -543,14 +534,6 @@ test("another player: unknown, invalid, an agent, and your own player", async ()
   assert.deepEqual(await openJobs(), []);
   const bad = await call("POST", person, { tag: "not a tag!" });
   assert.equal(bad.status, 400);
-  for (const method of ["POST", "GET"]) {
-    const r = await call(
-      method,
-      { ...person, kind: "agent" },
-      { tag: STRANGER },
-    );
-    assert.equal(r.status, 403);
-  }
   assert.deepEqual(await openJobs(), []);
   // Your own verified player is your own refresh, the chip's action.
   const own = await call("POST", person, { tag: PRIMARY });

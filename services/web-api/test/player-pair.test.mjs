@@ -104,11 +104,14 @@ test("a followed friend's actual pair records keep teammate and opponent evidenc
 test("only a current visible friend and a verified owned player can read pair associations", async () => {
   assert.equal((await call("stranger")).statusCode, 404);
   assert.equal((await call(null)).statusCode, 401);
-  const agent = playerPairRoutes({
-    resolveAccount: async () => ({ kind: "agent", accountId: people.reader }),
+  const notPerson = playerPairRoutes({
+    resolveAccount: async () => ({
+      kind: "integration",
+      accountId: people.reader,
+    }),
   });
   assert.equal(
-    (await agent["GET /api/me/player-pair"](null, {})).statusCode,
+    (await notPerson["GET /api/me/player-pair"](null, {})).statusCode,
     403,
   );
   assert.equal((await call("reader", { as: STRANGER_TAG })).statusCode, 404);

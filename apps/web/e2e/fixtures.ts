@@ -222,7 +222,6 @@ export function signedIn(
     ],
     "GET /api/me/requests": [200, { requests: [] }],
     "GET /api/me/connections": [200, { connections: [], refusals: [] }],
-    "GET /api/me/principals": [200, { agents: [], addable_clans: [] }],
     "GET /api/me/gateways": [200, { gateways: [] }],
     "GET /api/me/feedback": [200, { feedback: [] }],
     "GET /api/me/verify": [200, { players: [] }],

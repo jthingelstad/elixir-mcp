@@ -39,10 +39,8 @@ export function feedbackRoutes({
   notifyOwner = async () => {},
 }) {
   return {
-    // A filer's own items, wherever they were filed. A person's own page
-    // shows each answer in full, so the answers on it are read; an owner
-    // on their agent's page reads them for it, and the agent's pending
-    // hint stays up.
+    // A filer's own items, wherever they were filed. The page shows each
+    // answer in full, so the answers on it are read.
     "GET /api/me/feedback": async (db, event) => {
       const account = await resolveAccount(db, event);
       if (!account) return json(401, { error: "unauthenticated" });
@@ -54,12 +52,11 @@ export function feedbackRoutes({
           status: q.status || null,
           area: q.area || null,
         });
-        if (!event.scopedAccount)
-          await markSeen(
-            db,
-            account.accountId,
-            page.items.map((i) => i.feedback_id),
-          );
+        await markSeen(
+          db,
+          account.accountId,
+          page.items.map((i) => i.feedback_id),
+        );
         return json(200, {
           feedback: page.items.map(withLegacy),
           total: page.total,
@@ -74,9 +71,7 @@ export function feedbackRoutes({
       const account = await resolveAccount(db, event);
       if (!account) return json(401, { error: "unauthenticated" });
       try {
-        const item = await itemMine(db, account.accountId, event.pathParam, {
-          seen: !event.scopedAccount,
-        });
+        const item = await itemMine(db, account.accountId, event.pathParam);
         return json(200, { feedback: withLegacy(item) });
       } catch (err) {
         return refused(err);

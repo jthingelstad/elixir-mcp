@@ -734,7 +734,7 @@ test("the battle page and a shared post stay in their budgets, and /api/me reads
 
 /**
  * Settings' reads on load, page by page: Account, Email, Clans, Sessions,
- * Activity, Requests, Connections, Agents, the RSS and Discord feeds,
+ * Activity, Requests, Connections, the RSS and Discord feeds,
  * Players, Follows, the first answer and Seen's battle. Feedback's count
  * is left out: its statement is sent with more values than it names, so
  * it cannot be explained as it ran (its reads are an account's own rows).
@@ -748,7 +748,6 @@ const SETTINGS = [
   ["/api/me/activity", 4, 50],
   ["/api/me/requests", 3, 50],
   ["/api/me/connections", 4, 50],
-  ["/api/me/principals", 4, 50],
   ["/api/me/rss", 3, 50],
   ["/api/me/timeline/discord", 3, 50],
   ["/api/me/verify", 4, 250],
@@ -804,7 +803,6 @@ const LATE_ONCE = /with late as materialized \(/;
 const LATE_ANY = /b\.battle_time < b\.created_at - interval '1 day'/;
 
 test("the timeline page counts the week's late captures once, and the feed never", async () => {
-  // Settings' agent Timeline page reads the same builder for its agent.
   const { timeline } = await inOrder([
     [
       "timeline",

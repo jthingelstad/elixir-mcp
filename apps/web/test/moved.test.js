@@ -77,10 +77,10 @@ describe("the addresses that forward", () => {
 
   test("Settings' partial addresses open their page", () => {
     expect(legalRoute("/settings")).toBe("/settings/profile");
-    expect(legalRoute("/settings/agents")).toBe("/settings/connections");
-    expect(legalRoute("/settings/agents/a1")).toBe(
-      "/settings/agents/a1/overview",
-    );
+    // The Agents pages are gone (2026-11-23): their old addresses are the
+    // missing page.
+    expect(legalRoute("/settings/agents")).toBeNull();
+    expect(legalRoute("/settings/agents/a1/overview")).toBeNull();
     expect(legalRoute("/settings/not-a-page")).toBeNull();
   });
 

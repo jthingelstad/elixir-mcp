@@ -164,14 +164,12 @@ const SETTINGS_PAGES = new Set([
 
 /**
  * Settings reports the kind of page, never which record: a page of your own
- * records (a player, an email, a call, a note, an agent) has no id on it.
+ * records (a player, an email, a call, a note) has no id on it.
  */
 function settingsLocation(pathname, origin) {
   const [, , first, second, third] = pathname.split("/");
   let path = first ? `/settings/${first}` : "/settings";
-  if (first === "agents") {
-    if (third) path += `/${third}`;
-  } else if (first === "admin") {
+  if (first === "admin") {
     // Admin's pages are pages; an account, an email or a note under one
     // reports as that page.
     if (second) path += `/${second}`;

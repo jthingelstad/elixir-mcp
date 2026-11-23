@@ -1,42 +1,13 @@
 import { expect, test, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import { BATTLE } from "./battle-fixture.ts";
-import { ME, asksForBattles, mockApi, signedIn } from "./fixtures.ts";
+import { asksForBattles, mockApi, signedIn } from "./fixtures.ts";
 
 /**
  * Settings and the bar's two sheets, redesign step 6, every page at phone
  * width: it fits, it renders, and it passes axe. Local mocks only.
  */
-const AGENT = {
-  account_id: "00000000-0000-4000-8000-000000000002",
-  kind: "agent",
-  public_id: "abc12345",
-  role: "member",
-  status: "approved",
-  name: "clan-bot",
-  created_at: "2026-09-01T00:00:00Z",
-  calls_7d: 0,
-  last_call_at: null,
-  timeline_pending: 0,
-  clans: [],
-  last_seen: null,
-  refusals_7d: [],
-  tokens: [],
-};
 const mocks = signedIn({
-  "GET /api/me": [
-    200,
-    { ...ME, agents: [{ public_id: AGENT.public_id, name: AGENT.name }] },
-  ],
-  "GET /api/me/principals": [200, { agents: [AGENT], addable_clans: [] }],
-  [`GET /api/agent/${AGENT.public_id}/feedback`]: [
-    200,
-    { feedback: [], total: 3 },
-  ],
-  [`GET /api/agent/${AGENT.public_id}`]: [
-    200,
-    { ...ME, kind: "agent", name: AGENT.name, email: null, claims: [] },
-  ],
   // What members see: its lens reads the main player's latest battle, then
   // draws it from the public battle answer. Other tools stay unmocked.
   "POST /api/me/tool": (route) =>
@@ -91,11 +62,6 @@ test.describe("@narrow Settings at phone width", () => {
     ["/settings/usage", "Usage"],
     ["/settings/usage/requests", "Requests"],
     ["/settings/feedback", "Feedback"],
-    [`/settings/agents/${AGENT.public_id}/overview`, "clan-bot"],
-    [`/settings/agents/${AGENT.public_id}/reads`, "clan-bot"],
-    [`/settings/agents/${AGENT.public_id}/usage`, "clan-bot"],
-    [`/settings/agents/${AGENT.public_id}/connections`, "clan-bot"],
-    [`/settings/agents/${AGENT.public_id}/settings`, "clan-bot"],
   ] as const) {
     test(`${path} fits`, async ({ page }) => {
       await page.goto(path);
@@ -176,13 +142,6 @@ test.describe("@narrow Settings at phone width", () => {
     await sheet.getByRole("searchbox").fill(hash);
     await expect(sheet.getByRole("link", { name: /^Deck/ })).toHaveCount(0);
     await expect(sheet.locator('a[href^="/console"]')).toHaveCount(0);
-  });
-
-  test("an agent's overview counts the feedback it has sent", async ({
-    page,
-  }) => {
-    await page.goto(`/settings/agents/${AGENT.public_id}/overview`);
-    await expect(page.getByText("3 items.")).toBeVisible();
   });
 
   test("help opens in place, names the page and links its docs", async ({

@@ -21,7 +21,6 @@ import {
   useInvalidate,
   usePostsChanged,
 } from "../lib/queries.js";
-import { useScope } from "../lib/scope.js";
 import { modeWord } from "./logic.js";
 import { ReportForm } from "./Comments.jsx";
 import { CheckingLine, notPostedWords } from "./check-words.jsx";
@@ -52,8 +51,7 @@ import {
  */
 export function usePostsOn() {
   const { me } = useMe();
-  const scope = useScope();
-  return postsOn(me, scope);
+  return postsOn(me);
 }
 
 /** Whether this reader may write one now. */

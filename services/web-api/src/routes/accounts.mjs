@@ -9,8 +9,7 @@
  *  - `DELETE /api/me/account-follows/<page-id>`: stop following it and
  *    them.
  *
- *  A person's only: an agent is refused, and no agent console reaches
- *  them (AGENT_SCOPED_ROUTES does not list them). */
+ *  A person's only. */
 import { accountConnections } from "../connections.mjs";
 import { searchHandles } from "../handle.mjs";
 import { checkRateLimit } from "@elixir-mcp/auth";

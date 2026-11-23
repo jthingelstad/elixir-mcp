@@ -3,7 +3,6 @@ import { useEffect, useState } from "react";
 import { api } from "../api.js";
 import { SETTINGS } from "../lib/settings.js";
 import { useInvalidate } from "../lib/queries.js";
-import { useScope } from "../lib/scope.js";
 
 const isUtc = (zone) => !zone || zone === "UTC" || zone === "Etc/UTC";
 
@@ -34,18 +33,16 @@ function zoneWords(zone, at) {
  * on its signup browser's zone, so this is for the accounts made before
  * that, or whose browser gave none: it names the clock in use and offers
  * the browser's zone, saved only on the click. It shows only while the
- * account has no zone and the browser's is not UTC, and never on an
- * agent's pages.
+ * account has no zone and the browser's is not UTC.
  */
 export function ZoneOffer({ className = "" }) {
   const { zone, now } = useClock();
-  const agent = useScope();
   const invalidate = useInvalidate();
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
   const [local, setLocal] = useState(null);
   useEffect(() => setLocal(browserZone()), []);
-  if (agent || zone || isUtc(local)) return null;
+  if (zone || isUtc(local)) return null;
   const words = zoneWords(local, now);
   return (
     <div className={`callout callout--info ${className}`.trim()}>

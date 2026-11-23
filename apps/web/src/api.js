@@ -23,13 +23,6 @@ const request = (method, path, body) =>
     .request(method, path, body)
     .then((env) => noteWrite(method, path, env));
 
-/** Whose `/api/me` a call reads: yours, or, on an agent's pages, the
- *  agent's (`/api/agent/<public_id>`, the same routes run as the agent
- *  for its owner). The scoped calls below take the agent's public id as
- *  their last argument; omitted, they are yours, as they always were. */
-const home = (agent) =>
-  agent ? `/api/agent/${encodeURIComponent(agent)}` : "/api/me";
-
 export const api = {
   shareItem: (input) => request("POST", "/api/me/item-shares", input),
   publicSharedItem: (id) =>
@@ -40,7 +33,7 @@ export const api = {
       "GET",
       `/api/me/timeline-items/${encodeURIComponent(id)}?${new URLSearchParams({ item_ref: JSON.stringify(ref) })}`,
     ),
-  me: (agent) => request("GET", home(agent)),
+  me: () => request("GET", "/api/me"),
   // `timezone` is this browser's zone: a NEW account opens on it, an
   // existing one keeps its own (Jamie, 2026-10-08). Left out when the
   // browser will not say, and the account starts at UTC.
@@ -84,8 +77,8 @@ export const api = {
     request("POST", "/api/me/sessions/revoke", { session_id }),
   revokeSessionsEverywhere: () =>
     request("POST", "/api/me/sessions/revoke", { everywhere: true }),
-  dismissRefusal: (body, agent) =>
-    request("POST", `${home(agent)}/connections/refusals/dismiss`, body),
+  dismissRefusal: (body) =>
+    request("POST", "/api/me/connections/refusals/dismiss", body),
   signOut: async () => {
     const result = await request("POST", "/api/session/signout", {});
     if (result.ok) {
@@ -158,12 +151,12 @@ export const api = {
   claimAction: (body) => request("POST", "/api/claims", body),
   /** What following this tag would cost, before the tap (#760): free when
    *  Elixir already records the player, else one of the pool's slots. */
-  followCost: (player_tag, agent) =>
+  followCost: (player_tag) =>
     request(
       "GET",
-      `${home(agent)}/follow-cost?player_tag=${encodeURIComponent(player_tag)}`,
+      `/api/me/follow-cost?player_tag=${encodeURIComponent(player_tag)}`,
     ),
-  usage: (agent) => request("GET", `${home(agent)}/usage`),
+  usage: () => request("GET", "/api/me/usage"),
   // The app's own tool calls (2026-11-14): the Record tab, Find and the
   // search sheet; the server answers only the tools those make.
   tool: (tool, args) => request("POST", "/api/me/tool", { tool, args }),
@@ -190,9 +183,9 @@ export const api = {
       },
     };
   },
-  myFeedback: (agent) => request("GET", `${home(agent)}/feedback`),
-  feedbackItem: (id, agent) =>
-    request("GET", `${home(agent)}/feedback/${encodeURIComponent(id)}`),
+  myFeedback: () => request("GET", "/api/me/feedback"),
+  feedbackItem: (id) =>
+    request("GET", `/api/me/feedback/${encodeURIComponent(id)}`),
   // One record for every page (0204): { message, category, area, refs,
   // context, follows_id }. request_id and send_id still ride as refs.
   sendFeedback: (body) => request("POST", "/api/feedback", body),
@@ -221,8 +214,8 @@ export const api = {
   // An answer: status, words, what shipped; `expected` is the status as
   // the page read it, so two answers cannot cross (409).
   answerFeedback: (body) => request("POST", "/api/admin/feedback", body),
-  activity: (agent) => request("GET", `${home(agent)}/activity`),
-  connections: (agent) => request("GET", `${home(agent)}/connections`),
+  activity: () => request("GET", "/api/me/activity"),
+  connections: () => request("GET", "/api/me/connections"),
   // Home's head, what the page paints from; each slow panel reads for itself.
   home: () => request("GET", "/api/me/home"),
   // `rebuild`: the card was served from its stored copy past fresh; build
@@ -346,12 +339,10 @@ export const api = {
       "GET",
       `/api/me/first-answer${playerTag ? `?player_tag=${encodeURIComponent(playerTag)}` : ""}`,
     ),
-  revokeConnection: (family_id, agent) =>
-    request("POST", `${home(agent)}/connections/revoke`, { family_id }),
-  setConnectionScope: (family_id, scope, agent) =>
-    request("POST", `${home(agent)}/connections/scope`, { family_id, scope }),
-  setPrincipalScope: (account_id, scope) =>
-    request("POST", "/api/me/principals/scope", { account_id, scope }),
+  revokeConnection: (family_id) =>
+    request("POST", "/api/me/connections/revoke", { family_id }),
+  setConnectionScope: (family_id, scope) =>
+    request("POST", "/api/me/connections/scope", { family_id, scope }),
   adminUsage: () => request("GET", "/api/admin/usage"),
   // The Discord quality ledger (2026-10-11): a window's numbers, and one
   // clan's or one timeline's posts whole.
@@ -376,7 +367,7 @@ export const api = {
     request("POST", "/api/admin/accounts/handle-clear", { account_id }),
   adminSetRole: (account_id, role) =>
     request("POST", "/api/admin/accounts", { account_id, role }),
-  myClans: (agent) => request("GET", `${home(agent)}/clans`),
+  myClans: () => request("GET", "/api/me/clans"),
   verifyList: () => request("GET", "/api/me/verify"),
   verifyStart: (player_tag) =>
     request("POST", "/api/me/verify", { player_tag }),
@@ -386,18 +377,11 @@ export const api = {
   publicCards: () => request("GET", "/api/public/cards"),
   memberBattle: (ref) =>
     request("GET", `/api/me/battles/${encodeURIComponent(ref)}`),
-  myRequests: (agent) => request("GET", `${home(agent)}/requests`),
-  callRecord: (request_id, agent) =>
-    request(
-      "GET",
-      `${home(agent)}/activity/calls/${encodeURIComponent(request_id)}`,
-    ),
-  timelineEvidence: (params, agent) =>
-    request("GET", `${home(agent)}/timeline?${new URLSearchParams(params)}`),
-  myTimeline: (agent) => request("GET", `${home(agent)}/timeline`),
+  myRequests: () => request("GET", "/api/me/requests"),
+  callRecord: (request_id) =>
+    request("GET", `/api/me/activity/calls/${encodeURIComponent(request_id)}`),
   // Your cheer on a timeline item (#765): one of six, or null to take it
   // back. The item's subject tags let the server find it in your feed.
-  // Yours alone: never an agent's pages.
   cheer: ({ item_id, cheer, subjects, item }) =>
     request("PUT", "/api/me/cheers", { item_id, cheer, subjects, item }),
   // Which of a player page's or a battle page's items take your cheers.
@@ -410,8 +394,8 @@ export const api = {
     ),
   // Comments (2026-11-16): one item's, by its id and the subject tags the
   // server rebuilds to find it in your feed; a post goes through the
-  // check first. Yours alone, never an agent's pages; every one answers
-  // 404 comments_off while comments are off.
+  // check first. Every one answers 404 comments_off while comments are
+  // off.
   comments: ({ item_id, subjects, item, before = null, around = null }) =>
     request(
       "GET",
@@ -438,9 +422,8 @@ export const api = {
   block: (target) => request("POST", "/api/me/blocks", target),
   unblock: (accountId) =>
     request("DELETE", `/api/me/blocks/${encodeURIComponent(accountId)}`),
-  // Posts (2026-11-17): a person's own short posts. Yours alone, never
-  // an agent's pages. A post about nothing in the record answers 404
-  // posts_off while posts are off; a post about a battle (what was a
+  // Posts (2026-11-17): a person's own short posts. A post about nothing
+  // in the record answers 404 posts_off while posts are off; a post about a battle (what was a
   // highlight, 0292) works either way.
   trial: (id, battleId) =>
     request(
@@ -511,18 +494,17 @@ export const api = {
   resetRssLink: () => request("POST", "/api/me/rss"),
   rssLinkOff: () => request("DELETE", "/api/me/rss"),
   // The app's own place in the timeline (2026-10-20): the window end
-  // the page showed. Never an agent's read pointer.
-  markTimelineSeen: (to, agent) =>
-    request("POST", `${home(agent)}/timeline/seen`, { to }),
+  // the page showed. Never the MCP read pointer.
+  markTimelineSeen: (to) => request("POST", "/api/me/timeline/seen", { to }),
   // The timeline cross-posted to Discord: { enabled, webhook (shortened),
   // ... }; saving takes { url?, enabled }.
-  timelineDiscord: (agent) => request("GET", `${home(agent)}/timeline/discord`),
-  saveTimelineDiscord: (body, agent) =>
-    request("PUT", `${home(agent)}/timeline/discord`, body),
+  timelineDiscord: () => request("GET", "/api/me/timeline/discord"),
+  saveTimelineDiscord: (body) =>
+    request("PUT", "/api/me/timeline/discord", body),
   // A thumbs up or down on one cross-posted line: { ledger_id, rating,
   // note? }, filed as feedback (2026-10-11).
-  rateTimelineDiscord: (body, agent) =>
-    request("POST", `${home(agent)}/timeline/discord/rate`, body),
+  rateTimelineDiscord: (body) =>
+    request("POST", "/api/me/timeline/discord/rate", body),
   // A POST: claiming spends a one-time credential, so it must not be
   // reachable by a link scanner, a prefetch, or a cross-site top-level
   // navigation (#31).
@@ -532,40 +514,11 @@ export const api = {
   gatewayToken: (id) => request("POST", "/api/me/gateway-token", { id }),
   gatewayDetail: (id) =>
     request("GET", `/api/me/gateway-detail?id=${encodeURIComponent(id)}`),
-  myClanAction: (body, agent) => request("POST", `${home(agent)}/clans`, body),
-  // An agent's players (2026-09-23): the same writer as /api/claims, at an
-  // address its pages can scope. It watches, only.
-  agentPlayerAction: (body, agent) =>
-    request("POST", `${home(agent)}/players`, body),
-  // Fire-and-forget: a failed view must never surface to a user, and must
-  // never delay a render.
-  rotatePrincipalToken: (account_id) =>
-    request("POST", "/api/me/principals/rotate", { account_id }),
-  setPrincipalStatus: (account_id, status) =>
-    request("POST", "/api/me/principals/status", { account_id, status }),
-  // Out of view or back (0215); only a suspended agent can be removed.
-  setPrincipalRemoved: (account_id, removed) =>
-    request("POST", "/api/me/principals/remove", { account_id, removed }),
-  renamePrincipal: (account_id, name) =>
-    request("POST", "/api/me/principals/rename", { account_id, name }),
-  principalIdentities: (account_id) =>
-    request(
-      "GET",
-      `/api/me/principals/identities?account_id=${encodeURIComponent(account_id)}`,
-    ),
-  removePrincipalIdentity: (account_id, external_id) =>
-    request("POST", "/api/me/principals/identities/remove", {
-      account_id,
-      external_id,
-    }),
+  myClanAction: (body) => request("POST", "/api/me/clans", body),
   setRelationship: (player_tag, relationship) =>
     request("POST", "/api/claims", {
       action: "relationship",
       player_tag,
       relationship,
     }),
-  myPrincipals: () => request("GET", "/api/me/principals"),
-  createAgent: (body) => request("POST", "/api/me/agents", body),
-  revokePrincipalToken: (token_id) =>
-    request("POST", "/api/me/principals/revoke", { token_id }),
 };

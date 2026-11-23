@@ -1,7 +1,6 @@
 import { Icon, Link, useClock, noun, Empty, ErrorState } from "@elixir-mcp/ui";
 import { useState } from "react";
 import { useCallRecord } from "../../lib/queries.js";
-import { useScopedPath } from "../../lib/scope.js";
 import { SETTINGS } from "../../lib/settings.js";
 
 /**
@@ -9,7 +8,7 @@ import { SETTINGS } from "../../lib/settings.js";
  * where the time went.
  *
  * The app's job here is the same as the notification record's: make
- * the wire visible. An agent builder asking "what did my bot actually
+ * the wire visible. A builder asking "what did my bot actually
  * send to war_history, and what came back" reads it here rather than
  * from our prose; a reader of the Activity log opens a row to see why it
  * took four seconds. The bodies come from the archive through the same
@@ -149,7 +148,7 @@ function Cell({ label, value, note, tone }) {
   );
 }
 
-const WHOSE = { person: "a person", agent: "an agent" };
+const WHOSE = { person: "a person" };
 
 /** What kind of outcome this row records, in the page's tones. */
 function outcomeOf(call) {
@@ -169,8 +168,6 @@ function outcomeOf(call) {
 }
 
 export function CallRecord({ id, navigate }) {
-  // The record's own links stay in the scope it was opened from.
-  const path = useScopedPath();
   const { when } = useClock();
   // The envelope, because 403 and 404 are answers this page reads.
   const record = useCallRecord(id);
@@ -179,7 +176,7 @@ export function CallRecord({ id, navigate }) {
 
   const back = (
     <div className="page__crumb">
-      <Link to={path(`${SETTINGS}/usage/requests`)}>
+      <Link to={`${SETTINGS}/usage/requests`}>
         <Icon name="chevron-left" size={16} />
         Requests
       </Link>
@@ -208,9 +205,9 @@ export function CallRecord({ id, navigate }) {
       <>
         {back}
         <Empty title="That call is not in your log">
-          The log holds calls made by your own connections and by the agents you
-          own. A call, its request and its response are kept 28 days. An id from
-          somewhere else opens nothing here.
+          The log holds calls made by your own connections. A call, its request
+          and its response are kept 28 days. An id from somewhere else opens
+          nothing here.
         </Empty>
       </>
     );
@@ -327,7 +324,7 @@ export function CallRecord({ id, navigate }) {
           }
           onClick={() =>
             rec.prev &&
-            navigate(path(`${SETTINGS}/usage/requests/${rec.prev.request_id}`))
+            navigate(`${SETTINGS}/usage/requests/${rec.prev.request_id}`)
           }
         >
           <Icon name="chevron-left" size={16} />
@@ -341,7 +338,7 @@ export function CallRecord({ id, navigate }) {
           }
           onClick={() =>
             rec.next &&
-            navigate(path(`${SETTINGS}/usage/requests/${rec.next.request_id}`))
+            navigate(`${SETTINGS}/usage/requests/${rec.next.request_id}`)
           }
         >
           Next call <Icon name="chevron-right" size={14} />

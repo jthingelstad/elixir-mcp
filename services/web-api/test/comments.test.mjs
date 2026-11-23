@@ -676,7 +676,7 @@ test("posts from one account are checked one at a time (Codex on #1078)", async 
   assert.equal((await post(OWNER, "and now another")).statusCode, 201);
 });
 
-test("an agent never reaches the comment routes", async () => {
+test("a bearer that is not a session never reaches the comment routes", async () => {
   const sub = await subjectsFor(scratch.db, READER);
   assert.ok(Array.isArray(sub));
   const r = await handler({

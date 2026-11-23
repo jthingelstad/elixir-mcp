@@ -4,9 +4,9 @@
  * Jamie, 2026-10-20: "timeline should be independent of what agents have
  * seen via MCP." The rail's Timeline dot counted against the account's
  * read pointer, which only an MCP mark_read moves, so it never cleared
- * for a person with no agent. This file pins the independence both
- * ways: an agent's mark_read never clears the Console's dot, and a
- * Console visit never moves what an agent sees as read or pending.
+ * for a person who never used MCP. This file pins the independence both
+ * ways: an MCP mark_read never clears the Console's dot, and a Console
+ * visit never moves what an MCP client sees as read or pending.
  */
 
 import { test, before, after } from "node:test";
@@ -29,13 +29,11 @@ const DB_URL = ADMIN_URL.replace(/\/postgres$/, `/${NAME}`);
 const PERSON = "seen-person@example.com";
 const PLAYER = "#0VQRR8U0";
 const CLAN = "#J2RGCRVG";
-const AGENT_PID = "seenagent1";
 
 let db;
 let handler;
 let cookie;
 let personId;
-let agentId;
 let mcp;
 const sentEmails = [];
 
@@ -56,12 +54,11 @@ const call = async (opts) => {
   return { status: res.statusCode, body: JSON.parse(res.body) };
 };
 
-/** The rail's dot on a console: yours, or an agent's by public id. */
-const consolePending = async (agent = null) =>
-  (await call({ path: agent ? `/api/agent/${agent}` : "/api/me" })).body.signals
-    .timeline_pending;
-/** What the agents' side sees: meta.timeline_pending on any MCP call. */
-const agentsPending = async () =>
+/** The rail's dot on the Console. */
+const consolePending = async () =>
+  (await call({ path: "/api/me" })).body.signals.timeline_pending;
+/** What the MCP side sees: meta.timeline_pending on any MCP call. */
+const mcpPending = async () =>
   (await mcp("game_clock", {})).body.meta.timeline_pending;
 const pointers = async (accountId) =>
   (
@@ -89,8 +86,8 @@ async function admit(tag) {
 }
 /** Open the Timeline page the way the Console does: read it, then move
  *  the Console's place to the window end it showed. */
-async function visit(agent = null) {
-  const base = agent ? `/api/agent/${agent}` : "/api/me";
+async function visit() {
+  const base = "/api/me";
   const page = await call({ path: `${base}/timeline` });
   assert.equal(page.status, 200, JSON.stringify(page.body));
   const seen = await call({
@@ -132,18 +129,6 @@ before(async () => {
      values ($1, $2, true, 'primary', true)`,
     [personId, PLAYER],
   );
-  agentId = (
-    await db.query(
-      `insert into account (status, role, kind, owned_by_account_id, public_id)
-       values ('approved', 'member', 'agent', $1, $2) returning account_id`,
-      [personId, AGENT_PID],
-    )
-  ).rows[0].account_id;
-  await db.query(
-    `insert into account_clan (account_id, clan_tag, scope, notify, is_primary)
-     values ($1, $2, 'activity', true, true)`,
-    [agentId, CLAN],
-  );
 
   await handler(
     event({
@@ -177,7 +162,7 @@ after(async () => {
   await dropScratch(NAME);
 });
 
-test("a person with no agent: the dot clears when the Console shows the timeline", async () => {
+test("a person who never used MCP: the dot clears when the Console shows the timeline", async () => {
   await admit(PLAYER);
   assert.equal(await consolePending(), 1, "news, never seen: the dot");
   const first = await visit();
@@ -187,7 +172,7 @@ test("a person with no agent: the dot clears when the Console shows the timeline
   assert.equal(
     (await pointers(personId)).activity_seen_at,
     null,
-    "no agent ever marked, and the Console did not either",
+    "no MCP client ever marked, and the Console did not either",
   );
 
   // The next visit opens from the place the last one left.
@@ -198,10 +183,10 @@ test("a person with no agent: the dot clears when the Console shows the timeline
   assert.equal(await consolePending(), 0);
 });
 
-test("an agent's mark_read never clears the Console's dot", async () => {
+test("an MCP mark_read never clears the Console's dot", async () => {
   await admit(PLAYER);
   assert.equal(await consolePending(), 1);
-  assert.ok((await agentsPending()) >= 1, "the agents see it too");
+  assert.ok((await mcpPending()) >= 1, "the MCP side sees it too");
   const consoleBefore = (await pointers(personId)).console_timeline_seen_at;
 
   // A first poll: no pointer yet, so it asks to mark (an observed read).
@@ -211,9 +196,9 @@ test("an agent's mark_read never clears the Console's dot", async () => {
   assert.equal(
     (await pointers(personId)).activity_seen_at.toISOString(),
     read.body.read_to,
-    "the agents' pointer moved",
+    "the MCP pointer moved",
   );
-  assert.equal(await agentsPending(), 0, "the agents have read it");
+  assert.equal(await mcpPending(), 0, "the MCP side has read it");
   assert.equal(await consolePending(), 1, "the Console has not shown it");
   assert.equal(
     String((await pointers(personId)).console_timeline_seen_at),
@@ -222,9 +207,9 @@ test("an agent's mark_read never clears the Console's dot", async () => {
   );
 });
 
-test("a Console visit never moves what an agent sees as read or pending", async () => {
+test("a Console visit never moves what an MCP client sees as read or pending", async () => {
   await admit(PLAYER);
-  assert.ok((await agentsPending()) >= 1);
+  assert.ok((await mcpPending()) >= 1);
   await db.query(
     `insert into timeline_reader (account_id, reader, read_to)
      values ($1, 'poll-lane', now() - interval '1 hour')
@@ -238,7 +223,7 @@ test("a Console visit never moves what an agent sees as read or pending", async 
       [personId],
     )
   ).rows;
-  const pendingBefore = await agentsPending();
+  const pendingBefore = await mcpPending();
   assert.ok(pendingBefore >= 1);
 
   await visit();
@@ -260,30 +245,13 @@ test("a Console visit never moves what an agent sees as read or pending", async 
     "a named reader's pointer stands",
   );
   assert.equal(
-    await agentsPending(),
+    await mcpPending(),
     pendingBefore,
     "meta.timeline_pending is unchanged",
   );
   await db.query(`delete from timeline_reader where account_id = $1`, [
     personId,
   ]);
-});
-
-test("on an agent's console the place is the agent's, moved by its owner, and still not its read pointer", async () => {
-  await admit(CLAN);
-  assert.equal(await consolePending(AGENT_PID), 1);
-  const personBefore = await pointers(personId);
-  const { page, seen } = await visit(AGENT_PID);
-  assert.equal(seen.seen_to, page.window.to);
-  assert.equal(await consolePending(AGENT_PID), 0);
-  const agent = await pointers(agentId);
-  assert.equal(agent.console_timeline_seen_at.toISOString(), page.window.to);
-  assert.equal(agent.activity_seen_at, null, "the agent's own read pointer");
-  assert.equal(
-    String((await pointers(personId)).console_timeline_seen_at),
-    String(personBefore.console_timeline_seen_at),
-    "the owner's place is their own",
-  );
 });
 
 test("Home's tab mark: a poll alone is not news, a learned battle is, and a visit clears it", async () => {
@@ -345,8 +313,7 @@ test("the place only moves forward, never past now, and only from the Console", 
   });
   assert.equal(future.status, 400, "a window that has not ended yet");
 
-  // A write: without the Console's contract header it is refused, and a
-  // stranger's guess at an agent finds nothing.
+  // A write: without the Console's contract header it is refused.
   const bare = await call({
     method: "POST",
     path: "/api/me/timeline/seen",
@@ -354,12 +321,6 @@ test("the place only moves forward, never past now, and only from the Console", 
     contract: false,
   });
   assert.equal(bare.status, 401);
-  const other = await call({
-    method: "POST",
-    path: "/api/agent/notmyagent1/timeline/seen",
-    body: { to: new Date().toISOString() },
-  });
-  assert.equal(other.status, 404);
   assert.equal(
     String((await pointers(personId)).console_timeline_seen_at),
     String(at),

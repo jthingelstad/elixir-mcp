@@ -1,7 +1,6 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { Icon } from "@elixir-mcp/ui";
 import { pageCheersKey, useCheer, usePageCheers } from "../lib/queries.js";
-import { useScope } from "../lib/scope.js";
 import {
   CHEERS,
   DEFAULT_CHEER,
@@ -109,9 +108,6 @@ function keepInside(el, x) {
  * (`aria-label`) and shows it as a tooltip on hover, keyboard focus and a
  * long press.
  *
- * Under an agent's scope (if it is ever drawn there) the counts show and
- * nothing can be pressed: an agent never cheers.
- *
  * `compact` is a one-line short session's: the button, a +N for other
  * kinds and the smile, no counts by kind (they are on the session's page).
  *
@@ -120,7 +116,6 @@ function keepInside(el, x) {
  * `usePageCheered`).
  */
 export function Cheers({ it, where, compact = false }) {
-  const scope = useScope();
   const cheer = useCheer(where);
   // 0 closed, 1 the six, 2 all of them.
   const [level, setLevel] = useState(0);
@@ -212,7 +207,7 @@ export function Cheers({ it, where, compact = false }) {
     keepInside(el, t.left + t.width / 2 - r.left);
   }, [tip]);
 
-  if (scope || it.can_cheer === false) {
+  if (it.can_cheer === false) {
     const all = foldCounts(shown.cheers);
     return all.shown.length || all.rest ? (
       <p

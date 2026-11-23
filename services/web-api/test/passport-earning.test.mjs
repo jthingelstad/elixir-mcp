@@ -131,7 +131,7 @@ test("the earning writes are a signed-in person's, with the contract header", as
     assert.notEqual(bare.status, 200, p);
   }
   const routes = passportRoutes({
-    resolveAccount: async () => ({ accountId: ids.owner, kind: "agent" }),
+    resolveAccount: async () => ({ accountId: ids.owner, kind: "integration" }),
   });
   for (const key of [
     "POST /api/me/passport/reconcile",

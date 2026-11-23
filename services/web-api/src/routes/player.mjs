@@ -350,12 +350,9 @@ export async function readSessionPage(
     [account.accountId, tag],
   );
   const claim = claims[0] ?? null;
-  const [item] = await withTimelineSocial(
-    db,
-    [read.item],
-    account.kind === "agent" ? null : account.accountId,
-    { comments },
-  );
+  const [item] = await withTimelineSocial(db, [read.item], account.accountId, {
+    comments,
+  });
   const { rows: switched } = read.promotions.length
     ? await db.query(
         `select bp.battle_id,bp.type from battle_participant bp join battle b using(battle_id)
@@ -544,7 +541,7 @@ async function readPlayerPage(
           : item;
       })
       .filter(Boolean),
-    account.kind === "agent" ? null : account.accountId,
+    account.accountId,
     { comments },
   );
   // The verified account's badges, follows and followers: the one reader
@@ -632,9 +629,8 @@ async function readPlayerPage(
  *  many the reader follows already, against the slots left.
  *
  *  "Following" is the reader's own Follow (a friend claim), never the pool's
- *  recording: a player the reader only watches, or one only their agent
- *  tracks, is still theirs to follow, and free, since the pool records them
- *  already (addPlayer, playerCost). A plan that needs no slot always fits,
+ *  recording: a player the pool records for another reason is still
+ *  theirs to follow, and free, since the pool records them already (addPlayer, playerCost). A plan that needs no slot always fits,
  *  even with the pool over its limit, as a single free follow does. */
 export async function followPlan(
   db,
@@ -685,8 +681,7 @@ export async function followPlan(
     name: nameOf.get(c.player_tag) ?? null,
     following: followed.has(c.player_tag),
     ...links.get(c.player_tag),
-    // Recorded for this pool already, including an agent's follow:
-    // following them takes no slot.
+    // Recorded for this pool already: following them takes no slot.
     free: c.free || c.following,
     reason: c.reason ?? (c.following ? "recorded_for_you" : null),
   }));
@@ -709,11 +704,9 @@ export async function followPlan(
 
 /** Your follow slots (Settings, 2026-11-12): every player your pool
  *  follows, as pooledUsage counts them, so `used` and the rows that use a
- *  slot are the same number the Follow dialogs say. Each row says who in
- *  the pool follows the player: you (and how), or an agent of yours by its
- *  name; the reader's own claim decides whether this page can stop it.
- *  Only the reader's own account and agents appear: nothing here names
- *  another account. */
+ *  slot are the same number the Follow dialogs say. Each row says how
+ *  you follow the player; your own claim decides whether this page can
+ *  stop it. Nothing here names another account. */
 async function followSlots(db, accountId) {
   const owner = await poolOwner(db, accountId);
   const limits = poolLimits(owner);
@@ -727,25 +720,6 @@ async function followSlots(db, accountId) {
     [tags],
   );
   const nameOf = new Map(names.map((r) => [r.player_tag, r.name]));
-  const agentIds = [
-    ...new Set(
-      rows.flatMap((r) =>
-        r.claims.filter((c) => c.kind === "agent").map((c) => c.account_id),
-      ),
-    ),
-  ];
-  const { rows: agents } = agentIds.length
-    ? await db.query(
-        `select a.account_id,
-                (select t.name from service_token t
-                  where t.account_id = a.account_id
-                  order by (t.revoked_at is null) desc, t.created_at desc
-                  limit 1) as name
-           from account a where a.account_id = any($1::uuid[])`,
-        [agentIds],
-      )
-    : { rows: [] };
-  const agentName = new Map(agents.map((a) => [a.account_id, a.name]));
   const players = rows.map((r) => {
     const mine = r.claims.find((c) => c.account_id === accountId) ?? null;
     return {
@@ -755,13 +729,6 @@ async function followSlots(db, accountId) {
       reason: r.reason,
       // The reader's own claim: primary, alt, friend.
       yours: mine?.relationship ?? null,
-      agents: r.claims
-        .filter((c) => c.kind === "agent")
-        .map((c) => ({
-          public_id: c.public_id,
-          name: agentName.get(c.account_id) ?? null,
-          relationship: c.relationship,
-        })),
     };
   });
   return {
@@ -1004,7 +971,6 @@ export function playerRoutes({
         requireContractHeader: true,
       });
       if (!account) return json(401, { error: "unauthenticated" });
-      if (account.kind === "agent") return json(403, { error: "not_entitled" });
       const asked = await namedPlayers(db, body ?? {});
       if (asked.error) return named(asked);
       const plan = await followPlan(db, account.accountId, asked.tags, {

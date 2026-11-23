@@ -97,7 +97,7 @@ export function FollowMember({ clanTag, playerTag, name = null }) {
 
 /** What following a clan costs, said before the tap: one of the account's
  *  clan slots for recording the clan only (the activity scope, Home's
- *  "Follow your clan"), shared with its agents. Nothing when the limit is
+ *  "Follow your clan"). Nothing when the limit is
  *  not known; the write's own refusal says the rest. */
 function clanFollowCostLine(slot) {
   if (!slot || slot.limit == null) return null;
@@ -115,7 +115,7 @@ function clanFollowCostLine(slot) {
  * and who goes, and its races. Your own clan wears it like any other; Elixir
  * follows your primary player's clan by itself when a slot is free, so it
  * usually reads "Following". Stopping lives in Settings, as for a player.
- * Full slots never shut it: a clan your agent follows already costs no new
+ * Full slots never shut it: a clan your pool follows already costs no new
  * slot, and only the server's `addClan` knows that, so a refusal is the
  * server's 429 and its words. Nothing until the read is in.
  */
