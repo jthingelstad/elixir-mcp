@@ -243,10 +243,11 @@ export const playersTools = {
                                            and (cb.boat_battle_side = 'defender') = (bp.side = 0))
                              from battle cb where cb.battle_id = bp.battle_id), false)
            group by bp.deck_hash
-           -- The best decided record, by the rate the row serves.
-           having count(*) >= 10
-              and ${decidedWinsSql("bp.outcome", "bp.type_class")}
-                  + ${decidedLossesSql("bp.outcome", "bp.type_class")} > 0
+           -- The best decided record, by the rate the row serves, over
+           -- ten decided battles: nine boat attacks and one win head to
+           -- head is a record of one, not a 100% deck (Codex, #1187).
+           having ${decidedWinsSql("bp.outcome", "bp.type_class")}
+                  + ${decidedLossesSql("bp.outcome", "bp.type_class")} >= 10
            order by (${decidedWinsSql("bp.outcome", "bp.type_class")})::numeric
                     / greatest(${decidedWinsSql("bp.outcome", "bp.type_class")}
                                + ${decidedLossesSql("bp.outcome", "bp.type_class")}, 1) desc
@@ -403,7 +404,7 @@ export const playersTools = {
           seasonFields.seasonNotes,
           rangeClash,
           "Counts include every recorded battle (war modes carry no trophies); win_rate is decided wins over decided_battles, as battles_performance's is: boat battles and draws are in battles and never in the rate; net_trophies is Trophy Road's only.",
-          "best_deck needs 10+ battles in the window and is omitted when it IS the top deck.",
+          "best_deck needs 10+ decided battles in the window (boat battles and draws do not count toward it) and is omitted when it IS the top deck.",
           ARCHETYPE_NOTE,
           deckClash,
           trophyFloorNote(floor),
