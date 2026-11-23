@@ -45,6 +45,7 @@ import { deckTrial } from "../deck-trials.mjs";
 import { battleFor } from "../battle-posts.mjs";
 import { factAfter } from "../passport-hooks.mjs";
 import { json } from "../http.mjs";
+import { writeByOf } from "../deadline.mjs";
 import { withCheers } from "../cheers.mjs";
 import { withComments } from "../comments.mjs";
 
@@ -212,7 +213,10 @@ export function postsRoutes({
       const input = readPostInput(body);
       if (input.error) return json(postStatus(input.error), input);
       if (!input.battle && !plain) return off();
-      const out = await writePost(db, account, input, posts);
+      const out = await writePost(db, account, input, {
+        ...posts,
+        writeBy: writeByOf(event),
+      });
       if (!out.ok) return json(postStatus(out.error), out);
       await after(db, account.accountId, out.post);
       return json(201, { post: out.post });
@@ -235,13 +239,10 @@ export function postsRoutes({
           ? json(200, { post: out.post, changed: out.changed })
           : json(postStatus(out.error), out);
       }
-      const out = await editPost(
-        db,
-        account,
-        event.pathParam,
-        body?.text,
-        posts,
-      );
+      const out = await editPost(db, account, event.pathParam, body?.text, {
+        ...posts,
+        writeBy: writeByOf(event),
+      });
       if (!out.ok) return json(postStatus(out.error), out);
       await after(db, account.accountId, out.post, out.changed);
       return json(200, { post: out.post, changed: out.changed });

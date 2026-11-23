@@ -455,6 +455,8 @@ The same item keeps its cheers and comments on your Timeline, a [player's page](
 
 Verify your player to comment. If a member owns the item, their comment settings apply. On an unclaimed player's update or a clan result, verified players with access to the item can comment. You can report a comment or block its author. Shared links show the item alone.
 
+Every comment is checked before it posts, which takes a few seconds; the box says so while it runs. A short stock comment like "gg", "gg wp" or "well played" posts at once. If the check says no, you're told your comment wasn't posted and why, in one line, and your words stay so you can change them. If the check can't run, takes too long, or comments are paused, it says that instead, and your words stay too. Nothing shows to anyone until the check passes.
+
 A cheer stays in Elixir. It goes to no Discord channel or mail, and
 `elixir_timeline` does not carry it; an agent cannot cheer. On your personal MCP connection,
 `elixir_cheers` reads counts on your primary player’s game items and posts
@@ -492,10 +494,13 @@ of your own, and the post goes out as that player.
   recorded attachment stays the same.
 
 A post is words only: up to 500 characters, with no links, photos or
-@-names. Every post is checked before it goes up. A check can say no, for
-example to bullying, to asking where people live or how old they are, to
-trading accounts or to "add me on" another app. It tells you why in one
-line and keeps your words so you can change them. You can write 5 posts
+@-names. Every post is checked before it goes up, and so are new words
+when you edit one; it takes a few seconds, and the box says so while it
+runs. A check can say no, for example to bullying, to asking where people
+live or how old they are, to trading accounts or to "add me on" another
+app. It tells you why in one line and keeps your words so you can change
+them. If the check can't run or takes too long, it says so and keeps your
+words too. You can write 5 posts
 a day, one a minute. A post about a battle has its own room: 30 a day,
 3 a minute ([Posts about battles](#posts-about-battles)).
 

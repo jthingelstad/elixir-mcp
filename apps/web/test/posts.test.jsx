@@ -214,7 +214,7 @@ test("a refusal says why in one line and keeps the words", async () => {
   fireEvent.change(box, { target: { value: "where is everyone from" } });
   fireEvent.click(screen.getByRole("button", { name: "Post" }));
   expect((await screen.findByRole("alert")).textContent).toBe(
-    "Keep personal details out of posts.",
+    "Your post didn't go up. Keep personal details out of posts.",
   );
   expect(box.value).toBe("where is everyone from");
 });

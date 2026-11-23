@@ -149,7 +149,7 @@ test("a refusal says why in one line and keeps the words", async () => {
       {
         error: "refused",
         category: "bullying",
-        message: "That one wasn't posted. Keep it kind.",
+        message: "Keep it kind.",
       },
       422,
     ),
@@ -160,9 +160,10 @@ test("a refusal says why in one line and keeps the words", async () => {
   fireEvent.change(box, { target: { value: "you are bad" } });
   fireEvent.click(screen.getByRole("button", { name: "Post" }));
   expect((await screen.findByRole("alert")).textContent).toBe(
-    "That one wasn't posted. Keep it kind.",
+    "Your comment wasn't posted. Keep it kind.",
   );
   expect(box.value).toBe("you are bad");
+  expect(document.activeElement).toBe(box);
   const sent = calls.find(
     (c) => c.path === "/api/me/comments" && c.method === "POST",
   );
@@ -171,6 +172,46 @@ test("a refusal says why in one line and keeps the words", async () => {
     subjects: ["#0VJ2QV"],
     text: "you are bad",
   });
+});
+
+test("while the words are checked a status line says so and the box is read-only", async () => {
+  let answer;
+  serve(
+    true,
+    () =>
+      new Promise((resolve) => {
+        answer = resolve;
+      }),
+  );
+  renderWithProviders(<Comments it={ITEM} />);
+  fireEvent.click(await screen.findByRole("button", { name: "Comment" }));
+  const box = await screen.findByRole("textbox", { name: "Your comment" });
+  const status = screen.getByRole("status");
+  expect(status.textContent).toBe("");
+  fireEvent.change(box, { target: { value: "rematch me" } });
+  fireEvent.click(screen.getByRole("button", { name: "Post" }));
+  await waitFor(() =>
+    expect(status.textContent).toBe(
+      "Elixir checks every comment before it posts, so this takes a few seconds.",
+    ),
+  );
+  expect(box.readOnly).toBe(true);
+  expect(screen.getByRole("button", { name: "Checking" })).toBeTruthy();
+  answer(
+    reply(
+      {
+        error: "unavailable",
+        message: "We couldn't check it just now. Try again.",
+      },
+      503,
+    ),
+  );
+  expect((await screen.findByRole("alert")).textContent).toBe(
+    "Your comment wasn't posted. We couldn't check it just now. Try again.",
+  );
+  expect(status.textContent).toBe("");
+  expect(box.readOnly).toBe(false);
+  expect(box.value).toBe("rematch me");
 });
 
 test("too many characters cannot be posted", async () => {

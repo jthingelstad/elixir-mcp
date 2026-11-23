@@ -8,8 +8,10 @@ import { BELL_ME, EMPTY_BELL } from "./bell-fixture.ts";
  * Comments (2026-11-16): a feed card's newest two and its thread, the
  * composer's refusal, Settings › Comments & blocks, Admin › Comments and
  * a comment in the bell, at 320 and 390 with axe and nothing scrolling
- * sideways; and nothing at all while comments are off. Invented players
- * only.
+ * sideways; and nothing at all while comments are off. While a comment is
+ * checked (2026-11-23) the box is read-only under a status line, and an
+ * unavailable check, a pause and the app giving up each say so and keep
+ * the words. Invented players only.
  *
  * COMMENTS_SHOTS=<dir> also saves a capture of each state.
  */
@@ -94,7 +96,7 @@ const commentsOn = (extra = {}) =>
       {
         error: "refused",
         category: "bullying",
-        message: "That one wasn't posted. Keep it friendly.",
+        message: "Keep it friendly.",
       },
     ],
     ...extra,
@@ -127,8 +129,9 @@ for (const width of [320, 390]) {
       await box.fill("you are so bad at this");
       await section.getByRole("button", { name: "Post" }).click();
       await expect(section.getByRole("alert")).toHaveText(
-        "That one wasn't posted. Keep it friendly.",
+        "Your comment wasn't posted. Keep it friendly.",
       );
+      await expect(box).toBeFocused();
       await expect(box).toHaveValue("you are so bad at this");
       await noSideways(page);
       await accessible(page, "thread");
@@ -329,4 +332,109 @@ test("comments off: no thread, no Block, no settings page", async ({
   await expect(
     page.getByText("this is where you choose who can comment on your play"),
   ).toBeVisible();
+});
+
+/** The thread's composer on the first card, its box filled. */
+async function filledComposer(page: Page, words: string) {
+  await page.goto("/home");
+  const card = page.locator("article", { hasText: "Reached Path of Legends" });
+  await card.getByRole("button", { name: "See all 3 comments" }).click();
+  const form = card.locator(".kit-comments__form");
+  const box = form.getByRole("textbox", { name: "Your comment" });
+  await box.fill(words);
+  return { form, box };
+}
+
+/** Answer the comment's POST only when `release` is called. */
+async function holdPost(page: Page, answer: [number, unknown]) {
+  let release = () => {};
+  const held = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  await page.route("**/api/me/comments", async (route) => {
+    if (route.request().method() !== "POST") return route.fallback();
+    await held;
+    await route.fulfill({
+      status: answer[0],
+      contentType: "application/json",
+      body: JSON.stringify(answer[1]),
+    });
+  });
+  return () => release();
+}
+
+test.describe("while a comment is checked", () => {
+  test.beforeEach(async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+  });
+
+  test("a status line says why it takes a moment, the box is read-only, and an unavailable check keeps the words", async ({
+    page,
+  }) => {
+    await mockApi(page, commentsOn());
+    const release = await holdPost(page, [
+      503,
+      {
+        error: "unavailable",
+        message: "We couldn't check it just now. Try again.",
+      },
+    ]);
+    const { form, box } = await filledComposer(page, "rematch me");
+    await form.getByRole("button", { name: "Post" }).click();
+    await expect(form.getByRole("status")).toHaveText(
+      "Elixir checks every comment before it posts, so this takes a few seconds.",
+    );
+    await expect(box).not.toBeEditable();
+    await expect(form.getByRole("button", { name: "Checking" })).toBeDisabled();
+    await accessible(page, "checking");
+    await capture(page, "checking", 390);
+    release();
+    await expect(form.getByRole("alert")).toHaveText(
+      "Your comment wasn't posted. We couldn't check it just now. Try again.",
+    );
+    await expect(form.getByRole("status")).toHaveText("");
+    await expect(box).toBeEditable();
+    await expect(box).toHaveValue("rematch me");
+    await expect(box).toBeFocused();
+  });
+
+  test("a pause says so and keeps the words", async ({ page }) => {
+    await mockApi(
+      page,
+      commentsOn({
+        "POST /api/me/comments": [
+          503,
+          {
+            error: "paused",
+            message: "Comments are paused for now. Try again later.",
+          },
+        ],
+      }),
+    );
+    const { form, box } = await filledComposer(page, "gg");
+    await form.getByRole("button", { name: "Post" }).click();
+    await expect(form.getByRole("alert")).toHaveText(
+      "Your comment wasn't posted. Comments are paused for now. Try again later.",
+    );
+    await expect(box).toHaveValue("gg");
+  });
+
+  test("when the app gives up waiting it says the comment wasn't posted and keeps the words", async ({
+    page,
+  }) => {
+    // The app's 20 s wait, cut short: the answer never comes.
+    await page.addInitScript(() => {
+      const timeout = AbortSignal.timeout.bind(AbortSignal);
+      AbortSignal.timeout = (ms: number) => timeout(Math.min(ms, 500));
+    });
+    await mockApi(page, commentsOn());
+    await holdPost(page, [201, {}]);
+    const { form, box } = await filledComposer(page, "that was close");
+    await form.getByRole("button", { name: "Post" }).click();
+    await expect(form.getByRole("alert")).toHaveText(
+      "Your comment wasn't posted. That took too long. Try again.",
+    );
+    await expect(box).toHaveValue("that was close");
+    await expect(box).toBeEditable();
+  });
 });

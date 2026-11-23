@@ -48,6 +48,7 @@ import {
 } from "../comments.mjs";
 import { postQueue } from "../posts.mjs";
 import { json } from "../http.mjs";
+import { writeByOf } from "../deadline.mjs";
 import { readConversations, conversationCursors } from "../conversations.mjs";
 
 /** Item reads one person may make in an hour: each rebuilds a slice of
@@ -206,6 +207,8 @@ export function commentsRoutes({
         });
       const out = await postComment(db, account, item, body.text, {
         ...comments,
+        // A pass that lands near this request's deadline is not written.
+        writeBy: writeByOf(event),
         // Moderation can outlast a membership, role, block or source
         // change. Re-admit the original locator immediately before write.
         canSee: async () =>

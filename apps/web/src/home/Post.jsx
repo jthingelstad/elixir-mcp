@@ -24,6 +24,7 @@ import {
 import { useScope } from "../lib/scope.js";
 import { modeWord } from "./logic.js";
 import { ReportForm } from "./Comments.jsx";
+import { CheckingLine, notPostedWords } from "./check-words.jsx";
 import {
   POST_CARDS_MAX,
   POST_MAX,
@@ -155,7 +156,7 @@ function PostForm({ onClose, opener, moment = null }) {
       onClose();
       return;
     }
-    setError(refusalWords(res));
+    setError(notPostedWords(res, question ? "question" : "post"));
     box.current?.focus();
   };
   return (
@@ -182,10 +183,12 @@ function PostForm({ onClose, opener, moment = null }) {
             : "Say something to your followers and clanmates"
         }
         value={text}
+        readOnly={busy}
         aria-invalid={error ? true : undefined}
         aria-describedby={`${fieldId}-help`}
         onChange={(e) => setText(e.target.value)}
       />
+      <CheckingLine busy={busy} kind={question ? "question" : "post"} />
       {moment ? (
         <PostMoment
           moment={{
@@ -736,6 +739,7 @@ function EditForm({ p, onClose, onDone }) {
   const [text, setText] = useState(String(p.text ?? ""));
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
+  const box = useRef(null);
   const fieldId = useId();
   const left = POST_MAX - [...text.trim()].length;
   const empty = !text.trim() && !p.battle;
@@ -747,21 +751,25 @@ function EditForm({ p, onClose, onDone }) {
     const res = await api.editPost(p.id, text);
     setBusy(false);
     if (res.ok) return onDone();
-    setError(refusalWords(res));
+    setError(notPostedWords(res, "edit"));
+    box.current?.focus();
   };
   return (
     <form className="kit-post-compose kit-post-edit" onSubmit={save}>
       <textarea
         id={fieldId}
+        ref={box}
         aria-label="Your words"
         className="kit-comments__field kit-post-compose__field"
         rows={3}
         maxLength={POST_MAX * 3}
         value={text}
+        readOnly={busy}
         aria-invalid={error ? true : undefined}
         aria-describedby={`${fieldId}-help`}
         onChange={(e) => setText(e.target.value)}
       />
+      <CheckingLine busy={busy} kind="edit" />
       <div className="kit-comments__send">
         <span
           id={`${fieldId}-help`}

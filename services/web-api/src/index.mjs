@@ -9,6 +9,7 @@ import { createModelBridge } from "@elixir-mcp/clan/model-bridge.mjs";
 
 import { currentAndPrevious } from "@elixir-mcp/auth";
 import { makeHandler } from "./handler.mjs";
+import { MODERATION_WAIT_MS } from "./comment-check.mjs";
 import { makeCaptureStore } from "@elixir-mcp/tools/capture";
 import { makeOutbox, countStuck } from "@elixir-mcp/outbox";
 import { homeWeekWake } from "@elixir-mcp/tools/activity/home-feed";
@@ -180,7 +181,8 @@ const handler = makeHandler({
           moderate: createModelBridge({
             secret: process.env.CLAN_MODEL_SECRET,
             storage: modelStorage(process.env.OUTBOX_BUCKET),
-            timeoutMs: 20_000,
+            // This bridge carries comment and post checks alone.
+            timeoutMs: MODERATION_WAIT_MS,
           }).moderate,
         }
       : null,

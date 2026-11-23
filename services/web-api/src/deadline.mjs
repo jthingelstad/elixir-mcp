@@ -39,3 +39,15 @@ export function toolDeadlineMs(event) {
   if (typeof at !== "number") return null;
   return Math.max(1, at - Date.now() - TOOL_REPLY_MARGIN_MS);
 }
+
+/** Time a checked write (a comment, a post: comment-check.mjs) keeps
+ *  back after its check for the insert and the answer, so a pass that
+ *  lands near the soft deadline is never written after the 504. */
+const WRITE_MARGIN_MS = 3000;
+
+/** The latest a checked write may begin (epoch ms), or null when the
+ *  request has no soft deadline. */
+export function writeByOf(event) {
+  const at = event?.softDeadlineAt;
+  return typeof at === "number" ? at - WRITE_MARGIN_MS : null;
+}

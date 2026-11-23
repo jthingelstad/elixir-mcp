@@ -19,7 +19,7 @@
  * and answers. No key ever reaches the API or this module.
  */
 import { costOfUse, roundUsd } from "@elixir-mcp/clan/manage/prices.mjs";
-import { filterComment, POST_MAX } from "./comment-filter.mjs";
+import { COMMENT_MAX, filterComment, POST_MAX } from "./comment-filter.mjs";
 
 /** The small, fast model (checked against the live Models API on
  *  2026-11-16: claude-haiku-5-5 is the current Haiku). */
@@ -37,23 +37,60 @@ export const REFUSE_CATEGORIES = [
   "personal_info",
 ];
 
-/** The author's one plain line for each refusal; never the model's. */
+/** The author's one plain line for each answer that is not a post: what
+ *  the problem is and what to change, never the model's words. The app
+ *  puts "Your comment wasn't posted." in front (Comments.jsx), so a line
+ *  is the reason alone (2026-11-23). */
 export const REFUSAL_WORDS = {
-  harassment: "That reads as mean or insulting. Keep it friendly.",
-  sexual: "That isn't okay here.",
-  hate: "That isn't okay here.",
-  threat: "That reads as a threat. Keep it friendly.",
-  self_harm: "That isn't okay here.",
-  spam: "That looks like spam.",
-  link: "Links can't go in comments.",
+  harassment:
+    "That reads as mean to a person. Keep the trash talk about the battle, not the player.",
+  sexual: "That reads as sexual. Keep it about the game.",
+  hate: "That reads as hateful toward a group of people. Take that part out.",
+  threat: "That reads as a threat. Take out anything about hurting someone.",
+  self_harm:
+    "That reads as telling someone to hurt themselves, even as a joke. Take that part out.",
+  spam: "That looks like spam: ads, trades, giveaways or asking for follows. Say something about the game instead.",
+  link: "Links can't go in comments. Take the web address out.",
   personal_info:
-    "Keep personal and contact details out: no names, ages, schools, places, numbers or other apps.",
+    "That shares or asks for personal details, like a real name, age, school, place, number or another app. Take that part out.",
   empty: "Write something first.",
-  too_long: "Comments are 280 characters at most.",
-  declined: "That isn't okay here.",
-  unavailable: "Couldn't check that just now; try again.",
+  too_long: `Comments are ${COMMENT_MAX} characters at most. Make it shorter.`,
+  declined: "That didn't pass the check. Try saying it another way.",
+  repeated: "You already posted those words today. Say something new.",
+  unavailable: "We couldn't check it just now. Try again.",
   paused: "Comments are paused for now. Try again later.",
 };
+
+/** How long the API waits for the model's verdict (2026-11-23): well
+ *  inside the request's soft deadline (deadline.mjs, 18.5 s) and the
+ *  app's own 20 s, so the author always hears the server's answer. The
+ *  relay waits no longer than this either (model-bridge.mjs). */
+export const MODERATION_WAIT_MS = 12_000;
+
+/** Stock words that need no reading (2026-11-23): an exact match, after
+ *  case, spacing and end punctuation, posts at once without the model.
+ *  Keep it short; every word here skips the only check. */
+export const STOCK_COMMENTS = new Set([
+  "gg",
+  "ggs",
+  "gg wp",
+  "ggwp",
+  "wp",
+  "nice",
+  "nice one",
+  "well played",
+  "good game",
+]);
+
+/** Whether tidied words are one of the stock comments. */
+export function isStockComment(body) {
+  const plain = String(body ?? "")
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .replace(/[\s.!?]+$/u, "")
+    .trim();
+  return STOCK_COMMENTS.has(plain);
+}
 
 export const MODERATION_SYSTEM = `You check comments before they post on Elixir, a social site for Clash Royale players. Players follow their friends and clanmates and comment on each other's battles, sessions and milestones. Many members are teenagers (13 and up). Nobody reviews comments by hand, so you are the only check.
 
@@ -80,8 +117,10 @@ Answer with the verdict tool: allow true and category "none", or allow false and
  *  "comment"; every other category reads the same. */
 export const POST_REFUSAL_WORDS = {
   ...REFUSAL_WORDS,
-  link: "Links can't go in posts. A deck link copied from the game becomes the deck.",
-  too_long: `Posts are ${POST_MAX} characters at most.`,
+  harassment:
+    "That reads as mean to a person. Keep the trash talk about the game, not the player.",
+  link: "Links can't go in posts. A deck link copied from the game becomes the deck; take any other web address out.",
+  too_long: `Posts are ${POST_MAX} characters at most. Make it shorter.`,
   paused: "Posts are paused for now. Try again later.",
 };
 
@@ -230,14 +269,28 @@ function costOf(model, usage) {
  * Check one tidied comment, or with `post` a post (2026-11-17: its own
  * length, its own policy, the one cap and log). `moderate(input)` is the
  * bridge's call (or a fake in tests); null means no model path, so
- * comments are off.
+ * comments are off. A stock comment ("gg", STOCK_COMMENTS) passes
+ * without the model once the filters and the cap have; a post never
+ * does. `writeBy` (epoch ms, deadline.mjs) is the latest a pass may
+ * still be written: a verdict that lands later answers error, so the
+ * caller never writes words it may already have timed out on.
  * Returns `{ verdict: "allow" }`, `{ verdict: "refuse", category }`,
  * `{ verdict: "error" }` or `{ verdict: "paused" }`; every outcome but a
  * filter refusal of an empty or too-long comment is logged.
  */
 export async function checkComment(
   db,
-  { moderate, capUsd, accountId, itemId, body, about, own, post = null },
+  {
+    moderate,
+    capUsd,
+    accountId,
+    itemId,
+    body,
+    about,
+    own,
+    post = null,
+    writeBy = null,
+  },
 ) {
   // A post about a battle has limits of its own (posts.mjs), so its
   // checks are counted apart (0292).
@@ -268,6 +321,19 @@ export async function checkComment(
     });
     return { verdict: "paused" };
   }
+  // Stock words post at once, logged as the filter's pass: the caller's
+  // repeat, rate and block checks still ran around this one.
+  if (!post && isStockComment(body)) {
+    await logCheck(db, {
+      accountId,
+      itemId,
+      kind,
+      verdict: "allow",
+      stage: "filter",
+      category: "stock",
+    });
+    return { verdict: "allow" };
+  }
   let answer;
   try {
     answer = await moderate(
@@ -297,6 +363,22 @@ export async function checkComment(
       category: answer?.code ?? null,
       model,
       usage: answer?.usage,
+      cost,
+    });
+    return { verdict: "error" };
+  }
+  // A pass too close to the request's own deadline is not written: the
+  // author would be told "took too long" while the words went up.
+  if (verdict.allow && writeBy != null && Date.now() > writeBy) {
+    await logCheck(db, {
+      accountId,
+      itemId,
+      kind,
+      verdict: "error",
+      stage: "model",
+      category: "late",
+      model,
+      usage: answer.usage,
       cost,
     });
     return { verdict: "error" };
