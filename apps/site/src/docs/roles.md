@@ -7,7 +7,7 @@ order: 30
 navTitle: "Roles"
 icon: shield-check
 lede: "What each role records for you, never what you may read."
-reviewed: "2026-11-14 partner is community-scale slots and budgets on MCP, the quota rows say follow, two kinds of principal, one MCP endpoint each; 2026-10-12 roles are earned in the game, the collector points economy retired; a family is recorded, Clan is one clan at a time; 2026-10-06 for public member signup"
+reviewed: "2026-11-14 partner is community-scale slots and budgets on MCP, the quota rows say follow; 2026-11-23 people only, one MCP endpoint; 2026-10-12 roles are earned in the game, the collector points economy retired; a family is recorded, Clan is one clan at a time; 2026-10-06 for public member signup"
 callout: ["Open it at Settings › Profile", "/settings/profile", "Open Profile"]
 ---
 
@@ -24,8 +24,8 @@ spends the one shared Clash Royale API budget).
 Two things sit outside that rule. Your own account data is private to
 you. And the few facts Clan adds about a clan (a
 leader's note on why a member left, an award) are shown only to the
-people each one is for: a clan's facts to its verified members and
-their agents, a member's away only to the clan's leaders.
+people each one is for: a clan's facts to its verified members, a
+member's away only to the clan's leaders.
 
 ## The ladder
 
@@ -36,9 +36,8 @@ their agents, a member's away only to the clan's leaders.
 | Clans you follow, every member | none | 1 | 3 | 5 | unlimited | unlimited |
 | Tool calls / day | 500 | 2,000 | 5,000 | 15,000 | unlimited | unlimited |
 | Live CR fetches / day | 20 | 100 | 250 | 1,000 | unlimited | unlimited |
-| Agents | 3 | 5 | 10 | 25 | unlimited | unlimited |
 
-Tool calls are what your agents and connected apps spend at the MCP door.
+Tool calls are what your connected apps spend at the MCP door.
 Your own reads on Elixir's website, Find, player pages and Stats, never count
 against them; they share only the hourly limit ([Limits](/docs/limits)).
 
@@ -54,7 +53,7 @@ player's clan](/docs/recording#your-players-clan)).
 **leader**: you run a clan: one of your [verified](/docs/verify)
 players is its leader or co-leader, and you follow the clan. One
 every-member watch: every member's battles and profile, following
-membership as it changes. This is the role a clan's own agent needs.
+membership as it changes.
 
 **family**: you run a collector for Elixir. Multiple every-member
 watches, for a clan family (a main plus feeders) or the clans you follow. A family is how they are
@@ -76,43 +75,20 @@ removes partner. Unlimited quotas, exempt from every cap.
 plus granting or revoking the admin role and running the collector
 fleet. No admin can change the owner's account, or another admin's.
 
-## Two kinds of principal
+## Who calls Elixir
 
-Not everything that calls Elixir is a person. There are two kinds, and
-each has one MCP endpoint: you have `/mcp`, for your own agent, and a
-clan's agent has its own, `/a/<public_id>/mcp`
-([Building an agent](/docs/agents#connect-it)).
+Everything that calls Elixir is a person, at one MCP endpoint, `/mcp`.
+You sign in with your email and connect the apps you choose (Claude,
+ChatGPT and others) over OAuth; the tools answer about *your* players,
+your clans, your timeline. There is no API key to make. An OAuth
+connection refreshes itself, so a script that runs unattended stays
+signed in as you, for up to 90 days from your consent; then it asks you
+to consent again ([Protocol](/docs/connecting#tokens),
+[Your own agent](/docs/agents)).
 
-**You** are a person. You sign in with your email and connect the apps you
-choose (Claude, ChatGPT and others) over OAuth; the tools answer about *your* players, your clans, your
-timeline. There is no personal API key. An OAuth connection refreshes itself,
-so a script that runs unattended stays signed in as you, for up to 90 days
-from your consent; then it asks you to consent again
-([Protocol](/docs/connecting#tokens)). A headless runtime that does clan
-work uses an agent's key instead, which does not expire.
-
-**An agent** acts for a clan rather than for a person. It has its own identity,
-its own key and its own timeline, so what it does never lands in your history
-and what you do never shows up as its. **Every role can have agents**: you
-can create one for any clan you already record, up to the
-per-account count in the table above. It spends your daily call budget, **your
-live-fetch budget**, every agent you run shares your one daily live
-allowance, **and your recording slots**: what your agents follow is counted
-with what you follow, once per player or clan, however many of you follow it.
-Its own role is capped at yours, and at `leader`: an admin's agent is not an
-admin, and an agent's role follows yours as it is read now (member while
-you are a member, leader otherwise), so an agent never sits above its owner. Each agent has its own page,
-opened from its row in Settings › Connections & agents.
-
-That separation is the point. An agent that borrowed your identity would answer
-"who am I" with *your* player tag, which is not what a clan's Discord bot should
-be able to say out loud.
-
-| | You | Agent |
-|---|---|---|
-| Acts for | yourself | a clan |
-| Signs in with | OAuth | OAuth or a key |
-| Available to | everyone | everyone, per clan you record |
+Everything you connect spends your budgets and follows on your slots.
+A clan's Discord needs no bot: its leaders set it up on the clan's
+**Run › Discord** page ([Clan Discord](/docs/clan-discord)).
 
 ## Followed means recorded
 

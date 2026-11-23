@@ -201,7 +201,7 @@ files).
 - **No version to bump.** The fingerprint moves by itself; a test in
   `services/mcp/test/mcp.test.mjs` proves it.
 - **What's new when it is worth telling**: a new tool, a removal, or a
-  change agent owners should hear of gets one entry in
+  change people who connect a client should hear of gets one entry in
   `apps/site/src/_data/updates/` (`/ship`, "What a user sees"), one per
   round, not one per fix. A wording fix needs none.
 - **A decision Jamie made** becomes a DECISIONS line and a change note in

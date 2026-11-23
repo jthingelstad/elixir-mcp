@@ -45,7 +45,7 @@ Consecutive 403s open a per-collector breaker and drain it.
 
 - **Recording follows a follow.** `packages/claims` decides who is recorded
   and why: a person's players and the players and clans they follow, in
-  one pooled set of slots per person and their agents. Nothing is recorded
+  one set of slots per person. Nothing is recorded
   for its own sake.
 - **A clan nobody follows keeps only its followed players.** A roster poll of
   such a clan writes membership, role and roster rows only for the followed
@@ -231,7 +231,7 @@ inside a request. Non-database work (S3 calls) still parallelises.
 
 - `packages/contracts` is the single source of truth for tool schemas, the
   error enum, `deck_hash` and the `meta` envelope. **MCP has no version
-  number** (2026-11-23). Agents reason from the current declaration,
+  number** (2026-11-23). Clients reason from the current declaration,
   schema and notes; an absent field means no claim. A change that breaks a
   caller is Jamie's call, asked up front and stated in the pull request.
 - **The JSON API is versioned separately, on ordinary semver.** It is
@@ -298,7 +298,7 @@ conventions"; `choosing-a-tool.md`); this list is what a new tool must do.
   `openWorld` true if any path, including a `live: true` flag, reaches the
   CR API.
 - **Declarations.** Description at most 600 characters; shared schemas by
-  reference (`TAG_SCHEMA`, `ON_BEHALF_OF_SCHEMA`, `WINDOW_ARGS`,
+  reference (`TAG_SCHEMA`, `WINDOW_ARGS`,
   `MODE_SCHEMA`, `TIMEZONE_SCHEMA`), never re-typed;
   `limit` carries a `maximum`; every tool declares an `outputSchema`
   (`packages/tools/src/output-schemas.mjs`) that the registry validates
@@ -578,7 +578,7 @@ are exempt. Two doors over one fact read one function.
 ## The JSON API
 
 `/api/v1` answers exactly `GET /api/v1/me`, Sign in with Elixir's one
-request ("No integrations: Elixir has users and agents", DECISIONS). It is
+request ("Elixir has people, not agents", DECISIONS). It is
 defined by `packages/contracts/integration-api.openapi.json`, served by
 `services/web-api/src/sign-in-api.mjs` and documented on
 `apps/site/src/docs/sign-in-with-elixir.md`. It runs in web-api behind a
@@ -765,8 +765,9 @@ every hour (`docs/notes/2026-11-15-e2e-reader-clock.md`, which also has
 the harness that runs the journeys at any instant).
 
 **The acceptance suite** (`acceptance/`, layers in `acceptance/README.md`)
-reads the deployed door as a read-only agent principal with its own token
-and budget, and asserts invariants, never values that change daily. It runs
+reads the deployed door at `/mcp` as a test account (a person with no
+address, holding one operator-minted key with its own ceiling and daily
+quota: `docs/notes/2026-11-23-test-identities-are-people.md`), and asserts invariants, never values that change daily. It runs
 after the smoke gate when a deploy asks (`--acceptance`,
 `--acceptance=<family>`; paced, at most once per deploy train, behind
 the database headroom preflight in `infra/scripts/lib/db-headroom.mjs`)

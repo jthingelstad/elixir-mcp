@@ -1219,14 +1219,18 @@ test("current account and connection copy matches the ratified scope", () => {
     /approved gated, free beta|approves access requests|reads the corpus|automatic recording enrollment|taking part in the beta|every\s+approved\s+account|recorded: claimed, tracked as a clan, collected|empty tables are removed in a separate|Events never feed the meta|war deck sets|card, meta and war-deck tools/i,
   );
   assert.match(publicCopy, /Ordinary member signup is public and free/);
-  // Elixir has people and their agents (JSON API 5.0.0): the copy offers
-  // no integration to build or provision, and the two kinds are what
-  // connects.
+  // Elixir has people (JSON API 5.0.0; agents removed 2026-11-23): the
+  // copy offers no integration to build or provision and no agent account
+  // to make, and every connection is a person's.
   assert.doesNotMatch(
     publicCopy,
     /Admin → Integrations|REST (?:Integration )?API|integration key|platform integrations?/i,
   );
-  assert.match(publicCopy, /Two kinds of connection/);
+  assert.doesNotMatch(
+    publicCopy,
+    /\/a\/<public_id>|on_behalf_of|elixir_my_identities|New agent|Connections & agents/,
+  );
+  assert.match(publicCopy, /every connection is a person's/);
 
   // The JSON API is Sign in with Elixir's /me alone (5.0.0): it declares
   // nothing an integration could call, and its old guides are not built.

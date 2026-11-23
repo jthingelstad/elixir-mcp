@@ -459,8 +459,9 @@ export default function (eleventyConfig) {
     "Read about scopes": "/docs/recording#scope-what-is-actually-polled",
     "Look up a clan tag": "/home/find",
     "Read the privacy posture": "/docs/privacy",
-    "Create an agent": "/settings/connections",
-    "Read the agents doc": "/docs/agents",
+    "Connect your clan's Discord": "/clan",
+    "Read the clan Discord doc": "/docs/clan-discord",
+    "Read about your own agent": "/docs/agents",
     "Read the operators guide": "/docs/operators",
     "Raise your hand": "/settings/collectors",
   };

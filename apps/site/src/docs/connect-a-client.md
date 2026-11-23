@@ -18,7 +18,7 @@ Connect a client if you want an AI agent to ask Elixir about your
 record. You can do this while recording is pending, or keep using Stats and Clan
 in your browser. A connection authorizes access; it does not prove that a
 successful data read has happened. Each connection's row under Settings ›
-Connections & agents shows its last call and its calls in the last seven days.
+Connections shows its last call and its calls in the last seven days.
 
 The endpoint is the same for every client:
 
@@ -31,7 +31,7 @@ The door speaks Streamable HTTP over JSON and authenticates with OAuth 2.1
 endpoint). A client that names no scope asks for `cr:read` alone, and the
 consent page offers every other capability as a checkbox, unticked on your
 own connection: tick what you want to allow, and change it later under
-Settings › Connections & agents. Details are on the [Protocol reference](/docs/protocol).
+Settings › Connections. Details are on the [Protocol reference](/docs/protocol).
 
 ### Claude.ai
 
@@ -92,8 +92,7 @@ stdio-only client to this flow.
 
 In a workspace that allows custom MCP apps, add Elixir's endpoint with
 OAuth, connect your account and enable the app in a conversation. Use the
-personal endpoint above for your player account or the URL on your clan
-agent's Settings page for that agent.
+endpoint above; it is the same for everyone.
 
 Published workspace apps can retain an older set of actions while Elixir
 already serves the new ones. An authorized workspace admin can open the

@@ -101,12 +101,12 @@ has no account to speak for.
 A page never shows a nickname, yours included, a Discord username or an email
 address.
 
-Your own agent reads the same section with the MCP tool `players_follows`, reading as you, its owner: `badges`,
+Your own agent reads the same section with the MCP tool `players_follows`, reading as you: `badges`,
 `follows` and `followers`, null when no account has verified the player.
 Each follower carries `verified`, false for a player the follower claims and
 hasn't verified, and `no_player` counts the followers with no player at all.
-An agent never follows anyone on the
-page's behalf; following stays the person's ask (`elixir_follow_player`).
+It never follows anyone on the
+page's behalf; following stays your ask (`elixir_follow_player`).
 
 ## Following from the page
 
@@ -127,9 +127,7 @@ for the clan's current members (at most 50), saying how many are free and how
 many take a slot, against the slots you have left. Past your limit it is
 refused whole, and says why; nobody is followed in part. One that needs no
 slot always goes ahead. Your own players are left out, and the question says
-so. In your own clan, [Clan › Members](/docs/bring-your-clan) opens each clanmate’s page. A player only your agent
-follows is not one you follow yet: following them is free, since Elixir
-records them for you already.
+so. In your own clan, [Clan › Members](/docs/bring-your-clan) opens each clanmate’s page.
 
 ## Follow me links
 

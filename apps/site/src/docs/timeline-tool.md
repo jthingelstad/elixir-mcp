@@ -6,7 +6,7 @@ section: protocol
 order: 5
 navTitle: "The timeline tool"
 icon: rss
-lede: "elixir_timeline for an agent: subjects, items, entries, routines and polling."
+lede: "elixir_timeline for your own agent: subjects, items, entries, routines and polling."
 ---
 
 # The timeline tool
@@ -63,7 +63,7 @@ next_cursor, has_more, notes, docs, meta }`.
 
 ### Plain posts and questions
 
-A person's own authorized `/mcp` connection also reads visible posts
+Your connection also reads visible posts
 and questions from their existing Timeline audience: their own posts,
 the players they follow with notifications on, and accounts they follow.
 Use `kinds: ["post"]` or `sections: ["posts"]` to read the whole post with
@@ -71,7 +71,6 @@ Use `kinds: ["post"]` or `sections: ["posts"]` to read the whole post with
 mode group and outcome. A mixed feed keeps the existing `battle_highlight`
 form for followed players who appear in the battles section. Each post has
 one ID across both forms and appears once per feed.
-Clan-agent principals do not receive them, including with `on_behalf_of`.
 
 `facts.moment` is null or the author’s own recorded public game
 achievement: `id`, `kind`, `at`, `player_tag`, `text` and a game-only `item_ref`.
@@ -145,19 +144,14 @@ counts the battles played in the window by `battle_time`, boat defenses out
 
 ### One pointer per reader
 
-**Every agent has its own pointer.** An agent is its own account, so an
-agent's connection reads and marks the agent's pointer, never yours or
-another agent's. Give each app its own agent: two apps sharing one agent
-connection share its pointer and move each other's window, which is the
-case `reader` below exists for, and a second agent is the better answer.
-
 Without `reader`, `mark_read` moves a single instant on the account, and
 two consumers that both mark move each other's window. With `reader`
-each consumer names its own pointer and marks it alone; the
-account's unnamed pointer stays a person's own client's. A consumer that
+each consumer names its own pointer and marks it alone. Give every
+routine or app its own `reader`; the account's unnamed pointer is best
+left to the client you chat with. A consumer that
 keeps its own cursor still can (`mark_read: false` and its own `from`), but
 `meta.timeline_pending` then counts against a pointer it never moves. The
-code for both shapes is on the [agents page](/docs/agents#consuming-the-timeline).
+code for both shapes is on [Your own agent](/docs/agents#consuming-the-timeline).
 
 ## Who is a subject
 
@@ -170,11 +164,10 @@ the all-followed feed and its existing position. Publish only items with
 
 | Reader | Subjects | On the timeline |
 |---|---|---|
-| a person | every player they follow with notify on (primary, alts and friends); every clan they added with notify on | each player's sessions and moments; each clan's roster, war and members' moments |
-| an agent | every clan it follows with notify on (the clan it acts for, and any other); every player it follows with notify on, always `friend`, never "me" | each clan's roster, war and members' moments; each player's sessions and moments. A clan's members appear **on the clan's timeline**, never as subjects of their own |
+| you | every player you follow with notify on (primary, alts and friends); every clan you added with notify on | each player's sessions and moments; each clan's roster, war and members' moments. A clan's members appear **on the clan's timeline**, never as subjects of their own |
 
-The entry's shape follows the subject, not the account: a person who adds a
-clan gets the same clan entry an agent gets. `notify_off` on a subject
+The entry's shape follows the subject: a clan you add gets a clan entry,
+a player a player entry. `notify_off` on a subject
 silences it without touching its recording.
 
 ## Items
@@ -207,7 +200,7 @@ section, text, visibility, publishable, facts, follow }`:
 |---|---|---|
 | `battle_session` | player | a run of recorded battles with no gap of 30 minutes or more, `open` while it may still be going. On a player's own timeline every session is an item, a single battle included; a clan's members' ordinary sessions are not items there (see `session_standout`, and `player_tag` below). A reader that moves its pointer sees each session once; a member read (`player_tag`) keeps no pointer, so a session still being learned can come back with a running total under the same `id` at a higher `revision`: update, never retell. |
 | `session_standout` | a clan's member | a member's session that crossed a disclosed rung: `won_in_a_row` 5 / 10 / 20, ladder `trophy_net` ±150 / ±300 / ±500 (each rung is the net's distance from zero, gained or lost: a session that falls to -150 crosses `trophy_net>=150`), `battles` 20 / 40 in one session. Once per rung: a session is never re-reported, and a window that learns more of the same session without a new rung carries nothing; a new rung is the session's `id` at a higher `revision`. The clan entry lists the five strongest under `standouts.sessions` with the rungs under `standouts.session_rungs`. Absolute trophy bands on purpose - a win is worth about the same at every ladder floor |
-| `battle_highlight` | player | a post about one battle its player played, with their own words or none, posted from the battle's page by the person who verified that player: the one single-battle item. The kind keeps the name from when these were called highlights; `facts.post_id` names the post, and `facts.highlight_id` carries the same value. Its sentence reads "posted about a 3-1 win against ...". Its `at` is when it was posted; the battle keeps its own time in `facts.battle`. When the player changes the words, the record learns it again: a poller is served it in the window that holds the edit, the same `id` and `at` at a higher `revision`, with the new words. Deleting the post removes it, words and all; a reader that already served it is not told. On your own reads (the account that posted it, or your agents) it carries `facts.share_url` once you have shared it |
+| `battle_highlight` | player | a post about one battle its player played, with their own words or none, posted from the battle's page by the person who verified that player: the one single-battle item. The kind keeps the name from when these were called highlights; `facts.post_id` names the post, and `facts.highlight_id` carries the same value. Its sentence reads "posted about a 3-1 win against ...". Its `at` is when it was posted; the battle keeps its own time in `facts.battle`. When the player changes the words, the record learns it again: a poller is served it in the window that holds the edit, the same `id` and `at` at a higher `revision`, with the new words. Deleting the post removes it, words and all; a reader that already served it is not told. On your own reads (the account that posted it) it carries `facts.share_url` once you have shared it |
 | `badge_earned`, `legendary_badge_earned` | player, or a clan's member | a tiered badge levelled up, or a one-off badge: `facts.badge` is the badge's API identifier (`MasterySkeletonWarriors`), `facts.badge_label` the badge as a player says it (`Guards Mastery`), `facts.name` the member on a clan's timeline. A Mastery badge is an item when a level-up crosses a multiple of five or its top level (a jump from 3 to 6 crosses 5); any other tiered badge at every level, its first included. One item per badge a UTC day, at its latest level, and one per player's Mastery badges a UTC day: that one carries `facts.badges` (each `{ badge, badge_label, level, prior_level }`, highest first, at most 10) and `facts.badge_count`, with `badge`, `badge_label` and `level` its highest, and its `revision` counts the level-ups it holds. Years Played's level is the years. Battle Wins, Collection Level, the ladder rankings and the 12-win badges are never items here (`twelve_win_run` tells the runs). A level-up recorded before 2026-11-17 keeps the rule it was written under: an item only at the final level or a multiple of five. The entry's `badges` counts every level-up |
 | `arena_changed` | player, or a clan's member | arena moved, named from the arena catalog. When the record holds the crossing, `facts.promoted_by` names the win that reached the new arena's floor and `at` is that battle's instant rather than the poll's; absent means a recording gap, never a guess |
 | `ranked_promotion` | player, or a clan's member | Ranked league went up, by name. `facts.promoted_by` names the promoting battle when the record holds it: the last win played in the league below (a ranked battle is stamped with the league it started in), with `at` at that battle |
@@ -232,7 +225,7 @@ section, text, visibility, publishable, facts, follow }`:
 | `week_resolved` | clan | the week finished: fame, rank among the five, war trophy change, and each member's week by points |
 | `quiet_crossed`, `returned` | player, or a clan's member | a member crossed 5, 10 or 20 quiet days on the record (never while the silence is ours: `days_since_poll` rides along), or played again after seven or more |
 | `account_*` | your account | answers to your feedback (`account_feedback_responded`, one item each; revised, the same `id` at a higher `revision`), recordings started or stopped, clans added or removed (the text names the clan; one Elixir made on its own says "automatically" and whose clan it followed), role changes (`account_role_changed`), connections, by the app's name. A burst of one kind within a minute (six connections revoked at once) is one item with `count`. Never publishable |
-| `departure_classified`, `role_change_made`, `award_granted`, `award_standing`, `member_away`, `clan_message` | clan | [attested facts](/docs/timeline#attested-facts): what a person did in the clan, in Clan (a leader says a departure was a kick or a leave; a promotion made; the clan's own award; a member away; a Clan Leader Message or clan chat line), and what Clan itself computed (`award_standing`: where a member stands in one of the clan's awards). Section `attested`; `facts` is the fact's detail plus `player_tag` and `name` for the member it is about (and `previous_name` beside a standing's `previous_player_tag`), `attested_by` (`app`, where it was said, `Clan` for Clan's; `player_tag`, `name`, `role`, the last three null on Clan's own fact) and `visibility`. Shown only to a reader whose verified player (an agent's owner's) is in the clan; an away only to a **person** whose verified player leads it, never to an agent. A departure's kind reaches the clan and its agent. `at` is when it happened; it is selected by when Elixir recorded it |
+| `departure_classified`, `role_change_made`, `award_granted`, `award_standing`, `member_away`, `clan_message` | clan | [attested facts](/docs/timeline#attested-facts): what a person did in the clan, in Clan (a leader says a departure was a kick or a leave; a promotion made; the clan's own award; a member away; a Clan Leader Message or clan chat line), and what Clan itself computed (`award_standing`: where a member stands in one of the clan's awards). Section `attested`; `facts` is the fact's detail plus `player_tag` and `name` for the member it is about (and `previous_name` beside a standing's `previous_player_tag`), `attested_by` (`app`, where it was said, `Clan` for Clan's; `player_tag`, `name`, `role`, the last three null on Clan's own fact) and `visibility`. Shown only to a reader whose verified player is in the clan; an away only to a reader whose verified player leads it. A departure's kind reaches the clan. `at` is when it happened; it is selected by when Elixir recorded it |
 | `drop_game` | player | A completed Elixir Drop game with its mode, result, answer count and card highlights. Each game has a stable `game_id`. Section `attested`. |
 | `personal_record` | player | an attested fact from a family app's own game (Elixir Drop): `game`, `score`, `previous_best`, `attested_by`. Section `attested` |
 

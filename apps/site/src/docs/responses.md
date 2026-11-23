@@ -96,10 +96,9 @@ Every tool call costs one call; `live_fetch`, and `live: true` on
 read is queued, never for a read already in hand or for the follow-up call
 that finds it landed. `max` and `remaining` are `null`
 when the budget is unlimited (owner and admin). `resets_at` is the next UTC
-midnight, when both counters roll. An agent spends its owner's call budget and its owner's live
-lane, so every agent on one account reads the same balances. The hourly
-rate limit is the exception: each agent has its own hour (see
-[Limits](/docs/limits#the-table)).
+midnight, when both counters roll. Every connection on one account
+spends the same budgets, so each reads the same balances
+([Limits](/docs/limits#the-table)).
 
 **`request_id`**: the id of the call that produced this response. Quote it when
 reporting an answer that looks wrong and we can find the exact row. Your own
@@ -139,27 +138,27 @@ or read `elixir://docs/<page>#<section>`.
 Both `server/discover` and legacy `initialize` describe the connection
 in prose and as structured data.
 
-`instructions` says it in prose, *"YOU ACT FOR Tidewater #0G9J08"*, which
-is the right shape for the model that reads it, and the wrong shape for the
-program hosting that model. That wording is tuned for the model and changes
-whenever the tuning does, so a client must not parse it.
+`instructions` says it in prose, *"YOU ARE King Thing #20JJJ2CCRU"*,
+which is the right shape for the model that reads it, and the wrong shape
+for the program hosting that model. That wording is tuned for the model and
+changes whenever the tuning does, so a client must not parse it.
 
 The same facts ride as data, in the discovery or initialization result’s `_meta`:
 
 ```json
 "_meta": {
   "elixir.poapkings.com/principal": {
-    "kind": "agent",
-    "subject": { "type": "clan", "tag": "#0G9J08", "name": "Tidewater", "members": 47 }
+    "kind": "person",
+    "subject": { "type": "player", "tag": "#20JJJ2CCRU", "name": "King Thing" },
+    "clan": { "tag": "#J2RGCRVG", "name": "POAP KINGS" }
   }
 }
 ```
 
-`kind` is `person` or `agent`. `subject` is the clan an agent
-acts for, the primary player a person is, or `null`, and it is **always
-present**, so a misconfigured agent with no clan is something you can detect at
-boot rather than discover in an empty answer. A person also gets a separate
-`clan` for context; for an agent the clan *is* the subject.
+`kind` is `person`. `subject` is your primary player, or `null` when the
+account has none yet, and it is **always present**, so an account with no
+player is something you can detect at boot rather than discover in an
+empty answer. `clan` is that player's current clan, when there is one.
 
 Use it to refuse to start on the wrong kind of token, or to label a surface
 with what it serves. Do not use it as permission: it reports the connection you
@@ -236,7 +235,7 @@ The `code` is from a closed set, listed with the JSON-RPC and HTTP
 layers on the [Protocol reference](/docs/protocol#errors); the `hint` names
 the one call that would fix it. Three are worth branching on by code rather
 than by message: `no_subject` (nothing to answer about: no primary player,
-an unmapped `on_behalf_of`, an agent with no recorded clan),
+a primary player in no clan),
 `result_too_large` (narrow the arguments; the hint sizes the page that fits)
 and `internal` (the server failed, not your call: retry once, then report
 the `request_id`). Errors carry a `meta` envelope too, with the same

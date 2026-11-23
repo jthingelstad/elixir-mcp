@@ -8,7 +8,7 @@ navTitle: "Sign in with Elixir"
 icon: log-in
 lede: "Elixir's family apps sign you in with your Elixir account, and create one if you are new: no consent page, and one grant you can see and end in Settings. Other apps can ask too, for less, and you approve each one."
 reviewed: "2026-11-14 the profile image in /me (JSON API 5.1.0); 2026-11-13 against contract 13.0.0 and JSON API 5.0.0"
-callout: ["Open it at Settings › Connections & agents", "/settings/connections", "Open Connections & agents"]
+callout: ["Open it at Settings › Connections", "/settings/connections", "Open Connections"]
 ---
 
 # Sign in with Elixir
@@ -74,7 +74,7 @@ shared browser signed in as somebody else.
 
 ## Ending a grant
 
-**Settings › Connections & agents** lists every app connected to your
+**Settings › Connections** lists every app connected to your
 account; **Disconnect** ends one at once, and its capabilities can be
 narrowed there. A grant lasts 90 days at most; within it, the app holds
 an access token for an hour at a time and renews it with a refresh token that changes on every
@@ -166,8 +166,8 @@ Elixir's, so the circle matches the one on Elixir, and it follows when
 Elixir re-tunes a card. Never resize or re-encode the art; when it fails
 to load, show your own placeholder. `name` is for alt text.
 
-`/api/v1` answers nothing else. Elixir has people and their agents, and
-an agent reads through [MCP](/docs/connecting).
+`/api/v1` answers nothing else. Elixir has people, and a person's own
+AI reads through [MCP](/docs/connecting).
 
 ## Errors
 

@@ -10,11 +10,11 @@ on 2026-10-12, under [`VISION.md`](../../VISION.md) and the rulings in
 ## What it is for
 
 An account is how a person joins Elixir: who they are in the game, who
-they follow, where their mail goes, and the agents and apps that act as
+they follow, where their mail goes, and the apps that act as
 them. Elixir is for its members, so everyone signs in, to read as well
 as to follow, cheer, highlight and run a clan. One account is one
 person; everything in Elixir (the Timeline, Stats, Clan, mail, a connected
-agent) acts as that same person. [Jamie, 2026-09-03, 2026-11-11]
+AI client) acts as that same person. [Jamie, 2026-09-03, 2026-11-11]
 
 ## Who it serves
 
@@ -25,10 +25,10 @@ agent) acts as that same person. [Jamie, 2026-09-03, 2026-11-11]
   No privileged tier, collector token or extra capacity comes with it; a
   denied or disabled account never reopens through signup. Elixir takes
   no money and earns no revenue. [Jamie, 2026-10-06, 2026-11-11]
-- **The person's agents and apps.** Two kinds of principal: users
-  and agents; there are no integrations. An agent is the person's own, capped at its
-  owner's tier, following in the person's pooled slots, never deleted
-  (suspended or revoked). [Jamie, 2026-09-08, 2026-09-23, 2026-10-10, 2026-11-13]
+- **The person's apps.** An AI client the person connects over MCP acts
+  as that person, with the capabilities they granted and nothing else;
+  there are no agent accounts and no integrations. "Delete the old agent
+  accounts." [Jamie, 2026-09-08, 2026-11-13, 2026-11-23]
 - **The family's apps.** Sign in with Elixir carries the person to Drop;
   the address goes only to a family app. Clan is not one: it is a set of
   features inside Elixir, with no sign-in of its own. [Jamie, 2026-09-25,
@@ -48,7 +48,7 @@ The Clash Royale API is open, so nearly nothing in the game is private.
 | Where you play, if you set it (a city at most) | Your clan's verified members on the clan map, while its leaders keep the map on; anyone signed in to Elixir on the player map and in Near you. No choice: to stop showing it, remove it |
 | Nicknames you give players | Only you |
 | Your Discord username and profile | Nobody; it shows only as a "verified in Discord" badge |
-| Your email address and the account's machinery (sign-in, agent keys, feedback, mail records, usage) | Only you, and the address to a family app |
+| Your email address and the account's machinery (sign-in, connections, feedback, mail records, usage) | Only you, and the address to a family app |
 
 [Jamie, 2026-09-08, 2026-11-11, "What is public about an account",
 "Location is opt-in and a city at most"; Jamie, 2026-11-15: a place is
@@ -61,7 +61,7 @@ built, linking each choice to the page that owns it.
 1. **Email is the identity; Discord is a way in.** No password; a code
    or link signs in. A Discord sign-in reaches the same email-identified
    account, never a second identity, and a person may link one Discord
-   account so that a clan's agent knows who is asking. Elixir never helps
+   account. Elixir never helps
    anyone find a person in Discord. [Jamie, 2026-10-12, 2026-10-24,
    2026-11-11]
 2. **A claim is trust; Verify is proof.** Adding a player says "this is
@@ -88,7 +88,7 @@ built, linking each choice to the page that owns it.
    else. [Jamie, 2026-09-19, 2026-10-08, 2026-11-11]
 6. **The person owns the switches.** Settings holds them: players and
    follows, every mail kind and the digest's cadence, time zone,
-   connections and their grants, agents, the RSS link, Discord, feedback
+   connections and their grants, the RSS link, Discord, feedback
    and its answers. Every mail has its own off switch and a stop is never
    undone. The app tells time in the account's zone, named. [Jamie,
    2026-09-23, 2026-10-08, 2026-11-11]

@@ -60,7 +60,7 @@ below the name, and type the right one in the same place (Elixir records it
 instead, as your primary if the wrong one was) or stop following the wrong
 one. Stats says **Tag not found** too, with the way to that fix. Any other failed read is only a failed attempt, retried on
 the schedule below. A tag read or refused in the last day is not asked for
-again. You and your agents together get one of these first reads a day for
+again. You get one of these first reads a day for
 each player slot you have ([Limits](/docs/limits)); a player added past that
 is still recorded, and its first read comes with the scheduler's next round.
 
@@ -80,8 +80,7 @@ player Elixir already records is free. A player is free when either is true:
 
 - they are a current member of a clan Elixir records at `comprehensive`
   scope (every member), whoever follows that clan;
-- another account followed them before you did. Your agents are part of
-  your account here, and a suspended agent's follow counts for nothing.
+- another account followed them before you did.
 
 A clan followed at `activity` scope, including the clan Elixir follows for
 your primary player, records the clan and not its members, so following one
@@ -97,12 +96,9 @@ following marks each player as free or using a slot.
 [Settings › What members see](/settings/what-members-see) has your slots
 in one place: a meter of the slots in use out of your limit, the same
 number every Follow says, then the players using a slot because of you
-(each with who follows them: you, or an agent of yours by name) and,
-apart from them, the free follows with why each is free. A player you
-follow has **Unfollow** there; your own players open on
-Players & following, and a player only your agent follows opens that agent's
-page. A player your agent also follows keeps its slot until the agent stops
-too.
+and, apart from them, the free follows with why each is free. A player
+you follow has **Unfollow** there; your own players open on
+Players & following.
 
 If a free player's reason goes away (they leave the clan, or the other
 account stops following), they keep recording and start using one of your
@@ -225,8 +221,7 @@ your clan's news in your digest. The rules:
   you make another player primary), the follow Elixir made moves to the
   new clan, and the old one stops unless someone else records it. A
   clan you followed or changed yourself is never moved.
-- Already following the clan, at any scope, changes nothing. Agents never
-  follow a clan this way.
+- Already following the clan, at any scope, changes nothing.
 
 The follow comes with a read of your player's profile: usually within a
 minute of adding a new player, and otherwise at the next regular profile read. Each
@@ -235,7 +230,7 @@ Settings › Sign-ins & devices.
 
 `elixir_nickname({ player_tag, nickname })` stores a private label (1 to 40
 characters, `null` clears) that only your account, and what you connect as
-yourself, sees (an agent is an account of its own and keeps its own);
+yourself, sees;
 `players_search` ranks your nicknames first. On the website it is set in
 **Settings › Players & following**, on the player's row.
 

@@ -8,7 +8,7 @@ integrations brief Jamie ratified on 2026-10-12, under
 
 ## What it is for
 
-Elixir has users and agents, and no integrations. "The only integration
+Elixir has people, and no integrations. "The only integration
 is Elixir Drop using Elixir to login. I don't think that needs a product
 feature." [Jamie, 2026-11-13] This page is that one seam: how a family
 app signs a person in with their Elixir account and learns who they are,
@@ -31,8 +31,8 @@ surface.
    writes nothing to Elixir: no follows or player claims, no attested
    facts. "Drop can stop writing now." [Jamie, 2026-11-13]
 2. **`/api/v1` is sign-in only.** It keeps OAuth and who the signed-in
-   person is; there are no keys, tool mirrors or social reads. Agents
-   read MCP. A token for one door is never accepted at the other.
+   person is; there are no keys, tool mirrors or social reads. A person's
+   own AI reads MCP. A token for one door is never accepted at the other.
    [Jamie, 2026-09-23, 2026-11-13]
 3. **Sign in with Elixir signs in or creates an account.** The page Drop
    sends a person to admits someone new, because "Elixir Drop gets new

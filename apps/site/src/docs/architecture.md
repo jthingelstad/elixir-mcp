@@ -34,14 +34,15 @@ description of record**; there is no fuller internal one.
   <text class="lbl" x="440" y="60" text-anchor="middle">Web interface</text>
   <text class="sub" x="440" y="82" text-anchor="middle">explorer speaks the same tools</text>
   <rect class="box" x="630" y="20" width="230" height="90"/>
-  <text class="lbl" x="745" y="70" text-anchor="middle">Discord agents</text>
+  <text class="lbl" x="745" y="60" text-anchor="middle">Discord</text>
+  <text class="sub" x="745" y="82" text-anchor="middle">clan and Timeline webhooks</text>
   <!-- auth edges -->
   <line class="edge" x1="135" y1="110" x2="330" y2="200"/>
   <text class="note" x="175" y="165">MCP / OAuth</text>
   <line class="edge" x1="440" y1="110" x2="440" y2="200"/>
   <text class="note" x="448" y="165">email session</text>
   <line class="edge" x1="745" y1="110" x2="550" y2="200"/>
-  <text class="note" x="620" y="165">service token</text>
+  <text class="note" x="620" y="165">webhooks out</text>
   <!-- core -->
   <rect class="box" x="90" y="200" width="700" height="110"/>
   <text class="lbl" x="255" y="262">Elixir MCP</text>
@@ -90,7 +91,7 @@ their own targets, hold no user data, and earn their operator the
 Family role while active. The fleet shares **one global rate budget** by design:
 more collectors mean resilience, never more API load. The budget is a token
 bucket the scheduler plans from, and everything that asks the API for a read
-spends it: each scheduled job, and each live read an agent, a person
+spends it: each scheduled job, and each live read a person, their AI
 or a newly seen card asks for. A live read that finds the bucket
 empty is not queued; it is answered with the record and a time to try again.
 
@@ -151,19 +152,16 @@ Recording is pull; noticing is push. Everything you follow appears on your
 timeline is synthesized when you read it, from the record and the
 per-subject ledger: the items that happened since your read pointer,
 newest first, each a sentence a person can read with its facts beside it, and one
-entry per subject summarizing the window. A person's entries are the players they follow and the
-clans they added; an agent's is the clan it represents, with the members
-inside it. Facts with their windows, never judgments: what to do about a
+entry per subject summarizing the window. Your entries are the players you follow and the
+clans you added, each clan with its members inside it. Facts with their windows, never judgments: what to do about a
 member quiet six days is deliberately your agent's call, not the
 service's, and nothing on the timeline announces the time, which is
 `game_clock`'s job. The shape lives on [The timeline tool](/docs/timeline-tool#items).
 
 ## The feedback loop
 
-Feedback is a first-class product surface, not a mailbox. Agents file
-it mid-session with `elixir_send_feedback` (attributed to the account that
-connected: yours on your own connection, the agent's on an agent's);
-people file it from Settings, Stats, Clan, the docs and an
+Feedback is a first-class product surface, not a mailbox. Your agent files
+it mid-session with `elixir_send_feedback`, as you; people file it from Settings, Stats, Clan, the docs and an
 email's footer. It is one record
 for all of Elixir, each item tagged with the part of Elixir it is about
 and what it points at (a call, an email, a clan action). Every item gets a maintainer response, sometimes written with help from AI agents,
@@ -312,20 +310,15 @@ allowance on a fresh read instead of waiting for the schedule;
   names every requested capability, refresh never expands it, and an
   insufficient tool call is refused before it spends rate or daily
   quota.
-- **Two principals, three doors.** A person connects at
-  `/mcp`; an agent at `/a/<id>/mcp`; an app signing a person in reads
-  [`GET /api/v1/me`](/docs/sign-in-with-elixir#get-api-v1-me).
-  Grants are audience-bound to exactly one of them, so a credential
-  presented at the wrong door is refused rather than quietly answering
-  about the wrong subject, which matters because they serve
-  different things and mean different things by "me". See
-  [Users and agents](/docs/connections).
-- Service tokens are for **headless** principals, a Discord bot, a
-  scheduled job, an app back end, and carry only the capabilities they
-  were issued with. A human driving an agent signs in and consents
-  instead, and never handles a raw key. The site uses cookie sessions;
-  every tool call is audited against the credential that made it, with
-  visible per-account quotas.
+- **People, two doors.** Every MCP connection is a person's, at
+  `/mcp`; an app signing a person in reads
+  [`GET /api/v1/me`](/docs/sign-in-with-elixir#get-api-v1-me). Grants
+  are audience-bound to exactly one of them, so a credential presented
+  at the wrong door is refused. See [Your connections](/docs/connections).
+- Nobody handles a raw key: a person signs in and consents, and a
+  scheduled job of theirs keeps its refresh token. The site uses cookie
+  sessions; every tool call is audited against the credential that made
+  it, with visible per-account quotas.
 
 ## Honesty machinery
 
@@ -350,8 +343,8 @@ archive, content-addressed and queryable with SQL over S3. Site visits
 are counted anonymously with Tinylytics; see [Privacy](/docs/privacy).
 
 The web API assembles feature-specific route modules behind shared session
-resolution. The account application separates the Timeline, agents, connections,
-usage and feedback pages. The migration Lambda dispatches operational commands
+resolution. The account application separates the Timeline, connections, usage and
+feedback pages. The migration Lambda dispatches operational commands
 to separate modules; ordered migrations still run only through its deploy path.
 The shared metadata contract is checked when an envelope is built and after a
 tool returns. Successful UI journeys exercise the real API on scratch databases.
@@ -372,9 +365,6 @@ Elixir MCP is built in the open:
   verified players.
 - [jthingelstad/elixir-mcp-collector](https://github.com/jthingelstad/elixir-mcp-collector),
   the collector binary operators run.
-- [jthingelstad/elixir-mcp-discord](https://github.com/jthingelstad/elixir-mcp-discord),
-  the Discord agent any clan can run, POAP KINGS' included; each bot is
-  an agent here, reading this service over MCP with its agent token.
 - [jthingelstad/drop.poapkings.com](https://github.com/jthingelstad/drop.poapkings.com),
   Elixir Drop, the elixir-cost learning game, which signs people in
   with Elixir and reads nothing else from it.

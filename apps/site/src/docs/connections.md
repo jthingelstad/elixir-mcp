@@ -1,47 +1,41 @@
 ---
 slug: connections
-title: "Users and agents"
-description: "Two kinds of connection to Elixir, what each one is for, and which you want. A user is you. An agent acts for a clan."
+title: "Your connections"
+description: "Connecting your own AI to Elixir as yourself, what it knows about you, signing in to other Elixir apps, and where things are in Elixir and Settings."
 section: connect
 order: 1
-navTitle: "Connect an agent"
+navTitle: "Your connections"
 icon: plug
 lede: "Clients that act as you: OAuth grants, capabilities and disconnecting."
-reviewed: "2026-11-17 Notifications next to your account at every width; 2026-11-14 one MCP endpoint for you, one for a clan's agent; 2026-11-13 against contract 13.0.0 and JSON API 5.0.0"
-callout: ["Open it at Settings › Connections & agents", "/settings/connections", "Open Connections & agents"]
+reviewed: "2026-11-23 one MCP endpoint, every connection a person's; 2026-11-17 Notifications next to your account at every width; 2026-11-13 against JSON API 5.0.0"
+callout: ["Open it at Settings › Connections", "/settings/connections", "Open Connections"]
 ---
 
-# Users and agents
+# Your connections
 
-Two kinds of connection to Elixir, and only two: you, with one MCP endpoint
-for your own agent, and an agent you own for a clan, with one of its own. The difference is not
-technical trivia, it decides what "me" means, whose data comes back, and who
-pays for the calls.
+Elixir has people, and every connection is a person's. When you connect
+your own AI (Claude, ChatGPT, any MCP client, or a routine you run), it
+connects **as you**, at one endpoint:
 
-The short version:
+```
+https://elixir.poapkings.com/mcp
+```
 
-| | You | An agent |
-|---|---|---|
-| Acts for | yourself | a clan |
-| "Me" is | your primary player | the clan |
-| Signs in with | OAuth | a key, or OAuth by its owner |
-| MCP endpoint | `/mcp` | its own, `/a/<public_id>/mcp` |
-| Who can have one | everyone | everyone |
+## Connecting as you
 
-## You
-
-When you connect Claude, or any MCP client, to
-`https://elixir.poapkings.com/mcp`, you are connecting **as yourself**. You sign
+When you connect Claude, or any MCP client, to that address, you are
+connecting **as yourself**. You sign
 in with your email (new to Elixir, the same page creates your account), and
 from then on the tools know who you are.
 
 That last part matters more than it sounds. Ask *"how am I playing?"* and your
-agent does not need to look you up first: your connection already knows your
+AI does not need to look you up first: your connection already knows your
 primary player, your alts, the friends you follow, and your clan. Omit the
 player tag and it means you.
 
-You can only have one self, so there is nothing to configure. This is the
-connection almost everybody wants.
+You have one self, so there is nothing to configure. Every app you
+connect is listed on **Settings › Connections**, and disconnecting it
+there ends its access.
 
 ### Signing in to other Elixir products with this account
 
@@ -57,7 +51,7 @@ origin) can ask for that; any other client that asks is refused, and
 every other client shows its consent page. Drop learns who you are from
 your Elixir account, so you are the same person there as here. It is listed on Connections like any other client, and disconnecting
 it there ends its access. Your address is never released to any client
-outside the family, which includes every MCP client and agent. See
+outside the family, which includes every MCP client. See
 [Sign in with Elixir](/docs/sign-in-with-elixir).
 
 ### Your first question
@@ -73,61 +67,18 @@ sample sizes and missing data. If the first read has not arrived yet, the panel 
 what to do next and refreshes while open. Copying a question does not call the
 MCP service or count as an answered question.
 
-## An agent
-
-An agent acts **for a clan, not for a person**.
-
-It is a separate principal that you own: its own identity, its own key, its own
-timeline, its own notion of who it is. What it does never lands in your
-history, and what you do never shows up as its.
-
-The reason to want one is that a clan is not a person. If a Discord bot
-connected as *you*, then "who do you follow?" would answer with **your** personal
-player list, and everything it did would be recorded as something you did. An
-agent has no personal players to leak, because it has no self. Its subject is
-the clan.
-
-You can create an agent for **any clan you already record**, whatever your role. It is
-not a paid feature. It spends your daily call and live-fetch budgets and your
-recording slots, and its own role is capped at yours (and at `leader`): an
-admin's agent is not an admin, and when your role changes, the agent's is
-clamped to it.
-
-### Agents serve many people
-
-A clan agent talks to a whole Discord, so "me" is a different person every time.
-MCP has no way to say *which* human is asking, so the agent tells us: it passes
-whatever id its own surface has, `discord:1234`, `signal:…`, anything, and the
-first time we don't recognise someone, it asks who they are in the clan and
-passes their player. A person who connects Discord in their Elixir Settings
-is known by `discord:<their id>` from then on, with no asking.
-
-That link only picks a default player. It grants nothing: recorded data is
-readable by every account either way. It works only on an agent: on your own
-connection "me" is always your primary player, `on_behalf_of` is ignored,
-and `elixir_my_identities`, which lists the map, is not listed.
-
 ## Which do I want?
 
-- **Playing Clash Royale and curious about your own history** → connect as
-  yourself. Nothing else to do.
-- **Running a clan and want a Discord bot, or Claude, doing clan work** → make
-  an agent for the clan.
+- **Playing Clash Royale and curious about your own history** → connect
+  your AI as yourself. Nothing else to do.
+- **Building a routine or a bot that runs for you** →
+  [Your own agent](/docs/agents): it signs in as you, the same way.
+- **Running a clan and want its news in Discord** → your clan's leaders
+  set that up on the clan's **Run › Discord** page
+  ([Clan Discord](/docs/clan-discord)); no bot to run.
 - **Building an app that signs people in with Elixir** →
   [Sign in with Elixir](/docs/sign-in-with-elixir); it learns who they
   are, and reads nothing else.
-
-## One connection at a time
-
-You can hold more than one (a personal connection *and* an agent for your clan),
-but keep them in **separate sessions**, not both switched on in the same chat.
-
-They publish the same tool names, so an assistant with both cannot tell which
-one you meant, and the two answer from different subjects. In Claude that means
-a dedicated project for clan work with only the agent connector enabled.
-
-Each connection has its own URL, so a credential presented at the wrong one is
-refused rather than quietly answering about the wrong subject.
 
 ## Where things are
 
@@ -138,8 +89,7 @@ next to your account on every screen, a phone's too. A phone has
 wide screen the account menu is Profile. **Profile**
 is your own account page, with **Your stats** (your season, read back). **Settings**, in the
 account menu, holds what we
-record for you and who can call on your behalf, and each agent you own has a
-page of its own there (below). On a wide screen a rail stays in view as a page scrolls;
+record for you and who can call on your behalf. On a wide screen a rail stays in view as a page scrolls;
 on a phone it folds into one row above the page.
 
 | Page | What it does |
@@ -157,27 +107,12 @@ on a phone it folds into one row above the page.
 |---|---|
 | Profile | your address, the timezone your date windows use and Elixir prints every time in (a new account starts on its signup browser's; UTC when it has none), and closing your account |
 | Emails | your digest (**Weekly**, **Daily** or **Off**), a switch for each other email, and **All sent**, the emails Elixir sent you ([Turn an email off](/docs/turn-an-email-off)) |
-| Players & following | your players (relationship, nickname, notify) and your clans (scope, notify), and where you change them; your agent can also start following someone and set a nickname with its tools |
+| Players & following | your players (relationship, nickname, notify) and your clans (scope, notify), and where you change them; your AI can also start following someone and set a nickname with its tools |
 | Players & following › Verify | prove that you control a player by playing one battle with a deck Elixir names |
-| Connections & agents | every OAuth client you consented, its last call, address and country, calls this week, refused credentials; controls to change capabilities or disconnect; one row per agent you own, opening its pages; **New agent**; Discord sharing for your timeline; [your RSS link](/docs/timeline#your-rss-link); and the question to try once your agent can answer |
-| Usage and limits | today's call and live-fetch meters, what your account allows and what earns the next role, fourteen days of calls, who and which tools spent them with agents broken out, your own website reads counted apart (they spend no daily quota), and **Requests**, every call with its `request_id` |
+| Connections | every app you connected as yourself, its last call, address and country, calls this week, refused credentials; controls to change capabilities or disconnect; the `/mcp` address to copy; the questions to try once your AI can answer; Discord sharing for your Timeline; and [your RSS link](/docs/timeline#your-rss-link) |
+| Usage and limits | today's call and live-fetch meters, what your account allows and what earns the next role, fourteen days of calls, which connections and tools spent them, your own website reads counted apart (they spend no daily quota), and **Requests**, every call with its `request_id` |
 | Sign-ins & devices | every session that can still act as you, this one marked, and your account events |
 | Feedback | what you filed and what the maintainer answered |
-
-An **agent's page** (Open on its row) has five tabs:
-
-| Page | What it does |
-|---|---|
-| Overview | its clan, its key and when it was first used, its last successful call, where it connects from, anything refusing it, and the address to connect it at |
-| What it reads | the clans and players it follows, and which clan it acts for |
-| Usage | its calls as a share of your budget, which it spends, its calls with `request_id`, and its account events |
-| Connections | the clients connected as it, what each may do, and refusals of its key |
-| Settings | its name, what its key may do, the key itself (issue, revoke, suspend), removing a suspended agent from view, and who it answers for |
-
-Overview links its **Timeline** (newest first, the items it reads with
-`elixir_timeline`; viewing it there never moves its pointer) and its
-**Feedback** (what it has filed and what the maintainer answered; new feedback
-is filed as you).
 
 ### Your Timeline keeps its own place
 
@@ -191,12 +126,5 @@ item the record learned since the place it opened from (by `observed_at`)
 them. A first visit has no place yet and marks nothing new.
 
 The two never move each other. Viewing the page leaves your read pointer,
-every `reader`'s and `meta.timeline_pending` where they were, and an
-agent's `mark_read` never clears that count. On an agent's pages
-the place is the agent's, moved when you view its Timeline, and still not
-its pointer.
-
-## Making one
-
-Create clan agents under **Settings › Connections & agents › New agent**.
-A newly issued key is shown once; only its hash is stored.
+every `reader`'s and `meta.timeline_pending` where they were, and a
+`mark_read` from your AI never clears that count.

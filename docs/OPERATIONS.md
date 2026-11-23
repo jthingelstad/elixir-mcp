@@ -107,7 +107,7 @@ ledger should drain, and both doors should serve.
 - **`elixir-mcp-migrate-duration`** fires when a migrate invocation runs
   past 90 s: someone ran a heavy op against production. Find who and why.
 - **The acceptance suite.** `npm run acceptance` is read-only (the
-  `acceptance` agent principal, `acceptance/.env` on the operator
+  `acceptance` test account, `acceptance/.env` on the operator
   machine) and re-checks between deploys the invariants the deploy gate
   checks, since the record moves without a deploy. A red case is a
   finding, never re-run until it is green. The `budgets` suite is
@@ -337,8 +337,7 @@ person, their inbox (`feedback_answer`, after ten quiet minutes).
   one; `player`, `clan`, `clan_action`, `award` and `policy` point into
   the record or Clan's ledger. Clan files here too since 2026-10-08 (the
   old `clan_maintenance` feedback lanes are retired).
-  `via.on_behalf_of` names a person an agent relayed for (the answer
-  still goes to the agent). `follows_id` makes an item a reply: read the
+  `follows_id` makes an item a reply: read the
   thread first. The caller's recent calls are in `mcp_call_audit`
   (`{audit_census}`, `{call_sequence_census}`), and a call's request and
   response in its capture.
@@ -494,10 +493,9 @@ every command, probe and diff listed so anyone can re-verify it.
   Approved callers may read recorded public game data for any clan;
   private claims, nicknames, feedback, usage and event state stay with
   their principal.
-- **The principal matrix.** Person and agent isolation,
-  including the owner's private state and agent-owned cursors; the
-  documented permissions, never an owner's admin authority assumed to
-  pass to a child principal; OAuth scopes and resource audience; an MCP
+- **The principal matrix.** Person isolation, including each person's
+  private state and named reader cursors; the documented permissions,
+  never an admin's authority assumed to pass to a connection; OAuth scopes and resource audience; an MCP
   token never authenticates at `/api/v1`, nor the reverse; rotation,
   revocation, expired-token refusal and session pruning; inherited and
   independent quotas, including the one shared live-fetch budget. Record

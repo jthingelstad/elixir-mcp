@@ -47,10 +47,10 @@ leaders write its policy, and nothing clan-specific enters the code.
   searched on what only Elixir has, a clan's policy and description, for
   any signed-in person. Saving a policy is how a clan opts in. [Jamie,
   2026-11-11]
-- **A person's own agent**: through the person's own connection, exactly
+- **A person's own AI**: through the person's own connection, exactly
   what that person sees in Clan (the Actions waiting for them, their own
   standing line, the policy), never another member's clock or a removal,
-  and never a decision. Any agent reads the directory. [Jamie,
+  and never a decision. Every connection reads the directory. [Jamie,
   2026-10-12, 2026-11-12]
 
 A person is in Clan as the role they hold in the game, once their player
@@ -124,24 +124,23 @@ where what waits for each person comes first. [engineering, 2026-11-12]
 9. **Facts go back to Elixir, labelled.** What Clan attests (a kick or a
    leave as a leader classified it, awards, where the races stand) is
    written apart from the game record: award standings and awards with
-   the record, other clan facts to the clan's verified members and their
-   agents, an away only to its leaders. Private Clan state otherwise
+   the record, other clan facts to the clan's verified members, an away only to its leaders. Private Clan state otherwise
    never reaches MCP or a public tool. [Jamie, 2026-09-25, 2026-10-02,
    2026-11-11]
 10. **Clan posts to Discord by webhook.** Actions go to one channel as
     one message each, edited when they close. The clan's activity goes to
     a channel of its own as stories, written from the record or edited by
     the clan's model in the leaders' voice, with no time, no mention, and
-    one link back to Elixir with no preview. There is no bot to run. The
-    Discord agent (elixir-mcp-discord) is a separate experiment, run by a
-    clan on its own tokens. [Jamie, 2026-10-10, 2026-10-11, 2026-11-11,
-    2026-11-12]
+    one link back to Elixir with no preview. There is no bot to run: the
+    leaders set it up on the clan's Run ▸ Discord page, and the setup
+    belongs to the clan. [Jamie, 2026-10-10, 2026-10-11, 2026-11-11,
+    2026-11-12, 2026-11-23]
 
 ## What it never does
 
 Act in the game; decide for anyone; post to the game; show a score,
 percentile or rank; show a member another's removal or clock; let an
-agent decide an Action; carry a POAP KINGS default; let a model complete
+AI decide an Action; carry a POAP KINGS default; let a model complete
 or post an Action; tell a removal outside the clan. [Jamie, 2026-09-25 to
 2026-11-12]
 

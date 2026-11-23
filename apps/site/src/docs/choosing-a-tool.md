@@ -51,10 +51,9 @@ conventions that hold everywhere.
 | Past war weeks: final ranks, boat fame, one member's points and decks | `war_history` (`seasons`, or `season_id` and `section_index` for one week's whole roster) |
 | What was on in the game: events, challenges, side modes, by day | `game_events` |
 | Follow someone, say who they are to you | `elixir_follow_player`, `elixir_follow_clan`, `elixir_my_players`, `elixir_nickname` |
-| Resolve a human on an agent's surface to a player (agent connections only) | `on_behalf_of: "discord:<id>"` once they connect Discord in their Settings, else ask and pass `player_tag`; `elixir_my_identities` lists an agent's older mappings |
-| Who does this player follow, who follows them, and what have they posted about their battles? | `players_follows`, `players_highlights` (a person's own connection and their agents) |
-| How did people react to my play and my posts? | `elixir_cheers` (personal connection, counts by kind) |
-| Which clans have saved their rules in Elixir? | `clans_directory` (the public part of each policy; a person's own connection and their agents) |
+| Who does this player follow, who follows them, and what have they posted about their battles? | `players_follows`, `players_highlights` |
+| How did people react to my play and my posts? | `elixir_cheers` (counts by kind) |
+| Which clans have saved their rules in Elixir? | `clans_directory` (the public part of each policy) |
 | Something is missing or took too many calls | `elixir_send_feedback`; `elixir_my_feedback` says what happened to it |
 | What the service holds and who fetches it | `elixir_collectors`; the service's own numbers are public at `/api/public/stats` and on the [Status and data](/data) page |
 | How is this documented? | `elixir_docs`, `elixir_examples`, `elixir_updates` |
@@ -105,10 +104,8 @@ trophies and the ranked standing, so the two sides of it are not one series.
 
 ## Conventions on one screen
 
-- **Omit `player_tag` to mean the caller**: a person's primary player, or
-  whoever `on_behalf_of` maps to on an agent connection. Omit `clan_tag` to
-  mean the primary player's current clan (an agent's: the clan it acts
-  for); when that clan is not recorded, or there is none, the call is
+- **Omit `player_tag` to mean the caller**: your primary player. Omit
+  `clan_tag` to mean that player's current clan; when that clan is not recorded, or there is none, the call is
   refused with the fixing call in the hint, never answered for another
   clan. Nothing is looked up first.
 - **Every read names a player or a clan.** No tool reads the whole record or totals every player who ran a deck.
@@ -147,10 +144,8 @@ trophies and the ranked standing, so the two sides of it are not one series.
   answer. Retry after a few seconds, or narrow `from`/`to`; lowering `limit`
   only reduces output, not scan cost. Keep the request id if it persists.
 
-Two tools read Clan, each for one kind of connection. A person's own
-connection uses `clans_my_view` for that person's own view (the policy
+Two tools read Clan. `clans_my_view` reads your own view (the policy
 summary, their standing line, the Actions waiting for them), for a player
-they have verified; see [Your own view](/docs/clan-your-own-view#your-own-view).
-An agent reads no private Clan state: it reads the clan directory with
-`clans_directory`, the public part of every saved policy, as its owner
-reads it in Find ([Clan directory](/docs/clan-directory#agents)).
+you have verified; see [Your own view](/docs/clan-your-own-view#your-own-view).
+`clans_directory` reads the clan directory, the public part of every saved
+policy, as you read it in Find ([Clan directory](/docs/clan-directory#agents)).

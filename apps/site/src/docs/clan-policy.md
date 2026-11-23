@@ -83,13 +83,10 @@ intent: participating, not participating, or not specified, which is where a
 policy starts. It is separate from **Count Clan Wars**, which controls scoring
 and minimums; starting points and category switches never set or change it.
 
-The Discord agent's scheduled **war-deck check** uses this saved intent
-([Clan directory](/docs/clan-directory#agents)). Participating permits the check only in the
-appropriate war phase after a fresh policy read succeeds. Not participating
-suppresses the check; not specified, unavailable or stale context defers it.
-The agent refreshes before planning and immediately before firing, and the
-final read must be no more than 60 seconds old. This gate applies to the
-scheduled war-deck check; other agent content keeps its own rules.
+The intent is part of the policy's public part: the clan's tile in the
+clan directory shows it, and `clans_directory` reads it as `war_intent`
+([Clan directory](/docs/clan-directory#agents)). Not specified never means
+not participating.
 
 ## What this policy can do today
 

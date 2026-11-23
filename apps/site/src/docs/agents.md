@@ -1,235 +1,112 @@
 ---
 slug: agents
-title: "Building an agent"
-description: "A clan agent is a principal you own with its own key, URL, timeline read pointer and feedback inbox. Creating one, what initialize tells it, resolving which human is asking with on_behalf_of and the Discord link, reading the social layer, consuming the timeline with its own named reader, and the key lifecycle."
+title: "Your own agent"
+description: "Running your own AI agent, routine or bot on Elixir as yourself: signing it in at /mcp, what initialize tells it, what it reads and follows, consuming the timeline with its own named reader, keeping polling cheap, and feedback."
 section: connect
 order: 3
-navTitle: "Your agents"
+navTitle: "Your own agent"
 icon: bot
-lede: "A runtime that acts for one clan, with its own door, key, identity map and feed."
-callout: ["Open it at Settings › Connections & agents", "/settings/connections", "Open Connections & agents"]
+lede: "A program or assistant you run, signed in to Elixir as you."
+callout: ["Open it at Settings › Connections", "/settings/connections", "Open Connections"]
 ---
 
-# Building an agent
+# Your own agent
 
-An agent acts **for a clan**, not for a person. It is a separate principal
-that you own: its own identity, its own key and URL, its own timeline read
-pointer, its own feedback inbox. What it does never lands in your history and what you
-do never shows up as its. If you have not read
-[Users and agents](/docs/connections), start there.
-
-## Create one
-
-**Settings › Connections & agents › New agent**, or `POST /api/me/agents` with a session.
-
-Every agent you own has **its own page**, opened from its row in **Settings ›
-Connections & agents**, at `/settings/agents/<public_id>`. It has five tabs:
-**Overview** (key, last call, what is refusing it, the address to connect it
-at, and links to its Timeline and the feedback it has filed), **What it reads**
-(the clans and players it follows), **Usage** (its share of your budget, its MCP
-requests and account events), **Connections** (the clients connected as it) and
-**Settings**. Pages that belong to a person (Verify, Profile) are not there. An agent spends your budget and your recording
-slots, so your own Usage still counts it. New feedback is always filed as
-you.
-
-| Field | Rule |
-|---|---|
-| `name` | `^[a-z0-9][a-z0-9-]{1,40}$`; unique among your live agents; renamable later |
-| `clan_tag` | a clan you have already added; the agent's subject |
-| `scope` | optional OAuth scope string for the key; omitted means every capability |
-
-The response (HTTP 201) carries the agent and its key **once**:
-
-```json
-{ "agent": { "account_id": "…", "public_id": "k3f9x2mq7p", "role": "leader" },
-  "token": "svt_…", "note": "This token is shown once. Store it now." }
-```
-
-Only the key's SHA-256 is stored. The agent's role is your current role,
-capped at `leader`, and it never sits above yours: when your role changes,
-each agent's is clamped to the new one. It spends **your** daily call budget
-and **your** live lane.
-Every role may create agents (3 / 5 / 10 / 25; owner and admin unlimited);
-over the cap the response is HTTP 400 `{"error":"not_entitled","reason":"agent_limit","limit":N}`.
-
-## Connect it
-
-Its URL is on its page with a copy button:
+Your agent is anything you run that talks to Elixir for you: an AI
+assistant in a chat, a scheduled routine, a bot you host. Elixir has
+people, not agent accounts, so your agent signs in **as you**, at the one
+endpoint every connection uses:
 
 ```
-https://elixir.poapkings.com/a/<public_id>/mcp
+https://elixir.poapkings.com/mcp
 ```
 
-| Runtime | How |
-|---|---|
-| A human driving it (you, in Claude) | Add the URL as a connector and sign in. Only the agent's owner can consent; the grant is issued to the agent, so the session acts as the clan. |
-| Headless (a Discord bot, a scheduled job) | `Authorization: Bearer svt_…` on every POST. No OAuth. |
+It reads what you can read, follows on your slots, spends your budget and
+files feedback as you. Disconnect it on **Settings › Connections** and it
+stops. [Connect a client, step by step](/docs/connect-a-client) covers
+Claude, ChatGPT and the rest; this page is for when you build one.
 
-A credential is bound to one door: the key at `/mcp` or at another agent's
-URL answers 403 `wrong_resource`, and an OAuth token presented anywhere but
-the door it was issued for answers 401 like an invalid one. A suspended
-agent's key answers 401 too.
+## Sign it in
+
+Every connection signs in with OAuth 2.1, the flow on
+[Connecting and authorization](/docs/connecting). A headless runtime (a
+scheduled job, a Discord bot you run) signs in once through a browser,
+then keeps the refresh token: access tokens last an hour, and each
+refresh hands back a new refresh token to store in place of the old one.
+There is no separate key to make.
+
+Ask only for the capabilities it needs. A routine that only reads asks
+for `cr:read`; one that follows players for you also needs
+`follows:write`. What it may do is yours to change on Settings ›
+Connections, and the change takes effect on its next call.
+
+Keep one connection per runtime. Each is its own row on Connections,
+with its own last call, so you can tell them apart and end one without
+touching the others.
 
 ## What `initialize` tells it
 
 ```json
 { "serverInfo": { "name": "elixir-mcp", "version": "{{ tools.toolsVersion }}" },
-  "instructions": "YOU ACT FOR Tidewater #0G9J08 (47 members). Leadership: Birch Lantern (leader), … OMIT clan_tag to mean it. Pull clans_roster ONCE per run and reuse it… Nothing defaults to 'you': … pass on_behalf_of (discord:<user id> resolves itself once they link Discord …); not linked, ask who they are and pass player_tag. You already know 9 of them. …",
+  "instructions": "YOU ARE King Thing #20JJJ2CCRU. Your clan is POAP KINGS #J2RGCRVG. … OMIT player_tag and clan_tag to mean these …",
   "_meta": { "elixir.poapkings.com/principal": {
-      "kind": "agent",
-      "subject": { "type": "clan", "tag": "#0G9J08", "name": "Tidewater", "members": 47 } } } }
+      "kind": "person",
+      "subject": { "type": "player", "tag": "#20JJJ2CCRU", "name": "King Thing" },
+      "clan": { "tag": "#J2RGCRVG", "name": "POAP KINGS" } } } }
 ```
 
-Use `_meta` to assert the boot: `kind` must be `agent` and `subject` must
-not be `null`. The instructions are for the model and change without notice.
-The roster is deliberately absent because the instructions are held until
-reconnect; call `clans_roster` once per run.
+Use `_meta` to check the boot: `kind` is `person` and `subject` is your
+primary player, or `null` when the account has none yet (verify one, or
+the tools that mean "me" answer `no_subject`). The instructions are for
+the model and change without notice; never parse them.
 
-An agent's `tools/list` has {{ tools.agentCount }} tools: everything except `elixir_my_players`
-and `clans_my_view`, which need a self. Omit `clan_tag` anywhere and it means the agent's clan.
+Your connection's `tools/list` has {{ tools.personCount }} tools. Omit
+`player_tag` and it means your primary player; omit `clan_tag` and it
+means that player's current clan.
 
-## What an agent follows
+## What it reads and follows
 
-An agent can follow clans and players as well: a rival clan it is
-asked to watch, the other clans of a family, a player worth following.
-`elixir_follow_clan` and `elixir_follow_player` work for it the way they work
-for you, with an agent's meaning. Its players are `friend`, never
-`primary` or `alt`, because those say "me". Every clan and player
-it follows spends **your** recording slots: they are one pool across you and
-all your agents, a subject counts once however many of you follow it, and a
-clan counts once at the widest scope any of you gives it. So making agents
-never adds slots. Only **active** agents are in the pool: a suspended
-agent's players and clans take none of your slots and are recorded only if
-you or someone else still follows them, so the record has a gap for the
-ones only it follows until you resume it. Resuming is refused while it would
-take you past a slot ceiling, and the refusal says how many to free.
+Your agent reads as you. Recorded game data is readable by every
+account; your own account (your players, your follows, your posts, your
+clan view with `clans_my_view`) is read because it is yours.
 
-One of its clans is the clan it **acts for**, its default wherever
-`clan_tag` is omitted. It cannot remove that clan, or its last one; you can
-make another of its clans the one it acts for from its pages
-(**What it reads**), and then remove the old one. What it follows is on
-**What it reads**, and every change to it on **Usage**, under its account
-events.
-
-An agent never reads a person's view in Clan: `clans_my_view`
-answers only a person's own connection
-([Your own view](/docs/clan-your-own-view#your-own-view)). An agent's one read
-of Clan is the clan directory, the same public part of each policy
-the clan directory in Find shows, through `clans_directory`
-([Clan directory](/docs/clan-directory)).
-
-Plain posts and questions are available only to a person's own authorized
-connection at `/mcp`, in `elixir_timeline`. A clan agent never receives
-them. `on_behalf_of` identifies who is asking; it does not grant access to
-that person's posts. Comments are never served over MCP.
-
-## Knowing which human is asking
-
-MCP carries no per-request user identity, so the agent supplies one.
-`on_behalf_of` is an opaque string (≤200 chars) in your own id space:
-`discord:1234`, `telegram:…`, a session id. Pass it on every call that could
-mean "me". The first time an id is unknown, the subject-resolving tools
-answer `no_subject` (there is nothing to answer about; an agent has no self
-to fall back on):
-
-```json
-{ "error": { "code": "no_subject",
-    "message": "No player is mapped to discord:1234 yet.",
-    "hint": "Ask who they are in the clan (pass display_name beside on_behalf_of and the refusal names the matching members), then pass player_tag. To be known without asking, they connect Discord under Connections & agents in their Elixir Settings (/settings/connections/discord); on_behalf_of: \"discord:<their user id>\" then resolves to them." } }
-```
-
-A person can connect their Discord account to Elixir under
-**Settings › Connections & agents**, proved by Discord's own sign-in. Then `discord:<their Discord
-user id>` resolves by itself: to their primary player, or else an alt,
-that is a current member of a clan on this connection. Every response
-to a call that carries `on_behalf_of` says who it named and how:
-`meta.asker` is `{ external_id, player_tag, via, verified }`, where
-`via` is `discord_link` (the person connected it), `agent_mapping`
-(an older mapping your agent made) or null (nobody yet),
-and `verified` says whether the player's claim is proven in game. A
-`discord:` id nobody has connected is `no_subject`, whose hint adds that
-the person can connect Discord in their Settings.
-
-An agent writes no map of its own. Anyone who has not connected Discord,
-and anyone on another surface, is asked who they are, and the agent
-passes `player_tag` on that call. Older mappings an agent made still
-resolve, and `elixir_my_identities` lists them. It is agent-only: a personal
-connection has one self, its primary player, and ignores `on_behalf_of`.
-
-### A complete exchange
-
-Pass the asker's display name beside the id (`display_name`) and
-the refusal does the roster comparison for you: `error.candidates[]` lists
-the clan members whose **whole** name matches, case and spacing ignored,
-and never a partial match. One candidate is that `player_tag` on the
-next call; zero or several is a question to the person.
-
-```text
-member Birch Lantern (discord:1234): how am I doing?
-
-→ players_summary({ on_behalf_of: "discord:1234", display_name: "Birch Lantern" })
-← { error: { code: "no_subject", class: "subject", message: "No player is mapped to discord:1234 yet.",
-    candidates: [ { player_tag: "#0GVJ9V", name: "Birch Lantern", clan_tag: "#0G9J08", role: "coLeader" } ],
-    hint: "candidates[] holds the one clan member whose whole name is 'Birch Lantern': pass player_tag \"#0GVJ9V\", say so in a line, and answer. To be known without asking, they connect Discord …" } }
-
-→ players_summary({ on_behalf_of: "discord:1234", player_tag: "#0GVJ9V" })
-← { player_tag: "#0GVJ9V", name: "Birch Lantern", trophies: …, last_30_days: { battles: 41, wins: 24, losses: 17, draws: 0, decided_battles: 41, win_rate: 0.585, … }, top_deck: …,
-    applied: { window: { from: "…", to: null, source: "fixed", days: 30 } }, notes: […], docs: "freshness-and-gaps#completeness",
-    meta: { freshness_seconds: 27, source_polls: { player_battlelog: { observed_at: "…", freshness_seconds: 27 } }, … } }
-```
-
-Without `display_name`, or when no whole name matches (`candidates: []`),
-ask which player in the clan they are, resolve the answer with
-`players_search`, and pass that `player_tag`. Once they connect Discord in
-their Settings, every call from `discord:1234` resolves with no lookup.
-Always read
-`meta.freshness_seconds` before you quote a number; asking about a player
-also keeps their battle log polled hourly for the next day, so a second
-question is fresher than the first.
-
-## Reading the social layer
-
-An agent reads the social layer as its owner and never writes it: no
-follow it was not asked for, no cheer, no post. Four read-only tools,
-for a person's own connection and the agents of an approved person:
+It reads the social layer and writes it only when asked: no follow it
+was not asked for, no cheer, no post.
 
 | Tool | What it reads |
 |---|---|
-| `players_follows` | who a player follows and who follows them, with their badges, as the player page shows it ([Follows, followers and badges](/docs/player-page#follows-followers-and-badges)) |
+| `elixir_timeline` | your feed: the players and clans you follow, your clan and you ([below](#consuming-the-timeline)) |
+| `players_follows` | who a player follows and who follows them, with their badges ([Follows, followers and badges](/docs/player-page#follows-followers-and-badges)) |
 | `players_highlights` | the posts about battles a player wrote, newest first ([Posts about battles](/docs/timeline#posts-about-battles)) |
+| `elixir_cheers` | the cheers on your own items and posts |
 | `clans_directory` | the clan directory, each clan's tile and the public part of its policy ([Clan directory](/docs/clan-directory)) |
 
-`players_follows` and `players_highlights` mean your owner's primary
-player when `player_tag` is omitted. Following is the one write, and only
-when the person asks: `elixir_follow_player` and `elixir_follow_clan`.
-
-Personal connections read reactions to their own game items and authored posts
-with `elixir_cheers`. An agent’s `clans_directory({clan_tag})` lookup returns
-the matching public tile, saved policy version and read time.
+Following is the one write, and only when you ask:
+`elixir_follow_player` and `elixir_follow_clan` follow on **your** slots,
+exactly as Find does, and the players and clans show on Settings ›
+Players & following.
 
 ## Consuming the timeline
 
-A routine reporting on its own clan requests `scope: "home_clan"`. It checks
-`applied.clan_tag` and only publishes items marked `publishable: true`. Its
-home-clan cursor is independent of a scouting read of all followed clans.
+`elixir_timeline` returns the items that happened since your read
+pointer, newest first, plus one entry per subject. A consumer names its
+own pointer with `reader`: a short name (`editor`, `clan-discord`), and
+from then on an omitted `from` reads since that reader's pointer,
+`mark_read` moves it and `read_to` reports it, while other readers and
+the account's own unnamed pointer are untouched. Two routines on one
+account each pass their own `reader` and never steal each other's items.
 
-`elixir_timeline` returns the items that happened since your read pointer,
-newest first, plus one entry per subject. For an agent the subject is the clan
-it represents: its members' sessions and moments, joins and departures, the
-war moments and the presence crossings arrive as items, and the entry
-summarizes the window. A consumer names its own pointer with `reader`:
-a short name (`editor`, `poap-kings-discord`), and from then on
-an omitted `from` reads since that reader's pointer, `mark_read` moves it
-and `read_to` reports it, while other readers on the same account and the
-account's own unnamed pointer are untouched. A headless runtime reads and
-marks as itself:
+A routine reporting on your clan alone passes `scope: "home_clan"`. It
+checks `applied.clan_tag` and publishes only items marked
+`publishable: true`. Its pointer is separate for each clan and reader, so
+it is independent of a read of everything you follow.
 
 ```js
 // The first read with a new reader name covers the last 24 hours; every
 // later one starts where this reader's last mark_read ended.
 const page = await call("elixir_timeline", {
-  scope: "home_clan",               // the clan this agent acts for
-  reader: "editor",                 // this consumer's own pointer
+  scope: "home_clan",               // your clan only
+  reader: "editor",                 // this routine's own pointer
   sections: ["roster", "war", "presence"],   // optional: trim items and entries
   skip_empty: true,                 // optional: an empty window costs one check
 });
@@ -245,18 +122,15 @@ for (const entry of page.entries) context(entry);  // the window's shape per sub
 With `skip_empty: true` a window that holds nothing for this reader is
 answered without reading the subjects (`entries_skipped` is `true` and
 `entries` is empty), so a poll every few minutes costs little. Drop it on
-the read that wants the entries of a quiet window.
+the read that wants the entries of a quiet window. A runtime with a local
+delivery cursor can pass its last successful `from` explicitly when it
+retries.
 
-A clan poller uses its own schedule. The `home_clan` reader has a separate
-position for this clan and reader name. A runtime with a local delivery
-cursor can pass its last successful `from` explicitly when retrying.
-
-For a personal feed, either a positive `meta.timeline_pending` or a true
-`meta.posts_pending` is a reason to poll. The first counts subjects with
-newly recorded activity. The second includes newly created or edited
-visible posts, including posts with a battle attached. These hints use the
-oldest active named account reader or, if there is none, the account
-pointer. A client with its own local cursor should poll from that cursor.
+Either a positive `meta.timeline_pending` or a true `meta.posts_pending`
+is a reason to poll. The first counts subjects with newly recorded
+activity; the second covers newly created or edited posts. Both measure
+from the oldest named reader's pointer, or the account's when there is
+none.
 
 A reader that pulls a day's story rather than polling ("what happened
 yesterday") passes `from` and `to` without a `reader`: that read is by
@@ -266,79 +140,64 @@ read is by when the record **learned** them, so nothing learned late is
 skipped, and an item that happened before `from` says `late: true`
 ([Two kinds of window](/docs/timeline-tool#two-kinds-of-window)).
 
-The item and entry shapes are on [The timeline tool](/docs/timeline-tool#items), with the
-`facts` keys each `kind` carries and its version (a `battle_session` has
-`battles`, `won`, `lost`, `by_mode`, `trophy_net` and
-`trophy_net_peak` (the session's Trophy Road net), `trophy_net_by_mode`;
-a `session_standout` adds `crossed`, `newly` and `crossings`, the value at
-each rung's battle; a `ranked_promotion` has `from`, `to` and their names and, when the
-record holds it, the promoting battle under `promoted_by`; a clan's
-`member_left` has the departing member's `player_tag`, `name` and
-`role_at_departure`). Branch on `kind` and `facts`; `text` is for the
-person: one time-free sentence naming everyone by their in-game name, so
-it can be published as it is. A read serves each story once, about every
-subject in `subjects`; `publishable` says whether it may leave Elixir.
-`meta.timeline_pending` on any response counts subjects of yours the
-recorder has admitted something for since the oldest named reader's
-pointer (or the account's). That hint covers the all-followed feed. A
-home-clan routine polls its own position with `skip_empty: true`.
+Branch on `kind` and `facts`; `text` is for people: one time-free
+sentence naming everyone by their in-game name, so it can be published
+as it is. The item and entry shapes, and the `facts` each `kind`
+carries, are on [The timeline tool](/docs/timeline-tool#items).
 
-**Polling has a price.** A loop that calls `elixir_timeline` and
-`elixir_my_feedback` every 300 seconds makes about 576 calls a day, well over
-a member's whole budget of 500 tool calls. Two rules keep it cheap: **read
-`elixir_my_feedback` only when `meta.feedback_responses_pending > 0`**, and
-`meta.timeline_pending` and `meta.feedback_responses_pending` ride **every**
-response, including `elixir_timeline` itself and `game_clock`, so any call you
-were making anyway tells you whether the next one is worth it. A routine
-that has nothing else to do can read the feed on a timer, but a few times a
-day is plenty: the timeline covers the whole window, so a longer window
-costs the same one call. The feed never announces the time: read
-`game_clock` once and take `war_day_closes_at` and `next_war_day_opens_at`
-from it if your routine cares about war at all.
+### Polling has a price
+
+A loop that calls `elixir_timeline` and `elixir_my_feedback` every 300
+seconds makes about 576 calls a day, well over a member's whole budget of
+500 tool calls. Two rules keep it cheap:
+
+- **Read `elixir_my_feedback` only when
+  `meta.feedback_responses_pending > 0`.**
+- `meta.timeline_pending` and `meta.feedback_responses_pending` ride
+  **every** response, `game_clock` included, so any call you were making
+  anyway tells you whether the next one is worth it.
+
+A few reads a day is plenty for most routines: the timeline covers the
+whole window, so a longer window costs the same one call. The feed never
+announces the time: read `game_clock` once and take
+`war_day_closes_at` and `next_war_day_opens_at` from it if your routine
+cares about war.
 
 A routine that runs once a day reads its clan's timeline, drills with
-`clans_standings` or a member's `battles_performance` when something moved, and, if it
-schedules itself before a close from `game_clock`, checks
-`war_current.decks_today.untouched` then, unless `race_finished_at` is set.
-Facts in, judgment in your code.
+`clans_standings` or a member's `battles_performance` when something
+moved, and, if it schedules itself before a close from `game_clock`,
+checks `war_current.decks_today.untouched` then, unless
+`race_finished_at` is set. Facts in, judgment in your code.
 
-## Key lifecycle
+## Posting to Discord
 
-| Action | Where | Effect |
-|---|---|---|
-| Rotate | its **Settings** tab, Issue a new key, or `POST /api/me/principals/rotate` | one transaction: every live key revoked, a new one issued with the same name and scope. `public_id` (the URL), identities and its timeline read pointers survive. |
-| Revoke | its **Settings** tab, Revoke key | the key stops immediately; nothing to restore. Issue a new one with Rotate when ready: it takes the name and scope of the most recent key, and is refused (`409 name_taken`) only if another of your live agents has taken that name since. |
-| Suspend / Resume | its **Settings** tab | `status: disabled`; the same key reads as invalid until resumed. Its players and clans leave your slots and stop recording unless someone else follows them. Reversible: resuming takes the slots back (`409 quota_exceeded` when they are not free) and records them again. |
-| Remove / Restore | a suspended agent's **Settings** tab | takes it out of the agents table into a folded **Removed agents** list on Settings › Connections & agents. Nothing is deleted: it stays suspended, keeps its address, keys and history, and still opens at its own page. Restore puts it back among your suspended agents; Resume restores it too. |
-| Rename | its **Settings** tab | changes the name; must stay unique among your live agents |
-| Delete | – | there is no delete. Suspend is the reversible stop, revoke the irreversible one, and Remove only hides a suspended agent. |
+Your agent never needs to be a bot to reach Discord:
 
-An agent acts only while its owner has access. If your access is
-withdrawn, every agent you own stops with it: its keys and the apps
-connected as it read as invalid (`principal_suspended` on its page) until
-your access returns, and then the same keys work again.
+- **Your own Timeline** goes to a Discord channel from Settings ›
+  Connections › Discord ([Cross-posting to Discord](/docs/timeline#cross-posting-to-discord)).
+- **Your clan's** Activity channel and leader Actions are set up by its
+  leaders on the clan's own **Run › Discord** page
+  ([Clan Discord](/docs/clan-discord)).
+
+A bot you run that answers people in a Discord is your own client: it
+reads Elixir as you, so what it says about "me" is about you, not about
+whoever is typing. Ask a player's tag and pass `player_tag` to answer
+about someone else.
 
 ## Knowing whether it is working
 
-A refused key never reaches the call log, so a runtime still presenting a
-rotated key produces silence, not errors. The agent's page shows, per key,
-`last_used_at` and **the current key has never been used**; per source
-address, refusals in the last seven days with the reason (`revoked_key`,
-`principal_suspended`, `expired`, `wrong_door`, `wrong_resource`); and `calls_7d`,
-`last_seen` (address, country, client name) and `timeline_pending`. Your own
-Usage breaks the agents' calls out of your daily budget.
+Each connection's row on Settings › Connections shows its last call, the
+address and country it called from, and its calls this week. A refused
+credential never reaches the call log, so a runtime still presenting an
+expired or revoked token produces silence, not errors: the refusals are
+listed on Connections, per source address, with the reason, and the bell
+tells you when an old one keeps trying. Settings › Usage and limits lists
+every call with its `request_id`.
 
-## Feedback from an agent
+## Feedback
 
-`elixir_send_feedback` filed through an agent is attributed to the agent, answered
-by the maintainer (sometimes with help from AI agents), and delivered back as an `account_feedback_responded` item
-on the agent's timeline plus `meta.feedback_responses_pending` on the agent's
-own responses. Agents are
-expected to file friction on their own judgment.
-
-When a person on your surface says something worth passing on (a thumbs
-down on an answer, a "that's wrong"), file it with `on_behalf_of` set to
-their surface id, as on any call. The report is kept as theirs, relayed by
-the agent, and names their player when `on_behalf_of` resolves to one
-(their Discord link); the answer still comes to the agent, which decides how
-to tell them.
+`elixir_send_feedback` from your agent is your feedback: it is answered
+by the maintainer (sometimes with help from AI agents), and the answer
+comes back to you as a Timeline item, on Settings › Feedback, and as
+`meta.feedback_responses_pending` on your connection's responses. Agents
+are expected to file friction on their own judgment.
