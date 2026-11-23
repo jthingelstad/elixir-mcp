@@ -201,14 +201,19 @@ const pageItem = (it, fallbackDeck = null) => {
 
 /** The page's timeline as the record has it now: the player's public items
  *  in the page's window. The page and its games' read build the same one,
- *  so an item's id and evidence version agree between them. */
+ *  so an item's id and evidence version agree between them. It tells the
+ *  battles played in the window however late Elixir learned them
+ *  (`lateBattles`, 2026-11-23): Check for new battles on a player nobody
+ *  follows lands a log whose battles are all a day or more old.
+ *  `lateBattles: false` is the feeds' own read of the same window, for a
+ *  sitting a feed linked (readSitting). */
 const pageTimeline = (
   db,
   tag,
   timezone,
   now,
   window = null,
-  { publicOnly = false, pageGameReader = null } = {},
+  { publicOnly = false, pageGameReader = null, lateBattles = true } = {},
 ) =>
   buildTimeline(
     db,
@@ -224,6 +229,7 @@ const pageTimeline = (
       accountId: null,
       pageGameReader,
       basis: "occurred",
+      lateBattles,
       // Its verification on Elixir, told on its page too (2026-11-15).
       people: { accounts: [], players: true },
       // Signed out (the public session page, 2026-11-17): what anyone
@@ -303,12 +309,25 @@ export async function readSitting(
   // Signed out, the start must be one the page can read: never the
   // fallback of the page's whole window.
   if (publicOnly && !window) return null;
-  const built = await pageTimeline(db, tag, timezone, now, window, {
+  const sittingOf = (built) =>
+    (built.timeline ?? []).find((it) => it.id === id && SITTINGS.has(it.kind));
+  let built = await pageTimeline(db, tag, timezone, now, window, {
     publicOnly,
   });
-  const timeline = built.timeline ?? [];
-  const item = timeline.find((it) => it.id === id && SITTINGS.has(it.kind));
+  let item = sittingOf(built);
+  // A feed's link (the Timeline, the bell, mail, a push) names the sitting
+  // as the feeds tell it, without late captures. Where the page's sitting
+  // reaches back over late ones, its id is another, so the feeds' read of
+  // the same window finds it (its evidence says how it was counted).
+  if (!item) {
+    built = await pageTimeline(db, tag, timezone, now, window, {
+      publicOnly,
+      lateBattles: false,
+    });
+    item = sittingOf(built);
+  }
   if (!item) return null;
+  const timeline = built.timeline ?? [];
   const games = await readTimelineEvidence(db, item, {
     offset,
     limit: 25,
