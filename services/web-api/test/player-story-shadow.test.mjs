@@ -130,6 +130,11 @@ test("right after a write the page and the rows agree", async () => {
   for (const k of ["only_computed", "only_stored", "revision", "content"])
     assert.equal(line[k], 0, `${k}: ${JSON.stringify(line)}`);
   assert.equal(typeof line.ms, "number");
+  // Stage 2: the write's time beside the newest thing the record knows.
+  assert.ok(line.written_at, JSON.stringify(line));
+  assert.equal(line.stale, false);
+  assert.equal(line.groups, 0);
+  assert.equal(lines.at(-2)?.at === "timeline_story_shadow_diff", false);
   // One compact line: counts and ids, never the tag or an item.
   assert.ok(!JSON.stringify(line).includes(P));
   assert.ok(!JSON.stringify(line).includes("Rowan"));
@@ -138,11 +143,33 @@ test("right after a write the page and the rows agree", async () => {
 test("after a change the line names the buckets", async () => {
   await battle("shadow-3", NOW - 110 * MIN); // the sitting grows
   await battle("shadow-4", NOW - 40 * MIN); // a sitting no write saw
+  const from = lines.length;
   const line = await page();
   assert.equal(line.revision, 1, JSON.stringify(line));
   assert.equal(line.only_computed, 1);
   assert.equal(line.only_stored, 0);
   assert.equal(line.content, 0);
+  // Before the summary, one line per group, each summed by n.
+  const diffs = lines
+    .slice(from, -1)
+    .filter((l) => l.at === "timeline_story_shadow_diff");
+  assert.equal(diffs.length, line.groups, JSON.stringify(diffs));
+  assert.deepEqual(diffs.map((d) => [d.kind, d.bucket, d.n]).sort(), [
+    ["battle_session", "only_computed", 1],
+    ["battle_session", "revision", 1],
+  ]);
+  for (const d of diffs) {
+    assert.deepEqual(Object.keys(d).sort(), [
+      "at",
+      "bucket",
+      "cause",
+      "field",
+      "kind",
+      "n",
+    ]);
+    assert.ok(["unwritten", "window", "settled"].includes(d.cause));
+    assert.ok(!JSON.stringify(d).includes(P));
+  }
   await scratch.db.query(
     `update player set name = 'Rowan Ash' where player_tag = $1`,
     [P],

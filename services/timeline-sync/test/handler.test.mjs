@@ -455,3 +455,75 @@ test("web push receipts (2026-11-16) are read by their own reader and their obje
     console.error = error;
   }
 });
+
+test("a player's stored stories (stage 2) are written by their wake; a failure is logged without the tag and dropped", async () => {
+  // Invented tags (docs/invented-tags.json): this repository is public.
+  const P = "#0YY9P";
+  const SINCE = "2026-11-23T12:35:00.000Z";
+  const good = "timeline-sync/story.aa.1.json";
+  const failing = "timeline-sync/story.bb.1.json";
+  const junk = "timeline-sync/story.cc.1.json";
+  const bad = "timeline-sync/story.dd.1.json";
+  const objects = new Map([
+    [good, JSON.stringify({ v: 1, story_player: P, since: SINCE })],
+    [failing, JSON.stringify({ v: 1, story_player: P, since: SINCE })],
+    [junk, JSON.stringify({ v: 1, story_player: P, since: "soon" })],
+    [bad, JSON.stringify({ v: 1, story_player: "not a tag" })],
+  ]);
+  const seen = [];
+  const deleted = [];
+  const handler = makeHandler({
+    connect: async () => ({ end: async () => {} }),
+    sync: async () => assert.fail("not an account sync"),
+    stories: async (_db, tag, opts) => {
+      seen.push([tag, opts]);
+      if (seen.length === 2)
+        throw Object.assign(new Error(`timeout for ${P}`), { code: "57014" });
+      return { stories: 4, written: 1, deleted: 0 };
+    },
+    readObject: async (obj) => objects.get(obj.key) ?? null,
+    deleteObject: async (obj) => {
+      deleted.push(obj.key);
+      objects.delete(obj.key);
+    },
+  });
+  const lines = [];
+  const [log, error] = [console.log, console.error];
+  console.log = (...a) => lines.push(a);
+  console.error = (...a) => lines.push(a);
+  try {
+    const out = await handler({
+      Records: [
+        record("a", good),
+        record("b", failing),
+        record("c", junk),
+        record("d", bad),
+      ],
+    });
+    assert.deepEqual(out, { batchItemFailures: [{ itemIdentifier: "d" }] });
+  } finally {
+    [console.log, console.error] = [log, error];
+  }
+  assert.deepEqual(seen, [
+    [P, { since: SINCE }],
+    [P, { since: SINCE }],
+    [P, { since: null }],
+  ]);
+  assert.deepEqual(deleted, [good, failing, junk]);
+  assert.deepEqual(lines[0], [
+    "timeline_story_written",
+    JSON.stringify({ stories: 4, written: 1, deleted: 0 }),
+  ]);
+  assert.deepEqual(lines[1], ["timeline_story_failed", "57014"]);
+  assert.ok(!JSON.stringify(lines).includes(P));
+  // Without a writer the wake is refused, as every lane's is.
+  const none = makeHandler({
+    connect: async () => ({ end: async () => {} }),
+    sync: async () => assert.fail("not an account sync"),
+    readObject: async () => JSON.stringify({ v: 1, story_player: P }),
+    deleteObject: async () => assert.fail("kept for the retry"),
+  });
+  assert.deepEqual(await none({ Records: [record("e", good)] }), {
+    batchItemFailures: [{ itemIdentifier: "e" }],
+  });
+});

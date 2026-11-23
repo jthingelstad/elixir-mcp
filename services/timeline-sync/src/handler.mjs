@@ -37,6 +37,15 @@
  * dropped, never retried: the next wake builds it, and a read whose row
  * is too old builds it itself.
  *
+ * A recorded player's stored stories (timeline_story, stage 2 of the
+ * stored Timeline, 2026-11-23) are rewritten by `{ v: 1, story_player,
+ * since }`, which an admission about the player writes once a minute and
+ * the jobs' five-minute run writes for what no admission announces. A
+ * write already begun after `since` serves it without a build. A failed
+ * write is logged (its error's class, never the tag) and dropped: the
+ * player's record is then newer than its write, and the next sweep wakes
+ * it again.
+ *
  * The relay's receipts for the quality ledger (0222: what Discord
  * answered for each post) arrive on discord-receipt/ and are read into
  * the ledger here, the one place in the VPC its notifications reach. Its
@@ -69,6 +78,7 @@ const LANES = [
  *   receipts?: ((db: any, msg: object) => Promise<object | null>) | null,
  *   pushReceipts?: ((db: any, msg: object) => Promise<object | null>) | null,
  *   homeFeed?: ((db: any, accountId: string, opts?: { since?: string }) => Promise<object>) | null,
+ *   stories?: ((db: any, playerTag: string, opts: { since: string | null }) => Promise<object>) | null,
  *   readObject: (obj: {bucket: string, key: string}) => Promise<string | null>,
  *   deleteObject: (obj: {bucket: string, key: string}) => Promise<unknown>,
  * }} deps
@@ -82,6 +92,7 @@ export function makeHandler({
   receipts = null,
   pushReceipts = null,
   homeFeed = null,
+  stories = null,
   readObject,
   deleteObject,
 }) {
@@ -141,6 +152,23 @@ export function makeHandler({
             msg.home_feed,
             err?.code ?? err?.name ?? "error",
             err?.message,
+          );
+        }
+      } else if (msg?.v === 1 && typeof msg.story_player === "string") {
+        if (!isCanonicalTag(msg.story_player) || !stories) return "bad_message";
+        const since =
+          typeof msg.since === "string" &&
+          Number.isFinite(Date.parse(msg.since))
+            ? msg.since
+            : null;
+        try {
+          const out = await stories(await db(), msg.story_player, { since });
+          console.log("timeline_story_written", JSON.stringify(out));
+        } catch (err) {
+          // Counts and the error's class only: no tag in this log.
+          console.error(
+            "timeline_story_failed",
+            err?.code ?? err?.name ?? "error",
           );
         }
       } else if (msg?.v === 1 && typeof msg.clan_discord === "string") {

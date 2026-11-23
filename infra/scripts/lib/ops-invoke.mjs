@@ -102,6 +102,9 @@ const MIGRATE_READS = {
   backends: anyArgs,
   retention_dry_run: (v) => v === true,
   visibility_check: (v) => v === true,
+  timeline_story_staleness: (v) =>
+    v === true ||
+    (isObject(v) && Object.keys(v).every((k) => k === "budget_ms")),
   // Read in one shape, a write in every other.
   ledger: (v) => v === true || exactly(v, { op: "dead" }),
   account_role: (v) => exactly(v, { list: true }),

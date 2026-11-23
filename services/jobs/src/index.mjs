@@ -28,6 +28,8 @@ import {
   homeWeeksToWake,
   homeWeekWake,
 } from "@elixir-mcp/tools/activity/home-feed";
+import { storiesToWake } from "@elixir-mcp/tools/activity/story-store";
+import { storyWake } from "@elixir-mcp/tools/activity/story-wake";
 import { runFeedbackAnswers } from "./email/feedback-answers.mjs";
 import { runWeekForm } from "./week-form.mjs";
 import { runActivityMail } from "./email/activity-today.mjs";
@@ -159,6 +161,25 @@ async function closingSittings(databaseUrl, { wakeOutbox = outbox } = {}) {
   }
 }
 
+/** The stored stories' sweep (stage 2 of the stored Timeline,
+ *  2026-11-23), riding Home's five-minute run: wakes the recorded players
+ *  whose rows no admission will refresh (a sitting gone quiet, news no
+ *  admission announced, never written, the six-hour floor). Counts only;
+ *  never fails the run it rides. */
+async function storySweep(db, wake, now) {
+  try {
+    const { tags, counts } = await storiesToWake(db, { now });
+    for (const tag of tags) await wake(tag, now);
+    return { woken: tags.length, ...counts };
+  } catch (err) {
+    console.error(
+      "timeline_story_sweep_failed",
+      err?.code ?? err?.name ?? "error",
+    );
+    return { failed: err?.code ?? err?.name ?? "error" };
+  }
+}
+
 /** Wake the timeline-sync lane for each account that read Home lately and
  *  whose stored week is past fresh (home_feed, 0245; #649). */
 export async function homeFeeds(databaseUrl, { wakeOutbox = outbox } = {}) {
@@ -170,7 +191,8 @@ export async function homeFeeds(databaseUrl, { wakeOutbox = outbox } = {}) {
     const accounts = await homeWeeksToWake(db, { now });
     for (const accountId of accounts) await wake(accountId, now);
     const processed = await clanLifecycle(db).drain();
-    return { woken: accounts.length, lifecycle_processed: processed };
+    const stories = await storySweep(db, storyWake(wakeOutbox), now);
+    return { woken: accounts.length, lifecycle_processed: processed, stories };
   } finally {
     await db.end();
   }

@@ -12,6 +12,7 @@ import { makeArchive } from "@elixir-mcp/ingest";
 import { makeOutbox } from "@elixir-mcp/outbox";
 import { ownerNotifyMessage } from "@elixir-mcp/outbox/notify";
 import { wakeSyndication } from "@elixir-mcp/syndication";
+import { wakeStories } from "@elixir-mcp/tools/activity/story-wake";
 import { makeHandler } from "./handler.mjs";
 
 const archive = makeArchive(process.env.ARCHIVE_BUCKET);
@@ -35,7 +36,18 @@ const handler = makeHandler({
       processResult(db, envelope, {
         ...(archive ? { archive } : {}),
         ...(outbox
-          ? { wake: (d, tag) => wakeSyndication(d, tag, { outbox }) }
+          ? {
+              // After the commit: cross-posted timelines, then the
+              // player's stored stories (stage 2, 2026-11-23). Neither
+              // fails the admission; ingest logs a throw.
+              wake: async (d, tag) => {
+                try {
+                  await wakeSyndication(d, tag, { outbox });
+                } finally {
+                  await wakeStories(d, tag, { outbox });
+                }
+              },
+            }
           : {}),
       }),
     notifyOwner,

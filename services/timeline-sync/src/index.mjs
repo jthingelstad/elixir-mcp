@@ -31,6 +31,7 @@ import { clanDiscordWake } from "@elixir-mcp/clan/discord-wake.mjs";
 import { modelStorage } from "@elixir-mcp/clan/model-storage.mjs";
 import { refreshHomeWeek } from "@elixir-mcp/tools/activity/home-feed";
 import { applyPushReceipt } from "@elixir-mcp/tools/activity/push";
+import { refreshSubjectStories } from "@elixir-mcp/tools/activity/story-store";
 import { makeHandler } from "./handler.mjs";
 
 const s3 = new S3Client({});
@@ -166,6 +167,9 @@ export const handler = makeHandler({
   pushReceipts: (db, msg) => applyPushReceipt(db, msg),
   // Home's stored week (0245, #649), as the account reads it.
   homeFeed: (db, accountId, opts = {}) => refreshHomeWeek(db, accountId, opts),
+  // A recorded player's stored stories (stage 2, 2026-11-23).
+  stories: (db, playerTag, opts) =>
+    refreshSubjectStories(db, "player", playerTag, opts),
   async readObject(obj) {
     if (obj.bucket !== bucket) throw new Error("unknown bucket");
     try {
