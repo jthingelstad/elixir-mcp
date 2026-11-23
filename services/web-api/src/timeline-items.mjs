@@ -114,27 +114,41 @@ export async function readRecordedItem(
       ? await itemPerson(db, target.accountPageId, accountId)
       : null;
   if (target.source === "people" && !person) return null;
-  const built = await buildTimeline(db, subjects, {
-    fromMs: anchor - 2 * DAY,
-    // A later return cannot erase a clock crossing that was already seen.
-    toMs: Math.min(
-      now,
-      target.kind === "quiet_crossed" ? anchor : anchor + 2 * DAY,
-    ),
-    timezone: "UTC",
-    basis: "occurred",
-    accountId,
-    interactive: Boolean(accountId),
-    clanStories: Boolean(accountId),
-    accountLines: false,
-    lateCounts: false,
-    people: person ? { accounts: [person], players: true } : null,
-    filter: (it) =>
-      it.id === target.itemId &&
-      it.kind !== "post" &&
-      it.kind !== "battle_highlight",
-  });
-  const found = built.timeline.find((it) => it.id === target.itemId);
+  const read = (lateBattles) =>
+    buildTimeline(db, subjects, {
+      fromMs: anchor - 2 * DAY,
+      // A later return cannot erase a clock crossing that was already seen.
+      toMs: Math.min(
+        now,
+        target.kind === "quiet_crossed" ? anchor : anchor + 2 * DAY,
+      ),
+      timezone: "UTC",
+      basis: "occurred",
+      accountId,
+      interactive: Boolean(accountId),
+      clanStories: Boolean(accountId),
+      accountLines: false,
+      lateCounts: false,
+      people: person ? { accounts: [person], players: true } : null,
+      lateBattles,
+      filter: (it) =>
+        it.id === target.itemId &&
+        it.kind !== "post" &&
+        it.kind !== "battle_highlight",
+    });
+  const sought = (built) =>
+    built.timeline.find((it) => it.id === target.itemId);
+  let found = sought(await read(false));
+  // A sitting a player's page told over battles Elixir learned late
+  // (routes/player.mjs pageTimeline, lateBattles): the page's own read
+  // finds it, and no feed's ever does.
+  if (
+    !found &&
+    target.source === "game" &&
+    target.subjectKind === "player" &&
+    SITTINGS.has(target.kind)
+  )
+    found = sought(await read(true));
   if (!found) return null;
   return (await annotateFeed(db, [found], subjects))[0];
 }
