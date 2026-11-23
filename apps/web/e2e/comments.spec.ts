@@ -301,13 +301,14 @@ for (const width of [320, 390]) {
         "href",
         "/home/player/0YV8YGYJ",
       );
+      // The list fades in: read its colours once it has arrived, never
+      // part-way through (a contrast failure one run in many, 2026-11-23).
+      await sheet.evaluate((el) =>
+        Promise.all(el.getAnimations().map((a) => a.finished)).then(() => {}),
+      );
       await accessible(page, "bell");
-      if (shots) {
-        await sheet.evaluate((el) =>
-          Promise.all(el.getAnimations().map((a) => a.finished)).then(() => {}),
-        );
+      if (shots)
         await page.screenshot({ path: `${shots}/comments-bell-${width}.png` });
-      }
     });
   });
 }
