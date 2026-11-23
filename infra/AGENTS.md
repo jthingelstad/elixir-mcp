@@ -55,7 +55,8 @@ account, build, upload, the app's assets, lane, the endpoint grant check,
 migrate (push the migrate bundle, the reference-seed check when asked,
 apply), vocabulary import, stack, the endpoint grant, the first
 migrations (`--create` only), the public statistics snapshot (platform
-lane; a failed snapshot stops the deploy), web (card art, site,
+lane; a failed snapshot warns and the deploy finishes, records it and
+exits 1, since the stack has switched by then), web (card art, site,
 invalidation, prune), smoke, the visibility check (the migrate
 Lambda's read-only `{visibility_check}`: one WARNING per table whose
 visibility map is mostly empty or that was never analyzed, with the
@@ -122,7 +123,10 @@ and the record.
   (`gate_wait_seconds`, null on `--break-glass`) and each phase's seconds
   (`phases`). A failed or refused acceptance run is recorded too, with
   its database cost (`acceptance_headroom`), and the deploy exits 1
-  after the record.
+  after the record. A phase that fails once production has changed (the
+  stack switched, or the site being published) ends the deploy with a
+  line naming the phase and what is live; running the deploy again does
+  what is left and writes the record.
 
 ## Scripts
 

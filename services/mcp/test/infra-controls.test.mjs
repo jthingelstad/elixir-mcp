@@ -414,6 +414,105 @@ test("deploy.mjs refuses its arguments before the first phase, so before the fir
   assert.doesNotMatch(source, /process\.argv\.(includes|find)\(/);
 });
 
+// 2026-11-22: the snapshot phase threw a plain Error after the stack had
+// switched, so the site, the invalidation, smoke and the record were all
+// skipped behind live Lambdas.
+test("deploy.mjs: a failed statistics snapshot warns and the deploy finishes, exiting 1", async (t) => {
+  const errors = [];
+  t.mock.method(console, "log", () => {});
+  t.mock.method(console, "warn", () => {});
+  t.mock.method(console, "error", (line) => errors.push(String(line)));
+  const snapshot = DEPLOY_PHASES.find((p) => p.name === "public-stats");
+  for (const [why, send] of [
+    ["the function failed", async () => ({ FunctionError: "Unhandled" })],
+    [
+      "the invoke failed",
+      async () => {
+        throw new Error("socket hang up");
+      },
+    ],
+  ]) {
+    const ran = [];
+    const phases = DEPLOY_PHASES.map((phase) =>
+      phase.name === "public-stats"
+        ? {
+            ...phase,
+            run: async (d) => {
+              ran.push(phase.name);
+              d.lambda = { send };
+              d.sleep = async () => {};
+              await snapshot.run(d);
+            },
+          }
+        : {
+            ...phase,
+            run: async (d) => {
+              ran.push(phase.name);
+              if (phase.name === "lane") d.lane = "platform";
+            },
+          },
+    );
+    assert.equal(await deploy([], { phases }), 1, why);
+    assert.deepEqual(
+      ran.slice(ran.indexOf("public-stats")),
+      [
+        "public-stats",
+        "card-art",
+        "site",
+        "invalidate",
+        "prune",
+        "smoke",
+        "visibility",
+        "acceptance",
+        "clean-tree",
+        "record",
+      ],
+      why,
+    );
+  }
+  assert.match(errors.join("\n"), /WARNING: public statistics snapshot failed/);
+  assert.match(
+    errors.join("\n"),
+    /deploy: live, but the public statistics snapshot failed/,
+  );
+});
+
+test("deploy.mjs: a phase that crashes once production has changed says what is live", async (t) => {
+  const errors = [];
+  t.mock.method(console, "log", () => {});
+  t.mock.method(console, "warn", () => {});
+  t.mock.method(console, "error", (line) => errors.push(String(line)));
+  const crashIn = (name, changedBy) =>
+    DEPLOY_PHASES.map((phase) => ({
+      ...phase,
+      run: async (d) => {
+        if (phase.name === "lane") d.lane = "platform";
+        if (phase.name === changedBy) d.changed = "the stack has switched";
+        if (phase.name === name) throw new Error(`boom in ${name}`);
+      },
+    }));
+  // Before anything changed, a crash is a crash: nothing is live.
+  await assert.rejects(
+    deploy([], { phases: crashIn("upload", "stack") }),
+    /boom in upload/,
+  );
+  // After: exit 1, the phase and what is live, and how to finish.
+  assert.equal(await deploy([], { phases: crashIn("site", "stack") }), 1);
+  assert.match(
+    errors.join("\n"),
+    /STOPPED in the site phase, and the stack has switched\. .*run the deploy again/,
+  );
+  // The real phases set it: the stack once it has switched, the site
+  // before its first upload.
+  const source = (name) =>
+    DEPLOY_PHASES.find((p) => p.name === name).run.toString();
+  assert.match(source("stack"), /d\.changed = /);
+  assert.match(
+    source("site"),
+    /d\.changed \?\?= [^;]+;\s+const result = await publish\(/,
+  );
+});
+
 test("deploy.mjs: a phase that ends the deploy stops every phase after it", async (t) => {
   quiet(t);
   assert.deepEqual(await deployPhases([], { throwIn: "ci-gate" }), {

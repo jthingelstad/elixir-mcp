@@ -845,6 +845,9 @@ export const DEPLOY_PHASES = [
           throw err;
         }
       }
+      // Production runs this deploy's code from here on: a phase that
+      // fails later leaves it half done, and `deploy` says so.
+      d.changed = "the stack has switched";
     },
   },
   {
@@ -877,22 +880,40 @@ export const DEPLOY_PHASES = [
     },
   },
   {
+    // The hourly statistics snapshot, refreshed so the site build bakes
+    // current totals. The stack has already switched, so a failure never
+    // stops the deploy (2026-11-22; until then it threw, and the site,
+    // the invalidation, smoke and the record were all skipped behind
+    // live Lambdas). `/api/public/stats` computes a missing or stale
+    // snapshot itself and the hourly run tries again, so the deploy
+    // warns, finishes, records it and exits 1.
     name: "public-stats",
     when: (d) => d.lane === "platform",
     async run(d) {
-      const snapshot = await invokeWaitingOutThrottle(
-        d,
-        {
-          FunctionName: FUNCTIONS.jobs.name,
-          Payload: JSON.stringify({ public_stats: true }),
-        },
-        FUNCTIONS.jobs.timeoutS,
-        "deploy: public statistics",
-      );
-      if (snapshot.FunctionError)
-        throw new Error(
-          "Public statistics snapshot failed; inspect the jobs log",
+      let failure = null;
+      try {
+        const snapshot = await invokeWaitingOutThrottle(
+          d,
+          {
+            FunctionName: FUNCTIONS.jobs.name,
+            Payload: JSON.stringify({ public_stats: true }),
+          },
+          FUNCTIONS.jobs.timeoutS,
+          "deploy: public statistics",
         );
+        if (snapshot.FunctionError)
+          failure = `the jobs function answered ${snapshot.FunctionError}`;
+      } catch (err) {
+        failure = err?.message ?? String(err);
+      }
+      if (failure) {
+        console.error(
+          `WARNING: public statistics snapshot failed (${failure}); inspect the jobs log. The deploy goes on.`,
+        );
+        d.publicStatsFailed = true;
+        d.exitCode = 1;
+        return;
+      }
       console.error("public statistics snapshot published");
     },
   },
@@ -955,6 +976,7 @@ export const DEPLOY_PHASES = [
         ),
         removeMissing: true,
       });
+      d.changed ??= "the site is being published";
       const result = await publish({
         s3: d.s3,
         bucket,
@@ -1268,6 +1290,7 @@ async function writeRecord(d) {
     api_version: live.api ?? declared.api,
     acceptance: d.acceptanceResult,
     acceptance_headroom: d.acceptanceHeadroom ?? null,
+    ...(d.publicStatsFailed ? { public_stats: "failed" } : {}),
     previous_sha: previous?.sha ?? null,
     ...timing,
   };
@@ -1338,7 +1361,12 @@ export async function runPhases(phases, d, { now = Date.now } = {}) {
   for (const phase of phases) {
     if (phase.when && !phase.when(d)) continue;
     const started = now();
-    await phase.run(d);
+    try {
+      await phase.run(d);
+    } catch (error) {
+      d.failedPhase = phase.name;
+      throw error;
+    }
     d.phases.push({ name: phase.name, seconds: toSeconds(now() - started) });
   }
 }
@@ -1381,9 +1409,20 @@ export async function deploy(
   try {
     await runPhases(phases, d, { now });
   } catch (error) {
-    if (!(error instanceof DeployExit)) throw error;
-    console.error(error.message);
-    return error.code;
+    if (error instanceof DeployExit) {
+      console.error(error.message);
+      return error.code;
+    }
+    // A phase failed with no exit of its own. Before production changed
+    // that is a crash to read; after, the deployer is told what is live
+    // and that the rest never ran, not left to infer it from a stack
+    // trace (2026-11-22).
+    if (!d.changed) throw error;
+    console.error(error);
+    console.error(
+      `deploy: STOPPED in the ${d.failedPhase} phase, and ${d.changed}. The phases after it did not run, the deploy record among them. Fix the cause and run the deploy again: it does what is left and writes the record.`,
+    );
+    return 1;
   }
   d.releaseLock?.();
   if (d.outputs) {
@@ -1398,6 +1437,10 @@ export async function deploy(
     if (d.dirtyTree)
       console.error(
         `deploy: live, but it changed ${d.dirtyTree.length} tracked file(s); see above.`,
+      );
+    if (d.publicStatsFailed)
+      console.error(
+        "deploy: live, but the public statistics snapshot failed; inspect the jobs log (the hourly run tries again).",
       );
     if (d.acceptanceResult?.startsWith("FAILED"))
       console.error(
