@@ -69,19 +69,37 @@ played with anyone else.
 
 ## Check for new battles
 
-Under the player's name, **Check for new battles** asks for a fresh read of
-that player's battle log. While it looks the button says "Checking…".
-When the read lands, the page shows the new battles without a reload and
-the button says "Updated just now".
+Under the player's name, **Check for new battles** asks Clash Royale for
+that player's latest battles and their profile. While it looks the button
+says "Checking…". When the reads land, the page shows the new battles and
+the new trophies without a reload, and a line under the button says what
+the check found:
 
-On your own player it does what tapping the freshness chip does. On
-anyone else's page it is one read of their battles, and it does not start
-following or recording them. A log read in the last two minutes counts as
-fresh and is not read again. You can ask about one player once every two
-minutes, and about other players' battles 10 times an hour, from your
-daily [live fetches](/docs/limits). When a limit says wait, the button
-says "Try again in 2 min" (or however long it is), and nothing else
-changes.
+- "3 new battles. Last battle Sat 8:42 pm." New means new to Elixir since
+  you tapped. If they are older than the battles already shown, it says
+  "Found 2 older battles." instead.
+- "No new battles. Last battle Sat 8:42 pm." when nothing was new, or that
+  Elixir has no battles for them yet.
+- What moved on the profile, in the game's words: "Trophies 12,560 →
+  12,593", a new best, a new arena or league, "Joined" or "Left" a clan,
+  a new name. Nothing is said for a profile Elixir had never read.
+
+The line stays for two minutes, and the button says "Check again". If
+Clash Royale is slow, it says "Still checking. New battles show up here
+shortly." and keeps looking for about three more minutes, never while the
+tab is hidden. If no read could be asked for at all, it says "Couldn't
+check right now. Try again in a bit."
+
+On your own player it is your own refresh, the same one the freshness chip
+asks for, plus your profile. On anyone else's page it is one read of their
+battles and one of their profile, and it does not start following or
+recording them. A log read in the last two minutes counts as fresh and is
+not read again, and nor is a profile read in the last ten minutes. You can
+ask about one player once every two minutes, and about other players'
+battles 10 times an hour, from your daily
+[live fetches](/docs/limits). The profile read costs none of those. When a
+limit says wait, the button says "Try again in 2 min" (or however long it
+is), and nothing is read.
 
 ## Follows, followers and badges
 

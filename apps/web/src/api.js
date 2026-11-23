@@ -269,10 +269,21 @@ export const api = {
   // Your own battles read now (2026-11-14): the ask, and whether it landed.
   ownRefresh: () => request("POST", "/api/me/refresh"),
   ownRefreshStatus: () => request("GET", "/api/me/refresh"),
-  refreshPlayer: (tag) =>
-    request("POST", "/api/me/refresh", { player_tag: tag }),
-  refreshPlayerStatus: (tag) =>
-    request("GET", `/api/me/refresh?player_tag=${encodeURIComponent(tag)}`),
+  // A player page's button (2026-11-23): `tap` also reads the profile and
+  // answers a `since` marker; the follow-up read with it says what moved.
+  refreshPlayer: (tag, { tap = false } = {}) =>
+    request("POST", "/api/me/refresh", {
+      player_tag: tag,
+      ...(tap ? { tap: true } : {}),
+    }),
+  refreshPlayerStatus: (tag, since = null) =>
+    request(
+      "GET",
+      `/api/me/refresh?${new URLSearchParams({
+        player_tag: tag,
+        ...(since ? { since } : {}),
+      })}`,
+    ),
   homeWeek: (mode) =>
     request(
       "GET",

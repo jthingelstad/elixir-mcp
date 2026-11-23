@@ -6,7 +6,10 @@
  * spent daily allowance answer `queued: false` quietly and charge nothing;
  * the allowance is its own bucket, never the MCP live quota's; the
  * follow-up read says when a read landed and wakes Home's
- * stored week once per read. Invented tags only.
+ * stored week once per read. A tap of Check for new battles (2026-11-23)
+ * also reads the page player's profile, under the rules readProfile
+ * states, and its follow-up read says what the check found. Invented tags
+ * only.
  */
 import { test, before, after, beforeEach } from "node:test";
 import assert from "node:assert/strict";
@@ -19,7 +22,11 @@ import {
   FLOOR_S,
   OTHERS_PER_HOUR,
   PLAYER_FLOOR_S,
+  PROFILE_FRESH_S,
   REFRESH_DAY,
+  SINCE_MAX_S,
+  decodeSince,
+  encodeSince,
 } from "../src/own-refresh.mjs";
 import {
   createScratch,
@@ -48,18 +55,29 @@ let person;
 const wakes = [];
 let routes;
 
-const call = async (method, account, { pool = db, tag } = {}) => {
+const call = async (
+  method,
+  account,
+  { pool = db, tag, tap = false, since } = {},
+) => {
   const r = routes({ account })[`${method} /api/me/refresh`];
   const event = {
     headers: { "x-elixir-client": "web" },
     ...(tag && method === "GET"
-      ? { queryStringParameters: { player_tag: tag } }
+      ? {
+          queryStringParameters: {
+            player_tag: tag,
+            ...(since ? { since } : {}),
+          },
+        }
       : {}),
   };
   const res = await r(
     pool,
     event,
-    tag && method === "POST" ? { player_tag: tag } : {},
+    tag && method === "POST"
+      ? { player_tag: tag, ...(tap ? { tap: true } : {}) }
+      : {},
   );
   return { status: res.statusCode, body: JSON.parse(res.body) };
 };
@@ -72,6 +90,22 @@ async function readLog(tag, minutesAgo) {
     [tag, minutesAgo, gatewayId],
   );
 }
+
+/** A profile read `minutesAgo`, as a recorded receipt. */
+async function readProfileReceipt(tag, minutesAgo) {
+  await db.query(
+    `insert into api_receipt (endpoint, entity_key, fetched_at, payload_hash, gateway_id, admission)
+     values ('player', $1::text, now() - make_interval(mins => $2::int), 'h', $3::uuid, 'admitted')`,
+    [tag, minutesAgo, gatewayId],
+  );
+}
+const openProfiles = async () =>
+  (
+    await db.query(
+      `select entity_key from job where endpoint = 'player'
+        and status in ('queued', 'leased') order by job_id`,
+    )
+  ).rows.map((r) => r.entity_key);
 
 const tokens = async () =>
   Number((await db.query("select tokens from budget_state")).rows[0].tokens);
@@ -542,4 +576,312 @@ test("another player: unknown, invalid, and your own player", async () => {
     [PRIMARY, ALT],
   );
   assert.equal(await liveday(), 0);
+});
+
+/* --- A tap also reads the profile, and says what it found (2026-11-23) - */
+
+const count = async (bucket) =>
+  Number(
+    (
+      await db.query(
+        `select coalesce(sum(count), 0) as n from rate_limit where bucket = $1`,
+        [bucket],
+      )
+    ).rows[0].n,
+  );
+
+test("a tap on another player reads their profile too, for one global token and no second allowance", async () => {
+  const before = await tokens();
+  const r = await call("POST", person, { tag: STRANGER, tap: true });
+  assert.equal(r.status, 200);
+  assert.equal(r.body.queued, true);
+  assert.deepEqual(r.body.players, [
+    { tag: STRANGER, state: "queued", retry_after_s: 15, profile: "queued" },
+  ]);
+  assert.equal(typeof r.body.since, "string");
+  assert.deepEqual(await openJobs(), [STRANGER]);
+  assert.deepEqual(await openProfiles(), [STRANGER]);
+  const { rows } = await db.query(
+    `select lane, record from job where endpoint = 'player'`,
+  );
+  assert.deepEqual(rows, [{ lane: "live", record: true }]);
+  // Two reads from the one bucket; one ask from the person's allowances.
+  assert.equal(before - (await tokens()), 2);
+  assert.equal(await liveday(), 1);
+  assert.equal(await count(`refreshother#${person.accountId}`), 1);
+  // A one-off read, never a recording.
+  const { rows: rec } = await db.query(
+    `select 1 from recording where subject_tag = $1`,
+    [STRANGER],
+  );
+  assert.equal(rec.length, 0);
+});
+
+test("the app's own asks, and a button without a tap, read no profile", async () => {
+  await call("POST", person);
+  await call("POST", person, { tag: STRANGER });
+  assert.deepEqual(await openProfiles(), []);
+  const own = await call("POST", person);
+  for (const p of own.body.players) assert.equal("profile" in p, false);
+  assert.equal("since" in own.body, false);
+});
+
+test("a profile read already on its way is joined, and one read recently is fresh", async () => {
+  await enqueueJob(db, {
+    endpoint: "player",
+    entity_key: STRANGER,
+    lane: "bulk",
+    record: true,
+  });
+  const joined = await call("POST", person, { tag: STRANGER, tap: true });
+  assert.equal(joined.body.players[0].profile, "queued");
+  // Joined, never minted twice: the bulk job moved to the live lane.
+  const { rows } = await db.query(
+    `select lane from job where endpoint = 'player' and status = 'queued'`,
+  );
+  assert.deepEqual(rows, [{ lane: "live" }]);
+  assert.equal(await tokens(), 19);
+  await db.query(`delete from job`);
+  await db.query(`delete from rate_limit`);
+  await readProfileReceipt(STRANGER, PROFILE_FRESH_S / 60 - 1);
+  const fresh = await call("POST", person, { tag: STRANGER, tap: true });
+  assert.equal(fresh.body.players[0].state, "queued");
+  assert.equal(fresh.body.players[0].profile, "fresh");
+  assert.deepEqual(await openProfiles(), []);
+});
+
+test("no token for the profile: the battle log goes ahead, the profile is not read", async () => {
+  await db.query(`update budget_state set tokens = 1`);
+  const r = await call("POST", person, { tag: STRANGER, tap: true });
+  assert.equal(r.body.queued, true);
+  assert.equal(r.body.players[0].state, "queued");
+  assert.equal(r.body.players[0].retry_after_s, 15);
+  assert.equal(r.body.players[0].profile, "skipped");
+  assert.deepEqual(await openJobs(), [STRANGER]);
+  assert.deepEqual(await openProfiles(), []);
+  assert.equal(await tokens(), 0);
+  assert.equal(await liveday(), 1);
+});
+
+test("an ask a limit refused, or an unknown player, reads no profile", async () => {
+  await db.query(
+    `insert into rate_limit (bucket, window_start, count) values ($1, $2::date, 20)`,
+    [`liveday#${person.accountId}`, new Date().toISOString().slice(0, 10)],
+  );
+  const spent = await call("POST", person, { tag: STRANGER, tap: true });
+  assert.equal(spent.body.queued, false);
+  assert.equal(spent.body.players[0].state, "skipped");
+  assert.ok(spent.body.players[0].retry_after_s > 0);
+  assert.equal(spent.body.players[0].profile, "skipped");
+  const unknown = await call("POST", person, { tag: UNKNOWN, tap: true });
+  assert.equal(unknown.body.players[0].state, "skipped");
+  assert.equal(unknown.body.players[0].profile, "skipped");
+  assert.deepEqual(await openProfiles(), []);
+  assert.equal(await tokens(), 20);
+});
+
+test("a tap on your own page reads that player's profile only, within your own ask", async () => {
+  const r = await call("POST", person, { tag: PRIMARY, tap: true });
+  assert.deepEqual(
+    r.body.players.map((p) => [p.tag, p.state, p.profile]),
+    [
+      [PRIMARY, "queued", "queued"],
+      [ALT, "queued", undefined],
+    ],
+  );
+  assert.deepEqual(await openProfiles(), [PRIMARY]);
+  // Two logs and one profile from the bucket; the day's allowance counts
+  // the two logs only, and the live quota nothing.
+  assert.equal(20 - (await tokens()), 3);
+  assert.equal(await count(`${REFRESH_DAY}${person.accountId}`), 2);
+  assert.equal(await liveday(), 0);
+  // Its follow-up read is your own refresh's: every own player, and the
+  // tapped one says what the check found.
+  const s = await call("GET", person, { tag: PRIMARY, since: r.body.since });
+  assert.deepEqual(
+    s.body.players.map((p) => p.tag),
+    [PRIMARY, ALT],
+  );
+  assert.equal(s.body.players[0].profile_pending, true);
+  assert.equal(s.body.players[0].new_battles, 0);
+  assert.equal("new_battles" in s.body.players[1], false);
+});
+
+test("the check's follow-up read: new battles and what moved on the profile", async () => {
+  const CLAN = "#0C2C8";
+  await db.query(
+    `insert into arena (arena_id, name) values (54000001, 'Arena One'), (54000002, 'Arena Two')
+     on conflict do nothing`,
+  );
+  await db.query(
+    `insert into clan (clan_tag, name) values ($1, 'Test Clan') on conflict do nothing`,
+    [CLAN],
+  );
+  await db.query(`update player set name = 'Pip' where player_tag = $1`, [
+    STRANGER,
+  ]);
+  // What Elixir had: yesterday's profile, in no clan, and one battle.
+  await db.query(
+    `insert into player_snapshot_daily (player_tag, snapshot_date, trophies, best_trophies,
+       arena_id, pol_league, observed_at, profile_observed_at)
+     values ($1, current_date - 1, 5000, 5100, 54000001, 2, now() - interval '1 day', now() - interval '1 day')`,
+    [STRANGER],
+  );
+  await db.query(
+    `insert into player_profile_membership (player_tag, state, observed_at)
+     values ($1, 'none', now() - interval '1 day')`,
+    [STRANGER],
+  );
+  const battle = async (id, ago) => {
+    await db.query(
+      `insert into battle (battle_id, battle_time, type, type_class)
+       values ($1, now() - $2::interval, 'PvP', 'pvp')`,
+      [id, ago],
+    );
+    await db.query(
+      `insert into battle_participant (battle_id, player_tag, side, battle_time, type, type_class)
+       values ($1, $2, 0, now() - $3::interval, 'PvP', 'pvp')`,
+      [id, STRANGER, ago],
+    );
+  };
+  await battle("check-old", "2 days");
+  try {
+    const asked = await call("POST", person, { tag: STRANGER, tap: true });
+    const since = asked.body.since;
+    const waiting = await call("GET", person, { tag: STRANGER, since });
+    assert.deepEqual(waiting.body.players[0], {
+      tag: STRANGER,
+      read_at: null,
+      pending: true,
+      new_battles: 0,
+      newest_battle_at: waiting.body.players[0].newest_battle_at,
+      latest_is_new: false,
+      profile_read_at: null,
+      profile_pending: true,
+      profile_changes: [],
+    });
+    // Both land: two battles Elixir did not have, the newest among them,
+    // and a profile that moved.
+    await battle("check-new-1", "10 minutes");
+    await battle("check-new-2", "3 days");
+    await db.query(`update job set status = 'done'`);
+    await readLog(STRANGER, 0);
+    await readProfileReceipt(STRANGER, 0);
+    await db.query(
+      `insert into player_snapshot_daily (player_tag, snapshot_date, trophies, best_trophies,
+         arena_id, pol_league, observed_at, profile_observed_at)
+       values ($1, current_date, 5240, 5240, 54000002, 3, now(), now())`,
+      [STRANGER],
+    );
+    await db.query(
+      `update player_profile_membership set state = 'member', clan_tag = $2, observed_at = now()
+        where player_tag = $1`,
+      [STRANGER, CLAN],
+    );
+    await db.query(`update player set name = 'Pip Two' where player_tag = $1`, [
+      STRANGER,
+    ]);
+    const landed = await call("GET", person, { tag: STRANGER, since });
+    const p = landed.body.players[0];
+    assert.equal(p.pending, false);
+    assert.equal(p.profile_pending, false);
+    assert.equal(p.new_battles, 2);
+    assert.equal(p.latest_is_new, true);
+    assert.ok(Date.now() - Date.parse(p.newest_battle_at) < 11 * 60_000);
+    assert.deepEqual(p.profile_changes, [
+      { field: "name", from: "Pip", to: "Pip Two" },
+      {
+        field: "clan",
+        from: null,
+        to: { tag: CLAN, name: "Test Clan" },
+      },
+      { field: "trophies", from: 5000, to: 5240 },
+      { field: "best_trophies", from: 5100, to: 5240 },
+      { field: "arena", from: "Arena One", to: "Arena Two" },
+      { field: "league", from: "Master II", to: "Master III" },
+    ]);
+    // Without a marker, or with one that is not one: the plain answer.
+    for (const bad of [undefined, "not-a-marker"]) {
+      const plain = await call("GET", person, { tag: STRANGER, since: bad });
+      assert.deepEqual(Object.keys(plain.body.players[0]).sort(), [
+        "pending",
+        "read_at",
+        "tag",
+      ]);
+    }
+  } finally {
+    await db.query(
+      `delete from battle_participant where player_tag = $1::text`,
+      [STRANGER],
+    );
+    await db.query(`delete from battle where battle_id like 'check-%'`);
+    await db.query(`delete from player_snapshot_daily where player_tag = $1`, [
+      STRANGER,
+    ]);
+    await db.query(
+      `delete from player_profile_membership where player_tag = $1`,
+      [STRANGER],
+    );
+  }
+});
+
+test("older battles new to Elixir are new to the record, not the latest", async () => {
+  await db.query(
+    `insert into battle (battle_id, battle_time, type, type_class)
+     values ('older-newest', now() - interval '1 hour', 'PvP', 'pvp')`,
+  );
+  await db.query(
+    `insert into battle_participant (battle_id, player_tag, side, battle_time, type, type_class)
+     values ('older-newest', $1, 0, now() - interval '1 hour', 'PvP', 'pvp')`,
+    [STRANGER],
+  );
+  try {
+    const asked = await call("POST", person, { tag: STRANGER, tap: true });
+    await db.query(
+      `insert into battle (battle_id, battle_time, type, type_class)
+       values ('older-added', now() - interval '2 days', 'PvP', 'pvp')`,
+    );
+    await db.query(
+      `insert into battle_participant (battle_id, player_tag, side, battle_time, type, type_class)
+       values ('older-added', $1, 0, now() - interval '2 days', 'PvP', 'pvp')`,
+      [STRANGER],
+    );
+    const s = await call("GET", person, {
+      tag: STRANGER,
+      since: asked.body.since,
+    });
+    assert.equal(s.body.players[0].new_battles, 1);
+    assert.equal(s.body.players[0].latest_is_new, false);
+    // No profile before and none newer: nothing is said to have moved.
+    assert.deepEqual(s.body.players[0].profile_changes, []);
+  } finally {
+    await db.query(
+      `delete from battle_participant where battle_id like 'older-%'`,
+    );
+    await db.query(`delete from battle where battle_id like 'older-%'`);
+  }
+});
+
+test("a marker is read back only while it is recent", () => {
+  const facts = {
+    at: new Date().toISOString(),
+    name: "Pip",
+    clan: 0,
+    trophies: 10,
+    arena: null,
+    best: 12,
+    league: null,
+    observed: null,
+  };
+  const ok = decodeSince(encodeSince(facts));
+  assert.equal(ok.facts.name, "Pip");
+  assert.equal(ok.facts.clan, 0);
+  assert.equal(ok.facts.trophies, 10);
+  const old = {
+    ...facts,
+    at: new Date(Date.now() - (SINCE_MAX_S + 5) * 1000).toISOString(),
+  };
+  assert.equal(decodeSince(encodeSince(old)), null);
+  assert.equal(decodeSince("%%%"), null);
+  assert.equal(decodeSince(Buffer.from("[1]").toString("base64url")), null);
 });

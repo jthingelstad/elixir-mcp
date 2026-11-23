@@ -94,7 +94,13 @@ already has. An agent cannot ask for it.
 On anyone's player page, **Check for new battles** asks for one read of
 that player's battle log, under limits of its own
 ([A player's page](/docs/player-page#check-for-new-battles)). It never
-starts recording them.
+starts recording them. Because a person tapped it, it also reads that
+player's profile, unless one was read in the last ten minutes or is
+already on its way, and then says how many battles are new to Elixir
+since the tap and what moved on the profile. The profile read is one more
+read from the shared budget and nothing else; when the budget has no room
+for it, the battles are still read and the profile is not. The app's own
+automatic asks never read a profile.
 
 ## Freshness, as the envelope reports it
 

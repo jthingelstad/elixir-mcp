@@ -10,11 +10,16 @@
  *
  *  With `player_tag` (the body's on POST, the query's on GET), both ask
  *  about that one player instead: the player page's button, which reaches
- *  anyone Elixir knows, one read at a time (own-refresh.mjs, refreshPlayer). */
+ *  anyone Elixir knows, one read at a time (own-refresh.mjs, refreshPlayer).
+ *  The button's POST says `tap: true`, which also reads the player's
+ *  profile and answers `since`; its GET passes `since` back to learn what
+ *  the check found (2026-11-23). The server decides what a tap reads. */
 import { checkRateLimit } from "@elixir-mcp/auth";
 import { normalizeTag } from "@elixir-mcp/contracts";
 import { json } from "../http.mjs";
 import {
+  decodeSince,
+  ownPlayers,
   playerStatus,
   refreshOwn,
   refreshPlayer,
@@ -64,7 +69,9 @@ export function refreshRoutes({ resolveAccount, live, wake = null }) {
       return json(
         200,
         tag
-          ? await refreshPlayer(db, live, account, tag)
+          ? await refreshPlayer(db, live, account, tag, {
+              tap: body?.tap === true,
+            })
           : await refreshOwn(db, live, account),
       );
     },
@@ -81,11 +88,17 @@ export function refreshRoutes({ resolveAccount, live, wake = null }) {
         }))
       )
         return json(429, { error: "rate_limited" }, { "retry-after": "600" });
+      if (!tag)
+        return json(200, await refreshStatus(db, account.accountId, { wake }));
+      const since = decodeSince(event.queryStringParameters?.since);
+      // Your own player's check is your own refresh's: the same players,
+      // and the same wake of Home's stored week.
+      const own = (await ownPlayers(db, account.accountId)).includes(tag);
       return json(
         200,
-        tag
-          ? await playerStatus(db, tag)
-          : await refreshStatus(db, account.accountId, { wake }),
+        own
+          ? await refreshStatus(db, account.accountId, { wake, tag, since })
+          : await playerStatus(db, tag, { since }),
       );
     },
   };

@@ -29,6 +29,8 @@
  * A refusal anywhere (no token, the allowance spent, the floor) is an
  * answer, never an error: `queued: false`, and each player says `skipped`.
  */
+import { latestSnapshotOrder } from "@elixir-mcp/record/latest-snapshot";
+import { rankedLeagueName } from "@elixir-mcp/record/ranked-leagues";
 import { liveBudgetFor } from "@elixir-mcp/tools/shared";
 import { ownVerifiedPlayers } from "@elixir-mcp/tools/activity/home-feed";
 
@@ -40,6 +42,8 @@ export const MAX_PLAYERS = 3;
 export const REFRESH_DAY = "refreshday#";
 
 const ENDPOINT = "player_battlelog";
+/** The profile, read only on a tap of Check for new battles (2026-11-23). */
+const PROFILE = "player";
 
 /** Your own verified players, primary first, at most MAX_PLAYERS. */
 export async function ownPlayers(db, accountId) {
@@ -48,10 +52,11 @@ export async function ownPlayers(db, accountId) {
     .map((p) => p.tag);
 }
 
-/** One player's battle log as the record has it: when it was last read
- *  into the record, whether a read is queued or leased, and whether Elixir
- *  records the log at all. One read per player, never a batch. */
-async function logState(db, tag) {
+/** One player's battle log (or, with `endpoint`, their profile) as the
+ *  record has it: when it was last read into the record, whether a read is
+ *  queued or leased, and whether Elixir records the player at all. One
+ *  read per player, never a batch. */
+async function logState(db, tag, endpoint = ENDPOINT) {
   const {
     rows: [s],
   } = await db.query(
@@ -64,7 +69,7 @@ async function logState(db, tag) {
             exists (select 1 from recording
                      where subject_type = 'player' and subject_tag = $1::text
                        and status = 'active' and scope = 'comprehensive') as recorded`,
-    [tag, ENDPOINT],
+    [tag, endpoint],
   );
   return {
     readAt: s.read_at ? new Date(s.read_at) : null,
@@ -222,12 +227,13 @@ export async function refreshOwn(db, live, account, { now = new Date() } = {}) {
  * reads. When it was not, the week is asked to build again (`wake`, the
  * timeline-sync lane, once per read), so a landed battle reaches the feed
  * without waiting for the quarter-hour rebuild. Reads only, apart from
- * that wake.
+ * that wake. With `tag` and `since` (your own player page's tapped check),
+ * that player's entry also says what the check found (checkResult).
  */
 export async function refreshStatus(
   db,
   accountId,
-  { wake = null, now = new Date() } = {},
+  { wake = null, now = new Date(), tag: asked = null, since = null } = {},
 ) {
   const tags = await ownPlayers(db, accountId);
   const players = [];
@@ -238,6 +244,7 @@ export async function refreshStatus(
       tag,
       read_at: s.readAt ? s.readAt.toISOString() : null,
       pending: s.pending,
+      ...(since && tag === asked ? await checkResult(db, tag, since) : {}),
     });
     if (s.readAt && (!newest || s.readAt > newest)) newest = s.readAt;
   }
@@ -336,10 +343,10 @@ async function takePlayerFloor(db, accountId, tag) {
  *  job finished in between, nothing is minted here (`NoMint`), so a join
  *  never spends a token or an allowance. */
 class NoMint extends Error {}
-async function joinOpen(db, live, tag) {
+async function joinOpen(db, live, tag, endpoint = ENDPOINT) {
   try {
     await live(db, {
-      endpoint: ENDPOINT,
+      endpoint,
       entityKey: tag,
       record: true,
       beforeMint: async () => {
@@ -419,20 +426,63 @@ async function giveBack(db, spent) {
  * Ask for one player's battle log now. Your own verified player is your
  * own refresh (refreshOwn); anyone else is one read under the limits
  * above. Answers the same shape as refreshOwn, with one player.
+ *
+ * `tap` (2026-11-23): the person tapped Check for new battles on this
+ * player's page, so the ask also reads the player's profile (readProfile)
+ * and answers `since`, the marker the follow-up read takes to say what
+ * the check found (checkResult). The app's own asks never send it.
  */
 export async function refreshPlayer(
   db,
   live,
   account,
   tag,
-  { now = new Date() } = {},
+  { now = new Date(), tap = false } = {},
 ) {
   const own = await ownPlayers(db, account.accountId);
-  if (own.includes(tag)) return refreshOwn(db, live, account, { now });
-  const answer = (player, outcome) => {
-    console.info(JSON.stringify({ at: "player_refresh", outcome }));
-    return { queued: player.state === "queued", players: [player] };
+  if (own.includes(tag)) {
+    if (!tap) return refreshOwn(db, live, account, { now });
+    const before = await profileFacts(db, tag);
+    const answer = await refreshOwn(db, live, account, { now });
+    const entry = answer.players.find((p) => p.tag === tag);
+    const profile = await readProfile(db, live, tag, entry?.state, now);
+    console.info(
+      JSON.stringify({ at: "own_refresh_profile", outcome: profile.outcome }),
+    );
+    return {
+      queued: answer.queued || profile.state === "queued",
+      players: answer.players.map((p) =>
+        p.tag === tag ? { ...p, profile: profile.state } : p,
+      ),
+      since: encodeSince(before),
+    };
+  }
+  // What Elixir had before this ask: read first, so the check can say what
+  // it changed.
+  const before = tap ? await profileFacts(db, tag) : null;
+  const { player, outcome } = await askOther(db, live, account, tag, now);
+  const profile = tap
+    ? await readProfile(db, live, tag, player.state, now)
+    : null;
+  console.info(
+    JSON.stringify({
+      at: "player_refresh",
+      outcome,
+      ...(profile ? { profile: profile.outcome } : {}),
+    }),
+  );
+  if (!profile) return { queued: player.state === "queued", players: [player] };
+  return {
+    queued: player.state === "queued" || profile.state === "queued",
+    players: [{ ...player, profile: profile.state }],
+    since: encodeSince(before),
   };
+}
+
+/** Another player's battle log, under the limits above: `{ player,
+ *  outcome }`, the player's answer and one word for the log line. */
+async function askOther(db, live, account, tag, now) {
+  const answer = (player, outcome) => ({ player, outcome });
   if (!(await knownPlayer(db, tag)))
     return answer({ tag, state: "skipped" }, "unknown");
   const s = await logState(db, tag);
@@ -485,9 +535,260 @@ export async function refreshPlayer(
   }
 }
 
+/* ------------------------------------------------------------------------
+ * The tapped player's profile (2026-11-23, the owner: "in addition to
+ * pulling the player's battles let's also pull that player's profile
+ * information and show any updates there").
+ *
+ *  - Only on a tap of Check for new battles, only for the page's player,
+ *    and only when the battle-log half of the ask went ahead (`fresh` or
+ *    `queued`): an ask a limit refused, or a player Elixir does not know,
+ *    reads no profile either.
+ *  - A profile read in the last PROFILE_FRESH_S is fresh enough, and a
+ *    profile read already on its way is joined (never minted twice).
+ *  - One token from the one global bucket, as every live read takes. It
+ *    is the same ask for the person, so it spends none of their own
+ *    allowances (refreshone#, refreshother#, liveday#, refreshday#). With
+ *    no token, the profile is simply not read this time.
+ *  - It never changes the battle log's answer: it is asked after it, and
+ *    every refusal or failure is `skipped`.
+ * ---------------------------------------------------------------------- */
+
+/** A profile read this recently is fresh enough: profiles move slowly
+ *  (trophies once a battle, a clan or a league far less often), and this
+ *  keeps a person who checks after every battle to one profile read per
+ *  player per ten minutes, however many taps. */
+export const PROFILE_FRESH_S = 600;
+
+async function readProfile(db, live, tag, logAnswer, now) {
+  if (logAnswer !== "fresh" && logAnswer !== "queued")
+    return { state: "skipped", outcome: "not_asked" };
+  const s = await logState(db, tag, PROFILE);
+  if (ageS(s.readAt, now) <= PROFILE_FRESH_S)
+    return { state: "fresh", outcome: "fresh" };
+  try {
+    if (s.pending) {
+      await joinOpen(db, live, tag, PROFILE);
+      return { state: "queued", outcome: "open" };
+    }
+    const r = await live(db, {
+      endpoint: PROFILE,
+      entityKey: tag,
+      record: true,
+    });
+    if (r.ok) return { state: "fresh", outcome: "fresh" };
+    if (r.reason === "pending" && r.queued === false)
+      return { state: "skipped", outcome: "no_token" };
+    if (r.reason === "pending")
+      return { state: "queued", outcome: r.minted ? "minted" : "joined" };
+    return { state: "skipped", outcome: r.reason ?? "skipped" };
+  } catch (err) {
+    console.error(
+      JSON.stringify({ at: "profile_refresh_failed", code: err?.code ?? null }),
+    );
+    return { state: "skipped", outcome: "error" };
+  }
+}
+
+/* ------------------------------------------------------------------------
+ * What the check found (2026-11-23). The ask reads what Elixir had before
+ * it (profileFacts) and hands it back as `since`, a small opaque marker:
+ * the ask's time on the database clock and those values. The follow-up
+ * read (`GET /api/me/refresh?player_tag=&since=`) compares the record
+ * with it. The marker is the reader's own echo of public game facts the
+ * page already shows; a changed one can only change what that reader is
+ * told, and one older than SINCE_MAX_S (or unreadable) is ignored.
+ * ---------------------------------------------------------------------- */
+
+/** A marker older than this says nothing: the slow path gives up well
+ *  before it. */
+export const SINCE_MAX_S = 900;
+
+/** The profile facts a check compares, as the page and the record have
+ *  them now: the name, the clan the latest profile named (null when no
+ *  profile said), trophies and their arena from the latest snapshot (what
+ *  the page's head shows), best trophies and the Ranked league from the
+ *  latest profile, and when that profile was read. */
+async function profileFacts(db, tag) {
+  const {
+    rows: [r],
+  } = await db.query(
+    `select now() as at, p.name, m.state as clan_state, m.clan_tag,
+            c.name as clan_name, s.trophies, a.name as arena,
+            pr.best_trophies, pr.pol_league, pr.profile_observed_at
+       from (select $1::text as tag) x
+       left join player p on p.player_tag = x.tag
+       left join player_profile_membership m on m.player_tag = x.tag
+       left join clan c on c.clan_tag = m.clan_tag
+       left join lateral (
+         select trophies, arena_id from player_snapshot_daily
+          where player_tag = x.tag
+          order by ${latestSnapshotOrder()} limit 1) s on true
+       left join arena a on a.arena_id = s.arena_id
+       left join lateral (
+         select best_trophies, pol_league, profile_observed_at
+           from player_snapshot_daily
+          where player_tag = x.tag and snapshot_kind = 'daily'
+            and profile_observed_at is not null
+          order by profile_observed_at desc limit 1) pr on true`,
+    [tag],
+  );
+  const iso = (v) => (v ? new Date(v).toISOString() : null);
+  return {
+    at: iso(r.at),
+    name: r.name ?? null,
+    // [tag, name] in a clan, 0 in none, null when no profile said.
+    clan:
+      r.clan_state === "member" && r.clan_tag
+        ? [r.clan_tag, r.clan_name ?? null]
+        : r.clan_state === "none"
+          ? 0
+          : null,
+    trophies: r.trophies ?? null,
+    arena: r.arena ?? null,
+    best: r.best_trophies ?? null,
+    league: r.pol_league ?? null,
+    observed: iso(r.profile_observed_at),
+  };
+}
+
+/** The marker an ask answers: base64url JSON, short keys. */
+export function encodeSince(f) {
+  const o = {
+    t: f.at,
+    n: f.name,
+    c: f.clan,
+    tr: f.trophies,
+    ar: f.arena,
+    bt: f.best,
+    lg: f.league,
+    o: f.observed,
+  };
+  return Buffer.from(JSON.stringify(o), "utf8").toString("base64url");
+}
+
+/** The marker back, checked: `{ at, facts }`, or null when it is not one,
+ *  or is older than SINCE_MAX_S. */
+export function decodeSince(raw, now = Date.now()) {
+  if (typeof raw !== "string" || raw.length === 0 || raw.length > 2048)
+    return null;
+  let o;
+  try {
+    o = JSON.parse(Buffer.from(raw, "base64url").toString("utf8"));
+  } catch {
+    return null;
+  }
+  if (!o || typeof o !== "object" || Array.isArray(o)) return null;
+  const at = typeof o.t === "string" ? Date.parse(o.t) : NaN;
+  if (!Number.isFinite(at)) return null;
+  if (at < now - SINCE_MAX_S * 1000 || at > now + 60_000) return null;
+  const str = (v) => (typeof v === "string" ? v.slice(0, 64) : null);
+  const int = (v) => (Number.isInteger(v) ? v : null);
+  const observed = typeof o.o === "string" ? Date.parse(o.o) : NaN;
+  return {
+    at: new Date(at),
+    facts: {
+      name: str(o.n),
+      clan:
+        o.c === 0
+          ? 0
+          : Array.isArray(o.c) && typeof o.c[0] === "string"
+            ? [o.c[0].slice(0, 16), str(o.c[1])]
+            : null,
+      trophies: int(o.tr),
+      arena: str(o.ar),
+      best: int(o.bt),
+      league: int(o.lg),
+      observed: Number.isFinite(observed)
+        ? new Date(observed).toISOString()
+        : null,
+    },
+  };
+}
+
+/** What moved between two profile reads, in the order a player reads it.
+ *  Nothing unless a profile newer than the one Elixir had has landed, and
+ *  never for a first profile (there is nothing it changed). */
+export function profileChanges(before, after) {
+  if (!before?.observed || !after?.observed) return [];
+  if (Date.parse(after.observed) <= Date.parse(before.observed)) return [];
+  const out = [];
+  if (before.name && after.name && before.name !== after.name)
+    out.push({ field: "name", from: before.name, to: after.name });
+  if (before.clan !== null && after.clan !== null) {
+    const was = before.clan === 0 ? null : before.clan;
+    const is = after.clan === 0 ? null : after.clan;
+    if ((was?.[0] ?? null) !== (is?.[0] ?? null))
+      out.push({
+        field: "clan",
+        from: was ? { tag: was[0], name: was[1] } : null,
+        to: is ? { tag: is[0], name: is[1] } : null,
+      });
+  }
+  const moved = (a, b) => a !== null && b !== null && a !== b;
+  if (moved(before.trophies, after.trophies))
+    out.push({ field: "trophies", from: before.trophies, to: after.trophies });
+  if (moved(before.best, after.best) && after.best > before.best)
+    out.push({ field: "best_trophies", from: before.best, to: after.best });
+  if (moved(before.arena, after.arena))
+    out.push({ field: "arena", from: before.arena, to: after.arena });
+  const was = rankedLeagueName(before.league);
+  const is = rankedLeagueName(after.league);
+  if (was && is && was !== is) out.push({ field: "league", from: was, to: is });
+  return out;
+}
+
+/**
+ * What a tapped check found for one player, against `since` (decodeSince):
+ * the battles Elixir stored for them after the ask (`new_battles`: a
+ * battle's row is written once, the first time any read delivers it, so
+ * this is exactly the battles Elixir did not have before), their newest
+ * battle and whether it is one of those, and their profile: when it was
+ * last read, whether a read is on its way, and what moved.
+ */
+/** How many of a player's newest battles a check's count reads: twice a
+ *  battle log's 30, so a log that overlaps two reads is still counted. */
+const NEW_BATTLES_REACH = 60;
+
+export async function checkResult(db, tag, since) {
+  const {
+    rows: [b],
+  } = await db.query(
+    // A battle log carries the player's newest battles only (30 at most),
+    // so whatever a check stored is among their newest rows: count there,
+    // never across the year the record keeps for a recorded player.
+    `select (select count(*) from (
+               select bp.battle_id from battle_participant bp
+                where bp.player_tag = $1::text
+                order by bp.battle_time desc limit ${NEW_BATTLES_REACH}) r
+               join battle bt on bt.battle_id = r.battle_id
+              where bt.created_at >= $2::timestamptz)::int as new_battles,
+            n.battle_time as newest_at,
+            n.created_at >= $2::timestamptz as newest_is_new
+       from (select 1) x
+       left join lateral (
+         select bp.battle_time, bt.created_at from battle_participant bp
+           join battle bt on bt.battle_id = bp.battle_id
+          where bp.player_tag = $1::text
+          order by bp.battle_time desc limit 1) n on true`,
+    [tag, since.at],
+  );
+  const profile = await logState(db, tag, PROFILE);
+  const after = await profileFacts(db, tag);
+  return {
+    new_battles: b.new_battles,
+    newest_battle_at: b.newest_at ? new Date(b.newest_at).toISOString() : null,
+    latest_is_new: b.newest_is_new === true,
+    profile_read_at: profile.readAt ? profile.readAt.toISOString() : null,
+    profile_pending: profile.pending,
+    profile_changes: profileChanges(since.facts, after),
+  };
+}
+
 /** One player's follow-up read: when the log was last read, whether a read
- *  is on its way. Nothing private and nothing woken. */
-export async function playerStatus(db, tag) {
+ *  is on its way; with `since`, what the check found. Nothing private and
+ *  nothing woken. */
+export async function playerStatus(db, tag, { since = null } = {}) {
   const s = await logState(db, tag);
   return {
     players: [
@@ -495,6 +796,7 @@ export async function playerStatus(db, tag) {
         tag,
         read_at: s.readAt ? s.readAt.toISOString() : null,
         pending: s.pending,
+        ...(since ? await checkResult(db, tag, since) : {}),
       },
     ],
     feed_current: true,
