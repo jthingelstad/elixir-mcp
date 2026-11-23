@@ -52,12 +52,22 @@ export function ownerNotifyMessage(spec) {
         },
         link: `${SITE}/settings/admin/feedback`,
       };
-    case "gateway_request":
+    case "gateway_request": {
+      // A member's raise waits for the owner (2026-11-23): the notice asks
+      // for the decision and opens the collector's own page, where the
+      // Operations panel approves or revokes it. The owner's own raise
+      // starts on probation and needs no decision.
+      const page = `${SITE}/settings/collectors/${encodeURIComponent(spec.card ?? spec.playerTag)}`;
       return {
         ...base,
-        note: `Collector enrolled: "${spec.playerTag}". Enrollment is open, so it is approved and its token is staged for the operator; drain or revoke it in Admin if it should not run (${SITE}/docs/operators).`,
-        link: `${SITE}/settings/admin/collectors`,
+        note:
+          spec.status === "probation"
+            ? `Collector enrolled: "${spec.playerTag}". It is yours, so it starts on probation with its token staged.`
+            : `Collector request: "${spec.playerTag}" is waiting for your decision. Approve it to let it fetch, or revoke it. It leases nothing until you approve.`,
+        ...(spec.card ? { detail: { card: String(spec.card) } } : {}),
+        link: page,
       };
+    }
     case "gateway_quarantined":
       return {
         ...base,

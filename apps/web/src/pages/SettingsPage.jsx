@@ -172,7 +172,9 @@ function YourCollectors({ navigate }) {
                 key={g.gateway_id}
                 title={card}
                 detail={g.name}
-                right={g.status}
+                right={
+                  g.status === "pending" ? "waiting for approval" : g.status
+                }
                 href={`${SETTINGS}/collectors/${encodeURIComponent(card)}`}
               />
             );

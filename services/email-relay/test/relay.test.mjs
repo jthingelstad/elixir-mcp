@@ -412,7 +412,7 @@ test("owner_notify subjects and bodies are per kind", () => {
     "Elixir: new feedback - bug",
   );
   assert.equal(render("feedback").subject, "Elixir: new feedback");
-  assert.equal(render("gateway_request").subject, "Elixir: collector enrolled");
+  assert.equal(render("gateway_request").subject, "Elixir: collector request");
   assert.equal(
     render("gateway_quarantined").subject,
     "Elixir: collector quarantined",

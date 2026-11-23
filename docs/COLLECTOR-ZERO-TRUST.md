@@ -10,16 +10,32 @@ operators cannot be assumed safe). How to run a collector is public:
 The collector is one Go implementation (`elixir-mcp-collector`); its
 releases are signed and its updater verifies them and can roll back.
 
-## Trust posture: open enrollment, admission is the trust
+## Trust posture: the owner vets every operator, then admission
 
-Enrollment is open (Jamie, 2026-10-12, #540): whoever raises a hand is
-approved, and the admission checks are the trust a hobby record needs.
-No shadow lane is built first, and there is no activation gate. A raise
-creates the gateway on `probation`, the state the door leases to, with
-its one-time token staged for the operator's reveal; its first admitted
-submit moves it to `active`. The operator brings their own CR key,
+Jamie vets every collector operator (2026-11-23): "ultimately I have to
+vet each person that ever runs a collector". Nobody can make a working
+collector credential on their own. An admitted payload goes straight
+into the record, and a player-verification proof is any recorded battle
+with the target deck, so an unvetted collector could forge someone's
+verification. Vetting is who may submit; admission is what a vetted
+collector may put in.
+
+A member's raise creates the gateway as `pending`, with its one-time
+token staged for the operator's reveal so the machine can be set up
+while it waits. The door reads config for a pending token (so
+`collector doctor` can say what it is waiting for) and refuses it lease
+and submit, so it takes no work and puts nothing in the record. The
+owner is emailed with the collector's own page, where he approves it
+(`pending` → `probation`) or revokes it. Approved, it leases; its first
+admitted submit moves it to `active`. The owner's own raise skips the
+wait and starts on `probation`. The operator brings their own CR key,
 allowlisted to their own IP with Supercell; Elixir never issues or
 stores one.
+
+This supersedes open enrollment (Jamie, 2026-10-12, #540), under which
+every raise was approved at once on `probation` and admission alone was
+the trust. Still not built, and out of this change: tying a verification
+proof to the collector that observed it.
 
 What that trust rests on, all of it code that runs on every call:
 
@@ -46,15 +62,15 @@ What that trust rests on, all of it code that runs on every call:
 7. **Missed-streak drain**: ten expired leases in a row and the door
    stops leasing, drains the gateway and tells the owner
    (`MISSED_STREAK_QUARANTINE`).
-8. **Revoke**: the maintainer's, a row update the door checks on every
+8. **Revoke**: the owner's, a row update the door checks on every
    call, with instant effect.
 9. **One unproven collector per account**: `POST /api/gateways` refuses
    a raise (409 `unproven_collector`) while the account holds a
-   collector on `probation`, or one `draining` with no
+   collector that is `pending`, on `probation`, or `draining` with no
    `last_success_at` (never an admitted fetch). Checks 5 to 7 are per
    gateway, so without this an account could multiply them with
-   throwaway collectors now that every raise mints a usable token (Codex
-   on #554). The check and the insert run in one transaction under an
+   throwaway collectors (Codex on #554), and a pending one counts so an
+   account cannot pile requests on the owner. The check and the insert run in one transaction under an
    advisory lock on the account (`gateway-raise#<account>`), so
    concurrent raises cannot all pass. The owner's account is exempt.
 
@@ -67,12 +83,13 @@ revoke (8). There is **no payload quarantine**: admission is binary,
 an admitted payload from a probation collector projects straight into
 canonical tables like any other, and nothing holds it back for a second
 opinion. [engineering, 2026-10-12: drain plus revoke is enough; "no
-shadow lane is built first".]
+shadow lane is built first".] That is why the gate is before the first
+lease, on the person, rather than on the payload.
 
 What admission cannot do: prove that a well-formed payload about the
 right subject is TRUE. Content-derived ids and MAX-merge counters raise
-the cost of a consistent lie; they do not make one impossible. That is
-the risk open enrollment accepts.
+the cost of a consistent lie; they do not make one impossible. Vetting
+the operator is how that risk is held now.
 
 **The minimum version is a switch, not a constant.** In code,
 `versionRefusal` is off by default: it refuses `lease` and `submit` below
@@ -146,21 +163,26 @@ Server-generated at the raise (`emcg_` prefix), stored as a sha256 hash
 in the gateway row, shown once through a one-time claim-and-null
 download staged for 72 hours. The operator can stage a fresh one for
 their own collector (`POST /api/me/gateway-token`), which replaces the
-old; the maintainer's `provision_token` does the same from Admin.
-Lifecycle probation → active → draining → revoked, enforced at the door
-on every call: a raise starts on probation, its first admitted submit
-makes it active, and revocation is a row update with instant effect.
-`pending` is only an older raise's state (config answers it; lease and
-submit do not). Ingest keeps its gateway checks as defense in depth.
+old; the owner's `provision_token` does the same from Admin. Restaging
+is no way around approval: the door gates on the collector's state, not
+its token.
+Lifecycle pending → probation → active → draining → revoked, enforced at
+the door on every call: a member's raise starts pending (config answers
+it; lease and submit refuse it), the owner's approval puts it on
+probation, its first admitted submit makes it active, and revocation is
+a row update with instant effect. Ingest keeps its gateway checks as
+defense in depth.
 
 ### Enrollment
 
-Raise a hand with a **name only** (`POST /api/gateways`, signed in) and
-a card. No static IP: the CR key's IP binding is between the operator
-and Supercell. No IAM, no owner-side script, no approval step: the
-raise generates the token and the one-time download is the
-provisioning. The maintainer is emailed, sees every enrolled collector
-in Admin → Collectors, and keeps drain and revoke.
+Ask with a **name only** (`POST /api/gateways`, signed in) and a card.
+No static IP: the CR key's IP binding is between the operator and
+Supercell. No IAM and no owner-side script: the raise generates the
+token and the one-time download is the provisioning. The one human step
+is the owner's: a member's raise is `pending` until he approves it on
+the collector's own page (Admin → Collectors opens it), where he can
+also turn it down (revoke). He is emailed for each request, with that
+page's link, and keeps drain and revoke after.
 
 ### Fleet health
 
@@ -211,7 +233,8 @@ persistent black-holer:
 2. **Not built, by decision: shadow verification.** Double-fetching a
    new collector's jobs on a trusted one before its results count was
    the old activation gate. Open enrollment replaced it (#540, which
-   supersedes that half of #421).
+   superseded that half of #421); since 2026-11-23 the owner vets the
+   operator instead, before the first lease.
 3. **Not built: provenance purge.** Revoke the token, purge that
    gateway's receipts and payloads, replay the archive without them,
    keeping a trusted collector's observations of the same subjects. It

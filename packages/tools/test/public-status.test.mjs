@@ -31,7 +31,7 @@ const REFERENCE_COLLECTORS = `
             and ar.fetched_at > now() - interval '24 hours'
             and ar.observed is not null) as edge_filtered_24h
   from gateway g
-  where g.status in ('active', 'probation', 'pending')
+  where g.status in ('active', 'probation')
     and g.name <> 'backfill-elixir-bot'
   order by g.enrolled_at`;
 
@@ -50,7 +50,8 @@ async function seedGateways(db) {
   );
   const gateways = {};
   // enrolled_at fixes the listing order; one of each status the page
-  // lists, one it does not, the excluded backfill lane, and a collector
+  // lists, the two it does not (a request waiting for approval is not
+  // public, 2026-11-23), the excluded backfill lane, and a collector
   // with no receipts at all.
   const rows = [
     ["alpha", "Knight", "active", 6],
@@ -143,7 +144,7 @@ test("no receipts: no freshness, every listed collector at zero", async () => {
   assert.equal(got.status.health.last_admission_seconds, null);
   assert.deepEqual(
     got.status.collectors.map((c) => c.name),
-    ["Knight", "unnamed", "Archers", "Valkyrie"],
+    ["Knight", "unnamed", "Valkyrie"],
   );
 });
 

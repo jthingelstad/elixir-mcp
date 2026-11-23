@@ -13,10 +13,12 @@ export const elixir_collectors = {
   },
   async handler(ctx) {
     await ensureGatewayCards(ctx.db).catch(() => {});
+    // A request waiting for approval is not part of the fleet
+    // (2026-11-23): nothing public names it until the owner approves.
     const { rows } = await ctx.db.query(
       `select status, card_name, card_icon, last_success_at,
                 last_heartbeat_at, enrolled_at
-         from gateway where status <> 'revoked'
+         from gateway where status not in ('revoked', 'pending')
          order by enrolled_at`,
     );
     // No machine label here (#28): the operator-chosen name is private.
@@ -41,8 +43,8 @@ export const elixir_collectors = {
     return {
       collectors,
       notes: notes(
-        "Running a collector earns the Family tier while it is active; there are no points, credits or bonus slots. A machine with a static IP is all it takes.",
-        "status is what the collector is doing now: active (checked in within the hour), silent (enrolled to run but not checked in for over an hour), probation, pending or draining (stopped on purpose); lifecycle is the enrolment state.",
+        "Running a collector earns the Family tier while it is active; there are no points, credits or bonus slots. It takes a machine with a static IP, and every collector is reviewed before it starts.",
+        "status is what the collector is doing now: active (checked in within the hour), silent (enrolled to run but not checked in for over an hour), probation or draining (stopped on purpose); lifecycle is the enrolment state.",
         silentCount > 0
           ? `${silentCount} collector${silentCount === 1 ? " is" : "s are"} silent; the fleet's budget is one whatever the count, so silence costs redundancy, not throughput.`
           : null,

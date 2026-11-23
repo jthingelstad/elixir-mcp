@@ -21,8 +21,9 @@ import { SETTINGS } from "../lib/settings.js";
  * manages what was raised. The operator names the machine (private)
  * and picks the Clash Royale card it wears (public, and one nobody
  * else holds). A raise lands on the new collector's own record, where
- * its token waits to be revealed once: whoever raises a hand is
- * approved (Jamie, 2026-10-12, #540).
+ * its token waits to be revealed once. The owner vets every operator
+ * (Jamie, 2026-11-23): a member's raise is a request, and the collector
+ * fetches nothing until he approves it.
  */
 export function RaiseCollector({ navigate }) {
   const mine = useMyGateways().data?.gateways ?? null;
@@ -123,7 +124,7 @@ export function RaiseCollector({ navigate }) {
         </a>
         <span className="footnote">
           {note ||
-            "Approved at once. Its token waits on its own page, to reveal once."}
+            "This sends a request. Every collector is reviewed before it starts, and yours starts working once it is approved."}
         </span>
       </div>
     </>

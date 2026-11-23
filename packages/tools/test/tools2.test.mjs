@@ -831,8 +831,22 @@ test("Elixir MCP service domain: added = recorded, notify is the only toggle", a
   // #539, removed in 13.0.0), no arenas, and
   // no machine label - the operator's name for their own box is private
   // and this tool used to hand it to every connected agent (#28).
+  // A request waiting for approval is not part of the fleet.
+  const { rows: countedBefore } = await db.query(
+    `select count(*)::int as n from gateway where status not in ('revoked', 'pending')`,
+  );
+  await db.query(
+    `insert into gateway (owner_account_id, name, card_name, status)
+     select owner_account_id, 'waiting-for-approval', null, 'pending'
+       from gateway limit 1`,
+  );
   const collectors = await call("elixir_collectors", {});
   assert.ok(collectors.body.collectors.length >= 1);
+  assert.equal(collectors.body.collectors.length, countedBefore[0].n);
+  assert.ok(
+    collectors.body.collectors.every((c) => c.lifecycle !== "pending"),
+    "a pending collector is not listed",
+  );
   const c0 = collectors.body.collectors[0];
   assert.ok(
     collectors.body.collectors.every(

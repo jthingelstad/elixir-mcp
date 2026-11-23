@@ -66,8 +66,8 @@ known to be short.
 
 **collector**: a volunteer machine that fetches Clash Royale data with its own
 API key and posts it back; the fleet the recorder runs on. Anyone signed in may
-run one: raising a hand approves it, and every result must pass the admission
-checks. See [Running a collector](/docs/operators).
+ask to run one: the maintainer reviews each request before the collector
+starts, and every result must pass the admission checks. See [Running a collector](/docs/operators).
 
 **live lane**: the one path that reaches the Clash Royale API at read time:
 `live_fetch`, and `live: true` on `players_profile`, `clans_roster`,

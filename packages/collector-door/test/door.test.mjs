@@ -207,7 +207,7 @@ test("config: contract constants, channel, the update authority, and what doctor
   );
 });
 
-test("a pending token reads config (so doctor can say 'not yet promoted') but leases nothing", async () => {
+test("a pending token reads config (so doctor can say it waits for approval) but leases nothing", async () => {
   const TOKEN_PENDING = "emcg_pending_token";
   await db.query(
     `insert into gateway (owner_account_id, name, token_hash, channel, status)
@@ -973,24 +973,55 @@ test("every door call stamps the build; the badge reads it against named release
   assert.equal((await badge()).state, "unverified");
 });
 
-test("open enrollment (#540): a probation collector's first ADMITTED submit makes it active; a rejection does not", async () => {
+test("the owner vets every operator (2026-11-23): a pending collector leases and submits nothing; approved, its first ADMITTED submit makes it active", async () => {
   const token = "emcg_probation_raise_token";
   const {
     rows: [acct],
   } = await db.query(`select account_id from account limit 1`);
   await db.query(
     `insert into gateway (owner_account_id, name, token_hash, channel, status)
-     values ($1, 'probation-raise', $2, 'bulk', 'probation')`,
+     values ($1, 'probation-raise', $2, 'bulk', 'pending')`,
     [acct.account_id, sha256(token)],
   );
+  let ingested = 0;
   const rejecting = makeCollectorDoor({
-    ingest: async () => ({ outcome: "rejected", errors: ["body:unparseable"] }),
+    ingest: async () => {
+      ingested += 1;
+      return { outcome: "rejected", errors: ["body:unparseable"] };
+    },
     notifyOwner: async () => {},
   });
   await db.query(`delete from job`);
   await enqueueJob(db, { ...JOB, entity_key: "#RETRY1" });
+
+  // Waiting for approval: work is queued, and none of it is handed over.
+  const early = await rejecting.lease(db, authed(token), { wait_s: 0 });
+  assert.equal(early.status, 401, "a pending collector leases nothing");
+  const { rows: queued } = await db.query(
+    `select status from job where entity_key = '#RETRY1'`,
+  );
+  assert.equal(queued[0].status, "queued", "the job stays for an approved one");
+  // Nor can it hand in a result, even against a live lease it did not
+  // earn: the payload never reaches ingest.
+  const held = await rejecting.lease(db, authed(TOKEN_BULK), { wait_s: 0 });
+  assert.equal(held.status, 200);
+  const forged = await rejecting.submit(db, authed(token), {
+    lease: held.body.lease,
+    status: "ok",
+    body_gzip_b64: Buffer.from("z").toString("base64"),
+    fetched_at: new Date().toISOString(),
+  });
+  assert.equal(forged.status, 401, "a pending collector submits nothing");
+  assert.equal(ingested, 0, "nothing reached the record");
+  await db.query(`delete from job`);
+
+  // The owner approves it (Admin: pending -> probation), and it leases.
+  await db.query(
+    `update gateway set status = 'probation' where name = 'probation-raise'`,
+  );
+  await enqueueJob(db, { ...JOB, entity_key: "#RETRY1" });
   const first = await rejecting.lease(db, authed(token), { wait_s: 0 });
-  assert.equal(first.status, 200, "probation leases: approved at the raise");
+  assert.equal(first.status, 200, "probation leases: approved by the owner");
   const refused = await rejecting.submit(db, authed(token), {
     lease: first.body.lease,
     status: "ok",

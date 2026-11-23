@@ -1,7 +1,7 @@
 ---
 slug: operators
 title: "Running a collector"
-description: "A collector fetches Clash Royale data for Elixir with your own API key and posts it back over HTTPS. No AWS access, no queues, two secrets. Anyone signed in may run one. What you need, how to enroll, and what it earns you."
+description: "A collector fetches Clash Royale data for Elixir with your own API key and posts it back over HTTPS. No AWS access, no queues, two secrets. Anyone signed in may ask to run one, and each is reviewed before it starts. What you need, how to enroll, and what it earns you."
 section: build
 order: 4
 navTitle: "Run a collector"
@@ -23,10 +23,15 @@ quota.
 
 ## Who may run one
 
-Anyone with an Elixir account. Raising your hand is the whole
-enrollment: your collector is approved the moment you do, with no
-waiting list and no trial run on someone else's machine first. What
-keeps the record honest is not who you are but what every collector's
+Anyone with an Elixir account may ask. Raising your hand sends a
+request, and the maintainer reviews every collector before it starts:
+what a collector sends goes straight into the record, so each person who
+runs one is someone the maintainer has said yes to. Until yours is
+approved it takes no work and sends nothing, and there is nothing more
+you need to do. You can set the machine up meanwhile; it starts working
+once it is approved.
+
+Once it runs, what keeps the record honest is what every collector's
 results must pass, on every submit:
 
 - **Shape.** Every result must have the shape of the Clash Royale API's
@@ -43,10 +48,10 @@ results must pass, on every submit:
 - **Your own leases only, and few of them.** A collector can hand back
   only the work it was given, holds at most two unfinished jobs at a
   time, and has an hourly request budget.
-- **One new collector at a time.** Until a collector of yours has
-  delivered a result that passes, raising another is refused; one that
-  was drained without ever delivering still counts until the maintainer
-  revokes it. Collectors that have delivered never count, so you can run
+- **One new collector at a time.** Until a collector of yours has been
+  approved and delivered a result that passes, raising another is
+  refused; one waiting for approval counts, and so does one that was
+  drained without ever delivering, until the maintainer revokes it. Collectors that have delivered never count, so you can run
   as many as you like, proving each in turn.
 - **Drain and revoke.** Ten jobs in a row left to expire drain a
   collector automatically, and the maintainer can revoke any
@@ -55,7 +60,8 @@ results must pass, on every submit:
   results that pass the checks above count at once, with no holding
   pen.
 
-The maintainer is told when a collector is enrolled and sees every one.
+The maintainer is told about every request, approves or turns down
+each one, and sees every collector.
 
 ## What you need
 
@@ -86,11 +92,14 @@ The maintainer is told when a collector is enrolled and sees every one.
    sign-in, and the Collectors page in Settings): collectors are credited
    to the player who runs them, so running one attaches your CR identity
    to it. Your email address and IP are never published.
-2. Raising your hand approves it: you land on the collector's own page,
-   which offers your collector **token as a one-time reveal**: copy
+2. Raising your hand sends the request: you land on the collector's own
+   page, which says **Waiting for approval** until the maintainer
+   approves it, and offers your collector **token as a one-time
+   reveal** straight away, so you can set the machine up now: copy
    it, because it disappears from the server the moment you claim it.
    The offer is good for **72 hours**: after that the staged token is
-   discarded unclaimed. If it lapses, or you lose the token later,
+   discarded unclaimed. If it lapses (a request can wait longer than
+   that), or you lose the token later,
    **Replace the token** on the same page stages a fresh one; it replaces the
    token your machine holds, which stops working. Claiming is a deliberate
    click, so nothing you paste into a chat window or a link preview
@@ -170,8 +179,8 @@ nothing that touches our infrastructure. The token only works against
 three API routes, and revoking it is instant. While one of your
 collectors is active, your account holds the Family role
 ([Roles](/docs/roles#upgrades)); that is the reward, and the only one.
-There are no points, call credits or bonus slots. A collector on
-probation, draining or revoked earns no role.
+There are no points, call credits or bonus slots. A collector waiting for
+approval, on probation, draining or revoked earns no role.
 
 ## The door, precisely
 
@@ -179,7 +188,7 @@ Three routes, all `Authorization: Bearer emcg_…`:
 
 | Route | Allowed while | Limit |
 |---|---|---|
-| `GET /api/collector/config` | probation, active, draining (and pending) | 120 per hour |
+| `GET /api/collector/config` | pending, probation, active, draining | 120 per hour |
 | `POST /api/collector/lease` | probation, active | 10,000 per hour shared with submit; at most 2 unsubmitted leases |
 | `POST /api/collector/submit` | probation, active, draining | same |
 
@@ -189,9 +198,9 @@ base64-encoded), the next check-in interval, your channel, your status, the addr
 the one to allowlist on your CR key), the one Clash Royale path
 `collector doctor` may read to prove your key works from there, and the
 one release version and SHA-256 you may run. A `pending` token, the state
-of a hand raised before enrollment opened, can read config and nothing
-else, so `doctor` can tell you "installed, not yet promoted" instead of
-an error; a revoked token is told so (403 `revoked`) on config alone. A
+of a collector waiting for approval, can read config and nothing else
+(lease and submit answer 401), so `doctor` can tell you it is installed
+and waiting instead of an error; a revoked token is told so (403 `revoked`) on config alone. A
 lease expires after 90 seconds unsubmitted; ten expired leases in a row
 drain the collector (it moves to `draining`, the maintainer is told, and
 lease answers 409 `quarantined`).
@@ -222,11 +231,12 @@ Live reads never carry one: the agent waiting on that fetch gets the whole
 log.
 Submit answers only after the payload is admitted and committed; a rejected
 payload is still a receipt, so never fake an `ok`. Lifecycle:
-`probation → active → draining → revoked`. A raised hand starts on
-`probation`, which already leases and submits; its first result that
+`pending → probation → active → draining → revoked`. A raised hand starts
+`pending`, which leases and submits nothing; the maintainer's approval
+puts it on `probation`, which leases and submits; its first result that
 passes the checks makes it `active`. Ten expired leases drain one
 automatically; the maintainer can also drain one, put a drained one back
-on `probation` to try again, or revoke it.
+on `probation` to try again, or revoke it, pending or not.
 
 ## Fair-use expectations
 

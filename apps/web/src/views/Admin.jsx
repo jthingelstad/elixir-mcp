@@ -1330,7 +1330,7 @@ function AdminCollectors() {
       admin
       crumb="Admin"
       title="Collector fleet"
-      note="Enrollment is open: a raised hand starts on probation with its token staged, and its first admitted fetch makes it active. Open one to drain or revoke it."
+      note="You vet every operator: a member's collector starts pending, with its token staged, and leases nothing until you approve it. Approval puts it on probation, and its first admitted fetch makes it active. Open one to approve, drain or revoke it."
       cols={[
         ["COLLECTOR", "left"],
         ["OPERATOR", "left"],
@@ -1369,7 +1369,7 @@ function AdminCollectors() {
       filters={[{ key: "state", label: "State", col: 2 }]}
       minWidth={960}
       empty="No collectors yet."
-      footnote="Heartbeat is any contact with the door, including check-ins that found no work — a fresh heartbeat with stale data is an idle collector, not a broken one. Yield is the share of the last day's fetches that changed the record; edge filter is the share of battle-log entries the collector dropped before the wire; calls/fetch normalizes door calls against each admitted fetch's required lease and submit pair this hour (1.0 is perfect). Operators bring their own CR key; approval issues the collector token."
+      footnote="Heartbeat is any contact with the door, including check-ins that found no work — a fresh heartbeat with stale data is an idle collector, not a broken one. Yield is the share of the last day's fetches that changed the record; edge filter is the share of battle-log entries the collector dropped before the wire; calls/fetch normalizes door calls against each admitted fetch's required lease and submit pair this hour (1.0 is perfect). Operators bring their own CR key; the raise stages the collector token, and approval lets it lease."
     />
   );
 }

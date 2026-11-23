@@ -77,7 +77,9 @@ export async function readPublicStatus(db, { deadLetters }) {
        where c.account_id = g.owner_account_id and c.is_primary
        limit 1
      ) op on true
-     where g.status in ('active', 'probation', 'pending')
+     -- A request waiting for approval is not part of the fleet and is
+     -- never credited in public (2026-11-23).
+     where g.status in ('active', 'probation')
        and g.name <> 'backfill-elixir-bot'
      order by g.enrolled_at`,
   );
