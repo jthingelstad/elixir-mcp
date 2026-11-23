@@ -1814,6 +1814,40 @@ test("OAuth form spaces normalize before origin signing without changing literal
   );
 });
 
+test("the RSS link's behaviour forwards no cookie, so a reader's If-None-Match reaches the origin", async () => {
+  // CloudFront does not support If-None-Match or If-Modified-Since on a
+  // behaviour that forwards cookies ("Conditional requests",
+  // https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/RequestAndResponseBehaviorCustomOrigin.html).
+  // On /api/*, which forwards them all, five reader polls in a row were
+  // 200s of one size and none a 304 (2026-11-22). The link's token is in
+  // its path, so its own behaviour forwards none.
+  const template = await readFile(templateUrl, "utf8");
+  const behaviours = cacheBehaviours(template);
+  const paths = behaviours.map(([p]) => p);
+  const takes = (pattern, path) =>
+    new RegExp(`^${pattern.replace(/\*/g, ".*")}$`).test(path);
+  const first = behaviours.find(([p]) => takes(p, "/api/rss/a-token.xml"));
+  assert.equal(first?.[0], "/api/rss/*");
+  assert.ok(paths.indexOf("/api/rss/*") < paths.indexOf("/api/*"));
+  const [, block] = first;
+  assert.match(block, /TargetOriginId: api\n/);
+  assert.match(block, /AllowedMethods: \[GET, HEAD\]\n/);
+  assert.match(block, /CachePolicyId: !Ref WebPrivateCachePolicy\n/);
+  assert.match(block, /OriginRequestPolicyId: !Ref McpOriginRequestPolicy\n/);
+  const forwarded = resource(
+    template,
+    "McpOriginRequestPolicy",
+    "SecurityHeadersPolicy",
+  );
+  assert.match(forwarded, /CookiesConfig: \{ CookieBehavior: none \}/);
+  // The link's own settings need the session and stay on the site API's
+  // door.
+  assert.equal(
+    behaviours.find(([p]) => takes(p, "/api/me/rss"))?.[0],
+    "/api/*",
+  );
+});
+
 test("every behaviour that reaches a Web Function normalizes the query before signing", async () => {
   // The origin access control signs every origin request, and a raw '+'
   // in a forwarded query breaks the signature (2026-10-16: /clan/*,

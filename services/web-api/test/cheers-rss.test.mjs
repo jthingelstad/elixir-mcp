@@ -511,6 +511,63 @@ test("the RSS feed reads Home's stored week: its own build's items, and a 304 fo
   ]);
 });
 
+test("the RSS feed's tag is the same after Home's week is rebuilt with nothing new", async (t) => {
+  // A reader polls about every fifteen minutes and each poll past the
+  // row's fresh window wakes a rebuild, so the poll after it reads a new
+  // build at a later instant. Nothing in an item may follow the build's
+  // clock, or no poll would ever be answered with a 304.
+  const made = await call("POST", "/api/me/rss", { who: "owner" });
+  const token = made.body.url.split("/").at(-1);
+  const {
+    rows: [{ account_id: ownerId }],
+  } = await db.query(
+    `select account_id from timeline_feed_link where token_hash = $1`,
+    [hashToken(token)],
+  );
+  const poll = (headers = {}) =>
+    handler({
+      path: `/api/rss/${token}`,
+      method: "GET",
+      headers: { "cloudfront-viewer-address": "8.8.4.4:443", ...headers },
+    });
+  const builtAt = async () =>
+    (
+      await db.query(`select built_at from home_feed where account_id = $1`, [
+        ownerId,
+      ])
+    ).rows[0]?.built_at;
+  const withoutBuildDate = (xml) =>
+    xml.replace(/<lastBuildDate>[^<]*<\/lastBuildDate>/, "");
+
+  await db.query(`delete from home_feed where account_id = $1`, [ownerId]);
+  const first = await poll();
+  assert.equal(first.statusCode, 200);
+  const firstBuilt = await builtAt();
+
+  // Twenty minutes on, with the row gone: this poll builds the week again.
+  await db.query(`delete from home_feed where account_id = $1`, [ownerId]);
+  t.mock.timers.enable({ apis: ["Date"], now: Date.now() + 20 * 60_000 });
+  try {
+    const second = await poll();
+    assert.equal(second.statusCode, 200);
+    assert.notDeepEqual(await builtAt(), firstBuilt);
+    assert.notEqual(second.body, first.body, "the build date moved");
+    assert.equal(withoutBuildDate(second.body), withoutBuildDate(first.body));
+    assert.equal(second.headers.etag, first.headers.etag);
+    const held = await poll({ "if-none-match": first.headers.etag });
+    assert.equal(held.statusCode, 304);
+  } finally {
+    t.mock.timers.reset();
+  }
+
+  // The row built on the later clock is not the next test's.
+  await db.query(`delete from home_feed where account_id = $1`, [ownerId]);
+  await call("DELETE", "/api/me/rss", { who: "owner" });
+  await db.query(`delete from rate_limit where bucket = $1`, [
+    `rss#${ownerId}`,
+  ]);
+});
+
 test("the RSS feed's hour is capped per link", async () => {
   const made = await call("POST", "/api/me/rss", { who: "owner" });
   const token = made.body.url.split("/").at(-1);
