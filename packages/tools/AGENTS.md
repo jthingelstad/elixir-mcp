@@ -3,8 +3,10 @@
 Every read Elixir answers, as MCP tools (`services/mcp`) and as the web
 app's reads (`services/web-api`), plus the
 invoker, quota, identity, live fetch and call capture around them. The
-contract (version, changelog, errors, groups, principals, the OpenAPI
-document) is `packages/contracts`. To add or change a tool, follow
+contract (response meta, errors, groups, principals, the OpenAPI
+document) is `packages/contracts`; the tool fingerprint
+(`serverInfo.version`, `meta.contract_version`) is `toolsVersion` in
+`src/tools.mjs`. To add or change a tool, follow
 `.claude/skills/tool-change/` from its first step.
 
 - **Layout:** `src/tools.mjs` assembles the registry from the per-group

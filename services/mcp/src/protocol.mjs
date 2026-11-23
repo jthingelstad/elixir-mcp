@@ -19,12 +19,8 @@ import {
   discover,
   modernReply,
 } from "./modern.mjs";
-import crypto from "node:crypto";
-import {
-  CONTRACT_VERSION,
-  DISCLAIMER,
-  JSONRPC_QUOTA_EXCEEDED,
-} from "@elixir-mcp/contracts";
+import { DISCLAIMER, JSONRPC_QUOTA_EXCEEDED } from "@elixir-mcp/contracts";
+import { toolsVersion } from "@elixir-mcp/tools";
 import {
   identitySentences,
   principalBlock,
@@ -119,15 +115,6 @@ export function countsAgainstHour(message) {
   return !UNCOUNTED_METHODS.has(message.method);
 }
 
-export function serverVersion(declarations) {
-  const fingerprint = crypto
-    .createHash("sha256")
-    .update(JSON.stringify(declarations))
-    .digest("hex")
-    .slice(0, 12);
-  return `${CONTRACT_VERSION}+tools.${fingerprint}`;
-}
-
 function rpcResult(id, result) {
   return { jsonrpc: "2.0", id: id ?? null, result };
 }
@@ -164,8 +151,8 @@ function instructionsFor(kind, identity) {
     "label ('Hog Rider cycle'), never eight cards; a label is not a verdict;",
     "cards_archetype resolves a name a person uses. Modes are different games: a rate",
     "with no mode pools them; pass mode for one. Repeat a response's",
-    "notes[]. Read tools/list for available tools;",
-    "elixir_changelog(since) says what shipped.",
+    "notes[]. Read tools/list for available tools; elixir_updates says",
+    "what changed.",
   ];
   const start = {
     person: [
@@ -217,7 +204,6 @@ function initializeResult(
   kind = null,
   identity = null,
 ) {
-  const declarations = registry.declarations(kind);
   const requested = String(requestedVersion ?? "");
   return {
     protocolVersion: LEGACY_VERSIONS.includes(requested)
@@ -231,7 +217,10 @@ function initializeResult(
     serverInfo: {
       name: "elixir-mcp",
       title: "Elixir",
-      version: serverVersion(declarations),
+      // The fingerprint of the whole catalogue and every kind's surface
+      // (TOOLS_VERSION for the real registry): one string for every kind,
+      // the same as every response's meta.contract_version.
+      version: toolsVersion(registry),
       websiteUrl: "https://elixir.poapkings.com/",
     },
     instructions: instructionsFor(kind, identity),
@@ -419,7 +408,7 @@ async function dispatchMethod(record, context) {
       return {
         statusCode: 200,
         payload: rpcError(id, -32602, `Unknown tool: ${name}`, {
-          hint: "tools/list names every tool; if this one shipped after your client cached the list, reconnect. elixir_changelog(since) says what moved.",
+          hint: "tools/list names every tool; if this one shipped after your client cached the list (serverInfo.version differs), reconnect. elixir_updates says what changed.",
         }),
       };
     }

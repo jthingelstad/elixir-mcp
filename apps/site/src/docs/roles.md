@@ -187,4 +187,4 @@ ask through feedback.
   Telling us what's wrong should always be close to free.
 - Where each number is enforced and what a refusal looks like is on
   [Limits](/docs/limits). Limits may evolve during the beta; the
-  [updates](/updates) and the `elixir_changelog` tool record every change.
+  [What's new](/updates) and the `elixir_updates` tool tell what changes.

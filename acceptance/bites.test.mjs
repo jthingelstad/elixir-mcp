@@ -13,7 +13,7 @@ import { readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { makeRegistry } from "../packages/tools/src/tools.mjs";
-import { replayDoor } from "./replay.mjs";
+import { calledAs, replayDoor } from "./replay.mjs";
 import { runSuite } from "./run.mjs";
 import * as lib from "./lib.mjs";
 import { privateLeaks } from "./bites/private.mjs";
@@ -82,3 +82,14 @@ for (const bite of manifest) {
     }
   });
 }
+
+test("replay: old version strings map through the frozen table; a fingerprint is current", () => {
+  const cap = (contract_version) => ({
+    contract_version,
+    request: { tool: "elixir_track_player", arguments: {} },
+  });
+  assert.equal(calledAs(cap("11.9.3")), "elixir_follow_player");
+  assert.equal(calledAs(cap(undefined)), "elixir_follow_player");
+  assert.equal(calledAs(cap("12.0.0")), "elixir_track_player");
+  assert.equal(calledAs(cap("tools.0123456789ab")), "elixir_track_player");
+});

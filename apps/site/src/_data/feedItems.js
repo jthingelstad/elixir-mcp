@@ -1,6 +1,6 @@
 /**
  * The What's-new feeds (feed.xml, feed.json): the newest entries of the
- * one updates stream, product updates and contract versions alike.
+ * What's new stream.
  *
  * Each item's id is its own page, /updates/<slug>, which does not move
  * when a newer entry ships, so readers never see an old item as new.

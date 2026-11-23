@@ -4,7 +4,7 @@ import { ToolFailure, appliedBlock, docsRef, notes } from "../shared.mjs";
 
 export const elixir_updates = {
   description:
-    "What's new on Elixir MCP: every user-visible change, newest first, as written for people at elixir.poapkings.com/updates. Distinct from elixir_changelog (the tool contract version by version). since: entries on or after a date; limit: how many.",
+    "What's new on Elixir: the changes worth telling, newest first, as written for people at elixir.poapkings.com/updates. This is where a change to the tools is told too. since: entries on or after a date; limit: how many.",
   inputSchema: {
     type: "object",
     properties: {
@@ -32,7 +32,7 @@ export const elixir_updates = {
       applied: appliedBlock({ since: since ?? undefined, limit }),
       total: all.length,
       entries: all.slice(0, limit),
-      notes: notes("The tool contract's own history is elixir_changelog."),
+      notes: notes(),
       // Every answer points at a page (Gym #123, #167).
       docs: docsRef("about"),
       corpus_built_at: built_at,

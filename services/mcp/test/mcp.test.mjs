@@ -7,9 +7,13 @@ import { readFile } from "node:fs/promises";
 import pg from "pg";
 import { processResult } from "../../../packages/ingest/src/pipeline.mjs";
 import { emailHash } from "../../../packages/auth/src/index.mjs";
-import { CONTRACT_VERSION } from "@elixir-mcp/contracts";
-import { handleMcpMessage, serverVersion } from "../src/protocol.mjs";
-import { makeRegistry } from "../../../packages/tools/src/tools.mjs";
+import { TOOLS_VERSION_PATTERN } from "@elixir-mcp/contracts";
+import { handleMcpMessage } from "../src/protocol.mjs";
+import {
+  makeRegistry,
+  toolsVersion,
+  TOOLS_VERSION,
+} from "../../../packages/tools/src/tools.mjs";
 import { makeInvoker } from "../../../packages/tools/src/invoker.mjs";
 import { makeQuota } from "../../../packages/tools/src/quota.mjs";
 import {
@@ -136,19 +140,11 @@ test("initialize: cache-busting version, stateless discovery, disclaimer in inst
   const result = res.payload.result;
   assert.equal(result.protocolVersion, "2025-06-18");
   assert.equal(result.capabilities.tools.listChanged, false);
-  assert.match(
-    result.serverInfo.version,
-    new RegExp(
-      `^${CONTRACT_VERSION.replaceAll(".", "\\.")}\\+tools\\.[0-9a-f]{12}$`,
-    ),
-  );
+  // The version is the tool fingerprint alone: no numbered contract.
+  assert.match(result.serverInfo.version, TOOLS_VERSION_PATTERN);
+  assert.equal(result.serverInfo.version, TOOLS_VERSION);
   assert.match(result.instructions, /not endorsed by Supercell/);
-  // The fingerprint is over the caller's own tools/list (a person does
-  // not see the identity-map tools), so it hashes the default kind's list.
-  assert.equal(
-    serverVersion(registry.declarations(undefined)),
-    result.serverInfo.version,
-  );
+  assert.doesNotMatch(result.instructions, /elixir_changelog/);
   // The window-source grammar moved behind the brief's manual pointer
   // (4,500 characters did not fit a 2,048-character client; #65):
   // brief-budget.test.mjs holds that page to every source.
@@ -179,10 +175,10 @@ test("protocol basics: batching rejected, notifications 202, unknown method/tool
   assert.equal(badTool.payload.error.code, -32602);
 });
 
-test("tools/list declares all 44 tools, 43 to a person (the identity map is an agent's, 2026-09-25)", async () => {
+test("tools/list declares all 43 tools, 42 to a person (the identity map is an agent's, 2026-09-25)", async () => {
   const res = await handleMcpMessage(rpc("tools/list"), context());
-  assert.equal(res.payload.result.tools.length, 43);
-  assert.equal(makeRegistry().declarations().length, 44);
+  assert.equal(res.payload.result.tools.length, 42);
+  assert.equal(makeRegistry().declarations().length, 43);
   const listed = res.payload.result.tools.map((t) => t.name);
   assert.ok(!listed.includes("elixir_my_identities"));
   const names = res.payload.result.tools.map((t) => t.name);
@@ -227,6 +223,51 @@ test("a tools/call at the MCP door still charges the daily counter", async () =>
   assert.equal(await count(), before + 1, "one call, one charge");
 });
 
+test("one fingerprint: serverInfo.version for every kind, meta.contract_version, and it moves with a declaration or a kind's surface", async () => {
+  const versions = [];
+  for (const kind of ["person", "agent"]) {
+    const res = await handleMcpMessage(
+      rpc("initialize", { protocolVersion: "2025-06-18" }),
+      context({ kind }),
+    );
+    versions.push(res.payload.result.serverInfo.version);
+  }
+  assert.deepEqual(versions, [TOOLS_VERSION, TOOLS_VERSION]);
+  const { body } = await callTool("game_clock");
+  assert.equal(body.meta.contract_version, versions[0]);
+  // tools/list no longer carries the changelog tool.
+  const list = await handleMcpMessage(rpc("tools/list", {}), context());
+  const names = list.payload.result.tools.map((t) => t.name);
+  assert.ok(names.includes("elixir_updates"));
+  assert.ok(!names.includes("elixir_changelog"));
+  // Any change to a declaration, or to what a kind is shown, changes the
+  // fingerprint; the same catalogue always gives the same one.
+  assert.equal(toolsVersion(registry), TOOLS_VERSION);
+  const altered = (change) => ({
+    declarations: (kind) => change(registry.declarations(kind), kind),
+  });
+  const described = altered((decls) => {
+    const out = structuredClone(decls);
+    out[0].description += " One more word.";
+    return out;
+  });
+  assert.notEqual(toolsVersion(described), TOOLS_VERSION);
+  assert.match(toolsVersion(described), TOOLS_VERSION_PATTERN);
+  const argument = altered((decls) => {
+    const out = structuredClone(decls);
+    out[0].inputSchema.properties = {
+      ...out[0].inputSchema.properties,
+      added: { type: "string" },
+    };
+    return out;
+  });
+  assert.notEqual(toolsVersion(argument), TOOLS_VERSION);
+  const hidden = altered((decls, kind) =>
+    kind === "agent" ? decls.slice(1) : decls,
+  );
+  assert.notEqual(toolsVersion(hidden), TOOLS_VERSION);
+});
+
 test("elixir_my_players: primary claim, recording status, meta envelope", async () => {
   const { body, isError } = await callTool("elixir_my_players");
   assert.equal(isError, false);
@@ -235,7 +276,7 @@ test("elixir_my_players: primary claim, recording status, meta envelope", async 
   assert.equal(p.player_tag, OBSERVER);
   assert.equal(p.is_primary, true);
   assert.equal(p.recording, "active");
-  assert.equal(body.meta.contract_version, CONTRACT_VERSION);
+  assert.equal(body.meta.contract_version, TOOLS_VERSION);
   assert.match(body.meta.disclaimer, /not endorsed by Supercell/);
   // The spend block (feedback #17): both budgets, remaining and reset.
   const { quota } = body.meta;

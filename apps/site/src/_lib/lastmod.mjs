@@ -3,10 +3,10 @@
  *
  * Never the build's clock. A page is dated by the newest of:
  *   - the last commit to each source file its content comes from (its
- *     template, the data module behind it, an update's own file, a
- *     contract change's own file). The layouts and the shared chrome are
- *     left out, so a header change does not redate every page;
- *   - the data it bakes in: the contract's newest change for the pages
+ *     template, the data module behind it, an update's own file). The
+ *     layouts and the shared chrome are left out, so a header change does
+ *     not redate every page;
+ *   - the data it bakes in: the tool sources' newest commit for the pages
  *     generated from the tool registry, the card catalog's last change
  *     (its as_of) for the card pages, the stats snapshot for the pages
  *     that print one ("snapshot fetched ...");
@@ -25,7 +25,13 @@ import { parseUpdate } from "./updates.mjs";
 const siteDir = path.resolve(import.meta.dirname, "..", "..");
 const repoRoot = path.resolve(siteDir, "..", "..");
 const src = (rel) => `apps/site/src/${rel}`;
-const CHANGES = "packages/contracts/src/changes";
+/** Where the tool declarations live: the handlers' modules (a declaration
+ *  sits with its handler, so a handler-only commit dates them too), the
+ *  output schemas and the groups. */
+const TOOL_SOURCES = [
+  "packages/tools/src",
+  "packages/contracts/src/tool-groups.ts",
+];
 
 const DAY = /^\d{4}-\d{2}-\d{2}$/;
 /** W3C datetime to the second, UTC; a bare day stays a day. */
@@ -66,7 +72,7 @@ function readCommitDates({ publishing }) {
     "--name-only",
     "--",
     "apps/site/src",
-    CHANGES,
+    ...TOOL_SOURCES,
   ]).split("\n")) {
     if (line.startsWith("\x01")) at = line.slice(1);
     else if (line && at) {
@@ -127,13 +133,15 @@ export function makeLastmod({ pages, data, pageUrl }) {
     const file = path.join(repoRoot, rel);
     return existsSync(file) ? statSync(file).mtime.toISOString() : null;
   };
-  const contractDate = newest(
-    [...commits].filter(([f]) => f.startsWith(`${CHANGES}/`)).map(([, d]) => d),
+  const toolsDate = newest(
+    [...commits]
+      .filter(([f]) => TOOL_SOURCES.some((t) => f.startsWith(t)))
+      .map(([, d]) => d),
   );
   const files = updateFiles();
   // An entry is dated by its own file's last commit, except where the
-  // file was MADE later than the entry: What's new and the contract
-  // changelog were split one file per entry on 2026-10-10, and an older
+  // file was MADE later than the entry: What's new was split one file
+  // per entry on 2026-10-10, and an older
   // entry did not change that day. Its own day stands until a later
   // commit edits it.
   const entryDate = (rel, day) => {
@@ -143,9 +151,7 @@ export function makeLastmod({ pages, data, pageUrl }) {
     return moved && last === firsts.get(rel) ? day : last;
   };
   const updateDate = (u) =>
-    u.kind === "contract"
-      ? entryDate(`${CHANGES}/${u.version}.ts`, u.date)
-      : entryDate(files.get(`${u.date}\n${u.title}`), u.date);
+    entryDate(files.get(`${u.date}\n${u.title}`), u.date);
   const updatesDate = newest((data.updatesView ?? []).map(updateDate));
 
   const own = (p) => {
@@ -167,13 +173,13 @@ export function makeLastmod({ pages, data, pageUrl }) {
       );
     if (url.startsWith("/cards")) dates.push(data.catalogAsOf);
     if (STATS.test(url) && data.stats?.ok) dates.push(data.stats.fetched_at);
-    // Generated from the tool registry: every change to it is a contract
-    // change (golden rule 5), so the contract's newest change dates it.
+    // Generated from the tool registry: the tool sources' newest commit
+    // dates it.
     const text = p.inputPath.endsWith(".md")
       ? readFileSync(path.resolve(siteDir, p.inputPath), "utf8")
       : "";
     if (url.startsWith("/docs/tools") || /\{\{[^}]*\btools\./.test(text))
-      dates.push(contractDate);
+      dates.push(toolsDate);
     if (/\{\{[^}]*\bresponses\./.test(text))
       dates.push(committed(src("_data/responses.js")));
     return newest(dates);

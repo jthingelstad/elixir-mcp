@@ -28,13 +28,13 @@ test("an entry is its date, its title line and its body, exactly", () => {
   assert.deepEqual(
     parseUpdate(
       "2026-10-10-03-a-title.md",
-      '# A title: with "quotes"\n\nThe body, `code` and all.\nMCP 11.7.2.\n',
+      '# A title: with "quotes"\n\nThe body, `code` and all.\nA second line.\n',
     ),
     {
       entry: {
         date: "2026-10-10",
         title: 'A title: with "quotes"',
-        body: "The body, `code` and all.\nMCP 11.7.2.",
+        body: "The body, `code` and all.\nA second line.",
       },
       order: 3,
     },

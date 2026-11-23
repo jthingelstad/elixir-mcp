@@ -32,9 +32,9 @@ Carry no assumptions from previous runs. Establish everything fresh:
 
 1. `game_clock` — season, week, war day. Some behaviour is day-dependent.
 2. **Enumerate the surface.** Read the tool list (`elixir_docs` notes that the tool reference is `tools/list`). Group tools by family prefix — `battles_*`, `players_*`, `clans_*`, `war_*`, `cards_*`, `elixir_*`. Count the families, and note any family or tool that is new since your last run. This count feeds the Pass 1 conformance sweep; it does NOT pick the Pass 4 family.
-3. **Read your own history.** `elixir_my_feedback` is your state store — everything previously filed, every maintainer response, and any `shipped_in` version. Findings filed before 2026-09-23 sit on Jamie's account, not yours. The assignment header carries those findings as a **legacy list**, and you treat them exactly as if you had filed them. Derive two lists: **the regression list** (items marked shipped or fixed) and **the exclusion list** (items still open). Never re-file anything on the exclusion list; add new evidence to an open item only if it materially changes the diagnosis. In a sweep, keep the regression list to items that touch **the assigned family**. The other families get their own runs.
-4. `elixir_changelog` and `elixir_updates` — what shipped since. Note which FAMILY each entry touches.
-5. Note `meta.contract_version`. If it changed since your last filing, Pass 2 comes first.
+3. **Read your own history.** `elixir_my_feedback` is your state store — everything previously filed, every maintainer response, and any `shipped_in` (the day a fix went live; a version number on answers before 2026-11-23). Findings filed before 2026-09-23 sit on Jamie's account, not yours. The assignment header carries those findings as a **legacy list**, and you treat them exactly as if you had filed them. Derive two lists: **the regression list** (items marked shipped or fixed) and **the exclusion list** (items still open). Never re-file anything on the exclusion list; add new evidence to an open item only if it materially changes the diagnosis. In a sweep, keep the regression list to items that touch **the assigned family**. The other families get their own runs.
+4. `elixir_updates` — what shipped since, the changes worth telling. Note which FAMILY each entry touches.
+5. Note `meta.contract_version`, the tool fingerprint (`tools.<12 hex>`). If it changed since your last filing, Pass 2 comes first.
 6. Skim the `elixir_docs` index so you know what the service claims about itself.
 
 ## Pass 1 — Conformance to the service's own response contract
@@ -79,7 +79,7 @@ These hold for any tool in the surface and need no domain knowledge. Apply which
 
 The day of the year (1-366, UTC) modulo 8 indexes it. Compute it in code and state the arithmetic in the report header. Do NOT derive the divisor from the Pass 0 family count and do NOT key on the ISO week: the count reshuffles the whole mapping the day a family is added, and the week number is constant for seven consecutive daily runs, which has already cost this gym a week of coverage.
 
-**The exception, which applies to the rotation only.** A family can have gained fields, tools or behaviour in `elixir_changelog` since your last filing without any run exploring it since it shipped. When that happens, explore THAT family instead. Say so in the report header ("Family explored: battles — new-surface override, 6.16.0-6.18.0 unexplored; rotation would have given players"). New surface is where the untested assumptions live and where a caveat has had the least time to be written; a freshly shipped field has never been read by a consumer that does not already know what it means. If more than one family qualifies, take the one with the most changelog entries since your last run. Apply the override at most once per family — if the last run already explored it under the override, fall back to the rotation. An assigned family is never overridden.
+**The exception, which applies to the rotation only.** A family can have gained fields, tools or behaviour in `elixir_updates` since your last filing without any run exploring it since it shipped. When that happens, explore THAT family instead. Say so in the report header ("Family explored: battles — new-surface override, the 2026-11-20 entries unexplored; rotation would have given players"). New surface is where the untested assumptions live and where a caveat has had the least time to be written; a freshly shipped field has never been read by a consumer that does not already know what it means. If more than one family qualifies, take the one with the most What's new entries since your last run. Apply the override at most once per family — if the last run already explored it under the override, fall back to the rotation. An assigned family is never overridden.
 
 Within the family, pose two to four **realistic** questions — what a player, clan leader, scouting agent or coaching agent would actually ask. Then work the method:
 
@@ -147,7 +147,7 @@ Write the report to the path in the assignment header. Assume Claude Code reads 
 
 ```
 # Elixir MCP Gym <date>
-Contract version: <x.y.z> · Family explored: <name> (<assigned, or the rotation arithmetic, or the override and what the rotation would have given>) · Regressions checked: <n>
+Contract version: <tools.fingerprint> · Family explored: <name> (<assigned, or the rotation arithmetic, or the override and what the rotation would have given>) · Regressions checked: <n>
 
 ## Summary
 <2-4 sentences: what was tested, what was found, what needs action. If nothing: say so plainly.>

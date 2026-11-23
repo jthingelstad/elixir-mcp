@@ -75,10 +75,11 @@ the social layer, and Elixir is useful without an agent. [Jamie,
    agent reads the clan's attested facts by their visibility, never a
    leaders-only one, and the policy through the clan directory. [Jamie,
    2026-10-04, 2026-10-12, 2026-10-13, 2026-11-12]
-9. **Majors track domain shifts.** An agent reasons from the current
-   declaration; removing an unreliable field is a patch; a major is a
-   change in what a task means. `elixir_changelog(since)` says what
-   shipped. [Jamie, 2026-09-25]
+9. **A breaking change is Jamie's call.** An agent reasons from the
+   current declaration. A tool change that breaks a caller is asked up
+   front and stated in its pull request. `serverInfo.version` is a
+   fingerprint of the tools and moves with any declaration; What's new
+   (`elixir_updates`) tells what changed. [Jamie, 2026-09-25, 2026-11-23]
 
 ## What it never does
 
@@ -96,8 +97,9 @@ is a clan agent like any other; Elixir's own Discord is Clan's webhooks.
 ## No deprecation window, while Elixir is small
 
 Outside agents get what first-party ones get: the current declaration,
-and `elixir_changelog(since)` as the notice of what moved. Elixir keeps
-moving fast; a window is not promised. [Jamie, 2026-09-25, 2026-10-12]
+a fingerprint that moves when a declaration does, and What's new for the
+changes worth telling. Elixir keeps moving fast; a window is not promised.
+[Jamie, 2026-09-25, 2026-10-12, 2026-11-23]
 
 ## Open
 

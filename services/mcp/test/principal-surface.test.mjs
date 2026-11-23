@@ -36,9 +36,9 @@ const call = (kind, name) =>
     context(kind),
   );
 
-test("a person sees everything but the agent's identity map (13.0.0: 43 of 44)", () => {
-  assert.equal(registry.declarations().length, 44);
-  assert.equal(names("person").length, 43);
+test("a person sees everything but the agent's identity map (42 of 43)", () => {
+  assert.equal(registry.declarations().length, 43);
+  assert.equal(names("person").length, 42);
   assert.ok(!names("person").includes("elixir_my_identities"));
   // The social reads are a person's own (DECISIONS "Agents read the
   // social layer and never write it").
@@ -57,9 +57,9 @@ test("a person sees everything but the agent's identity map (13.0.0: 43 of 44)",
   );
 });
 
-test("an agent has no personal identity tools, and follows for its clan (13.0.0: 41 of 44)", () => {
+test("an agent has no personal identity tools, and follows for its clan (40 of 43)", () => {
   const agent = names("agent");
-  assert.equal(agent.length, 41);
+  assert.equal(agent.length, 40);
   assert.ok(!agent.includes("elixir_my_players"));
   // A person's own Clan view is never an agent's, its owner's agent
   // included (Jamie's ruling on #535, 2026-10-12).
@@ -132,7 +132,7 @@ test("a person calling the same tool is served", async () => {
   assert.ok(res.payload.result);
 });
 
-test("initialize advertises the surface the caller will actually get", async () => {
+test("initialize advertises one fingerprint that covers every kind's surface", async () => {
   const forAgent = await handleMcpMessage(
     { jsonrpc: "2.0", id: 1, method: "initialize", params: {} },
     context("agent"),
@@ -141,11 +141,16 @@ test("initialize advertises the surface the caller will actually get", async () 
     { jsonrpc: "2.0", id: 1, method: "initialize", params: {} },
     context("person"),
   );
-  // The fingerprint rides serverInfo.version, so two surfaces must not claim
-  // to be the same one -- that string is the only cache-buster clients honour.
-  assert.notEqual(
+  // serverInfo.version is the only cache-buster clients honour. It is one
+  // fingerprint over the catalogue and the names each kind is shown, so a
+  // change to either surface moves it (mcp.test.mjs proves that).
+  assert.equal(
     forAgent.payload.result.serverInfo.version,
     forPerson.payload.result.serverInfo.version,
+  );
+  assert.match(
+    forAgent.payload.result.serverInfo.version,
+    /^tools\.[0-9a-f]{12}$/,
   );
 });
 

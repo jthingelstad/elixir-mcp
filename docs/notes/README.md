@@ -8,8 +8,9 @@ the frozen archive of the notes up to 2026-10-10.
   slug in lowercase words and hyphens (`2026-10-10-change-fragments.md`).
   Two notes may share a date; never rename another note.
 - **First line:** `# YYYY-MM-DD — <title>`, the same date.
-- **Body:** what changed, why, and the versions it ships in (MCP, JSON
-  API, a migration's number), as the NOTES entries did. A settled
+- **Body:** what changed, why, and what it ships with (a JSON API
+  version, a migration's number). MCP has no version number since
+  2026-11-23; notes before then name one. A settled
   choice also gets its line in `docs/DECISIONS.md` in the same pull
   request.
 - **Not here:** open items, asks for Jamie and parked ideas. Each is a
@@ -18,6 +19,4 @@ the frozen archive of the notes up to 2026-10-10.
   request that settles it.
 
 A note is history once merged: a later change writes a note of its own
-rather than editing an old one. If its pull request renumbers the
-contract version (`npm run contract:bump`), the "MCP x.y.z" mentions in
-the notes that pull request added follow.
+rather than editing an old one.

@@ -9,9 +9,6 @@
     "season_roll": "same",
     "pol_trophies": "the profile's name for the board's rating, pointed at by rankings notes"
   },
-  "elixir_changelog": {
-    "tools_added": "on an entry only when a version added tools"
-  },
   "elixir_timeline": {
     "drop_game": "A completed Drop game appears only for its verified player and permitted followers. packages/tools/test/timeline-drop-game.test.mjs exercises the MCP result and reader boundary on scratch game data.",
     "game_id": "Stable identifier in facts on a drop_game. A permitted window can contain none. The registered elixir_timeline handler is exercised in packages/tools/test/timeline-drop-game.test.mjs.",

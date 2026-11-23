@@ -167,7 +167,7 @@ const META = {
   },
   freshness_seconds: 794,
   timezone_applied: "America/Chicago",
-  contract_version: "9.17.1",
+  contract_version: "tools.0123456789ab",
 };
 const FLOOR = {
   floor: 12500,

@@ -73,7 +73,7 @@ agent's key answers 401 too.
 ## What `initialize` tells it
 
 ```json
-{ "serverInfo": { "name": "elixir-mcp", "version": "{{ tools.contractVersion }}+tools.…" },
+{ "serverInfo": { "name": "elixir-mcp", "version": "{{ tools.toolsVersion }}" },
   "instructions": "YOU ACT FOR Tidewater #0G9J08 (47 members). Leadership: Birch Lantern (leader), … OMIT clan_tag to mean it. Pull clans_roster ONCE per run and reuse it… Nothing defaults to 'you': … pass on_behalf_of (discord:<user id> resolves itself once they link Discord …); not linked, ask who they are and pass player_tag. You already know 9 of them. …",
   "_meta": { "elixir.poapkings.com/principal": {
       "kind": "agent",

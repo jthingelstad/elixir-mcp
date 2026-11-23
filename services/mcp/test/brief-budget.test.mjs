@@ -14,8 +14,10 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { CONTRACT_VERSION } from "@elixir-mcp/contracts";
-import { makeRegistry } from "../../../packages/tools/src/tools.mjs";
+import {
+  makeRegistry,
+  TOOLS_VERSION,
+} from "../../../packages/tools/src/tools.mjs";
 import {
   handleMcpMessage,
   INSTRUCTIONS_BUDGET,
@@ -224,8 +226,8 @@ test("a person who still sends them is never refused: they are dropped before va
     { on_behalf_of: "discord:1", display_name: "Somebody" },
   );
   assert.ok(body.meta, "answered");
-  // An agent's own unknown argument is still refused, and the hint says
-  // which contract this is and to reconnect.
+  // An agent's own unknown argument is still refused, and the hint names
+  // this server's tool fingerprint and says to reconnect.
   await assert.rejects(
     registry.invoke(
       "game_clock",
@@ -235,7 +237,7 @@ test("a person who still sends them is never refused: they are dropped before va
     (err) =>
       err.code === "bad_request" &&
       /has no property 'display_name'/.test(err.message) &&
-      err.hint.includes(`contract ${CONTRACT_VERSION}`) &&
+      err.hint.includes(TOOLS_VERSION) &&
       /reconnect/.test(err.hint),
   );
 });
@@ -261,7 +263,7 @@ test("an error result carries no structuredContent; the text block has the envel
           message: "no",
           hint: "h",
         },
-        meta: { contract_version: CONTRACT_VERSION },
+        meta: { contract_version: TOOLS_VERSION },
       },
       isError: true,
     })

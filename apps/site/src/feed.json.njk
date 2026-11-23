@@ -9,7 +9,7 @@ eleventyExcludeFromCollections: true
   "title": {{ (site.name + " updates") | dump | safe }},
   "home_page_url": {{ (site.url + "/updates") | dump | safe }},
   "feed_url": {{ (site.url + "/feed.json") | dump | safe }},
-  "description": {{ ("Every user-visible change to " + site.name + " and every tool contract version, newest first.") | dump | safe }},
+  "description": {{ ("What's new on " + site.name + ", newest first.") | dump | safe }},
   "language": "en",
   "items": [
   {%- for u in feedItems %}

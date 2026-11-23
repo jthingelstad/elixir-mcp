@@ -56,7 +56,7 @@ private cache lifetime. Refresh `tools/list` when it expires.
                     "resources": { "subscribe": false, "listChanged": false },
                     "prompts": { "listChanged": false } },
   "serverInfo": { "name": "elixir-mcp", "title": "Elixir",
-                  "version": "{{ tools.contractVersion }}+tools.3f1c9a2b7d4e", "websiteUrl": "https://elixir.poapkings.com/" },
+                  "version": "{{ tools.toolsVersion }}", "websiteUrl": "https://elixir.poapkings.com/" },
   "instructions": "…",
   "_meta": { "elixir.poapkings.com/principal": { "kind": "person",
              "subject": { "type": "player", "tag": "#0GVJ9V", "name": "Birch Lantern" },
@@ -81,34 +81,32 @@ a cached `tools/list` is stale:
 
 | Method | Returns |
 |---|---|
-| `resources/list` | `elixir://docs` (the index), `elixir://docs/<slug>` for every page, `elixir://examples`, `elixir://examples/<slug>`, `elixir://changelog`, `elixir://updates`, `elixir://cards` |
+| `resources/list` | `elixir://docs` (the index), `elixir://docs/<slug>` for every page, `elixir://examples`, `elixir://examples/<slug>`, `elixir://updates`, `elixir://cards` |
 | `resources/templates/list` | `elixir://docs/{slug}`, `elixir://docs/{slug}#{section}` (one H2 section), `elixir://examples/{slug}` |
-| `resources/read` | Markdown for pages, sections and examples; JSON for the indexes, the changelog, the updates and the card catalog. An unknown URI is JSON-RPC `-32002` |
+| `resources/read` | Markdown for pages, sections and examples; JSON for the indexes, the updates and the card catalog. An unknown URI is JSON-RPC `-32002` |
 | `prompts/list`, `prompts/get` | the ten [examples](/examples/play) as prompts, each a user message carrying the example's question and the tools it uses |
 
 Reading a resource spends no daily quota; the hourly rate limit still applies.
 
 ## Versioning and the cache-buster
 
-`serverInfo.version` is `<contract_version>+tools.<fingerprint>`, where the
-fingerprint is the first 12 hex characters of the SHA-256 of the declarations
-your kind of connection receives. Clients discover tools and arguments from
-their credential’s `tools/list` response. Legacy clients refresh on connection.
-The release and fingerprint help diagnose differences between installed clients. `elixir_changelog({ since: "0.35.0" })` lists what moved,
-newest first, with `tools_added` and `breaking` where relevant. Pages contain
-up to 20 releases. Pass `next_offset` as `offset`, keeping `since` unchanged,
-until `next_offset` is `null`; `total` counts all releases matching `since`.
-Omit `since` to page through the complete history, or read the complete JSON
-resource at `elixir://changelog`.
+`serverInfo.version` is the tool fingerprint, `tools.<fingerprint>`: the
+first 12 hex characters of the SHA-256 of every tool declaration the server
+publishes and the tools each kind of connection is shown. It changes
+whenever a tool, an argument, a description, an output schema, an
+annotation or what a kind of connection is shown changes, and at no other
+time. Every connection gets the same string, and every response carries it
+as `meta.contract_version`, so a client that cached
+`tools/list` can compare either one with what it holds and read the list
+again when they differ. The string is an identity, not a number: it has no
+order, and nothing is meant by its value.
 
-The MCP contract is versioned over what an agent reasons from, not the code.
-A new capability (a tool, an argument, a field) is a minor. A correction is a
-patch, including one that removes a field that proved unreliable: an agent
-reads the current declaration, output schema and notes, so a missing field
-simply withdraws a claim. A major marks a shift in the domain model, one that
-changes what a task means. There is no deprecation window; a renamed or
-removed field goes in the release that replaces it. Every response carries
-`meta.contract_version`. `/api/v1`, Sign in with Elixir's one request, keeps
+Clients discover tools and arguments from their credential’s `tools/list`
+response; legacy clients refresh on connection. There is no numbered
+release and no deprecation window: an agent reasons from the current
+declaration, output schema and notes, so a missing field withdraws a claim.
+A change worth telling is told on [What's new](/updates), which
+`elixir_updates` serves. `/api/v1`, Sign in with Elixir's one request, keeps
 ordinary semver of its own ([Sign in with Elixir](/docs/sign-in-with-elixir#get-api-v1-me)).
 
 ## Errors
@@ -137,7 +135,7 @@ shape):
 
 ```json
 { "error": { "code": "not_recorded", "class": "subject", "message": "…", "hint": "…" },
-  "meta": { "as_of": "…", "request_id": "…", "disclaimer": "…", "contract_version": "{{ tools.contractVersion }}" } }
+  "meta": { "as_of": "…", "request_id": "…", "disclaimer": "…", "contract_version": "{{ tools.toolsVersion }}" } }
 ```
 
 | Code | Class | Meaning |
@@ -300,7 +298,7 @@ in its hint.
 - **`request_id`**: a UUID minted before the tool runs and stamped into
   `meta`; the same id appears under Settings › Usage and limits › Requests.
 
-## Feedback and the changelog, over the wire
+## Feedback over the wire
 
 Feedback is one record for all of Elixir: an item filed here, from
 Settings, Stats, Clan,
@@ -341,7 +339,9 @@ and is listed by `elixir_my_feedback` wherever it was filed.
   Clan aside), `ladder` (Stats), `clan`, `mail`, `docs`, `recorder` (where it
   was filed). Returns each item's
   `area`, `refs` and `follows_id` when it has them, `response`,
-  `responded_at`, `shipped_in`, `related_tools`. Pages are bounded by
+  `responded_at`, `shipped_in` (the day the fix went live, as
+  `YYYY-MM-DD`; answers from before 2026-11-23 carry a version number
+  there instead), `related_tools`. Pages are bounded by
   delivered size as well as `limit`, so follow `next_offset` with the same
   filters until it is `null`; `total` counts the filtered ledger. Only
   replies delivered on that page are marked seen, and
@@ -355,11 +355,6 @@ and is listed by `elixir_my_feedback` wherever it was filed.
   `related_by` (your items that name it as related), and marks its answer
   seen. `needs_info` means the answer is a question for you: reply with
   `follows_id`, and the reply is answered in its turn.
-- `elixir_changelog({ since?, limit?, offset? })`: entries `{ version, date,
-  summary, tools_added?, breaking? }`, newest first. `limit` is 1 to 20
-  (default 20); `offset` defaults to zero. Follow `next_offset` with the
-  same `since` to reach every entry; `null` means the end. `total` is the
-  number matching the exclusive `since` filter.
 
 ## Machine-readable surfaces
 
@@ -370,7 +365,7 @@ search with `query`), `elixir_examples` (the ten worked examples with the
 tools each calls) and `elixir_updates` (What's new, newest first, `since` a
 date). The same text is reachable as resources at `elixir://docs`,
 `elixir://docs/<slug>`, `elixir://docs/<slug>#<section>`, `elixir://examples`,
-`elixir://examples/<slug>`, `elixir://changelog`, `elixir://updates` and
+`elixir://examples/<slug>`, `elixir://updates` and
 `elixir://cards`, and the examples as prompts. Over plain HTTPS:
 
 | URL | Contents |
@@ -379,7 +374,7 @@ date). The same text is reachable as resources at `elixir://docs`,
 | `/llms-full.txt` | every documentation page and the full tool reference in one fetch |
 | `/tools.json` | the registry as JSON: name, group, description, arguments, required scope |
 | `/docs/integration-api.json` | the OpenAPI 3.1 document for `GET /api/v1/me` ([Sign in with Elixir](/docs/sign-in-with-elixir#get-api-v1-me)) |
-| `/updates` | every shipped change, contract versions included - the same list `elixir_changelog` returns, with the releases around it |
-| `/feed.xml` | RSS 2.0 of What's new: the newest 50 updates and contract versions, each item's id its own `/updates/<slug>` page |
+| `/updates` | What's new: the changes worth telling, tools included, the same list `elixir_updates` returns |
+| `/feed.xml` | RSS 2.0 of What's new: the newest 50 updates, each item's id its own `/updates/<slug>` page |
 | `/feed.json` | the same items as JSON Feed 1.1 |
 | `/api/public/stats`, `/api/public/status` | live counts of what the recorder holds and recording health, no authentication, cached at the edge for the time each states in `Cache-Control`; they name no player or clan, except that each collector is credited to its operator's primary player |

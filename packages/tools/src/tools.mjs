@@ -7,9 +7,9 @@
  * with isError: true.
  */
 
+import { createHash } from "node:crypto";
 import {
   assertResponseMeta,
-  CONTRACT_VERSION,
   TOOL_GROUPS,
   GROUP_ORDER,
   requiredOAuthScope,
@@ -219,19 +219,23 @@ export function makeRegistry() {
           missing &&
           TOOLS[name].inputSchema.properties?.[missing[1]]?.description;
         // An argument the server does not know is most often a client
-        // holding an older tools/list: say which contract this is and
-        // that a reconnect re-reads it, as the unknown-tool hint does.
+        // holding an older tools/list: say which tools this server has
+        // and that a reconnect re-reads them, as the unknown-tool hint does.
         const unknown = / has no property '/.test(problem);
         throw new ToolFailure(
           "bad_request",
           problem,
           own ??
             (unknown
-              ? `This server is contract ${CONTRACT_VERSION}; the arguments it takes are this tool's inputSchema in tools/list. If your client cached that list earlier, reconnect; elixir_changelog(since) says what moved.`
+              ? `This server's tools are ${TOOLS_VERSION}; the arguments it takes are this tool's inputSchema in tools/list. If your client cached that list earlier (serverInfo.version differs), reconnect.`
               : "Valid values and shapes are the tool's declared inputSchema (tools/list)."),
         );
       }
       const body = await TOOLS[name].handler(ctx, args);
+      // A tool builds its envelope without the fingerprint; it is stamped
+      // here, the one place every tool body passes through.
+      if (body?.meta && typeof body.meta === "object")
+        body.meta.contract_version = TOOLS_VERSION;
       assertResponseMeta(body?.meta);
       // Every response carries notes and docs, which the instructions
       // promise (journey r3: two help-tool branches served neither): a
@@ -274,3 +278,33 @@ export function makeRegistry() {
     },
   };
 }
+
+/**
+ * The tool fingerprint: `tools.<12 hex>`, the first 12 hex of a sha256 of
+ * the whole catalogue's declarations and the names each kind of connection
+ * is shown. It is serverInfo.version for every kind and every response's
+ * meta.contract_version (docs/ENGINEERING.md, "The tool contract"): a
+ * client that cached tools/list compares it and re-reads the list when it
+ * differs. Any change to a name, a description, a schema, an annotation or
+ * what a kind sees changes it; nothing else does.
+ */
+export function toolsVersion(registry) {
+  const surface = {
+    declarations: registry.declarations(),
+    kinds: Object.fromEntries(
+      ["person", "agent"].map((kind) => [
+        kind,
+        registry.declarations(kind).map((d) => d.name),
+      ]),
+    ),
+  };
+  const fingerprint = createHash("sha256")
+    .update(JSON.stringify(surface))
+    .digest("hex")
+    .slice(0, 12);
+  return `tools.${fingerprint}`;
+}
+
+/** This server's fingerprint: one string for every connection and every
+ *  response. */
+export const TOOLS_VERSION = toolsVersion(makeRegistry());

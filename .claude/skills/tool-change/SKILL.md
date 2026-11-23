@@ -1,6 +1,6 @@
 ---
 name: tool-change
-description: The procedure for adding or changing an Elixir MCP tool, from start to finish. It covers the DECISIONS check and the stop list, where the code lives, the conventions the registry tests and DECISIONS enforce, the second derivations that must move with the tool, tests on a scratch database, docs, acceptance, and the version bump, then hands off to `/ship`. `/tool-change <tool> <what changes>` walks a change to an existing tool (a field, an argument, a note, a correction, a removal); `/tool-change new <domain>_<noun>` starts a proposed tool, which is Jamie's call before any code. Use it whenever a tool's declaration, handler, output schema, notes or SQL changes, or when a tool is added or removed.
+description: The procedure for adding or changing an Elixir MCP tool, from start to finish. It covers the DECISIONS check and the stop list, where the code lives, the conventions the registry tests and DECISIONS enforce, the second derivations that must move with the tool, tests on a scratch database, docs, acceptance, and What's new when worth telling, then hands off to `/ship`. `/tool-change <tool> <what changes>` walks a change to an existing tool (a field, an argument, a note, a correction, a removal); `/tool-change new <domain>_<noun>` starts a proposed tool, which is Jamie's call before any code. Use it whenever a tool's declaration, handler, output schema, notes or SQL changes, or when a tool is added or removed.
 ---
 
 # Changing an MCP tool
@@ -18,15 +18,18 @@ what each registry test asserts. Related skills: `/ship` deploys,
 
 ## 1. Classify the change before any code
 
-The kind of change decides the version and who decides:
+The kind of change decides who decides. There is no version to pick: the
+tool fingerprint (`serverInfo.version`, `meta.contract_version`) moves by
+itself with any declaration.
 
-| kind | example | MCP version | who decides |
-|---|---|---|---|
-| wording | a description, note or hint; a docs section | patch; none for a docs page alone | you |
-| correction | the tool served something wrong; the fix makes it right | patch | you |
-| addition | a new field or argument | minor | you |
-| removal or rename | a field that made an unreliable claim | patch | you |
-| meaning | what a number counts, a new refusal, a new tool | minor or major | **Jamie** |
+| kind | example | who decides |
+|---|---|---|
+| wording | a description, note or hint; a docs section | you |
+| correction | the tool served something wrong; the fix makes it right | you |
+| addition | a new field or argument | you |
+| removal or rename | a field that made an unreliable claim | you |
+| meaning | what a number counts, a new refusal, a new tool | **Jamie** |
+| breaking | a change a caller must adapt to | **Jamie**, asked up front and stated in the pull request |
 
 **Stop and ask Jamie before writing code** for any of these. It is the
 Gym's stop list, and it applies to every tool change, not only a sweep:
@@ -193,17 +196,14 @@ files).
   `battles_query` is `battles`, `game_clock` is `game`. Shared code
   (protocol, `tools.mjs`, `shared.mjs`, ingest) runs the whole suite.
 
-## 9. Version, then ship
+## 9. Tell it, then ship
 
-- **MCP semver** (DECISIONS "MCP majors track domain shifts, not
-  agent-visible wire cleanup"): "additive changes are a minor", and "A
-  correction that removes an unreliable field is a patch". A major is "a
-  domain-model change that requires the agent to change what its task
-  means", which is Jamie's call.
-- **One bump per round**, not one per fix. `npm run contract:bump --
-  <patch|minor|major>` writes `packages/contracts/src/changes/<version>.ts`;
-  fill in its entry (`tools_added` for a new tool, `breaking` for a
-  removal). "every contract bump updates the changelog".
+- **No version to bump.** The fingerprint moves by itself; a test in
+  `services/mcp/test/mcp.test.mjs` proves it.
+- **What's new when it is worth telling**: a new tool, a removal, or a
+  change agent owners should hear of gets one entry in
+  `apps/site/src/_data/updates/` (`/ship`, "What a user sees"), one per
+  round, not one per fix. A wording fix needs none.
 - **A decision Jamie made** becomes a DECISIONS line and a change note in
   `docs/notes/` in the same round.
 - **Hand off to `/ship`** and name the family (or families) you

@@ -35,7 +35,6 @@ function tracked() {
         file !== "docs/NOTES.md" &&
         !file.startsWith("docs/notes/") &&
         !file.startsWith("apps/site/src/_data/updates/") &&
-        !file.startsWith("packages/contracts/src/changes/") &&
         !file.startsWith("db/migrations"),
     );
 }

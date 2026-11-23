@@ -10,15 +10,31 @@
 
 import { participationObjects } from "../packages/tools/src/participation-table.mjs";
 
+/** The numbered contract versions a replay still reads, frozen: version
+ *  numbers ended on 2026-11-23, and a capture since carries the tool
+ *  fingerprint (`tools.<12 hex>`), which is after every one of them. A
+ *  capture with no version at all is from before the first. */
+const SINCE = Object.freeze({
+  TIMELINE_BASIS: [11, 8], // #373: the timeline gained basis
+  RENAMES: [12, 0], // DECISIONS "Follow, never track"
+});
+
+function before(c, [major, minor]) {
+  const v = c.contract_version;
+  if (typeof v === "string" && v.startsWith("tools.")) return false;
+  const [m, n] = String(v ?? "0.0")
+    .split(".")
+    .map(Number);
+  return m < major || (m === major && n < minor);
+}
+
 /** Before 11.8.0 the timeline had one basis, observed (#373): a capture
  *  from then is the read a case pinning basis observed makes. */
 function asCalled(c) {
   const args = c.request.arguments ?? {};
-  const [major, minor] = String(c.contract_version ?? "0.0")
-    .split(".")
-    .map(Number);
-  const before = major < 11 || (major === 11 && minor < 8);
-  return c.request.tool === "elixir_timeline" && before && !("basis" in args)
+  return c.request.tool === "elixir_timeline" &&
+    before(c, SINCE.TIMELINE_BASIS) &&
+    !("basis" in args)
     ? { ...args, basis: "observed" }
     : args;
 }
@@ -36,8 +52,7 @@ const RENAMED_IN_12 = {
 };
 
 export function calledAs(c) {
-  const major = Number(String(c.contract_version ?? "0").split(".")[0]);
-  return major < 12
+  return before(c, SINCE.RENAMES)
     ? (RENAMED_IN_12[c.request.tool] ?? c.request.tool)
     : c.request.tool;
 }

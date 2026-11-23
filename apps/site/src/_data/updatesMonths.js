@@ -1,12 +1,12 @@
 /**
  * The Updates stream by month, newest first: each month is a page of its own at
  * /updates/<YYYY-MM>, and /updates shows the newest month plus earlier ones
- * until there are ten product entries to read (A36). Derived from the dates,
+ * until there are ten entries to read (A36). Derived from the dates,
  * never typed twice.
  */
 import updatesView from "./updatesView.js";
 
-const FRONT_PRODUCT_ENTRIES = 10;
+const FRONT_ENTRIES = 10;
 
 const label = (key) =>
   new Date(`${key}-01T00:00:00Z`).toLocaleDateString("en-US", {
@@ -28,8 +28,7 @@ const months = [...byKey.entries()]
     key,
     label: label(key),
     items,
-    product: items.filter((u) => u.kind !== "contract").length,
-    all: items.length,
+    count: items.length,
   }));
 
 months.forEach((m, i) => {
@@ -42,8 +41,8 @@ months.forEach((m, i) => {
 /** How many months the front page holds. */
 let front = 0;
 for (let shown = 0; front < months.length; front += 1) {
-  if (shown >= FRONT_PRODUCT_ENTRIES) break;
-  shown += months[front].product;
+  if (shown >= FRONT_ENTRIES) break;
+  shown += months[front].count;
 }
 
 export default { months, front: months.slice(0, Math.max(front, 1)) };

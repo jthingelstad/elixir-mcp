@@ -291,7 +291,7 @@ All [Jamie, 2026-11-05].
 | Q10 | Follow on Friends means Friend, with one small API change. The tab shows both lists, like Wednesday's mail. With no player of your own, it asks for yours first. Since slice 7 the Follow form is on Find, and the lists are the digest's [engineering, 2026-11-12] | 3 |
 | Q11 | Settings gains Usage and limits and Feedback. Clan Today gains Waiting and Decided for co-leaders up. Minimums goes first under What counts | 3, 4, 6 |
 | Q12 | `/data` is the one public status page, and the signed-in detail links from it | 3, 7 |
-| Q13 | Updates shows product news by default, with a "Show contract versions" switch for builders. Agents keep `elixir_changelog` | 7 |
+| Q13 | Updates shows product news by default, with a "Show contract versions" switch for builders. Agents keep `elixir_changelog`. Superseded 2026-11-23: the changelog and the switch are gone, and What's new is the one list | 7 |
 | Q14 | Standing says what counts, not what to do: "Trophies count here." and "War decks count here: four a war day, up to the clan's finish." | 1 |
 | Q15 | Plain links to Terms and Privacy under the sign-in form, with no claim of acceptance | 1 |
 | Q16 | Dropped from launch: close account and change email (both stay "write to us"), a separate account name, sign-in history with devices, per-agent calls today, limits, key endings and "reads private data", find a clan by name, a sign-in code on walls, the roster impact sentence, the rivals table in Clan, a setting for the morning run | No build |

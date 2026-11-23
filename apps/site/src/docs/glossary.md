@@ -281,10 +281,10 @@ and a Discord link or an older mapping resolves.
 **request_id**: the id minted for one call and stamped into `meta`; quote it
 when reporting an answer.
 
-**contract version**: the version of the tool surface, `meta.contract_version`
-and the first part of `serverInfo.version`: a minor adds a capability, a patch
-corrects (a removed unreliable field included), a major marks a shift in
-the domain model. `elixir_changelog` lists what each one changed. See
+**contract version**: `meta.contract_version`, the tool fingerprint
+(`tools.<12 hex>`), the same string as `serverInfo.version`. It changes
+whenever a tool declaration does and carries no order; a client that sees a
+new one reads `tools/list` again. See
 [Versioning](/docs/protocol#versioning-and-the-cache-buster).
 
 ## Responses

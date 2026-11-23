@@ -1,7 +1,7 @@
 {
   "name": "@elixir-mcp/site",
   "version": "0.1.0",
-  "description": "elixir.poapkings.com static half - home, docs, updates, changelog, and the machine-readable surfaces (llms.txt, tools.json, sitemap). Real HTML for readers, crawlers, and agents; the app owns everything behind a session.",
+  "description": "elixir.poapkings.com static half - home, docs, updates, and the machine-readable surfaces (llms.txt, tools.json, sitemap). Real HTML for readers, crawlers, and agents; the app owns everything behind a session.",
   "private": true,
   "type": "module",
   "scripts": {

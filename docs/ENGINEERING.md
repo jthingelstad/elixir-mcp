@@ -230,26 +230,25 @@ inside a request. Non-database work (S3 calls) still parallelises.
 ## The tool contract has clients that never update
 
 - `packages/contracts` is the single source of truth for tool schemas, the
-  error enum, `deck_hash` and the `meta` envelope. For **MCP**, semver
-  describes the **domain contract**: a new capability is a minor, a
-  correction a patch (including removing a field that withdrew an
-  unreliable claim), and a major is reserved for a domain-model shift that
-  changes what an agent's task means. Agents reason from the current
-  declaration, schema and notes; an absent field means no claim.
+  error enum, `deck_hash` and the `meta` envelope. **MCP has no version
+  number** (2026-11-23). Agents reason from the current declaration,
+  schema and notes; an absent field means no claim. A change that breaks a
+  caller is Jamie's call, asked up front and stated in the pull request.
 - **The JSON API is versioned separately, on ordinary semver.** It is
   Sign in with Elixir's `GET /api/v1/me` alone (5.0.0) and mirrors no
   tool, so an MCP change never moves it; a removed or renamed field of
   `/me` is a major of `integration-api.openapi.json`'s `info.version`
   (`services/web-api/test/sign-in-api-contract.test.mjs` pins the path set
   and shape). The path stays `/api/v1`: it is also the OAuth audience.
-- **Clients cache `tools/list` forever.** `serverInfo.version` is
-  `<contract>+tools.<fingerprint>` so a cache can be busted; a stateless
-  server can never push `listChanged`. Every bump is its own file,
-  `packages/contracts/src/changes/<version>.ts`, written by
-  `npm run contract:bump -- <patch|minor|major>` (rerun with no argument
-  to renumber after another pull request took the number);
-  `CONTRACT_VERSION` is the highest, and `elixir_changelog(since)` and
-  `/updates` serve them.
+- **Clients cache `tools/list` forever.** `serverInfo.version` is the
+  tool fingerprint, `tools.<12 hex>`: a hash of every declaration and of
+  the tools each kind is shown (`toolsVersion` in
+  `packages/tools/src/tools.mjs`), one string for every connection, so it
+  moves by itself whenever a name, description, schema or surface does, and a cache can be busted;
+  a stateless server can never push `listChanged`. Every response's
+  `meta.contract_version` carries the same string. Nobody writes a
+  version, and nothing has to be bumped. What's new (`/updates`,
+  `elixir_updates`) tells the changes worth telling.
 - **Never hand-mirror the tool list** into another repo or a doc. The
   published `/tools.json` and the docs reference are generated from the
   registry at build time.
@@ -386,7 +385,7 @@ conventions"; `choosing-a-tool.md`); this list is what a new tool must do.
   filed once into `feedback` under the owner account (`category:
   data_quality`, `surface: recorder`), deduplicated on `(endpoint, path)`
   while open, to be turned into the change (the
-  manifest entry and projection, the contract bump, the docs, the
+  manifest entry and projection, the docs, the
   `cr-agent-api-docs` entry). Collectors stay dumb: they gzip bytes and
   never parse.
 - **A receipt says what the fetch was worth:** `new_facts` is the
@@ -544,7 +543,7 @@ imported by name.
 | Package | Owns |
 | --- | --- |
 | `http` | native Hono HTTP server, request deadlines and exclusive PostgreSQL pool leases |
-| `contracts` | versions, changelog, errors, groups, principals, modes, archetypes, the collector contract, the OpenAPI document |
+| `contracts` | response meta, errors, groups, principals, modes, archetypes, the collector contract, the OpenAPI document |
 | `tools` | the tool registry and everything around a call (invoker, quota, identity, live fetch, capture); MCP and web-api are its doors |
 | `record` | the record's data functions and clocks, the SQL a tool and a job both read, attested facts |
 | `claims` | who is recorded and why: claims, tracking reasons, pooled slot quotas |

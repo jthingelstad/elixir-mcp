@@ -35,7 +35,7 @@ import {
   countsAgainstHour,
   unsupportedProtocolVersion,
 } from "./protocol.mjs";
-import { makeRegistry } from "@elixir-mcp/tools";
+import { makeRegistry, TOOLS_VERSION } from "@elixir-mcp/tools";
 import { makeInvoker, auditRow, onBehalfOfOf } from "@elixir-mcp/tools/invoker";
 import { makeQuota } from "@elixir-mcp/tools/quota";
 import { makeOauthRoutes, rawBody } from "./oauth-routes.mjs";
@@ -87,10 +87,13 @@ export function makeHandler({
       message,
       ...(hint ? { hint } : {}),
     },
-    meta: responseMeta({
-      as_of: new Date().toISOString(),
-      request_id: randomUUID(),
-    }),
+    meta: {
+      ...responseMeta({
+        as_of: new Date().toISOString(),
+        request_id: randomUUID(),
+      }),
+      contract_version: TOOLS_VERSION,
+    },
   });
 
   const unavailable = () => ({

@@ -14,7 +14,6 @@
  *   elixir://docs/<slug>#<section>     one H2 section
  *   elixir://examples                  the worked examples index
  *   elixir://examples/<slug>           one example with its transcript
- *   elixir://changelog                 the contract changelog
  *   elixir://updates                   what's new, newest first
  *   elixir://cards                     the card catalog (35 KB, static: a
  *                                      resource is what it should have been)
@@ -23,7 +22,7 @@
  * hourly rate limit still bounds it at the handler.
  */
 
-import { CHANGELOG, CONTRACT_VERSION, DISCLAIMER } from "@elixir-mcp/contracts";
+import { DISCLAIMER } from "@elixir-mcp/contracts";
 import { corpus } from "@elixir-mcp/docs";
 import { readCatalog } from "@elixir-mcp/tools/cards";
 
@@ -66,17 +65,10 @@ export async function listResources() {
     },
     ...examples,
     {
-      uri: `${SCHEME}changelog`,
-      name: "Contract changelog",
-      title: "Tool contract changelog",
-      description: `Every contract version and what shipped in it, newest first (current: ${CONTRACT_VERSION}).`,
-      mimeType: JSON_T,
-    },
-    {
       uri: `${SCHEME}updates`,
       name: "What's new",
       title: "What's new on Elixir MCP",
-      description: "Every user-visible change, newest first.",
+      description: "The changes worth telling, tools included, newest first.",
       mimeType: JSON_T,
     },
     {
@@ -204,8 +196,6 @@ export async function readResource(uri, { db } = {}) {
     if (!ex) return null;
     return text(raw, exampleMarkdown(ex));
   }
-  if (parts[0] === "changelog" && parts.length === 1)
-    return json(raw, { current: CONTRACT_VERSION, entries: CHANGELOG });
   if (parts[0] === "updates" && parts.length === 1)
     return json(raw, { entries: c.updates, corpus_built_at: c.built_at });
   if (parts[0] === "cards" && parts.length === 1) {

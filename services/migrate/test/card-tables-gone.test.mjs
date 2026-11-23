@@ -3,8 +3,7 @@
  * a deck's cards are arrays on the rows that own them (0255). No source
  * names the old tables again, not even in a comment, so a reader or
  * writer cannot creep back. Migrations keep their history and the docs
- * and change notes tell it; the contract changelog quotes what 3.4.0
- * said at the time. Built at the 2026-11-13 contract step.
+ * and change notes tell it. Built at the 2026-11-13 contract step.
  */
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -25,12 +24,7 @@ const SKIP_DIRS = new Set([
   ".worktrees",
   "coverage",
 ]);
-const SKIP_PATHS = [
-  "db/migrations/",
-  "docs/",
-  ".claude/",
-  "packages/contracts/src/changes/",
-];
+const SKIP_PATHS = ["db/migrations/", "docs/", ".claude/"];
 const SELF = "services/migrate/test/card-tables-gone.test.mjs";
 const NAMES = /\b(battle_participant_card|deck_card)\b/;
 const CODE = /\.(mjs|cjs|js|jsx|ts|tsx|sql|yaml|yml|json|sh)$/;

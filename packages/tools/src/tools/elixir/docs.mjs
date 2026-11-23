@@ -118,7 +118,7 @@ export const elixir_docs = {
         sections: d.sections.map((x) => x.slug),
       })),
       notes: notes(
-        "Read one with page, one section with page + section, or search with query. The tool reference is tools/list itself (also at https://elixir.poapkings.com/docs/tools); elixir_changelog says what changed in it.",
+        "Read one with page, one section with page + section, or search with query. The tool reference is tools/list itself (also at https://elixir.poapkings.com/docs/tools); elixir_updates says what changed.",
       ),
       docs: docsRef("about"),
       corpus_built_at: built_at,

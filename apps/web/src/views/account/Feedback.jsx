@@ -101,15 +101,17 @@ const REF_LABEL = {
   policy: "Policy",
 };
 
-function Shipped({ version }) {
-  if (!version) return null;
+// shipped_in is the day the fix went live; answers from before 2026-11-23
+// carry the contract version of the day instead, and read the same way.
+function Shipped({ when }) {
+  if (!when) return null;
   return (
     <>
       {" · "}
       {/* /updates is a page of the static site, not an app route: a real
           link, or the app's router sent it home. */}
-      <a href="/updates" title="The contract version this shipped in">
-        Shipped in {version}
+      <a href="/updates" title="What's new on Elixir">
+        Shipped in {when}
       </a>
     </>
   );
@@ -168,7 +170,7 @@ export function FeedbackItem({ id }) {
           <>
             {AREA_LABEL[item.area] ?? item.area} · {kindLabel(item.category)} ·{" "}
             {whenDay(item.created_at)}
-            <Shipped version={item.shipped_in} />
+            <Shipped when={item.shipped_in} />
           </>
         }
       />

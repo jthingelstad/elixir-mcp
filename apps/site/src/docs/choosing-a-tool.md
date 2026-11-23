@@ -57,7 +57,7 @@ conventions that hold everywhere.
 | Which clans have saved their rules in Elixir? | `clans_directory` (the public part of each policy; a person's own connection and their agents) |
 | Something is missing or took too many calls | `elixir_send_feedback`; `elixir_my_feedback` says what happened to it |
 | What the service holds and who fetches it | `elixir_collectors`; the service's own numbers are public at `/api/public/stats` and on the [Status and data](/data) page |
-| How is this documented? | `elixir_docs`, `elixir_examples`, `elixir_updates`, `elixir_changelog` |
+| How is this documented? | `elixir_docs`, `elixir_examples`, `elixir_updates` |
 
 Read `comparable` before ranking: where a response carries it (`clans_standings`,
 `battles_decks`), `false` means two rows were played in

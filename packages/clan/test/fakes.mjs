@@ -42,7 +42,7 @@ export function rosterBody(members) {
           freshness_seconds: 120,
         },
       },
-      contract_version: "1.7.0",
+      contract_version: "tools.0123456789ab",
     },
   };
 }

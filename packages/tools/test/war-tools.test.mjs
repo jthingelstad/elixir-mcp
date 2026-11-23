@@ -485,9 +485,9 @@ test("war_current: decks_today names untouched/partial/finished on a live war da
   assert.match(body.notes.join(" "), /observed so far/);
 });
 
-test("the registry declares 44 tools, every one classified and annotated", () => {
+test("the registry declares 43 tools, every one classified and annotated", () => {
   const decls = makeRegistry().declarations();
-  assert.equal(decls.length, 44);
+  assert.equal(decls.length, 43);
   for (const d of decls) {
     assert.ok(d.annotations, `${d.name} has annotations`);
     assert.match(
@@ -2520,7 +2520,7 @@ test("6.19.0 and 9.1.0: the war surfaces carry clan_war_trophies, and the clan_s
   // It is a WAR TROPHY ladder, not a clan score. Earlier tests in this
   // file rewrite individual weeks' fame and standings, so the step-by-
   // step series is not stable here (the run-order-independent version of
-  // that check lives in the changelog's evidence); what IS stable is the
+  // that check lives in that change's own evidence); what IS stable is the
   // magnitude. A clan score is five or six figures - 129,512 for
   // #J2RGCRVG on 2026-09-23 - and war trophies are four. Anyone who
   // swaps the real clanScore back in fails this.

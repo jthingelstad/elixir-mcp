@@ -933,12 +933,13 @@ test("the docs name no segment argument: it retired in 13.0.0", () => {
   }
 });
 
-test("versioned examples follow the generated contract", { skip }, () => {
+test("versioned examples show the current tool fingerprint", { skip }, () => {
   const version = JSON.parse(read("tools.json")).contract_version;
+  assert.match(version, /^tools\.[0-9a-f]{12}$/);
   for (const rel of ["docs/agents/index.html", "docs/protocol/index.html"]) {
     assert.ok(
       read(rel).includes(version),
-      `${rel} does not show the current contract ${version}`,
+      `${rel} does not show the current fingerprint ${version}`,
     );
   }
 });
@@ -1442,20 +1443,15 @@ test("the family pages are gone (Jamie, 2026-11-14)", { skip }, () => {
   assert.deepEqual(linked, [], "pages still link to /family");
 });
 
-test(
-  "updates carry a kind, a month anchor and a version where one shipped",
-  { skip },
-  () => {
-    const html = read("updates/index.html");
-    assert.match(html, /<h2 id="\d{4}-\d{2}"/);
-    assert.match(html, /data-kind="shipped"/);
-    assert.match(html, /data-kind="contract"/);
-    // A month's own page holds the entries that aged off the front.
-    assert.match(read("updates/2026-09/index.html"), /<h2 id="2026-09"/);
-    assert.ok(existsSync(path.join(out, "assets/updates-filter.js")));
-    assert.ok(existsSync(path.join(out, "assets/rail-anchors.js")));
-  },
-);
+test("updates carry a kind and a month anchor", { skip }, () => {
+  const html = read("updates/index.html");
+  assert.match(html, /<h2 id="\d{4}-\d{2}"/);
+  assert.match(html, /data-kind="shipped"/);
+  // A month's own page holds the entries that aged off the front.
+  assert.match(read("updates/2026-09/index.html"), /<h2 id="2026-09"/);
+  assert.doesNotMatch(html, /data-kind="contract"/);
+  assert.ok(existsSync(path.join(out, "assets/rail-anchors.js")));
+});
 
 test(
   "the feeds' ids are each update's own page: unique, stable, never a position (#73)",
@@ -1482,10 +1478,7 @@ test(
       assert.ok(pages.has(page), `${guid} is an update's page`);
       assert.ok(existsSync(path.join(out, page.slice(1), "index.html")), guid);
     }
-    // Both kinds belong to the stream, but fifty newer product updates
-    // can legitimately move the latest contract outside the feed window.
     const { default: stream } = await import("../src/_data/updatesView.js");
-    assert.ok(stream.some((item) => item.kind === "contract"));
     const expectedCategories = stream
       .slice(0, FEED_ITEMS)
       .map((item) => item.kind);

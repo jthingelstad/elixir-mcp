@@ -1,6 +1,6 @@
 /**
  * Render a documentation page's Markdown SOURCE the way the site does:
- * its Nunjucks variables ({{ tools.contractVersion }}, the response
+ * its Nunjucks variables ({{ tools.toolsVersion }}, the response
  * envelope, the methodology floors) resolved against the same data
  * files Eleventy hands the templates.
  *

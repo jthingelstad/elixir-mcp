@@ -29,7 +29,7 @@ const DROP_REASON = {
 
 export const elixir_send_feedback = {
   description:
-    "File feedback with the maintainer ON YOUR OWN JUDGMENT; your user never needs to ask. File when a capability you needed is missing, a workflow took more calls than it should, a result confused or misled you, data looked wrong, or something delighted you enough to protect. Consolidated end-of-session feedback beats a stream. Every item gets a response (elixir_my_feedback), often with a shipped_in version.",
+    "File feedback with the maintainer ON YOUR OWN JUDGMENT; your user never needs to ask. File when a capability you needed is missing, a workflow took more calls than it should, a result confused or misled you, data looked wrong, or something delighted you enough to protect. Consolidated end-of-session feedback beats a stream. Every item gets a response (elixir_my_feedback), often with the day the fix shipped (shipped_in).",
   inputSchema: {
     type: "object",
     properties: {
@@ -180,7 +180,7 @@ export const elixir_send_feedback = {
         on_behalf_of: onBehalfOf ?? undefined,
       }),
       notes: notes(...said),
-      docs: docsRef("protocol", "feedback-and-the-changelog-over-the-wire"),
+      docs: docsRef("protocol", "feedback-over-the-wire"),
       meta: responseMeta({ as_of: new Date().toISOString() }),
     };
   },

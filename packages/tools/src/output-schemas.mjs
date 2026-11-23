@@ -1287,42 +1287,6 @@ export const OUTPUT_SCHEMAS = {
     ],
   },
 
-  elixir_changelog: {
-    type: "object",
-    properties: {
-      applied: { type: "object" },
-      current: { type: ["string", "null"] },
-      docs: DOCS,
-      entries: {
-        type: "array",
-        items: {
-          type: "object",
-          properties: {
-            breaking: { type: ["string", "null"] },
-            date: { type: ["string", "null"] },
-            summary: { type: ["string", "null"] },
-            tools_added: { type: "array" },
-            version: { type: ["string", "null"] },
-          },
-        },
-      },
-      meta: META,
-      next_offset: { type: ["number", "null"] },
-      notes: NOTES,
-      total: { type: ["number", "null"] },
-    },
-    required: [
-      "applied",
-      "current",
-      "docs",
-      "entries",
-      "meta",
-      "next_offset",
-      "notes",
-      "total",
-    ],
-  },
-
   elixir_collectors: {
     type: "object",
     properties: {
