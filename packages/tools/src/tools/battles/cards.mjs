@@ -20,6 +20,11 @@ import {
   modeGaps,
   pooledModesNote,
 } from "../../controls.mjs";
+import {
+  decidedLossesSql,
+  decidedWinsSql,
+  winRate,
+} from "@elixir-mcp/record/win-rate-sql";
 
 // Event-aware labels (#148): the tag, not the type, marks event content,
 // so an event battle is never counted as casual.
@@ -130,6 +135,8 @@ export const battles_cards = {
       `select c.name, pc.card_id as id, pc.form as evolution,
                 count(*) filter (where bp.outcome = 'win')::int as wins,
                 count(*) filter (where bp.outcome = 'loss')::int as losses,
+                ${decidedWinsSql("bp.outcome", "bp.type_class")}::int as decided_wins,
+                ${decidedLossesSql("bp.outcome", "bp.type_class")}::int as decided_losses,
                 round(avg(bp.deck_avg_level - lv.lvl)::numeric, 2) as mean_level_gap,
                 array_agg(${MODE_GROUP}) as mode_groups
          from ${PARTICIPANT_GAMES} bp
@@ -182,7 +189,8 @@ export const battles_cards = {
         battles: r.wins + r.losses,
         wins: r.wins,
         losses: r.losses,
-        win_rate: Number((r.wins / (r.wins + r.losses)).toFixed(3)),
+        decided_battles: r.decided_wins + r.decided_losses,
+        win_rate: winRate(r.decided_wins, r.decided_wins + r.decided_losses),
         modes: countByModeGroup(r.mode_groups),
         mean_level_gap:
           r.mean_level_gap === null ? null : Number(r.mean_level_gap),
@@ -193,6 +201,7 @@ export const battles_cards = {
         mine
           ? "win_rate is YOUR record when this card is in your deck."
           : "win_rate is YOUR record in the battles where the OPPONENT deck held this card.",
+        "win_rate is decided wins over decided_battles: a boat battle has no live opponent, so it is in battles, wins and losses and never in the rate.",
         "Each row's modes counts its battles by mode group and mean_level_gap is your deck's average level minus the opposing side's in those battles; a row's record is comparable to another's only at similar values of both.",
         FORM_ROWS_NOTE,
       ),

@@ -173,7 +173,7 @@ member Birch Lantern (discord:1234): how am I doing?
     hint: "candidates[] holds the one clan member whose whole name is 'Birch Lantern': pass player_tag \"#0GVJ9V\", say so in a line, and answer. To be known without asking, they connect Discord …" } }
 
 → players_summary({ on_behalf_of: "discord:1234", player_tag: "#0GVJ9V" })
-← { player_tag: "#0GVJ9V", name: "Birch Lantern", trophies: …, last_30_days: { battles: 41, wins: 24, losses: 17, draws: 0, win_rate: 0.585, … }, top_deck: …,
+← { player_tag: "#0GVJ9V", name: "Birch Lantern", trophies: …, last_30_days: { battles: 41, wins: 24, losses: 17, draws: 0, decided_battles: 41, win_rate: 0.585, … }, top_deck: …,
     applied: { window: { from: "…", to: null, source: "fixed", days: 30 } }, notes: […], docs: "freshness-and-gaps#completeness",
     meta: { freshness_seconds: 27, source_polls: { player_battlelog: { observed_at: "…", freshness_seconds: 27 } }, … } }
 ```

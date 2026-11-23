@@ -511,15 +511,15 @@ const spell = (n) => WORDS[n] ?? fmt(n);
 
 /** The week-by-week rows from battles_performance group_by week, newest
  *  first. Each is a record, its rate and, in a mode where trophies move, its
- *  net trophies; the bar's share is wins over decided battles. A partial week
- *  still running says "so far". */
+ *  net trophies; the bar's share is the row's own win rate (decided wins over
+ *  decided battles, the server's one definition), never a second division
+ *  here. A partial week still running says "so far". */
 export function weekRows(weekly, { net = true, running = false } = {}) {
   const rows = weekly ?? [];
   return rows
     .map((w, i) => {
       const wins = Number(w.wins ?? 0);
       const losses = Number(w.losses ?? 0);
-      const decided = wins + losses;
       const open = running && i === rows.length - 1 && Boolean(w.partial);
       return {
         key: w.iso_week ?? w.week_of,
@@ -528,7 +528,7 @@ export function weekRows(weekly, { net = true, running = false } = {}) {
         }`,
         wins,
         losses,
-        winShare: decided ? Math.round((wins / decided) * 100) : 0,
+        winShare: w.win_rate != null ? Math.round(w.win_rate * 100) : 0,
         note: [
           `${fmt(wins)}–${fmt(losses)}`,
           w.win_rate != null ? `${pct(w.win_rate)} won` : null,
