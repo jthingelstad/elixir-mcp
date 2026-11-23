@@ -1,7 +1,7 @@
 /**
  * Passports (#1015, first slice) through the web API. Pinned here: both
- * reads are a signed-in person's only (signed out 401, an agent 403, no
- * agent console); the owner sees the public projection plus the profile
+ * reads are a signed-in person's only (signed out 401, any other kind of
+ * account 403); the owner sees the public projection plus the profile
  * list and exact progress; anyone else sees the public projection alone,
  * which carries no email, Discord, place, time zone, account id, token,
  * limit, usage or unearned count, for a verified account, an unverified
@@ -18,7 +18,7 @@ import { readFile } from "node:fs/promises";
 import pg from "pg";
 import { processResult } from "../../../packages/ingest/src/pipeline.mjs";
 import { emailHash } from "../../../packages/auth/src/index.mjs";
-import { AGENT_SCOPED_ROUTES, makeHandler } from "../src/handler.mjs";
+import { makeHandler } from "../src/handler.mjs";
 import { passportRoutes } from "../src/routes/passport.mjs";
 import { PASSPORT_LEAKS } from "./passport-privacy.mjs";
 import {
@@ -249,20 +249,15 @@ after(async () => {
   await dropScratch(name);
 });
 
-test("the passport reads refuse the signed out, agents and every agent console", async () => {
+test("the passport reads refuse the signed out and any account that is not a person", async () => {
   assert.equal((await call("GET", "/api/me/passport")).status, 401);
   assert.equal((await call("GET", "/api/passports/abcdefghjkmn")).status, 401);
-  for (const key of AGENT_SCOPED_ROUTES)
-    assert.equal(/passport/.test(key), false, key);
-  const agentId = "00000000-0000-4000-8000-000000000001";
-  assert.equal(
-    (await call("GET", `/api/agent/${agentId}/passport`, { who: "verified" }))
-      .status,
-    404,
-  );
-  // An agent credential reaches neither route.
+  // An account that is not a person reaches neither route.
   const routes = passportRoutes({
-    resolveAccount: async () => ({ accountId: ids.verified, kind: "agent" }),
+    resolveAccount: async () => ({
+      accountId: ids.verified,
+      kind: "integration",
+    }),
   });
   for (const [key, pathParam] of [
     ["GET /api/me/passport", undefined],

@@ -4,7 +4,6 @@ import {
   poolOwner,
   pooledUsage,
   removeClan,
-  setPrimaryClan,
 } from "@elixir-mcp/claims";
 import { normalizeTag } from "@elixir-mcp/contracts";
 
@@ -46,7 +45,7 @@ export async function myClans(db, account) {
      where ac.account_id = $1 order by ac.created_at`,
     [account.accountId],
   );
-  // The person's clan slots, pooled across them and their agents.
+  // The clan slots of the reader's pool (@elixir-mcp/claims pool.mjs).
   const owner = await poolOwner(db, account.accountId);
   const limits = poolLimits(owner);
   const used = await pooledUsage(db, owner.account_id);
@@ -97,7 +96,6 @@ export function clansRoutes({ resolveAccount }) {
       }
       if (action === "remove") {
         const r = await removeClan(db, account, { tag, via: "web" });
-        // An agent keeps the clan it acts for (claims removeClan).
         if (!r.ok) return json(409, { error: r.error });
         return json(200, {
           ok: true,
@@ -105,19 +103,9 @@ export function clansRoutes({ resolveAccount }) {
           recording_stopped: r.recordingStopped,
         });
       }
-      if (action === "primary") {
-        // Re-pointing an agent at another of its clans (2026-09-23).
-        const r = await setPrimaryClan(db, account, { tag, via: "web" });
-        if (!r.ok)
-          return json(r.error === "not_entitled" ? 403 : 404, {
-            error: r.error,
-          });
-        return json(200, { ok: true, primary: tag });
-      }
       if (action !== "add") return json(400, { error: "bad_request" });
-      // Added = recorded, within the pool's clan slots (the person's,
-      // shared with their agents); elixir_follow_clan runs the same
-      // function.
+      // Added = recorded, within the pool's clan slots;
+      // elixir_follow_clan runs the same function.
       const r = await addClan(db, account, {
         tag,
         scope: body.scope,
@@ -129,7 +117,7 @@ export function clansRoutes({ resolveAccount }) {
           message:
             r.limit === 0
               ? `The ${r.role} role has no ${r.scope}-scope clan slots - leading a clan you follow earns Leader, running a collector earns Family.`
-              : `Your ${r.scope}-scope clan slots are full (${r.limit} for the ${r.role} role${account.owner ? ", shared with your agents" : ""}).`,
+              : `Your ${r.scope}-scope clan slots are full (${r.limit} for the ${r.role} role).`,
         });
       if (!r.ok) return json(403, { error: r.error });
       return json(200, { ok: true, clan_tag: tag, scope: r.scope });

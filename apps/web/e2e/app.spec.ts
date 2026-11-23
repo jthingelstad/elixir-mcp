@@ -269,40 +269,12 @@ test.describe("signed in", () => {
     await accessible(page, "requests log");
   });
 
-  test("Settings has one rail and no switcher; an agent is a page with five tabs", async ({
+  test("Settings has one rail, and Connections is a place on it", async ({
     page,
   }) => {
-    const agent = {
-      account_id: "00000000-0000-4000-8000-000000000002",
-      kind: "agent",
-      public_id: "abc12345",
-      role: "member",
-      status: "approved",
-      name: "poap-bot",
-      created_at: "2026-09-01T00:00:00Z",
-      calls_7d: 0,
-      last_call_at: null,
-      timeline_pending: 0,
-      clans: [],
-      last_seen: null,
-      refusals_7d: [],
-      tokens: [],
-    };
     await mockApi(page, {
       ...signedIn(),
-      "GET /api/me": [
-        200,
-        {
-          ...ME,
-          is_admin: true,
-          agents: [{ public_id: "abc12345", name: "poap-bot", role: "member" }],
-        },
-      ],
-      "GET /api/me/principals": [200, { agents: [agent], addable_clans: [] }],
-      "GET /api/agent/abc12345": [
-        200,
-        { ...ME, kind: "agent", name: "poap-bot", email: null, claims: [] },
-      ],
+      "GET /api/me": [200, { ...ME, is_admin: true }],
     });
     await page.goto("/settings/profile");
     const rail = page.getByRole("navigation", { name: "Settings sections" });
@@ -314,24 +286,14 @@ test.describe("signed in", () => {
     await accessible(page, "settings rail");
 
     await rail.getByRole("link", { name: /Connections/ }).click();
-    await page
-      .getByRole("link", { name: /poap-bot/ })
-      .first()
-      .click();
-    await expect(page).toHaveURL(/\/settings\/agents\/abc12345/);
-    const tabs = page.getByRole("tablist");
-    for (const name of [
-      "Overview",
-      "What it reads",
-      "Usage",
-      "Connections",
-      "Settings",
-    ])
-      await expect(tabs.getByRole("tab", { name })).toBeVisible();
+    await expect(page).toHaveURL(/\/settings\/connections$/);
+    await expect(
+      page.getByRole("heading", { level: 1, name: "Connections" }),
+    ).toBeVisible();
     await expect(
       rail.getByRole("link", { name: /Connections/ }),
     ).toHaveAttribute("aria-current", "page");
-    await accessible(page, "agent page");
+    await accessible(page, "connections");
   });
 
   test("opening Home's feed clears its count and rules off what is new since the last visit; an empty week says so", async ({
@@ -417,8 +379,7 @@ test.describe("signed in", () => {
     await rendered(page);
     await accessible(page, "Home's feed, new since your last visit");
     // The page's writes are its own place and the passport's catch-up
-    // (#1015), which grants Stamps no agent reads: nothing an agent reads
-    // moves.
+    // (#1015): nothing else moves.
     await expect
       .poll(() => [...writes].sort())
       .toEqual([
@@ -539,90 +500,6 @@ test.describe("signed in", () => {
     await expect(
       page.locator(".rail").getByRole("link", { name: /Players/ }),
     ).toContainText("2");
-  });
-
-  test("an agent whose key was revoked is issued a new one, and a refusal says why (#130)", async ({
-    page,
-  }) => {
-    const PUBLIC_ID = "a1b2c3d4e5f6";
-    const agent = {
-      account_id: "00000000-0000-4000-8000-000000000001",
-      kind: "agent",
-      public_id: PUBLIC_ID,
-      role: "member",
-      status: "approved",
-      name: "clan-bot",
-      created_at: "2026-09-01T00:00:00Z",
-      calls_7d: 0,
-      last_call_at: null,
-      timeline_pending: 0,
-      clans: [],
-      last_seen: null,
-      refusals_7d: [],
-      tokens: [
-        {
-          token_id: "t1",
-          name: "clan-bot",
-          scope: "cr:read",
-          created_at: "2026-09-01T00:00:00Z",
-          last_used_at: "2026-09-20T00:00:00Z",
-          revoked_at: "2026-09-27T00:00:00Z",
-        },
-      ],
-    };
-    let answer: [number, unknown] = [
-      409,
-      {
-        ok: false,
-        error: "name_taken",
-        message:
-          "Another of your agents is now called clan-bot. Rename that one first, then issue this agent its new key.",
-      },
-    ];
-    await mockApi(page, {
-      ...signedIn(),
-      "GET /api/me": [
-        200,
-        {
-          ...ME,
-          agents: [{ account_id: agent.account_id, public_id: PUBLIC_ID }],
-        },
-      ],
-      "GET /api/me/principals": [200, { agents: [agent], addable_clans: [] }],
-      [`GET /api/agent/${PUBLIC_ID}`]: [
-        200,
-        { ...ME, email: null, claims: [], recordings: [] },
-      ],
-      "POST /api/me/principals/rotate": () => answer,
-    });
-    await page.goto(`/settings/agents/${PUBLIC_ID}/overview`);
-    await expect(page.getByText("No live key.")).toBeVisible();
-
-    await page.goto(`/settings/agents/${PUBLIC_ID}/settings`);
-    const issue = page.getByRole("button", { name: "Issue a new key" });
-    await expect(issue).toBeEnabled();
-
-    // Refused: the name moved to another agent since the revoke.
-    const confirmIssue = () =>
-      page
-        .getByRole("dialog")
-        .getByRole("button", { name: "Issue a new key" })
-        .click();
-    await issue.click();
-    await confirmIssue();
-    await expect(page.getByRole("alert")).toContainText(
-      "Another of your agents is now called clan-bot",
-    );
-    await expect(page.getByText("Copy this key now.")).toHaveCount(0);
-    await rendered(page);
-    await accessible(page, "agent settings, issue refused");
-
-    // Issued: the key is handed over once.
-    answer = [200, { ok: true, token: "svt_fixture_not_a_real_key" }];
-    await confirmIssue();
-    await expect(page.getByText("Copy this key now.")).toBeVisible();
-    await expect(page.getByText("svt_fixture_not_a_real_key")).toBeVisible();
-    await expect(page.getByRole("alert")).toHaveCount(0);
   });
 
   test("the rail stays in view down a long page, its foot in reach", async ({

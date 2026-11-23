@@ -14,7 +14,6 @@ import {
   useItemComments,
 } from "../lib/queries.js";
 import { playerHref } from "../lib/player.js";
-import { useScope } from "../lib/scope.js";
 import { commentIsAfter } from "./comment-read.js";
 import { CheckingLine, notPostedWords } from "./check-words.jsx";
 import {
@@ -27,8 +26,7 @@ import {
  * Comments on a timeline item (2026-11-16): the server half is
  * services/web-api/src/comments.mjs, its rules
  * docs/notes/2026-11-16-comments.md. Nothing draws while comments are off
- * (`/api/me` `features.comments`), under an agent's scope, or on an item
- * that takes none (`it.comments === null`).
+ * (`/api/me` `features.comments`) or on an item that takes none (`it.comments === null`).
  *
  * Home's feed hands each item `comments: { count, latest, open }`: the
  * card shows the newest two and the way in. A player page's or a battle
@@ -43,8 +41,7 @@ const isQuestion = (it) => it?.kind === "post" && it?.post?.question === true;
 
 export function useCommentsOn() {
   const { me } = useMe();
-  const scope = useScope();
-  return !scope && me?.features?.comments === true;
+  return me?.features?.comments === true;
 }
 
 export function Comments({ it, entry = null, renderActions = null }) {

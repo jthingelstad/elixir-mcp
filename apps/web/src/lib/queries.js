@@ -27,7 +27,6 @@ import { api } from "../api.js";
 import { sweepBattles } from "./battle-sweep.js";
 import { reconcileOnOpen } from "./passport.js";
 import { bellSeenAt } from "../shell/bell-logic.js";
-import { useScope } from "./scope.js";
 
 export const keys = {
   me: ["me"],
@@ -35,7 +34,6 @@ export const keys = {
   clans: ["me", "clans"],
   requests: ["me", "requests"],
   events: ["me", "events"],
-  feed: ["me", "feed"],
   gateways: ["me", "gateways"],
   sessions: ["me", "sessions"],
   email: ["me", "email"],
@@ -43,7 +41,6 @@ export const keys = {
   emailSends: ["me", "email", "sends"],
   emailRecord: (id) => ["me", "email", "sends", id],
   connections: ["me", "connections"],
-  principals: ["me", "principals"],
   feedback: ["me", "feedback"],
   // Whether your timeline's RSS link is on (never the link itself).
   rss: ["me", "rss"],
@@ -52,7 +49,6 @@ export const keys = {
   battlePosts: (battle) => ["me", "posts", "battle", battle],
   verifyList: ["me", "verify"],
   callRecord: (id) => ["me", "requests", id],
-  principalIdentities: (id) => ["me", "principals", id, "identities"],
   gatewayCards: ["gateway-cards"],
   gatewayDetail: (id) => ["me", "gateways", id],
   adminGateways: ["admin", "gateways"],
@@ -82,33 +78,11 @@ export const keys = {
 
 const payload = (call) => () => call().then(unwrap);
 
-/**
- * The root of a scope's own keys: `["me"]` for yours, `["agent", id]`
- * for an agent's (2026-09-23). Every read that an agent's pages share
- * with yours keys under its scope's root, so switching can never paint
- * one account's data under the other's header, and invalidating a root
- * refetches everything that scope shows. The hooks below read the
- * scope themselves; yours keep exactly the keys they always had.
- */
-export const rootFor = (agent) => (agent ? ["agent", agent] : keys.me);
-export const scopedKey = (agent, ...rest) => [...rootFor(agent), ...rest];
-
-/** An agent's own `me`, for its pages and for the rail's counts. It
- *  keeps the envelope: a 404 is "not your agent", an answer, not an error. */
-export const useAgentMe = (agent) =>
+export const useUsage = () =>
   useQuery({
-    queryKey: rootFor(agent),
-    queryFn: answered(() => api.me(agent)),
-    enabled: Boolean(agent),
+    queryKey: ["me", "usage"],
+    queryFn: payload(api.usage),
   });
-
-export const useUsage = () => {
-  const agent = useScope();
-  return useQuery({
-    queryKey: scopedKey(agent, "usage"),
-    queryFn: payload(() => api.usage(agent)),
-  });
-};
 
 export const usePush = (enabled = true) =>
   useQuery({ queryKey: keys.push, queryFn: payload(api.push), enabled });
@@ -135,24 +109,20 @@ export const useEmailRecord = (id) =>
 /** What a Follow of `tag` would cost (#760), or nothing until there is a
  *  plausible tag. A tag already normalized by the caller keys the read, so
  *  "#abc" and "ABC" share one answer. */
-export const useFollowCost = (tag) => {
-  const agent = useScope();
-  return useQuery({
-    queryKey: scopedKey(agent, "follow-cost", tag ?? ""),
-    queryFn: payload(() => api.followCost(tag, agent)),
+export const useFollowCost = (tag) =>
+  useQuery({
+    queryKey: ["me", "follow-cost", tag ?? ""],
+    queryFn: payload(() => api.followCost(tag)),
     enabled: Boolean(tag),
     staleTime: 30_000,
     retry: false,
   });
-};
 
-export const useMyClans = () => {
-  const agent = useScope();
-  return useQuery({
-    queryKey: scopedKey(agent, "clans"),
-    queryFn: payload(() => api.myClans(agent)),
+export const useMyClans = () =>
+  useQuery({
+    queryKey: ["me", "clans"],
+    queryFn: payload(api.myClans),
   });
-};
 
 /** Home's reads. Under ["me"], so a change to what you track refetches them.
  *  The head is what the page paints from; each slow panel then reads alone. */
@@ -397,36 +367,23 @@ export const useFollowSlots = () =>
     staleTime: 15_000,
   });
 
-export const useMyRequests = (enabled = true) => {
-  const agent = useScope();
-  return useQuery({
-    queryKey: scopedKey(agent, "requests"),
-    queryFn: payload(() => api.myRequests(agent)),
+export const useMyRequests = (enabled = true) =>
+  useQuery({
+    queryKey: ["me", "requests"],
+    queryFn: payload(api.myRequests),
     enabled,
   });
-};
 
-export const useActivityEvents = (enabled = true) => {
-  const agent = useScope();
-  return useQuery({
-    queryKey: scopedKey(agent, "events"),
-    queryFn: payload(() => api.activity(agent)),
+export const useActivityEvents = (enabled = true) =>
+  useQuery({
+    queryKey: ["me", "events"],
+    queryFn: payload(api.activity),
     enabled,
   });
-};
-
-export const useMyTimeline = (enabled = true) => {
-  const agent = useScope();
-  return useQuery({
-    queryKey: scopedKey(agent, "feed"),
-    queryFn: payload(() => api.myTimeline(agent)),
-    enabled,
-  });
-};
 
 /** Home's feed (2026-11-12): the timeline's items without your account's
- *  own lines, which the bell tells, thirty a page (G1). Yours, never an
- *  agent's. A read that timed out is not asked again on its own: the feed
+ *  own lines, which the bell tells, thirty a page (G1). A read that timed
+ *  out is not asked again on its own: the feed
  *  says so and offers Try again, rather than a blank box for 40 s. */
 export const HOME_FEED_KEY = ["me", "home", "feed"];
 /** One mode's feed (2026-11-17) is its own read under the feed's key, so
@@ -535,7 +492,7 @@ export const useRssLink = () =>
 
 /** Your cheer on an item, shown at once: the cached copy takes the change
  *  before the write, the server's counts after it, and the copy from before
- *  if it was refused. Yours, never an agent's. Home's feed by default; a
+ *  if it was refused. Home's feed by default; a
  *  player page or a battle page passes its own cheers read
  *  (`usePageCheers`): `{ key, list: "items" }`.
  *
@@ -925,7 +882,7 @@ export const usePlayerMap = (enabled = true) =>
 
 /** The battle page's post panel (#762; a highlight until 0292): your
  *  posts about this battle and the verified players you may post it as.
- *  Yours, never an agent's. */
+ */
 export const useBattlePosts = (battle, enabled = true) =>
   useQuery({
     queryKey: keys.battlePosts(battle),
@@ -936,82 +893,46 @@ export const useBattlePosts = (battle, enabled = true) =>
 /** Move the app's place in the timeline to the window end the page
  *  showed (Jamie, 2026-10-20: independent of what agents have read via
  *  MCP). The page's own copy takes the new place, so a return visit
- *  opens from it, and the scope's `me` refetches so the rail's dot
+ *  opens from it, and `me` refetches so the rail's dot
  *  follows. Nothing else refetches: the feed's next read would move the
  *  window and ask to mark again. */
 export function useMarkTimelineSeen() {
   const queryClient = useQueryClient();
-  const agent = useScope();
   return useCallback(
     async (to) => {
-      const res = await api.markTimelineSeen(to, agent);
+      const res = await api.markTimelineSeen(to);
       if (!res.ok) return res;
       const place = (old) =>
         old ? { ...old, seen_to: res.data.seen_to } : old;
-      queryClient.setQueryData(scopedKey(agent, "feed"), place);
-      // Home's feed shares your place (never an agent's); its first page
-      // carries it.
-      if (!agent)
-        queryClient.setQueriesData({ queryKey: HOME_FEED_KEY }, (old) =>
-          old?.pages?.length
-            ? { ...old, pages: [place(old.pages[0]), ...old.pages.slice(1)] }
-            : old,
-        );
-      const queryKey = rootFor(agent);
+      // Home's feed carries your place on its first page.
+      queryClient.setQueriesData({ queryKey: HOME_FEED_KEY }, (old) =>
+        old?.pages?.length
+          ? { ...old, pages: [place(old.pages[0]), ...old.pages.slice(1)] }
+          : old,
+      );
+      const queryKey = keys.me;
       await queryClient.cancelQueries({ queryKey, exact: true });
       await queryClient.invalidateQueries({ queryKey, exact: true });
       return res;
     },
-    [queryClient, agent],
+    [queryClient],
   );
 }
 
-/** The timeline's Discord cross-post. On an agent's settings page the
- *  agent is named outright; elsewhere it is the page's scope. */
-export const useTimelineDiscord = (agentId = null) => {
-  const scoped = useScope();
-  const agent = agentId ?? scoped;
-  return useQuery({
-    queryKey: scopedKey(agent, "feed-discord"),
-    queryFn: payload(() => api.timelineDiscord(agent)),
+/** The timeline's Discord cross-post. */
+export const useTimelineDiscord = () =>
+  useQuery({
+    queryKey: ["me", "feed-discord"],
+    queryFn: payload(api.timelineDiscord),
   });
-};
-
-export const useTimelineEvidence = (params) => {
-  const agent = useScope();
-  return useQuery({
-    queryKey: [...scopedKey(agent, "feed-evidence"), params],
-    staleTime: 0,
-    queryFn: payload(() => api.timelineEvidence(params, agent)),
-    enabled: Boolean(params),
-  });
-};
 
 export const useSessions = () =>
   useQuery({ queryKey: keys.sessions, queryFn: payload(api.sessions) });
 
-export const useConnections = () => {
-  const agent = useScope();
-  return useQuery({
-    queryKey: scopedKey(agent, "connections"),
-    queryFn: payload(() => api.connections(agent)),
-  });
-};
-
-export const useMyPrincipals = () =>
+export const useConnections = () =>
   useQuery({
-    queryKey: keys.principals,
-    queryFn: payload(api.myPrincipals),
-  });
-
-/** An agent's own log and identities, keyed under its principal so
- *  invalidating ["me", "principals"] takes the agent list and every
- *  agent's detail with it. */
-export const usePrincipalIdentities = (id) =>
-  useQuery({
-    queryKey: keys.principalIdentities(id),
-    queryFn: payload(() => api.principalIdentities(id)),
-    enabled: Boolean(id),
+    queryKey: ["me", "connections"],
+    queryFn: payload(api.connections),
   });
 
 export const useGatewayCards = ({ enabled = true } = {}) =>
@@ -1114,38 +1035,32 @@ export const useAdminEmail = (id) =>
     enabled: Boolean(id),
   });
 
-export const useMyFeedback = () => {
-  const agent = useScope();
-  return useQuery({
-    queryKey: scopedKey(agent, "feedback"),
-    queryFn: payload(() => api.myFeedback(agent)),
+export const useMyFeedback = () =>
+  useQuery({
+    queryKey: ["me", "feedback"],
+    queryFn: payload(api.myFeedback),
   });
-};
 
-/** One of your own items (or, on an agent's pages, the agent's), with
- *  what follows it. Opening it on your own pages reads its answer. */
-export const useMyFeedbackItem = (id) => {
-  const agent = useScope();
-  return useQuery({
-    queryKey: scopedKey(agent, "feedback", String(id)),
-    queryFn: payload(() => api.feedbackItem(id, agent)),
+/** One of your own items, with what follows it. Opening it reads its
+ *  answer. */
+export const useMyFeedbackItem = (id) =>
+  useQuery({
+    queryKey: ["me", "feedback", String(id)],
+    queryFn: payload(() => api.feedbackItem(id)),
     enabled: Boolean(id),
   });
-};
 
 export const useVerifyList = () =>
   useQuery({ queryKey: keys.verifyList, queryFn: payload(api.verifyList) });
 
 /** A call record branches on the status (404 is "no such request",
  *  403 "not yours"), so it keeps the envelope. */
-export const useCallRecord = (id) => {
-  const agent = useScope();
-  return useQuery({
-    queryKey: scopedKey(agent, "requests", id),
-    queryFn: answered(() => api.callRecord(id, agent)),
+export const useCallRecord = (id) =>
+  useQuery({
+    queryKey: ["me", "requests", id],
+    queryFn: answered(() => api.callRecord(id)),
     enabled: Boolean(id),
   });
-};
 
 export const useMyGateways = ({ enabled = true } = {}) =>
   useQuery({
@@ -1236,8 +1151,7 @@ export const useBattleSweep = (
 
 /** `invalidate(keys.sessions)` after a mutation: the read refetches and
  *  every screen showing it follows. `invalidate()` with no key is the
- *  scope's root: the session and everything that is the reader's own,
- *  or, on an agent's pages, everything that is the agent's.
+ *  root: the session and everything that is the reader's own.
  *
  *  In-flight reads are cancelled first. A read with no data yet that is
  *  still in flight when the write lands is not refetched by
@@ -1246,8 +1160,7 @@ export const useBattleSweep = (
  *  (an admin create-then-list journey, flaky on CI 2026-09-24). */
 export function useInvalidate() {
   const queryClient = useQueryClient();
-  const agent = useScope();
-  return async (queryKey = rootFor(agent)) => {
+  return async (queryKey = keys.me) => {
     await queryClient.cancelQueries({ queryKey });
     return queryClient.invalidateQueries({ queryKey });
   };

@@ -1,7 +1,6 @@
 /**
  * Web push's routes (2026-11-16, migration 0283): Settings › Notifications.
- * Pinned here: a person's own only (an agent is refused, and no agent
- * console reaches them); the endpoint must be a known push service; the
+ * Pinned here: the endpoint must be a known push service; the
  * device list never shows an endpoint; turning a kind off stores it;
  * nothing is offered with no key; writes need the contract header; a tap
  * is marked only on the account's own notice. Keys are made per run.
@@ -11,8 +10,7 @@ import assert from "node:assert/strict";
 import { createECDH } from "node:crypto";
 import pg from "pg";
 import { emailHash } from "../../../packages/auth/src/index.mjs";
-import { AGENT_SCOPED_ROUTES, makeHandler } from "../src/handler.mjs";
-import { pushRoutes } from "../src/routes/push.mjs";
+import { makeHandler } from "../src/handler.mjs";
 import {
   createScratch,
   dropScratch,
@@ -237,23 +235,6 @@ test("push: with no key nothing is offered and no device can be added", async ()
     },
   });
   assert.equal(add.status, 404);
-});
-
-test("push: an agent is refused, and no agent console reaches the routes", async () => {
-  for (const key of AGENT_SCOPED_ROUTES)
-    assert.equal(/\/push/.test(key), false, key);
-  const routes = pushRoutes({
-    resolveAccount: async () => ({ accountId: ids.person, kind: "agent" }),
-    publicKey: vapid,
-  });
-  const r = await routes["GET /api/me/push"](db, { headers: {} });
-  assert.equal(r.statusCode, 403);
-  const w = await routes["POST /api/me/push/subscriptions"](
-    db,
-    { headers: {} },
-    { subscription: subscription("https://fcm.googleapis.com/fcm/send/agent") },
-  );
-  assert.equal(w.statusCode, 403);
 });
 
 test("push: this device is a yes or no for the account signed in now; another account's row goes", async () => {

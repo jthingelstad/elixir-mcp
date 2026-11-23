@@ -127,15 +127,8 @@ test("the composer's rules follow the server's", () => {
   );
   expect(POST_MAX).toBe(500);
   expect(migration).toContain("char_length(body) between 1 and 500");
-  expect(postsOn({ features: { posts: true, comments: true } }, null)).toBe(
-    true,
-  );
-  expect(postsOn({ features: { posts: true, comments: false } }, null)).toBe(
-    false,
-  );
-  expect(postsOn({ features: { posts: true, comments: true } }, "agent")).toBe(
-    false,
-  );
+  expect(postsOn({ features: { posts: true, comments: true } })).toBe(true);
+  expect(postsOn({ features: { posts: true, comments: false } })).toBe(false);
   expect(canPost({ claims: VERIFIED })).toBe(true);
   expect(canPost({ claims: [{ ...VERIFIED[0], status: "unverified" }] })).toBe(
     false,

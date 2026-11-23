@@ -19,7 +19,6 @@ import {
   within,
 } from "@testing-library/react";
 import { renderWithProviders } from "./helpers.jsx";
-import { Timeline } from "../src/views/account/Timeline.jsx";
 import { Admin } from "../src/views/Admin.jsx";
 
 const ME = { is_admin: true, is_owner: true };
@@ -52,30 +51,6 @@ afterEach(() => {
 /** Every page in the app that is a log, and what it needs to have
  *  rows. If a page is added here it must go through LogTable too. */
 const PAGES = [
-  [
-    "Timeline",
-    () => <Timeline />,
-    {
-      "me/timeline": {
-        window: { from: "2026-09-08T06:00:00Z", to: "2026-09-09T06:02:00Z" },
-        seen_to: null,
-        timeline: [
-          {
-            at: "2026-09-09T06:02:00Z",
-            subject_tag: "#C1",
-            subject_name: "Test Clan",
-            kind: "week_resolved",
-            section: "war",
-            text: "Tue 06:02 Test Clan finished week 1 in place 2 with 9,000 fame.",
-            facts: {},
-          },
-        ],
-        timeline_more: 0,
-        entries: [],
-        quiet: [],
-      },
-    },
-  ],
   [
     "Admin ▸ Accounts",
     () => <Admin me={ME} page="accounts" navigate={() => {}} />,
@@ -137,14 +112,6 @@ for (const [name, mount, body] of PAGES) {
   test(`${name} renders through the one log table`, async () => {
     stub(body);
     renderWithProviders(mount());
-    if (name === "Timeline") {
-      await screen.findByText(
-        "Tue 06:02 Test Clan finished week 1 in place 2 with 9,000 fame.",
-      );
-      expect(document.querySelector("ol.timeline-list")).toBeTruthy();
-      expect(screen.getByLabelText("Who")).toBeTruthy();
-      return;
-    }
     const table = await waitFor(() => {
       const t = document.querySelector("table.table");
       expect(t, "not the shared table").toBeTruthy();

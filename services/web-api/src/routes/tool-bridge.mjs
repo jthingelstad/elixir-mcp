@@ -121,10 +121,7 @@ export function toolBridgeRoutes({ resolveAccount, toolRegistry }) {
       result.body,
     );
     const body =
-      !truncated &&
-      !result.isError &&
-      tool === "players_search" &&
-      account.kind !== "agent"
+      !truncated && !result.isError && tool === "players_search"
         ? await withPlayerConnections(db, account.accountId, result.body)
         : truncated
           ? JSON.parse(text)

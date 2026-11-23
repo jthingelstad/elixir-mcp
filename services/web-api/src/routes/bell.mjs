@@ -1,18 +1,11 @@
 /** The bell (2026-11-12): `GET /api/me/bell` reads its reactions, followers
  *  and feedback answers with how many are new; `PUT /api/me/bell/seen` moves
  *  the account's seen marker when the bell is opened (the contract header
- *  required). A person's only: an agent is refused, and no agent console
- *  reaches either (AGENT_SCOPED_ROUTES does not list them). Actions waiting
- *  stay Clan's own read, `/api/me/home/needs`. */
+ *  required). Actions waiting stay Clan's own read,
+ *  `/api/me/home/needs`. */
 import { checkRateLimit } from "@elixir-mcp/auth";
 import { json } from "../http.mjs";
 import { BELL_READS_PER_HOUR, markBellSeen, readBell } from "../bell.mjs";
-
-const notEntitled = () =>
-  json(403, {
-    error: "not_entitled",
-    message: "The bell is a person's own; an agent has none.",
-  });
 
 export function bellRoutes({
   resolveAccount,
@@ -25,7 +18,6 @@ export function bellRoutes({
       requireContractHeader: write,
     });
     if (!account) return { refused: json(401, { error: "unauthenticated" }) };
-    if (account.kind === "agent") return { refused: notEntitled() };
     return { account };
   };
 

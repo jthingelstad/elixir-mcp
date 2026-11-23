@@ -71,11 +71,11 @@ const call = async (
 const setAvatar = (card_id, opts = {}) =>
   call("/api/me/avatar", { method: "POST", body: { card_id }, ...opts });
 
-async function account(hash, extra = "") {
+async function account(hash) {
   const { rows } = await db.query(
-    `insert into account (email_hash, status, role${extra ? ", kind, owned_by_account_id, public_id" : ""})
-     values ($1, 'approved', 'member'${extra ? ", 'agent', $2, 'agavatar1'" : ""}) returning account_id`,
-    extra ? [hash, extra] : [hash],
+    `insert into account (email_hash, status, role)
+     values ($1, 'approved', 'member') returning account_id`,
+    [hash],
   );
   return rows[0].account_id;
 }
@@ -129,7 +129,6 @@ before(async () => {
     `update account set avatar_card_id = $2 where account_id = $1`,
     [fanId, ARROWS],
   );
-  await account("avatar-agent", ownerId);
   ownerCookie = await cookieFor(ownerId, "avatar-owner");
   handler = makeHandler({
     databaseUrl,
@@ -166,7 +165,7 @@ test("an account sets its profile image to a catalog card and clears it", async 
   assert.equal((await call("/api/me")).body.avatar_card_id, null);
 });
 
-test("the write refuses a tower troop, an unknown or retired card, a hostile id, the signed out, an agent and a missing contract header", async (t) => {
+test("the write refuses a tower troop, an unknown or retired card, a hostile id, the signed out and a missing contract header", async (t) => {
   t.mock.method(console, "info", () => {});
   await setAvatar(KNIGHT);
   for (const bad of [
@@ -186,13 +185,6 @@ test("the write refuses a tower troop, an unknown or retired card, a hostile id,
   }
   assert.equal((await setAvatar(ARROWS, { cookie: null })).status, 401);
   assert.equal((await setAvatar(ARROWS, { contract: false })).status, 401);
-  // An agent reaches the website only through its owner's scoped path, and
-  // the image is not one of the routes an agent has there.
-  const agent = await call("/api/agent/agavatar1/avatar", {
-    method: "POST",
-    body: { card_id: ARROWS },
-  });
-  assert.equal(agent.status, 404);
   // Nothing refused moved the image.
   const {
     rows: [row],

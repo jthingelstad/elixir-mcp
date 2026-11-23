@@ -118,51 +118,12 @@ export const DOC_LINKS = {
       ["Run a collector", "/docs/operators"],
     ],
   ],
-  "agent:overview": [
-    "Your agent",
-    [
-      ["Agents", "/docs/agents"],
-      ["Roles", "/docs/roles"],
-      ["The timeline", "/docs/timeline"],
-    ],
-  ],
-  "agent:following": [
-    "What an agent follows",
-    [
-      ["What an agent follows", "/docs/agents#what-an-agent-follows"],
-      ["How recording works", "/docs/recording"],
-      ["Roles & slots", "/docs/roles"],
-    ],
-  ],
-  "agent:settings": [
-    "Running an agent",
-    [
-      ["Agents", "/docs/agents"],
-      ["Connections", "/docs/connections"],
-      ["Limits", "/docs/limits"],
-    ],
-  ],
-  "agent:connections": [
-    "Connecting as an agent",
-    [
-      ["Agents", "/docs/agents"],
-      ["Connections", "/docs/connections"],
-    ],
-  ],
   "connections:clients": [
     "Connections",
     [
       ["Connections", "/docs/connections"],
       ["Protocol & auth", "/docs/protocol"],
       ["Scopes", "/docs/connecting#scopes"],
-    ],
-  ],
-  "connections:agents": [
-    "Agents",
-    [
-      ["Agents", "/docs/agents"],
-      ["Key lifecycle", "/docs/agents#key-lifecycle"],
-      ["Identity map", "/docs/agents#knowing-which-human-is-asking"],
     ],
   ],
   profile: [
@@ -185,7 +146,6 @@ export const DOC_LINKS = {
     "What members see",
     [
       ["What members see", "/docs/your-account#what-members-see"],
-      ["Identity map", "/docs/agents#knowing-which-human-is-asking"],
       ["Privacy", "/docs/privacy"],
     ],
   ],

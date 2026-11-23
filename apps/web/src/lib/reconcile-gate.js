@@ -68,9 +68,8 @@ export function liftReconcileGate() {
  * The writes that can earn a Stamp or move what a reconciliation reads
  * (the hooks in docs/notes/2026-11-14-passport-stamps-earning.md): a
  * player added, followed, verified or changed; a picture; a digest choice;
- * a cheer; a post about a battle with words; the map's place or Not now. Paths are
- * the app's own (api.js, clan/api.js); an agent's scoped routes earn
- * nothing for the person, so they are not here.
+ * a cheer; a post about a battle with words; the map's place or Not now.
+ * Paths are the app's own (api.js, clan/api.js).
  */
 const EARNING_WRITES = [
   /^\/api\/claims$/,

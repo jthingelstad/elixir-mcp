@@ -226,11 +226,6 @@ test("the doors by prefix refuse with no credential", async () => {
   assert.equal((await call("GET", "/api/v1/me")).statusCode, 401);
   assert.equal((await call("POST", "/api/v1/me/players")).statusCode, 404);
   assert.equal((await call("GET", "/api/v1/me/players")).statusCode, 404);
-  // An agent's console needs its owner signed in.
-  assert.equal(
-    (await call("GET", "/api/agent/abcdefgh/timeline")).statusCode,
-    401,
-  );
   // Clan: its health is its only unsigned answer (CLAN_UNSIGNED), and
   // everything else resolves a person first. Its retired OAuth routes are
   // gone, so they are ordinary signed-out paths.

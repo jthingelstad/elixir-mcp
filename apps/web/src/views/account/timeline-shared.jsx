@@ -2,11 +2,10 @@ import { useEffect, useRef, useState } from "react";
 import { TagText, noun, useClock } from "@elixir-mcp/ui";
 import { gameLine, shownAt } from "../../home/logic.js";
 import { useMarkTimelineSeen } from "../../lib/queries.js";
-import { useScope } from "../../lib/scope.js";
 
 /**
- * What both Timeline pages share: the place a visit opens from, and one item's
- * recorded evidence.
+ * What Home's feed takes from here: the place a visit opens from, and one
+ * item's recorded evidence.
  *
  * The app keeps its own place in the feed (Jamie, 2026-10-20: "timeline
  * should be independent of what agents have seen via MCP"). Showing the page
@@ -15,14 +14,11 @@ import { useScope } from "../../lib/scope.js";
  * underneath it.
  */
 export function useTimelinePlace(timeline) {
-  const agent = useScope();
   const seenTo = timeline?.seen_to ?? null;
   const to = timeline?.window?.to ?? null;
-  // The place as this visit found it: taken from the first read, per
-  // scope (an agent's pages keep the agent's place).
+  // The place as this visit found it: taken from the first read.
   const [opened, setOpened] = useState(null);
-  if (timeline && (opened === null || opened.agent !== agent))
-    setOpened({ agent, seenTo });
+  if (timeline && opened === null) setOpened({ seenTo });
   const openedMs = opened?.seenTo ? Date.parse(opened.seenTo) : null;
   // Once per window end shown: a refused or failed write is not retried
   // until the page shows a later window.

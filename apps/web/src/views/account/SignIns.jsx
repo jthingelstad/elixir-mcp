@@ -106,7 +106,7 @@ function Devices() {
             <ConfirmAction
               label="Sign out everywhere else"
               title="Sign out everywhere else?"
-              body="Every other browser and device signs out at once. Agents and connected apps are separate, and stay connected."
+              body="Every other browser and device signs out at once. Connected apps are separate, and stay connected."
               confirm="Sign out everywhere else"
               run={() => everywhere.run()}
             />
@@ -115,15 +115,14 @@ function Devices() {
       </Panel>
       <p className="st-foot">
         A sign-in lasts thirty days from its last use and ninety at most.
-        Signing out here ends that device&rsquo;s session at once. Agents and
-        connected apps are separate, under Connections &amp; agents.
+        Signing out here ends that device&rsquo;s session at once. Connected
+        apps are separate, under Connections.
       </p>
     </>
   );
 }
 
-/** A change on the account, in plain words. Shared with an agent's own
- *  account events, whose `scoped` read is the same table. */
+/** A change on the account, in plain words. */
 function AccountEvents({ limit, title, sub }) {
   const { when } = useClock();
   const query = useActivityEvents(true);

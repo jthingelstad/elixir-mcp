@@ -117,11 +117,11 @@ test("My conversations is private and only includes threads actually joined", as
   );
 });
 
-test("the person-only route fails closed without a session, for agents, and with comments off", async () => {
+test("the person-only route fails closed without a session, for an account that is not a person, and with comments off", async () => {
   const anonymous = await call(undefined, "GET", "/api/me/conversations");
   assert.equal(anonymous.statusCode, 401);
   for (const [account, enabled, status] of [
-    [{ kind: "agent", accountId: people.reader }, true, 403],
+    [{ kind: "integration", accountId: people.reader }, true, 403],
     [{ kind: "person", accountId: people.reader }, false, 404],
   ]) {
     const routes = commentsRoutes({

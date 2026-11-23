@@ -16,14 +16,12 @@ import {
 } from "@elixir-mcp/ui";
 import { limitsLabel } from "../../lib/words.js";
 import { useUsage } from "../../lib/queries.js";
-import { useScope, useScopedPath } from "../../lib/scope.js";
 import { quotaReading } from "../../lib/quota.js";
 import { SETTINGS } from "../../lib/settings.js";
 
 /**
  * Usage and limits: your daily budget, where it went, and what your account
- * allows. An agent's Usage tab is the same reading of the same budget, with
- * how much of it this agent spent. The numbers come through lib/quota.js.
+ * allows. The numbers come through lib/quota.js.
  */
 
 /** Fourteen days ending today, zero-filled: the server only returns the
@@ -171,7 +169,6 @@ function Allows({ me, usage }) {
               usage?.live_today,
               e.live_fetches_per_day,
             ],
-            ["Agents", undefined, e.agents?.limit],
           ]}
         />
         {next ? (
@@ -183,8 +180,8 @@ function Allows({ me, usage }) {
           </p>
         ) : null}
         <p className="st-foot m-0">
-          These limits set what Elixir records for you, your daily budgets and
-          how many agents you can have, never what you can read.{" "}
+          These limits set what Elixir records for you and your daily budgets,
+          never what you can read.{" "}
           <a href="/docs/roles#upgrades">How limits work</a>
         </p>
       </div>
@@ -208,15 +205,7 @@ function ByConnection({ callers }) {
         <ul className="st-meters">
           {callers.map((c) => (
             <li key={`${c.kind}:${c.name}`} className="st-meter">
-              <span className="st-meter__name">
-                {c.public_id ? (
-                  <Link to={`${SETTINGS}/agents/${c.public_id}/usage`}>
-                    {c.name}
-                  </Link>
-                ) : (
-                  c.name
-                )}
-              </span>
+              <span className="st-meter__name">{c.name}</span>
               <span className="meter">
                 <span
                   className="meter__fill"
@@ -233,7 +222,7 @@ function ByConnection({ callers }) {
   );
 }
 
-function BusiestTools({ tools, path }) {
+function BusiestTools({ tools }) {
   return (
     <Panel
       title="Busiest tools"
@@ -252,7 +241,7 @@ function BusiestTools({ tools, path }) {
                   those", so it opens Requests filtered to this tool. */}
               <Link
                 className="mono st-meter__name"
-                to={`${path(`${SETTINGS}/usage/requests`)}?tool=${encodeURIComponent(t.tool)}`}
+                to={`${SETTINGS}/usage/requests?tool=${encodeURIComponent(t.tool)}`}
               >
                 {t.tool}
               </Link>
@@ -268,8 +257,6 @@ function BusiestTools({ tools, path }) {
 export function Usage({ me }) {
   const { data: usage, error, refetch, isFetching } = useUsage();
   const { zone } = useClock();
-  const scope = useScope();
-  const path = useScopedPath();
   if (error && !usage)
     return (
       <ErrorState
@@ -287,10 +274,7 @@ export function Usage({ me }) {
       </p>
     );
 
-  const quota = quotaReading(
-    scope ? { ...usage, today_calls: usage.budget_today_calls } : usage,
-    zone,
-  );
+  const quota = quotaReading(usage, zone);
   const days = fourteenDays(usage.days);
   const callers = usage.by_caller ?? [];
   const tools = usage.top_tools ?? [];
@@ -298,67 +282,6 @@ export function Usage({ me }) {
     days.every((d) => d.calls === 0) &&
     callers.length === 0 &&
     tools.length === 0;
-
-  if (scope)
-    return (
-      <div className="st-page">
-        <p className="m-0">
-          This agent spends your daily budget: it made{" "}
-          {(usage.today_calls ?? 0).toLocaleString()} of the{" "}
-          {(usage.budget_today_calls ?? 0).toLocaleString()} calls your budget
-          paid for today. {quota.resets}.
-        </p>
-        <Stats>
-          <Stat
-            label="Your budget today"
-            value={quota.calls.used.toLocaleString()}
-            of={quota.calls.limit?.toLocaleString()}
-          />
-          <Stat
-            label="Your live fetches today"
-            value={quota.fetches.used.toLocaleString()}
-            of={quota.fetches.limit?.toLocaleString()}
-          />
-          <Stat
-            label="This agent today"
-            value={(usage.today_calls ?? 0).toLocaleString()}
-            note="calls"
-          />
-          <Stat
-            label="This agent, 7 days"
-            value={callers
-              .reduce((n, c) => n + (c.calls ?? 0), 0)
-              .toLocaleString()}
-            note="calls"
-          />
-        </Stats>
-        <Panel title="Its logs" titleAs="h2">
-          <Rows>
-            <Row
-              title="Requests"
-              detail="Every call it made, newest first"
-              right={
-                <>
-                  Open <Icon name="chevron-right" size={14} />
-                </>
-              }
-              href={path(`${SETTINGS}/usage/requests`)}
-            />
-            <Row
-              title="Account events"
-              detail="Changes to this agent's account, its access and what it records"
-              right={
-                <>
-                  Open <Icon name="chevron-right" size={14} />
-                </>
-              }
-              href={`${SETTINGS}/agents/${scope}/usage/events`}
-            />
-          </Rows>
-        </Panel>
-        <BusiestTools tools={tools} path={path} />
-      </div>
-    );
 
   return (
     <div className="st-page">
@@ -378,9 +301,6 @@ export function Usage({ me }) {
       />
       <p className="m-0">
         {quota.resets}.
-        {usage.agent_calls_today > 0
-          ? ` Your agents spent ${usage.agent_calls_today.toLocaleString()} of today's calls, and they draw on the same budget you do.`
-          : ""}
         {usage.web_calls_today > 0
           ? ` Stats and these pages also read ${usage.web_calls_today.toLocaleString()} ${noun(usage.web_calls_today, "time")} for you today. Your own reads on Elixir's website aren't counted against the budget.`
           : ""}
@@ -417,7 +337,7 @@ export function Usage({ me }) {
           <CallsPerDay days={days} />
           <div className="st-two">
             <ByConnection callers={callers} />
-            <BusiestTools tools={tools} path={path} />
+            <BusiestTools tools={tools} />
           </div>
           <Panel>
             <Rows>

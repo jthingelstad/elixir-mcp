@@ -28,8 +28,7 @@ import { YourPlace } from "../../clan/views/YourPlace.jsx";
  * Profile: the account you are signed in as. Editable here are your
  * @handle, the profile image (its own panel, AvatarPicker.jsx) and the
  * time zone; everything else names where it is changed, because each has its own
- * page. Limits read in full on Usage and limits, Discord on Connections &
- * agents.
+ * page. Limits read in full on Usage and limits, Discord on Connections.
  *
  * Who you are comes first (#1015): your main player as every member sees
  * it, your passport and your place, before the account's private
@@ -162,7 +161,7 @@ export function Profile({ me, refresh, hash = null }) {
                 <>
                   Connected as {me.discord.username}.{" "}
                   <Link to={`${SETTINGS}/connections/discord`}>
-                    Manage in Connections &amp; agents
+                    Manage in Connections
                   </Link>
                 </>
               ) : (
@@ -173,10 +172,7 @@ export function Profile({ me, refresh, hash = null }) {
                   >
                     Connect Discord
                   </a>
-                  <Note>
-                    Sign in with it, and a clan&rsquo;s Discord agent knows it
-                    is you.
-                  </Note>
+                  <Note>Sign in with it.</Note>
                 </>
               ),
             ],

@@ -23,7 +23,6 @@ const SLOTS = {
       slot: "used",
       reason: null,
       yours: "friend",
-      agents: [],
     },
     {
       player_tag: "#09PR",
@@ -31,7 +30,6 @@ const SLOTS = {
       slot: "free",
       reason: "followed_by_others",
       yours: "friend",
-      agents: [],
     },
   ],
 };

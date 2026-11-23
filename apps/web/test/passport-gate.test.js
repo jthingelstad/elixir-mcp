@@ -124,7 +124,6 @@ test("the writes that can earn, by the app's own paths", () => {
     ["POST", "/api/me/passport/reconcile"],
     ["POST", "/api/me/post-shares"],
     ["POST", "/api/me/post-discord"],
-    ["POST", "/api/agent/abc/players"],
     ["PUT", "/api/me/bell/seen"],
     ["DELETE", "/api/clan/me/place/x"],
   ])

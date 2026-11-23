@@ -11,7 +11,7 @@ export function onboardingPeopleRoutes({ resolveAccount, live }) {
       requireContractHeader: request,
     });
     if (!account) return json(401, { error: "unauthenticated" });
-    if (account.kind === "agent") return json(403, { error: "not_entitled" });
+    if (account.kind !== "person") return json(403, { error: "not_entitled" });
     if (
       !(await checkRateLimit(db, {
         bucket: `onboarding#${account.accountId}`,

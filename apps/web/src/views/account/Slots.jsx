@@ -48,22 +48,17 @@ const WHY_FREE = {
   followed_by_others: "Another account followed them first",
 };
 
-/** Who in your pool follows the player, in words. */
+/** How you follow the player, in words. */
 function howFollowed(p) {
-  const parts = [];
-  if (p.yours) parts.push(HOW[p.yours] ?? "You follow them");
-  for (const a of p.agents ?? [])
-    parts.push(`Your agent ${a.name ?? a.public_id} follows them`);
-  return parts.join(" · ");
+  return p.yours ? (HOW[p.yours] ?? "You follow them") : "";
 }
 
 /** The way to stop a slot-using follow: yours stops here; your own player
- *  is removed on its own page; an agent's is the agent's to drop. */
+ *  is removed on its own page. */
 function Stop({ p }) {
   const invalidate = useInvalidate();
   const who = p.name ?? p.player_tag;
   if (p.yours === "friend") {
-    const still = (p.agents ?? []).length > 0;
     return (
       <ConfirmAction
         label="Unfollow"
@@ -71,10 +66,7 @@ function Stop({ p }) {
         body={
           <p className="m-0">
             Elixir stops recording <TagText>{who}</TagText> for you. They are
-            not told.{" "}
-            {still
-              ? "Your agent still follows them, so they keep using a slot until the agent stops too."
-              : "Their slot is free again at once."}
+            not told. Their slot is free again at once.
           </p>
         }
         confirm="Unfollow"
@@ -85,22 +77,12 @@ function Stop({ p }) {
       />
     );
   }
-  if (p.yours)
-    return (
-      <Link
-        className="btn btn--sm"
-        to={`${SETTINGS}/players/${tagPath(p.player_tag)}`}
-      >
-        Open
-      </Link>
-    );
-  const agent = (p.agents ?? [])[0];
-  return agent ? (
+  return p.yours ? (
     <Link
       className="btn btn--sm"
-      to={`${SETTINGS}/agents/${agent.public_id}/reads`}
+      to={`${SETTINGS}/players/${tagPath(p.player_tag)}`}
     >
-      Agent
+      Open
     </Link>
   ) : null;
 }
@@ -186,10 +168,9 @@ export function FollowSlots() {
             A slot is a player Elixir records only because you asked. A member
             of a clan Elixir records in full, or a player another account
             followed first, costs nothing, so a clan where everyone follows
-            everyone costs the same as one follower. You and your agents share
-            these slots. Unfollow someone who uses one to free it; if a free
-            player&rsquo;s reason goes away, they keep recording and start using
-            a slot.
+            everyone costs the same as one follower. Unfollow someone who uses
+            one to free it; if a free player&rsquo;s reason goes away, they keep
+            recording and start using a slot.
           </p>
         </>
       )}

@@ -21,9 +21,7 @@
  *    an account that finished the older welcome list (0274). It
  *    completes nothing and grants nothing; any other account is 409.
  *
- *  A person's only: an agent is refused, and no agent console reaches
- *  any of them (AGENT_SCOPED_ROUTES does not list them). The GETs never
- *  grant a Stamp. */
+ *  A person's only. The GETs never grant a Stamp. */
 import { checkRateLimit } from "@elixir-mcp/auth";
 import { readOwnedPlaces } from "@elixir-mcp/auth/clan-context";
 import {
@@ -66,7 +64,7 @@ async function hasPlace(db, accountId) {
 const notEntitled = () =>
   json(403, {
     error: "not_entitled",
-    message: "A passport is a person's own; an agent has none.",
+    message: "A passport is a person's own.",
   });
 
 const rateLimited = () =>

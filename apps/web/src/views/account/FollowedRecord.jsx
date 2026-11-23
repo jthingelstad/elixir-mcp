@@ -305,7 +305,7 @@ export function FollowedRecord({ me, refresh, navigate, tag }) {
                     }}
                   />
                   <Note>
-                    Private to you, and your agent sees it. It saves when you
+                    Private to you and the apps you connect. It saves when you
                     leave the field.
                   </Note>
                 </>,

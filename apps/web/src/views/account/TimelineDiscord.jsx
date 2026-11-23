@@ -2,7 +2,6 @@ import { useState } from "react";
 import { useWrite } from "../../client/index.ts";
 import {
   ConfirmAction,
-  DetailSheet,
   DiscordDeliveries,
   Fresh,
   PageHead,
@@ -14,14 +13,13 @@ import { discordOutcome, discordStartHref } from "../../discord.js";
 import { SETTINGS } from "../../lib/settings.js";
 import { Crumb, Facts, Note } from "./parts.jsx";
 import { api } from "../../api.js";
-import { scopedKey, useTimelineDiscord } from "../../lib/queries.js";
-import { useScope } from "../../lib/scope.js";
+import { useTimelineDiscord } from "../../lib/queries.js";
 
 /**
  * The timeline cross-posted to a Discord channel (Jamie, 2026-10-10):
  * every new item as one line, posted as it is recorded and edited in
- * place as a session grows. A person's own timeline, or an agent's. Off, it asks for the channel's webhook; on, it
- * shows the webhook shortened (the address is a credential to post in
+ * place as a session grows. Off, it asks for the channel's webhook; on,
+ * it shows the webhook shortened (the address is a credential to post in
  * that channel, so the whole of it is never shown again) and lets you
  * change it or turn it off.
  */
@@ -38,79 +36,19 @@ function sharingStatus(s) {
   return { gone, forum, failing };
 }
 
-/** The timeline line on an agent's own timeline page: the sheet holds the
- *  editor, so it is there when wanted and out of the way when not. */
-export function TimelineDiscord() {
-  const scope = useScope();
-  const query = useTimelineDiscord();
-  const save = useWrite((body) => api.saveTimelineDiscord(body, scope), {
-    invalidate: [scopedKey(scope, "feed-discord")],
-  });
-  const [managing, setManaging] = useState(false);
-  const s = query.data ?? null;
-
-  if (query.isPending) return null;
-  if (query.isError)
-    return (
-      <p className="mb-6 text-ink-faint" role="status">
-        Discord cross-posting could not be read just now.
-      </p>
-    );
-  const { gone, forum, failing } = sharingStatus(s);
-  return (
-    <>
-      <div className="flex flex-wrap items-center gap-3 text-body-sm">
-        <span
-          className={gone || forum || failing ? "text-warn" : "text-ink-dim"}
-        >
-          Discord sharing{" "}
-          {gone || forum || failing
-            ? "needs attention"
-            : s.enabled
-              ? "on"
-              : "off"}
-        </span>
-        {s.enabled && s.delivery?.state === "ok" ? (
-          <Fresh label="last delivered" ts={s.delivery.at} />
-        ) : null}
-        <button
-          type="button"
-          className="btn btn--sm"
-          onClick={() => setManaging(true)}
-        >
-          Manage sharing
-        </button>
-      </div>
-      {managing ? (
-        <DetailSheet
-          title="Timeline to Discord"
-          onClose={() => setManaging(false)}
-        >
-          <TimelineSharing
-            key={scope ?? "person"}
-            scope={scope}
-            query={query}
-            save={save}
-          />
-        </DetailSheet>
-      ) : null}
-    </>
-  );
-}
-
 /** The person's Discord home: `/settings/connections/discord`. The account
  *  link and the timeline in a channel are separate things, side by side. */
 export function DiscordPage({ me, refresh, search = "" }) {
   const query = useTimelineDiscord();
-  const save = useWrite((body) => api.saveTimelineDiscord(body, null), {
-    invalidate: [scopedKey(null, "feed-discord")],
+  const save = useWrite((body) => api.saveTimelineDiscord(body), {
+    invalidate: [["me", "feed-discord"]],
   });
   const [came] = useState(() => discordOutcome(search, "link"));
   const s = query.data ?? null;
   const status = s ? sharingStatus(s) : null;
   return (
     <div className="st-page">
-      <Crumb to={`${SETTINGS}/connections`}>Connections &amp; agents</Crumb>
+      <Crumb to={`${SETTINGS}/connections`}>Connections</Crumb>
       <PageHead
         title="Discord"
         sub="Your Discord account, and your timeline in a channel."
@@ -129,15 +67,12 @@ export function DiscordPage({ me, refresh, search = "" }) {
                 me?.discord ? (
                   <>
                     Connected as {me.discord.username}
-                    <Note>
-                      Sign in with it, and a clan&rsquo;s Discord agent knows it
-                      is you.
-                    </Note>
+                    <Note>Sign in with it.</Note>
                     <div className="st-actions">
                       <ConfirmAction
                         label="Disconnect"
                         title="Disconnect Discord?"
-                        body="You can't sign in with it, and a clan's Discord agent no longer knows it is you. Your email still signs you in."
+                        body="You can't sign in with it any more. Your email still signs you in."
                         confirm="Disconnect"
                         run={() => api.unlinkDiscord()}
                         onDone={(r) => {
@@ -154,10 +89,7 @@ export function DiscordPage({ me, refresh, search = "" }) {
                     >
                       Connect Discord
                     </a>
-                    <Note>
-                      Sign in with it, and a clan&rsquo;s Discord agent knows it
-                      is you.
-                    </Note>
+                    <Note>Sign in with it.</Note>
                   </>
                 ),
               ],
@@ -191,7 +123,7 @@ export function DiscordPage({ me, refresh, search = "" }) {
             </span>
           }
         >
-          <TimelineSharing scope={null} query={query} save={save} />
+          <TimelineSharing query={query} save={save} />
         </Panel>
       ) : null}
     </div>
@@ -200,7 +132,7 @@ export function DiscordPage({ me, refresh, search = "" }) {
 
 /** Draft and feedback belong to this mount. The parent keeps the mutation
  * observer, so reopening cannot repeat an update that is still in flight. */
-function TimelineSharing({ scope, query, save }) {
+function TimelineSharing({ query, save }) {
   const { when } = useClock();
   const [editing, setEditing] = useState(false);
   const [url, setUrl] = useState("");
@@ -234,12 +166,10 @@ function TimelineSharing({ scope, query, save }) {
   return (
     <div className="panel__body space-y-3">
       <p>
-        {scope
-          ? "Every new item on this agent's timeline, posted to a Discord channel as Elixir records it:"
-          : "Every new item on your timeline, posted to a Discord channel as Elixir records it:"}{" "}
-        one line each, edited in place as a session grows, with links back here.
-        Nothing from before it is turned on is posted, and leaders-only items
-        never are.
+        Every new item on your timeline, posted to a Discord channel as Elixir
+        records it: one line each, edited in place as a session grows, with
+        links back here. Nothing from before it is turned on is posted, and
+        leaders-only items never are.
       </p>
       {gone ? (
         <div className="callout callout--warn" role="alert">
@@ -404,7 +334,7 @@ function TimelineSharing({ scope, query, save }) {
         entries={s.deliveries}
         notDelivered={s.not_delivered ?? 0}
         ratings={s.ratings}
-        onRate={(body) => api.rateTimelineDiscord(body, scope)}
+        onRate={(body) => api.rateTimelineDiscord(body)}
       />
     </div>
   );
@@ -412,8 +342,8 @@ function TimelineSharing({ scope, query, save }) {
 
 /** One line for a Settings page: whether the timeline is cross-posted,
  *  and where (shortened). */
-export function TimelineDiscordState({ agent = null }) {
-  const query = useTimelineDiscord(agent);
+export function TimelineDiscordState() {
+  const query = useTimelineDiscord();
   const s = query.data ?? null;
   if (!s) return <span className="hint">Reading.</span>;
   if (s.enabled)

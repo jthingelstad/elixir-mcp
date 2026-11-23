@@ -18,7 +18,7 @@ import { readFile } from "node:fs/promises";
 import pg from "pg";
 import { processResult } from "../../../packages/ingest/src/pipeline.mjs";
 import { emailHash } from "../../../packages/auth/src/index.mjs";
-import { AGENT_SCOPED_ROUTES, makeHandler } from "../src/handler.mjs";
+import { makeHandler } from "../src/handler.mjs";
 import { interleave } from "../src/people.mjs";
 import { shapeRaceNow } from "../src/routes/home.mjs";
 import {
@@ -417,13 +417,6 @@ test("signed out there is no cheer read and no people read; bad asks are refused
     (await call("GET", "/api/me/cheers?player=zz", { who: "friend" })).status,
     400,
   );
-  for (const key of [
-    "GET /api/me/cheers",
-    "GET /api/me/people/suggested",
-    "GET /api/me/people/battles",
-    "GET /api/me/people/clan",
-  ])
-    assert.ok(!AGENT_SCOPED_ROUTES.has(key), key);
 });
 
 test("People to follow: why and the cost, game names, never anyone you claim", async () => {

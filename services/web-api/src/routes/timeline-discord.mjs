@@ -1,6 +1,5 @@
 /** The console's Timeline page: the account's timeline cross-posted to
- *  a Discord webhook (0213; Jamie, 2026-10-10). A person's own, or an
- *  agent's through its owner's console (AGENT_SCOPED_ROUTES). Never
+ *  a Discord webhook (0213; Jamie, 2026-10-10). A person's own. Never
  *  served to MCP or /api/v1. The webhook URL is a credential: it comes
  *  in here, is sealed at once, goes out only shortened (settingView),
  *  and is never logged. Saving one turns cross-posting on from now and sends a hello
@@ -60,12 +59,11 @@ export function timelineDiscordRoutes({
       const clan_channels = row?.enabled
         ? await clanChannelsInTimeline(db, account.accountId)
         : [];
-      // The viewer's own ratings of the posts listed (2026-10-11): on an
-      // agent's page the owner rates, so the owner's.
+      // The viewer's own ratings of the posts listed (2026-10-11).
       const view = settingView(row, status, history);
       const ratings = await discordRatings(
         db,
-        (account.owner ?? account).accountId,
+        account.accountId,
         (view.deliveries ?? []).map((e) => e.ledger_id),
       ).catch(() => ({}));
       return json(200, { ...view, clan_channels, ratings });
@@ -73,23 +71,21 @@ export function timelineDiscordRoutes({
 
     // A thumbs up or down on one post of the history, with an optional
     // note (2026-10-11): feedback with a discord_post ref, filed as the
-    // person (on an agent's page, its owner) about a post of theirs or
-    // their agent's.
+    // person about a post of theirs.
     "POST /api/me/timeline/discord/rate": async (db, event, body) => {
       const account = await resolveAccount(db, event, {
         requireContractHeader: true,
       });
       if (!account) return json(401, { error: "unauthenticated" });
-      const person = account.owner ?? account;
       try {
         const out = await rateDiscordPost(db, {
-          account: person,
+          account,
           feature: "timeline",
           postId: body?.ledger_id,
           rating: body?.rating,
           note: body?.note ?? null,
-          via: { principal_kind: person.kind ?? "person" },
-          from: senderRef(person),
+          via: { principal_kind: "person" },
+          from: senderRef(account),
           notifyOwner,
         });
         return json(200, out);

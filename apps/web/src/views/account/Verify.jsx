@@ -544,8 +544,7 @@ function VerifiedBurst({ name, battle, seenAfterS }) {
       </div>
       <p className="verify__lead">
         <strong>{name}</strong> is yours. You can now act as your clan&rsquo;s
-        Elder, Co-leader or Leader here, and every agent that asks about you can
-        be told so.
+        Elder, Co-leader or Leader here.
       </p>
       {battle && (
         <p className="verify__result">

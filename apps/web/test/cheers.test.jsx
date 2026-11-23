@@ -40,7 +40,6 @@ import {
 } from "../src/home/Cheers.jsx";
 import { CheerGlyph } from "../src/home/CheerGlyph.jsx";
 import { RssLinkPanel } from "../src/views/account/RssLink.jsx";
-import { ScopeProvider } from "../src/lib/scope.js";
 import { HOME_FEED_KEY, pageCheersKey } from "../src/lib/queries.js";
 
 const reply = (body, status = 200) => ({
@@ -821,19 +820,6 @@ test("an item with read-only reactions shows counts without offering a write", (
   );
   expect(screen.queryByRole("button")).toBeNull();
   expect(screen.getByRole("img", { name: /Royal 2/ })).toBeTruthy();
-});
-
-test("on an agent's pages the counts show and nothing can be pressed", () => {
-  global.fetch = vi.fn(async () => reply({}));
-  renderWithProviders(
-    <ScopeProvider value="ag_example">
-      <Cheers it={ITEM} />
-    </ScopeProvider>,
-  );
-  expect(screen.queryAllByRole("button")).toHaveLength(0);
-  expect(
-    screen.getByRole("img", { name: "On fire 2, Royal 1. 3 people" }),
-  ).toBeTruthy();
 });
 
 test("a line's compact Cheer carries its kind's count and folds the rest into +N", () => {

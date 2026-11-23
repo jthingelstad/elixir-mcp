@@ -16,7 +16,7 @@ import { WriteError, writeErrorText } from "@elixir-mcp/ui";
 /**
  * Writes. 21 of the console's 58 awaited
  * `api.*` calls threw the `{ ok, status, data }` envelope away, among
- * them revoke key, suspend agent, sign out everywhere, revoke session,
+ * them revoke key, sign out everywhere, revoke session,
  * disconnect client and approve access: a refused write looked exactly
  * like one that worked.
  */

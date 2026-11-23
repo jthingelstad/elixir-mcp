@@ -93,7 +93,7 @@ function useSettled(raw, ms = 350) {
 
 /** What a Follow costs, said before the tap (#760): one flat, small line.
  *  A player Elixir already records is free; anyone else takes one of the
- *  account's player slots, shared with its agents. Says nothing until the
+ *  account's player slots. Says nothing until the
  *  tag is plausible and the answer is in, and nothing at all when the
  *  read fails: the tap still works, and its refusal says the same. */
 export function FollowCost({ tag }) {
@@ -214,7 +214,7 @@ function CostWords({ cost }) {
   return (
     <p className="kit-tiny" role="status">
       {cost
-        ? // `following` counts the account's agents too (Codex on #871), so
+        ? // `following` counts the account's whole pool (Codex on #871), so
           // all it can promise is the price.
           (followCostLine(cost) ?? "Free · already recorded")
         : "Checking what this costs…"}
@@ -225,7 +225,7 @@ function CostWords({ cost }) {
 /** The price, read when the dialog that shows it opens (a lazy Follow). A
  *  follow past the limit is refused by the server, and the dialog says why;
  *  the write itself decides a player already yours (Codex on #871: the
- *  price's `following` counts the reader's agents too, so it never skips
+ *  price's `following` counts the reader's whole pool, so it never skips
  *  the reader's own follow). */
 function PricedOnOpen({ tag }) {
   const { data } = useFollowCost(tag);

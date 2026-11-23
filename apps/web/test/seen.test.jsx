@@ -105,11 +105,11 @@ let explored;
 let place;
 let posted;
 
-// Two use a slot (one you follow, one only your agent tracks) and one is
+// One uses a slot (one you follow) and one is
 // free because its clan is recorded in full: `used` is the rows that use
 // a slot, as the Follow dialogs count them.
 const SLOTS = {
-  used: 2,
+  used: 1,
   free: 1,
   limit: 50,
   players: [
@@ -119,17 +119,6 @@ const SLOTS = {
       slot: "used",
       reason: null,
       yours: "friend",
-      agents: [],
-    },
-    {
-      player_tag: "#00L0",
-      name: "Umber Kite",
-      slot: "used",
-      reason: null,
-      yours: null,
-      agents: [
-        { public_id: "ag_test1", name: "Scout Bot", relationship: "friend" },
-      ],
     },
     {
       player_tag: "#09PR",
@@ -137,7 +126,6 @@ const SLOTS = {
       slot: "free",
       reason: "in_recorded_clan",
       yours: "friend",
-      agents: [],
     },
   ],
 };
@@ -200,19 +188,11 @@ test(
     ])
       expect(screen.getByRole("heading", { name })).toBeTruthy();
     // The meter says what the Follow dialogs say: used of limit.
-    const meter = await screen.findByLabelText("Follow slots: 2 of 50 used");
-    expect(meter.getAttribute("value")).toBe("2");
+    const meter = await screen.findByLabelText("Follow slots: 1 of 50 used");
+    expect(meter.getAttribute("value")).toBe("1");
     expect(meter.getAttribute("max")).toBe("50");
     const using = screen.getByRole("generic", { name: "Players using a slot" });
     expect(within(using).getByText("Copper Fern")).toBeTruthy();
-    expect(within(using).getByText("Umber Kite")).toBeTruthy();
-    expect(
-      within(using).getByText(/Your agent Scout Bot follows them/),
-    ).toBeTruthy();
-    // An agent's follow is the agent's to stop.
-    expect(
-      within(using).getByRole("link", { name: "Agent" }).getAttribute("href"),
-    ).toBe("/settings/agents/ag_test1/reads");
     const free = screen.getByRole("generic", { name: "Free follows" });
     expect(within(free).getByText("Violet Reed")).toBeTruthy();
     expect(

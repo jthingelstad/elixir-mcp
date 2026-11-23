@@ -21,11 +21,7 @@ import {
 import { ADMIN_RAIL, App, legalRoute } from "../src/App.jsx";
 // The route chunks compile while this file loads, not inside a wait.
 import "./warm-routes.js";
-import {
-  AGENT_TABS,
-  SETTINGS_RAIL,
-  settingsHere,
-} from "../src/lib/settings.js";
+import { SETTINGS_RAIL, settingsHere } from "../src/lib/settings.js";
 import { helpFor } from "../src/shell/help.js";
 import { DOC_LINKS } from "../src/shell/doc-links.js";
 
@@ -145,7 +141,7 @@ test("Settings' rail: eight places, Collectors for who runs one, Admin for staff
     "Players & following",
     "Emails",
     "Notifications",
-    "Connections & agents",
+    "Connections",
     "Sign-ins & devices",
     "Usage and limits",
     "Feedback",
@@ -295,36 +291,3 @@ test(
     );
   },
 );
-
-test("an agent: five tabs, its pages resolve, and a wrong page is no page", () => {
-  expect(AGENT_TABS.map((t) => t.slug)).toEqual([
-    "overview",
-    "reads",
-    "usage",
-    "connections",
-    "settings",
-  ]);
-  expect(settingsHere("/settings/agents/abcd1234/reads")).toMatchObject({
-    key: "connections",
-    page: "agent",
-    agent: "abcd1234",
-    tab: "reads",
-  });
-  expect(
-    settingsHere("/settings/agents/abcd1234/usage/requests/x"),
-  ).toMatchObject({ page: "call", id: "x", agent: "abcd1234" });
-  expect(settingsHere("/settings/agents/abcd1234/usage/events").page).toBe(
-    "agent-events",
-  );
-  expect(settingsHere("/settings/agents/abcd1234/feedback/7")).toMatchObject({
-    page: "feedback-item",
-    id: "7",
-  });
-  expect(settingsHere("/settings/agents/abcd1234/timeline").page).toBe(
-    "timeline",
-  );
-  expect(legalRoute("/settings/agents/abcd1234")).toBe(
-    "/settings/agents/abcd1234/overview",
-  );
-  expect(legalRoute("/settings/agents/abcd1234/verify")).toBe(null);
-});

@@ -124,8 +124,7 @@ export function Seen({ me }) {
                 A count on that item, for every member whose feed shows it: how
                 many gave each cheer, never who. You see your own as yours.
                 <Note>
-                  A cheer goes nowhere else: not to Discord, mail, the bell or
-                  an agent's tools.
+                  A cheer goes nowhere else: not to Discord, mail or the bell.
                 </Note>
               </>,
             ],
@@ -148,15 +147,6 @@ export function Seen({ me }) {
                   game name, and an action posted in the clan’s Discord is
                   edited to say who closed it.
                 </Note>
-              </>,
-            ],
-            [
-              "An AI agent for your clan",
-              <>
-                With Discord connected, an agent that follows a clan your main
-                player or an alt is in can ask which player you are by your
-                Discord user id. It learns that player’s tag and whether it is
-                verified, never your Discord name or your email.
               </>,
             ],
           ]}
@@ -235,9 +225,8 @@ export function Seen({ me }) {
             [
               "Your account’s machinery",
               <>
-                Only you: sign-ins and devices, agents and their keys,
-                connections, usage and calls, the mail sent to you, and your
-                feedback.
+                Only you: sign-ins and devices, connections, usage and calls,
+                the mail sent to you, and your feedback.
               </>,
             ],
           ]}
@@ -262,7 +251,7 @@ export function Seen({ me }) {
             />
           </Rows>
           <p className="st-foot st-inset mt-2">
-            {PLACE_WHO} Nobody else: not anyone with a link, and not an agent.
+            {PLACE_WHO} Nobody else: not anyone with a link.
           </p>
         </section>
         <Rows>

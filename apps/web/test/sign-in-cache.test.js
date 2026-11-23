@@ -5,13 +5,13 @@ import {
   sessionGeneration,
 } from "../src/client/index.ts";
 
-test("a new identity cannot reuse old feedback, admin or owned-agent data, even from an outstanding read", async () => {
+test("a new identity cannot reuse old feedback, admin or other cached data, even from an outstanding read", async () => {
   const client = createQueryClient();
   client.setQueryData(["me"], { data: { authenticated: false } });
   for (const key of [
     ["me", "clan", "feedback"],
     ["admin", "feedback"],
-    ["agent", "old", "claims"],
+    ["gateway-cards"],
   ])
     client.setQueryData(key, { private: "previous person" });
   let finish;

@@ -14,7 +14,7 @@
  * place (city at most, read through Clan's seam under the ownership rule),
  * its follows and followers, its Stamps, and the combined timeline of its
  * players and its own activity. Never an email, a Discord username, a
- * nickname, an agent or the account's machinery.
+ * nickname or the account's machinery.
  *
  * A claimed player's page names the account claiming it ("This is
  * important so you know what account is making the claim"), so the player
@@ -302,7 +302,7 @@ export async function readAccountPage(
     timeline: await withTimelineSocial(
       db,
       built.timeline ?? [],
-      reader.kind === "agent" ? null : reader.accountId,
+      reader.accountId,
       { comments },
     ),
     timeline_more: built.timeline_more ?? 0,

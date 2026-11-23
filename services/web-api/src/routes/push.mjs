@@ -1,9 +1,8 @@
 /** Web push, Settings › Notifications (2026-11-16, migration 0283,
  *  docs/notes/2026-11-16-web-push.md).
  *
- *  A person's own only: an agent is refused, and no agent console reaches
- *  these (AGENT_SCOPED_ROUTES does not list them). Writes need the
- *  contract header, so a cross-site form cannot make one.
+ *  Writes need the contract header, so a cross-site form cannot make
+ *  one.
  *
  *  GET    /api/me/push                  whether push is offered, the
  *         VAPID public key, the account's devices (label and dates, never
@@ -39,11 +38,6 @@ import { json } from "../http.mjs";
 const PUSH_WRITES_PER_HOUR = 30;
 
 const unauthenticated = () => json(401, { error: "unauthenticated" });
-const notEntitled = () =>
-  json(403, {
-    error: "not_entitled",
-    message: "Notifications are a person's own; an agent has none.",
-  });
 const off = () =>
   json(404, { error: "not_offered", message: "Notifications are off." });
 const limited = () =>
@@ -60,7 +54,6 @@ export function pushRoutes({ resolveAccount, publicKey = null }) {
       requireContractHeader: write,
     });
     if (!account) return { refused: unauthenticated() };
-    if (account.kind === "agent") return { refused: notEntitled() };
     return { account };
   };
   const writable = async (db, event) => {

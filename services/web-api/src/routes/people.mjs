@@ -1,9 +1,7 @@
 /** People to follow, Find's sections (2026-11-12) and the starter set
  *  (2026-11-13): `people.mjs` reads
  *  them. Signed in only, each its own read so Home's first paint and Find's
- *  first tab never wait on them, on one bucket of their own. A person's
- *  only: an agent is refused, and no agent console reaches them
- *  (AGENT_SCOPED_ROUTES does not list them). */
+ *  first tab never wait on them, on one bucket of their own. */
 import { checkRateLimit } from "@elixir-mcp/auth";
 import { HOURLY_RATE_LIMIT } from "@elixir-mcp/tools/quota";
 import { normalizeTag } from "@elixir-mcp/contracts";
@@ -35,7 +33,6 @@ export function peopleRoutes({
   const read = (name, fn) => async (db, event) => {
     const account = await resolveAccount(db, event);
     if (!account) return json(401, { error: "unauthenticated" });
-    if (account.kind === "agent") return json(403, { error: "not_entitled" });
     if (
       !(await checkRateLimit(db, {
         bucket: `people#${account.accountId}`,
@@ -109,7 +106,6 @@ export function peopleRoutes({
         requireContractHeader: true,
       });
       if (!account) return json(401, { error: "unauthenticated" });
-      if (account.kind === "agent") return json(403, { error: "not_entitled" });
       return json(200, await hideStarter(db, account.accountId));
     },
   };

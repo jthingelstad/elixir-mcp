@@ -2,19 +2,10 @@ import { useLocation } from "@tanstack/react-router";
 import { Empty, Link, PageHead, Rows, Row } from "@elixir-mcp/ui";
 import { useEffect } from "react";
 import { useHere, useMe, useNav } from "../App.jsx";
-import { useAgentMe, useMyGateways, useMyPrincipals } from "../lib/queries.js";
-import { ScopeProvider } from "../lib/scope.js";
+import { useMyGateways } from "../lib/queries.js";
 import { SETTINGS, settingsHere } from "../lib/settings.js";
 import { CollectorPage } from "../views/CollectorDetail.jsx";
 import { RaiseCollector } from "../views/RaiseCollector.jsx";
-import {
-  AgentFrame,
-  AgentMoved,
-  AgentOverview,
-  AgentSettings,
-  NoAgent,
-} from "../views/account/Agents.jsx";
-import { AgentFollowing } from "../views/account/AgentFollowing.jsx";
 import { CallRecord } from "../views/account/CallRecord.jsx";
 import { CommentsSettings } from "../views/account/CommentsSettings.jsx";
 import { Connections } from "../views/account/Connections.jsx";
@@ -22,12 +13,10 @@ import { EmailPage } from "../views/account/EmailPage.jsx";
 import { EmailRecord } from "../views/account/EmailRecord.jsx";
 import { NotificationsPage } from "../views/account/NotificationsPage.jsx";
 import { Feedback, FeedbackItem } from "../views/account/Feedback.jsx";
-import { AgentEvents, Requests, Sent } from "../views/account/Logs.jsx";
-import { Crumb } from "../views/account/parts.jsx";
+import { Requests, Sent } from "../views/account/Logs.jsx";
 import { Profile } from "../views/account/Profile.jsx";
 import { Seen } from "../views/account/Seen.jsx";
 import { SignIns } from "../views/account/SignIns.jsx";
-import { Timeline } from "../views/account/Timeline.jsx";
 import { DiscordPage } from "../views/account/TimelineDiscord.jsx";
 import { FollowedRecord } from "../views/account/FollowedRecord.jsx";
 import { Following } from "../views/account/Following.jsx";
@@ -51,12 +40,6 @@ export function SettingsPage() {
   const { search } = useHere();
   const here = settingsHere(pathname);
   if (!here || !me) return <Reading>Reading your settings.</Reading>;
-  if (here.agent)
-    return (
-      <ScopeProvider value={here.agent}>
-        <AgentPages here={here} search={search} navigate={navigate} />
-      </ScopeProvider>
-    );
   const tag = here.id ? decodeURIComponent(here.id) : undefined;
   switch (here.page) {
     case "profile":
@@ -189,68 +172,4 @@ function YourCollectors({ navigate }) {
       )}
     </div>
   );
-}
-
-/** An agent's pages. The scope comes from the address and nowhere else; each
- *  page below is the one you read, through the scoped hooks. */
-function AgentPages({ here, search, navigate }) {
-  const principals = useMyPrincipals();
-  const agents = principals.data?.agents;
-  const known = agents?.some((a) => a.public_id === here.agent);
-  const stale =
-    agents && !known && agents.some((a) => a.account_id === here.agent);
-  const res = useAgentMe(known ? here.agent : null);
-  if (stale) return <AgentMoved id={here.agent} navigate={navigate} />;
-  if (principals.isError || res.isError)
-    return (
-      <Reading>
-        Elixir did not answer for this agent. Try again in a moment.
-      </Reading>
-    );
-  if (agents && !known) return <NoAgent />;
-  if (!res.data) return <Reading>Reading this agent.</Reading>;
-  // Not yours, or not an agent: the server says 404 and never which.
-  // Anything else (401, 429, 5xx) is a failed read, not an absence.
-  if (!res.data.ok)
-    return res.data.status === 404 || res.data.status === 403 ? (
-      <NoAgent />
-    ) : (
-      <Reading>
-        Elixir could not read this agent just now. Try again in a moment.
-      </Reading>
-    );
-  const agent = res.data.data;
-  const overview = `${SETTINGS}/agents/${here.agent}/overview`;
-  switch (here.page) {
-    case "timeline":
-      return <Timeline crumb={<Crumb to={overview}>Overview</Crumb>} />;
-    case "feedback":
-      return <Feedback />;
-    case "feedback-item":
-      return <FeedbackItem key={here.id} id={here.id} />;
-    case "requests":
-      return <Requests search={search} />;
-    case "call":
-      return <CallRecord id={here.id} navigate={navigate} />;
-    case "agent-events":
-      return <AgentEvents agent={here.agent} />;
-    default:
-      return (
-        <AgentFrame publicId={here.agent} tab={here.tab} navigate={navigate}>
-          {(row) =>
-            here.tab === "reads" ? (
-              <AgentFollowing agent={agent} />
-            ) : here.tab === "usage" ? (
-              <Usage me={agent} />
-            ) : here.tab === "connections" ? (
-              <Connections me={agent} navigate={navigate} />
-            ) : here.tab === "settings" ? (
-              <AgentSettings agent={row} />
-            ) : (
-              <AgentOverview agent={row} />
-            )
-          }
-        </AgentFrame>
-      );
-  }
 }

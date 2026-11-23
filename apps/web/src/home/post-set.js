@@ -13,10 +13,9 @@ export const POST_MAX = 500;
 export const POST_CARDS_MAX = 8;
 
 /** Whether posts are on for this reader: the stack's switch (`/api/me`
- *  `features.posts`, true only while comments are on too), and never
- *  under an agent's scope. */
-export const postsOn = (me, scope) =>
-  !scope && me?.features?.posts === true && me?.features?.comments === true;
+ *  `features.posts`, true only while comments are on too). */
+export const postsOn = (me) =>
+  me?.features?.posts === true && me?.features?.comments === true;
 
 /** Whether the account may post: a Verified player of its own, its main
  *  or an alt, as for commenting. */

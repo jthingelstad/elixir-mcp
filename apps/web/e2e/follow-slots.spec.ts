@@ -22,17 +22,13 @@ const SLOTS = {
       slot: "used",
       reason: null,
       yours: "friend",
-      agents: [],
     },
     {
       player_tag: "#00L0",
       name: "Umber Kite",
       slot: "used",
       reason: null,
-      yours: null,
-      agents: [
-        { public_id: "abc12345", name: "Scout Bot", relationship: "friend" },
-      ],
+      yours: "alt",
     },
     {
       player_tag: "#09PR",
@@ -40,7 +36,6 @@ const SLOTS = {
       slot: "free",
       reason: "followed_by_others",
       yours: "friend",
-      agents: [],
     },
   ],
 };
@@ -103,9 +98,10 @@ for (const [label, width] of [
       const using = panel.getByLabel("Players using a slot");
       await expect(using.getByText("Copper Fern")).toBeVisible();
       await expect(using.getByText("Umber Kite")).toBeVisible();
+      // Your own alt is removed on its own page, not here.
       await expect(
-        using.getByRole("link", { name: "Agent", exact: true }),
-      ).toHaveAttribute("href", "/settings/agents/abc12345/reads");
+        using.getByRole("link", { name: "Open", exact: true }),
+      ).toHaveAttribute("href", "/settings/players/00L0");
       const free = panel.getByLabel("Free follows");
       await expect(free.getByText("Violet Reed")).toBeVisible();
       await expect(

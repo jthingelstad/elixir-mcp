@@ -4,8 +4,8 @@
  * from the archive when the row says they landed, and the previous and
  * next call by the SAME credential so a reader can walk a session.
  *
- * Shared by the account route (own rows and owned agents' rows) and the
- * admin route (any row); the scope is the only thing that differs, so
+ * Shared by the account route (own rows) and the admin route (any
+ * row); the scope is the only thing that differs, so
  * it is the only thing the caller supplies. A captured body is served
  * through this handler under the session check that gated the row;
  * never a public URL.
@@ -22,17 +22,13 @@ const COLUMNS = `a.audit_id, a.account_id, a.token_id, a.request_id, a.surface, 
 
 /**
  * The rows this reader may see. `ownerAccountId` null means every row
- * (admin); otherwise the account's own rows and those of the agents it
- * owns - the same slice /api/me/usage counts, because an agent's calls
- * are charged to its owner and the owner is who reads the record.
+ * (admin); otherwise the account's own rows, the slice /api/me/usage
+ * counts.
  */
 function scopeSql(ownerAccountId, params) {
   if (!ownerAccountId) return "true";
   params.push(ownerAccountId);
-  const n = params.length;
-  return `(a.account_id = $${n} or a.account_id = any(coalesce(
-            (select array_agg(account_id) from account where owned_by_account_id = $${n}),
-            '{}'::uuid[])))`;
+  return `a.account_id = $${params.length}`;
 }
 
 /** The credential predicate: a service token, an OAuth grant, or (for the

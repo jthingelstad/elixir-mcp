@@ -36,7 +36,7 @@ const RECORD = {
     error_code: null,
     rpc_error_code: null,
     cold_start: true,
-    principal_kind: "agent",
+    principal_kind: "person",
     on_behalf_of: "discord:42",
     captured: true,
     args: { clan_tag: "#ABC", weeks: 30 },
@@ -133,7 +133,7 @@ test("the record: tool, metrics strip, folded meta, cut arrays, neighbours, feed
   // Feedback, carrying the call as a FIELD. It used to arrive as
   // ?context=request_id:<id> and be pasted into the message, where
   // nothing could read it back — it is feedback.request_id now, so the
-  // queue links to this record and an agent can attach one too.
+  // queue links to this record and an MCP client can attach one too.
   fireEvent.click(screen.getByText("Report this call"));
   expect(navigate).toHaveBeenCalledWith(
     `/settings/feedback?request_id=${encodeURIComponent(ID)}`,

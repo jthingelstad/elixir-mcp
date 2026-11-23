@@ -8,7 +8,7 @@ import { HOME } from "./moved.js";
  *   /home/@<handle>               the same page, by the account's @handle
  *
  * <id> is the account's page id, its passport id: twelve letters and
- * digits with no look-alikes, never the account's UUID or an agent's id.
+ * digits with no look-alikes, never the account's UUID.
  */
 export const ACCOUNT = `${HOME}/account`;
 
