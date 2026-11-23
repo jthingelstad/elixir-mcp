@@ -11,6 +11,10 @@ import {
 } from "@elixir-mcp/ui";
 import { useEffect, useRef, useState } from "react";
 import { api } from "../../api.js";
+import {
+  deleteConfirmMatches,
+  deleteConfirmWords,
+} from "@elixir-mcp/contracts";
 import { ZoneOffer } from "../../components/ZoneOffer.jsx";
 import { AvatarPicker } from "./AvatarPicker.jsx";
 import { discordStartHref } from "../../discord.js";
@@ -188,7 +192,7 @@ export function Profile({ me, refresh, hash = null }) {
           ]}
         />
       </Panel>
-      <DeleteAccount />
+      <DeleteAccount me={me} main={main} />
     </div>
   );
 }
@@ -197,20 +201,28 @@ export function Profile({ me, refresh, hash = null }) {
  * Delete your account (2026-11-23): right away, for good. What goes and
  * what stays matches the docs' "Removing the account"
  * (apps/site/src/docs/your-account.md). The button opens a confirm that
- * asks for DELETE typed out; the server asks for it again. A refusal (a
+ * asks for your main player's name or your @handle typed out (DELETE for
+ * an account with neither), by the contracts' one rule; the server checks
+ * it again. A refusal (a
  * live collector, an integration) says why; success loads the front door
  * fresh, signed out.
  */
-function DeleteAccount() {
+function DeleteAccount({ me, main }) {
   const [open, setOpen] = useState(false);
   const [typed, setTyped] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
-  const ready = typed.trim() === "DELETE";
+  const targets = {
+    handle: me?.handle ?? null,
+    playerName: main?.name ?? null,
+  };
+  const words = deleteConfirmWords(targets);
+  const ready = deleteConfirmMatches(typed, targets);
+  const askFor = words.length > 1 ? `${words[0]} or ${words[1]}` : words[0];
   const run = async () => {
     setBusy(true);
     setError(null);
-    const r = await api.deleteMyAccount();
+    const r = await api.deleteMyAccount(typed);
     if (r?.ok) {
       window.location.assign("/");
       return;
@@ -230,7 +242,7 @@ function DeleteAccount() {
           <li>your email address, and every way to sign in, Discord too</li>
           <li>the players and clans you follow, and your nicknames</li>
           <li>your posts, comments, cheers and share links</li>
-          <li>your agents, their keys, and the apps you allowed</li>
+          <li>the apps and AI you connected, and their keys</li>
           <li>your mail history, and your spot on the mailing list</li>
           <li>your passport, its Stamps and your place</li>
           <li>your feedback and your usage</li>
@@ -265,7 +277,9 @@ function DeleteAccount() {
               if (ready && !busy) run();
             }}
           >
-            <label htmlFor="st-delete-confirm">Type DELETE to confirm</label>
+            <label htmlFor="st-delete-confirm">
+              Type <strong>{askFor}</strong> to confirm
+            </label>
             <div className="kit-form__row">
               <input
                 id="st-delete-confirm"
@@ -273,7 +287,8 @@ function DeleteAccount() {
                 value={typed}
                 onChange={(e) => setTyped(e.target.value)}
                 autoComplete="off"
-                autoCapitalize="characters"
+                autoCapitalize="none"
+                autoCorrect="off"
                 spellCheck="false"
                 autoFocus
               />

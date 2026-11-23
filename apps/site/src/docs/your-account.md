@@ -465,8 +465,9 @@ primary player.
 ## Removing the account
 
 Delete it yourself in **Settings › Profile › Delete your account**.
-Tap **Delete account**, type DELETE, and it's done right away. It
-can't be undone. You can also write to admin@poapkings.com, or send it
+Tap **Delete account**, then type your main player's name or your
+@handle to confirm. It's done right away, and it can't be undone. No
+main player or handle yet? Type DELETE. You can also write to admin@poapkings.com, or send it
 as feedback.
 
 Deleting the account deletes the account:

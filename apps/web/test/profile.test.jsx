@@ -41,6 +41,20 @@ const ME = {
   entitlements: {},
 };
 
+/** An account with a main player and a handle: what deleting asks for. */
+const ME_NAMED = {
+  ...ME,
+  handle: "kingthing",
+  claims: [
+    {
+      player_tag: "#20JJJ2CCRU",
+      name: "King Thing",
+      is_primary: true,
+      status: "verified",
+    },
+  ],
+};
+
 beforeEach(() => {
   cleanup();
   vi.spyOn(console, "error").mockImplementation(() => {});
@@ -156,7 +170,7 @@ test(
 );
 
 test(
-  "Delete your account asks for DELETE typed out, then deletes and leaves",
+  "Delete your account asks for your main player's name or @handle, then deletes and leaves",
   { timeout: 20000 },
   async () => {
     const sent = [];
@@ -171,7 +185,7 @@ test(
     global.fetch = vi.fn(async (path, init) => {
       const p = String(path);
       let status = 200;
-      let body = p === "/api/me" ? ME : {};
+      let body = p === "/api/me" ? ME_NAMED : {};
       if (p === "/api/me/account/delete") {
         sent.push(JSON.parse(init.body));
         ({ status, body } = answer);
@@ -204,10 +218,17 @@ test(
         name: "Delete my account",
       });
       expect(go.disabled).toBe(true);
-      const box = within(panel).getByLabelText("Type DELETE to confirm");
-      fireEvent.change(box, { target: { value: "delete" } });
-      expect(go.disabled).toBe(true);
+      const box = within(panel).getByLabelText(
+        "Type King Thing or @kingthing to confirm",
+      );
+      // DELETE no longer confirms an account with a name to type.
       fireEvent.change(box, { target: { value: "DELETE" } });
+      expect(go.disabled).toBe(true);
+      // The handle confirms, with or without its @.
+      fireEvent.change(box, { target: { value: "KingThing" } });
+      expect(go.disabled).toBe(false);
+      // So does the player's name, in any case, spaces around it.
+      fireEvent.change(box, { target: { value: " king thing " } });
       expect(go.disabled).toBe(false);
 
       // A refusal says why and deletes nothing.
@@ -218,7 +239,10 @@ test(
       answer = { status: 200, body: { ok: true } };
       fireEvent.click(go);
       await waitFor(() => expect(assign).toHaveBeenCalledWith("/"));
-      expect(sent).toEqual([{ confirm: "DELETE" }, { confirm: "DELETE" }]);
+      expect(sent).toEqual([
+        { confirm: " king thing " },
+        { confirm: " king thing " },
+      ]);
     } finally {
       Object.defineProperty(window, "location", {
         configurable: true,

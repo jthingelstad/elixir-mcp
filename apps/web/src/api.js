@@ -92,12 +92,13 @@ export const api = {
     }
     return result;
   },
-  /** Delete your own account (2026-11-23). The typed confirmation is
-   *  the page's; the server asks for it again. On success the session is
-   *  gone, so the browser's per-session state goes with it. */
-  deleteMyAccount: async () => {
+  /** Delete your own account (2026-11-23). `confirm` is what the
+   *  person typed (their main player's name or @handle); the server
+   *  checks it again. On success the session is gone, so the browser's
+   *  per-session state goes with it. */
+  deleteMyAccount: async (confirm) => {
     const result = await request("POST", "/api/me/account/delete", {
-      confirm: "DELETE",
+      confirm,
     });
     if (result.ok) {
       liftReconcileGate();

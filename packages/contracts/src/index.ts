@@ -19,3 +19,4 @@ export * from "./feedback.js";
 export * from "./badge-art.js";
 export * from "./card-art.js";
 export * from "./discord.js";
+export * from "./account-delete.js";

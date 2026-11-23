@@ -145,7 +145,7 @@ test("no address, nothing for the mailing list", async () => {
 
 test("the confirmation must be typed, and the contract header sent", async () => {
   const me = await person("d-confirm", { email: "confirm@example.com" });
-  for (const body of [{}, { confirm: "delete" }, { confirm: "yes" }]) {
+  for (const body of [{}, { confirm: "DELET" }, { confirm: "yes" }]) {
     const res = await del(me, body);
     assert.equal(res.statusCode, 400);
     assert.equal(data(res).error, "confirm_required");
@@ -158,6 +158,39 @@ test("the confirmation must be typed, and the contract header sent", async () =>
   assert.equal(noHeader.statusCode, 401);
   assert.equal((await row(me)).email, "confirm@example.com", "nothing went");
   assert.equal((await del(null)).statusCode, 401);
+});
+
+test("an account with a main player or a handle confirms with one of them, not DELETE", async () => {
+  const me = await person("d-named", { email: "named@example.com" });
+  await scratch.db.query(
+    "insert into player(player_tag,name) values ($1,$2) on conflict do nothing",
+    ["#0PLUG2V9", "Ｂlue Knight"],
+  );
+  await scratch.db.query(
+    `insert into claim(account_id,player_tag,status,is_primary,relationship)
+     values ($1,$2,'unverified',true,'primary')`,
+    [me, "#0PLUG2V9"],
+  );
+  await scratch.db.query(
+    "update account set handle = 'blueknight', handle_set_at = now() where account_id = $1",
+    [me],
+  );
+  for (const confirm of ["DELETE", "Blue", "@someone", ""]) {
+    const res = await del(me, { confirm });
+    assert.equal(res.statusCode, 400, confirm);
+    assert.equal(data(res).error, "confirm_required");
+    assert.match(data(res).message, /main player's name or your @handle/);
+  }
+  assert.equal((await row(me)).email, "named@example.com", "nothing went");
+  // The handle, @ or not, and the name in any case and width, confirm.
+  const other = await person("d-named-2", { email: "named2@example.com" });
+  await scratch.db.query(
+    "update account set handle = 'redknight', handle_set_at = now() where account_id = $1",
+    [other],
+  );
+  assert.equal((await del(other, { confirm: "@RedKnight" })).statusCode, 200);
+  assert.equal((await del(me, { confirm: "  blue knight " })).statusCode, 200);
+  assert.match((await row(me)).email_hash, /^removed:/);
 });
 
 test("the owner's account and a live collector are refused, with a reason", async () => {

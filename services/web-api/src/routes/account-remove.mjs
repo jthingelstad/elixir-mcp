@@ -1,13 +1,16 @@
 /** Delete your own account, Settings › Profile (2026-11-23).
  *
- *  POST /api/me/account/delete   {confirm: "DELETE"}
+ *  POST /api/me/account/delete   {confirm: "<main player's name or @handle>"}
  *
  *  The session, the contract header and the typed confirmation are the
- *  whole guard. The removal is the one ops and Admin run
+ *  whole guard. What confirms is the contracts' one rule
+ *  (deleteConfirmMatches): the main player's game name or the @handle,
+ *  or DELETE for an account with neither. The removal is the one ops and Admin run
  *  (account-removal.mjs); on success the session cookie is cleared, as
  *  signing out clears it, since the session it named is gone. */
 import { json, sessionCookie } from "../http.mjs";
 import { REFUSAL_MESSAGES, runRemoval } from "../account-removal.mjs";
+import { deleteConfirmMatches } from "@elixir-mcp/contracts";
 
 export function accountRemoveRoutes({
   resolveAccount,
@@ -20,10 +23,26 @@ export function accountRemoveRoutes({
         requireContractHeader: true,
       });
       if (!account) return json(401, { error: "unauthenticated" });
-      if (body?.confirm !== "DELETE")
+      const { rows } = await db.query(
+        `select a.handle, p.name as player_name
+           from account a
+           left join claim c on c.account_id = a.account_id and c.is_primary
+           left join player p on p.player_tag = c.player_tag
+          where a.account_id = $1`,
+        [account.accountId],
+      );
+      const targets = {
+        handle: rows[0]?.handle ?? null,
+        playerName: rows[0]?.player_name ?? null,
+      };
+      if (!deleteConfirmMatches(body?.confirm, targets))
         return json(400, {
           error: "confirm_required",
-          message: "Type DELETE to confirm.",
+          message: targets.playerName
+            ? "Type your main player's name or your @handle to confirm."
+            : targets.handle
+              ? "Type your @handle to confirm."
+              : "Type DELETE to confirm.",
         });
       const result = await runRemoval(db, {
         accountId: account.accountId,
