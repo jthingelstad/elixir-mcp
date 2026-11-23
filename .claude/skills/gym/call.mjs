@@ -1,9 +1,10 @@
 #!/usr/bin/env node
 /**
- * The Gym's door: one MCP call as the `gym` agent principal (its own
- * account and hourly bucket, /a/cd9e89e10d09/mcp), not Jamie's
- * connection. The token comes from .claude/skills/gym/.env (mode 0600,
- * ignored by git) and is never printed.
+ * The Gym's door: one MCP call as the `gym` test account (a person with
+ * no player, its own account and hourly bucket, at /mcp since
+ * 2026-11-23), not Jamie's connection. The URL and token come from
+ * .claude/skills/gym/.env (mode 0600, ignored by git); the token is
+ * never printed. Name player_tag and clan_tag: it has neither default.
  *
  *   node .claude/skills/gym/call.mjs --list              names + titles
  *   node .claude/skills/gym/call.mjs --schema <tool>     one tool's full declaration

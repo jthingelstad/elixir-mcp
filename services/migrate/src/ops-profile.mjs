@@ -16,9 +16,10 @@
  * - `live` is null,
  * - the session is `default_transaction_read_only`, so even a mistaken
  *   write is refused by Postgres.
- * The principal is a service token NAME (default "acceptance": an agent
- * for #J2RGCRVG with no player of its own, so name the player in args);
- * nothing secret is read.
+ * The principal is a service token NAME (default "acceptance": the test
+ * account of that name, 0316, a person following #J2RGCRVG with no player
+ * of its own, so name the player and the clan in args); nothing secret is
+ * read.
  *
  * `explain: true` runs EXPLAIN (ANALYZE, BUFFERS) BEFORE each read, so
  * the plan sees the cache as the call would have (the real query then

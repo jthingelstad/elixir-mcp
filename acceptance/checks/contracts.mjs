@@ -42,7 +42,7 @@ const read = (ctx, tool, args) =>
 export const contracts = [
   {
     // clans_directory (12.0.0) is the policy's public part only: the
-    // acceptance agent reads it as its owner, and a tile carries exactly the
+    // acceptance identity reads it as any member does, and a tile carries exactly the
     // directory's fields, never who saved a policy, a note or a minimum.
     id: "clans-directory-public-part",
     tools: ["clans_directory"],
@@ -98,34 +98,49 @@ export const contracts = [
     },
   },
   {
-    // clans_my_view is a person's own view (Jamie, 2026-10-12, #535): the
-    // acceptance principal is an agent, which neither lists nor calls it.
-    id: "clans-my-view-agent-refused",
+    // clans_my_view is a person's own view (Jamie, 2026-10-12, #535).
+    // A person's own Clan view reads their verified player's clan. The
+    // acceptance identity has no player (a test person since 2026-11-23;
+    // an agent before, refused outright), so either way it is refused and
+    // given no view: a view served to it would be another person's.
+    id: "clans-my-view-refused-without-a-verified-player",
     tools: ["clans_my_view"],
     run: async (ctx) => {
       const r = await ctx.read("clans_my_view", {});
       ok(
         r.isError === true && !r.body?.view,
-        "An agent is refused a person's own Clan view and is given no view.",
+        "A caller with no verified player in the clan is refused its own Clan view and given no view.",
       );
       return { ms: r.ms };
     },
   },
   {
-    id: "personal-cheers-hidden-from-agent",
+    // Cheers are a person's: hidden from an agent's catalogue and answered
+    // for a person, the test person included (it has had none).
+    id: "personal-cheers-by-kind",
     tools: ["elixir_cheers"],
     run: async (ctx) => {
-      ok(
-        !ctx.tools.has("elixir_cheers"),
-        "The agent catalogue excludes personal cheers.",
-      );
+      if (ctx.kind === null)
+        return { skip: "the declarations do not say which kind is calling" };
       const result = await ctx.read("elixir_cheers", { days: 7 });
-      ok(
-        result.isError &&
-          result.body?.error?.rpc_code === -32601 &&
-          !result.body.items,
-        "The agent receives method not found and no reaction counts.",
-      );
+      if (ctx.kind === "agent") {
+        ok(
+          !ctx.tools.has("elixir_cheers"),
+          "The agent catalogue excludes personal cheers.",
+        );
+        ok(
+          result.isError &&
+            result.body?.error?.rpc_code === -32601 &&
+            !result.body.items,
+          "The agent receives method not found and no reaction counts.",
+        );
+      } else {
+        ok(
+          ctx.tools.has("elixir_cheers"),
+          "A person's catalogue lists personal cheers.",
+        );
+        answered(result, "elixir_cheers for a person");
+      }
       return { ms: result.ms };
     },
   },

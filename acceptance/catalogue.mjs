@@ -17,9 +17,9 @@
  *
  * What is dropped: write tools (the token could not call them anyway),
  * live-lane reads, caller identity (the op already drops on_behalf_of and
- * display_name), and the two tools whose answer is the caller's own
- * private state (elixir_my_feedback, elixir_my_identities) - an agent
- * principal has none.
+ * display_name), and the tools whose answer is the caller's own private
+ * state (PRIVATE_TO_THE_CALLER) - the acceptance identity, a test person
+ * with no player since 2026-11-23, has none.
  */
 
 import { readFileSync, writeFileSync } from "node:fs";
@@ -147,7 +147,9 @@ export function shapeCatalogue(raw, declarations, { stale = [] } = {}) {
     const args = named.args;
     delete args.live;
     // A caller-default read (omit player_tag to mean you) has no "you"
-    // on an agent principal: the owner's primary player stands in.
+    // for the acceptance identity, which has no player: the owner's
+    // primary player stands in. An omitted clan is sent as CLAN at run
+    // time (lib.mjs argsForKind).
     const props = decl.inputSchema?.properties ?? {};
     if (
       "player_tag" in props &&
@@ -209,7 +211,10 @@ if (isMain) {
   const raw = JSON.parse(Buffer.from(res.Payload).toString("utf8"));
   if (raw.errorMessage) throw new Error(raw.errorMessage);
   const stale = [];
-  const declarations = makeRegistry().declarations("agent");
+  // What a person is offered; the private reads above are dropped, so
+  // what is left is what the agent it replaced was offered too
+  // (acceptance.test.mjs holds both).
+  const declarations = makeRegistry().declarations("person");
   const byName = new Map(declarations.map((d) => [d.name, d]));
   const shaped = shapeCatalogue(raw, declarations, { stale });
   // Hand-picked sets beside the derived ones (catalogue-seed.json, a

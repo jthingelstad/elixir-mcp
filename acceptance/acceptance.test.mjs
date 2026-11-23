@@ -14,7 +14,16 @@ import { makeDoor, DOOR_TIMEOUT_MS, REQUEST_TIMEOUT } from "./door.mjs";
 import { makeRegistry } from "../packages/tools/src/tools.mjs";
 import { shapeCatalogue, loadCatalogue } from "./catalogue.mjs";
 import { identities } from "./checks/identities.mjs";
-import { noteTokens, notesNameFields, deepKeys } from "./lib.mjs";
+import {
+  noteTokens,
+  notesNameFields,
+  deepKeys,
+  principalKind,
+  argsForKind,
+  CLAN_DEFAULT_TOOLS,
+  CLAN,
+  JAMIE,
+} from "./lib.mjs";
 import { runSuite, SUITES } from "./run.mjs";
 import {
   biteKeys,
@@ -1122,12 +1131,48 @@ test("milestone locator docs are conditional only for elixir_timeline, without i
   await assert.rejects(() => run("example_tool#docs"), /documents item_ref/);
 });
 
-test("the live acceptance catalogue only replays reads its agent can discover", () => {
-  const names = new Set(
-    makeRegistry()
-      .declarations("agent")
-      .map((t) => t.name),
-  );
-  for (const name of Object.keys(loadCatalogue().tools))
-    assert.ok(names.has(name), name);
+test("the live acceptance catalogue only replays reads its identity can discover, as a person or as the agent it replaced", () => {
+  for (const kind of ["person", "agent"]) {
+    const names = new Set(
+      makeRegistry()
+        .declarations(kind)
+        .map((t) => t.name),
+    );
+    for (const name of Object.keys(loadCatalogue().tools))
+      assert.ok(names.has(name), `${kind}: ${name}`);
+  }
+});
+
+test("principalKind reads the kind from tools/list, and only a person's omitted clan is filled", () => {
+  const registry = makeRegistry();
+  const names = (kind) => registry.declarations(kind).map((t) => t.name);
+  assert.equal(principalKind(names("person")), "person");
+  assert.equal(principalKind(names("agent")), "agent");
+  assert.equal(principalKind(registry.declarations().map((t) => t.name)), null);
+
+  assert.deepEqual(argsForKind("person", "war_current", {}), {
+    clan_tag: CLAN,
+  });
+  assert.deepEqual(argsForKind("person", "clans_participation", { weeks: 2 }), {
+    weeks: 2,
+    clan_tag: CLAN,
+  });
+  const named = { clan_tag: "#0GRJCUV" };
+  assert.equal(argsForKind("person", "war_current", named), named);
+  const player = { player_tag: JAMIE };
+  assert.equal(argsForKind("person", "war_history", player), player);
+  const args = {};
+  assert.equal(argsForKind("agent", "war_current", args), args);
+  assert.equal(argsForKind(null, "war_current", args), args);
+  assert.equal(argsForKind("person", "players_profile", args), args);
+  assert.equal(argsForKind("person", "clans_my_view", args), args);
+  // Every tool filled takes a clan_tag, on either surface.
+  for (const tool of CLAN_DEFAULT_TOOLS)
+    for (const kind of ["person", "agent"])
+      assert.ok(
+        "clan_tag" in
+          (registry.declarations(kind).find((t) => t.name === tool)?.inputSchema
+            ?.properties ?? {}),
+        `${kind}: ${tool} takes clan_tag`,
+      );
 });

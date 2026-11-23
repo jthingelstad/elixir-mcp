@@ -1,5 +1,14 @@
 # MCP and agents
 
+> Updated direction, 2026-11-23: Elixir has people, not agents. The
+> Agents concept below (an agent as a principal of its own, a clan's
+> agent at `/a/<id>/mcp`, `on_behalf_of`, `elixir_my_identities`) is
+> superseded by "Elixir has people, not agents" in
+> [DECISIONS](../DECISIONS.md): a person's own agent connects at `/mcp`
+> as that person, a clan's configuration and webhooks belong to the clan,
+> and the old agent accounts are deleted. What this brief says about a
+> person's own agent reading over MCP stands.
+
 > Updated direction, 2026-11-17: Watching has retired into ordinary friend
 > follows. The Watching labels and exclusions below are superseded by
 > [Watching retires](../notes/2026-11-18-friend-follows.md). Agents still

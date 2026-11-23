@@ -44,7 +44,7 @@ equalled it: documented, named in every note, served on no row
 
 ### Its own budget
 
-The `acceptance` key carries its own hourly ceiling (`{service_token_limits}`, 2,400/hour - a build day runs the suite several times an hour), so it spends from its own bucket: a run is ~170 calls, and before this a run took 40% of the owner's hour, which the Discord agent shares.
+The `acceptance` key carries its own hourly ceiling (2,400/hour, set by `{test_account}` or `{service_token_limits}` - a build day runs the suite several times an hour), so it spends from its own bucket: a run is ~170 calls. A test account is a person, so it spends its own daily quota, not an owner's: `{test_account}` sets `mcp_daily_quota` (50,000) over the member role's 500.
 
 ### What the Gym files, and how it runs
 
@@ -78,9 +78,10 @@ written - nothing is hand-translated. The vocabulary:
   verb fails the case at run time.
 - **fresh**: `fresh: true` on a live cross-tool case replaces its cached reads before comparison. Use it for counters that can change during a long run; the assertions and captured negative controls remain unchanged.
 - **rules**: `args` as the call was MADE, defaults not filled in (the
-  acceptance principal acts for #J2RGCRVG too, so a defaulted clan
-  matches the capture) - but a player is always named, since the
-  principal has no player of its own; `request_id` is the answer that
+  acceptance identity follows #J2RGCRVG, and the run sends a person's
+  omitted clan as #J2RGCRVG (`argsForKind` in `lib.mjs`), so a defaulted
+  clan matches the capture) - but a player is always named, since the
+  identity has no player of its own; `request_id` is the answer that
   SHOWED the defect, which `bites/fetch.mjs` turns into a bite that must
   fail the case; never `live: true`, never a write tool.
 
@@ -110,29 +111,32 @@ cannot: `cr:read` only. A test pins that no case names a write tool.
 
 ## The credential
 
-An **agent principal** named `acceptance`, clan `#J2RGCRVG`, scope
-`cr:read`, at its own door `/a/<public_id>/mcp`. Minted locally; only
-the sha256 goes to the cloud; the raw value is written to
-`acceptance/.env` (mode 0600, ignored by git) and never printed:
+A **test account** named `acceptance` (since 2026-11-23; the agent
+principal of that name before it): a person with no address, following
+`#J2RGCRVG`, holding one key with scope `cr:read`, at `/mcp`. People
+cannot mint keys; only the `{test_account}` op makes one, for an account
+it made (docs/notes/2026-11-23-test-identities-are-people.md). Minted
+locally; only the sha256 goes to the cloud; the raw value is written to
+a 0600 file (ignored by git) and never printed:
 
 ```sh
-node --input-type=module -e '
-  import { mintServiceTokenValue } from "./packages/auth/src/oauth.mjs";
-  import { writeFileSync } from "node:fs";
-  const { raw, hash } = mintServiceTokenValue();
-  writeFileSync("/tmp/acc-hash.txt", hash);
-  writeFileSync("acceptance/.env.pending", `ELIXIR_MCP_TOKEN=${raw}\n`, { mode: 0o600 });'
-# {principal: {kind: "agent", name: "acceptance", clan_tag: "#J2RGCRVG",
-#              token_hash: <the hash>, scope: "cr:read"}} on elixir-mcp-migrate
-# answers {public_id}; then:
-(echo "ELIXIR_MCP_URL=https://elixir.poapkings.com/a/<public_id>/mcp"; cat acceptance/.env.pending) > acceptance/.env
-chmod 600 acceptance/.env; rm acceptance/.env.pending /tmp/acc-hash.txt
+node infra/scripts/mint-test-key.mjs acceptance acceptance/.env.pending
+# prints the {test_account} payload (dry run) with the hash; send it with
+# npm run op, read the plan, send it again with "dry_run": false.
+# {"test_account": {"list": true}} reads the result back (never a hash).
 ```
 
-On Otto, `acceptance/.env` is generated from `acceptance/.env.tpl` by the
-otto-ops job `render-env-files-from-1password`. After minting, put both new
-values in the 1Password item `Elixir MCP - elixir-mcp-acceptance` (fields
-`credential` and `ELIXIR_MCP_URL`), or the next render reports a difference.
+The file holds `ELIXIR_MCP_URL` (`https://elixir.poapkings.com/mcp`) and
+`ELIXIR_MCP_TOKEN`. On Otto, `acceptance/.env` is generated from
+`acceptance/.env.tpl` by the otto-ops job
+`render-env-files-from-1password`: put both values in the 1Password item
+`Elixir MCP - elixir-mcp-acceptance` (fields `ELIXIR_MCP_URL` and
+`credential`), let the next render write `.env` (or render it now), then
+delete `.env.pending`. Elsewhere, move `.env.pending` to `.env`. Running
+the op again with a new hash re-keys the account and revokes the old key.
+
+The suite works with either identity: the cases that differ by kind
+(`clans_my_view`, `elixir_cheers`) read `ctx.kind` from tools/list.
 
 Without the file the deploy prints a warning and skips the gate; it
 never skips silently.

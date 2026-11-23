@@ -1,9 +1,11 @@
 /**
  * The door, as the acceptance suite speaks to it: one POST per call with
  * a bearer token, timed. Stateless JSON-RPC - no initialize, no session,
- * no SDK (the boards client proved the shape). The token is an AGENT
- * principal's, read-only scope, bound to its own door under /a/<id>/mcp;
- * it comes from acceptance/.env (ignored by git) and is never printed.
+ * no SDK (the boards client proved the shape). The token is a test
+ * person's key (`{test_account}`, 0316), read-only scope, at /mcp; the
+ * door and the token both come from acceptance/.env (ignored by git), so
+ * the agent it replaced at /a/<id>/mcp ran unchanged until the cut-over.
+ * The token is never printed.
  */
 
 import { readFileSync } from "node:fs";
@@ -160,7 +162,7 @@ export function makeDoor({
         body = { text };
       }
     }
-    // clans_participation answers an agent as a table (#124). The cases
+    // clans_participation answers MCP as a table (#124). The cases
     // read its rows as the objects the web app serves, which it decodes to
     // exactly; `raw` keeps what the door sent.
     return {

@@ -505,3 +505,60 @@ test("service keys retain write-only permissions while the retired scope is filt
   assert.equal(account.scope, "feedback:write");
   assert.deepEqual(account.scopes, ["feedback:write"]);
 });
+
+test("a test account's key acts as a person at /mcp and wins its name over an older agent's (0316)", async () => {
+  // The agent the acceptance suite used to be, holding a key named
+  // `acceptance-0316` as it would before the cut-over.
+  const {
+    rows: [agent],
+  } = await db.query(
+    `insert into account (status, role, kind, owned_by_account_id, public_id)
+     values ('approved', 'member', 'agent', $1, 'tstacctagnt1')
+     returning account_id`,
+    [accountId],
+  );
+  await issueServiceToken(db, {
+    accountId: agent.account_id,
+    name: "acceptance-0316",
+  });
+  const byName = () => serviceTokenAccountByName(db, "acceptance-0316");
+  assert.equal((await byName())?.accountId, agent.account_id);
+
+  // The test account the {test_account} op makes: a person with no address.
+  const {
+    rows: [tester],
+  } = await db.query(
+    `insert into account (email_hash, status, role, kind, test_name)
+     values ('test:acceptance-0316', 'approved', 'member', 'person', 'acceptance-0316')
+     returning account_id`,
+  );
+  const key = await issueServiceToken(db, {
+    accountId: tester.account_id,
+    name: "acceptance-0316",
+    scope: "cr:read",
+  });
+  const principal = await validateServiceToken(db, key);
+  assert.equal(principal?.accountId, tester.account_id);
+  assert.equal(principal.kind, "person");
+  assert.deepEqual(principal.scopes, ["cr:read"]);
+  // Its own role's budget, not an owner's.
+  assert.equal(principal.budget.accountId, tester.account_id);
+  // {profile_tool} by name now means the test account.
+  assert.equal((await byName())?.accountId, tester.account_id);
+
+  // The shape pins what keeps it out of people's reach.
+  await assert.rejects(
+    db.query(
+      `update account set email = 'someone@example.com' where account_id = $1`,
+      [tester.account_id],
+    ),
+    /account_test_name_shape/,
+  );
+  await assert.rejects(
+    db.query(
+      `insert into account (email_hash, status, role, kind, test_name)
+       values ('not-the-name', 'approved', 'member', 'person', 'gym-0316')`,
+    ),
+    /account_test_name_shape/,
+  );
+});

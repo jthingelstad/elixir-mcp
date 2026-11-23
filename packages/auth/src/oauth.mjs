@@ -737,7 +737,10 @@ export async function validateServiceToken(db, token) {
  *  NAME rather than its value: the ops lane's {profile_tool} runs a tool
  *  as a principal it holds no secret for. The same select and the same
  *  shape as validateServiceToken, so a profile sees exactly what that
- *  principal's call would; it never touches last_used_at. */
+ *  principal's call would; it never touches last_used_at. A name is
+ *  unique per account only: a test account's key (0316) wins over an
+ *  older key of the same name, so `acceptance` means the test account
+ *  while the agent it replaces still exists. */
 export async function serviceTokenAccountByName(db, name) {
   const { rows } = await db.query(
     `${SERVICE_ACCOUNT_SELECT}
@@ -745,7 +748,7 @@ export async function serviceTokenAccountByName(db, name) {
        and ${OWNER_APPROVED}
        and t.audience = 'mcp'
        and not exists (select 1 from integration i where i.account_id = a.account_id)
-     order by t.token_id limit 1`,
+     order by (a.test_name is not null) desc, t.token_id limit 1`,
     [String(name)],
   );
   return rows[0] ? serviceAccount(rows[0]) : null;
