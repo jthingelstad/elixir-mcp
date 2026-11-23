@@ -845,6 +845,10 @@ test("scout: a pasted tag is read live, pending is passed through, and the polic
         mk(2, "riverRacePvP", "win"),
         mk(3, "riverRaceDuel", "win"),
         mk(20, "PvP", "win"),
+        // Neither is decided: a boat attack has no live opponent and a
+        // draw no winner, so the rate stays four wins in five.
+        mk(4, "boatBattle", "win"),
+        mk(5, "PvP", "draw"),
       ],
       meta: { as_of: NOW.toISOString() },
     },
@@ -860,9 +864,11 @@ test("scout: a pasted tag is read live, pending is passed through, and the polic
   assert.equal(r.body.profile.trophies, 7000);
   assert.equal(r.body.profile.clan_war_wins, 12);
   assert.equal(r.body.log.win_rate, 0.8);
-  // A 1v1 is one deck; a duel without its rounds counts two.
+  assert.equal(r.body.log.wins, 5, "the boat win is still a win");
+  // A 1v1 or a boat attack is one deck; a duel without its rounds counts
+  // two. The boat attack is a war deck even though it is in no win rate.
   const minimums = r.body.policy_answer.minimums;
-  assert.deepEqual(minimums.results.war, { value: 3, needed: 1, passes: true });
+  assert.deepEqual(minimums.results.war, { value: 4, needed: 1, passes: true });
   assert.deepEqual(minimums.results.ranked, {
     value: 2,
     needed: 5,

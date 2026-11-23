@@ -55,6 +55,11 @@ import {
   SEASON_ARG_SCHEMA,
 } from "./shared.mjs";
 import { dailySql } from "@elixir-mcp/record/daily-sql";
+import {
+  decidedLossesSql,
+  decidedWinsSql,
+  winRate,
+} from "@elixir-mcp/record/win-rate-sql";
 import { captureByPlayer } from "../coverage.mjs";
 import {
   modeSplit,
@@ -128,6 +133,13 @@ export const playersTools = {
                 -- Trophy Road only (Gym #130): an event's +1 is its own
                 -- counter, not the ladder's.
                 coalesce(sum(d.trophy_delta) filter (where d.mode_group = 'ladder'), 0)::int as net_trophies,
+                -- The rate's own counts (win-rate-sql): the rollup does
+                -- not tell a boat attack from a head-to-head battle, so
+                -- they come from the player's rows over the same window.
+                (select ${decidedWinsSql()} from battle_participant
+                  where player_tag = $1 and battle_time >= $2)::int as decided_wins,
+                (select ${decidedLossesSql()} from battle_participant
+                  where player_tag = $1 and battle_time >= $2)::int as decided_losses,
                 (select min(battle_time) from battle_participant
                   where player_tag = $1 and battle_time >= $2) as first_recorded
          from d`,
@@ -147,6 +159,8 @@ export const playersTools = {
         `select bp.deck_hash, count(*)::int as battles,
                   count(*) filter (where bp.outcome = 'win')::int as wins,
                   count(*) filter (where bp.outcome = 'loss')::int as losses,
+                  ${decidedWinsSql("bp.outcome", "bp.type_class")}::int as decided_wins,
+                  ${decidedLossesSql("bp.outcome", "bp.type_class")}::int as decided_losses,
                   (select json_agg(json_build_object('type', t.type, 'mode_group', t.mode_group, 'battles', t.n,
                                                      'wins', t.w, 'losses', t.l))
                      from (select x.type, ${DECK_MODE_GROUP} as mode_group,
@@ -190,6 +204,8 @@ export const playersTools = {
         `select bp.deck_hash, count(*)::int as battles,
                   count(*) filter (where bp.outcome = 'win')::int as wins,
                   count(*) filter (where bp.outcome = 'loss')::int as losses,
+                  ${decidedWinsSql("bp.outcome", "bp.type_class")}::int as decided_wins,
+                  ${decidedLossesSql("bp.outcome", "bp.type_class")}::int as decided_losses,
                   (select json_agg(json_build_object('type', t.type, 'mode_group', t.mode_group, 'battles', t.n,
                                                      'wins', t.w, 'losses', t.l))
                      from (select x.type, ${DECK_MODE_GROUP} as mode_group,
@@ -227,9 +243,13 @@ export const playersTools = {
                                            and (cb.boat_battle_side = 'defender') = (bp.side = 0))
                              from battle cb where cb.battle_id = bp.battle_id), false)
            group by bp.deck_hash
-           having count(*) >= 10 and count(*) filter (where bp.outcome in ('win','loss')) > 0
-           order by (count(*) filter (where bp.outcome = 'win'))::numeric
-                    / greatest(count(*) filter (where bp.outcome in ('win','loss')), 1) desc
+           -- The best decided record, by the rate the row serves.
+           having count(*) >= 10
+              and ${decidedWinsSql("bp.outcome", "bp.type_class")}
+                  + ${decidedLossesSql("bp.outcome", "bp.type_class")} > 0
+           order by (${decidedWinsSql("bp.outcome", "bp.type_class")})::numeric
+                    / greatest(${decidedWinsSql("bp.outcome", "bp.type_class")}
+                               + ${decidedLossesSql("bp.outcome", "bp.type_class")}, 1) desc
            limit 1`,
         [tag],
       );
@@ -258,10 +278,11 @@ export const playersTools = {
           // The archetype on the value (6.5.0).
           archetype: identities.get(row.deck_hash)?.archetype ?? null,
           battles: row.battles,
-          win_rate:
-            row.wins + row.losses > 0
-              ? Number((row.wins / (row.wins + row.losses)).toFixed(3))
-              : null,
+          decided_battles: row.decided_wins + row.decided_losses,
+          win_rate: winRate(
+            row.decided_wins,
+            row.decided_wins + row.decided_losses,
+          ),
           ...(modes ? { modes, dominant_mode: dominantMode(modes) } : {}),
           // The level gap the deck fought at (3.17.0): what
           // comparabilityNote needs to name a real gap between the two
@@ -367,10 +388,8 @@ export const playersTools = {
           losses: r.losses,
           draws: r.draws,
           net_trophies: r.net_trophies,
-          win_rate:
-            r.wins + r.losses > 0
-              ? Number((r.wins / (r.wins + r.losses)).toFixed(3))
-              : null,
+          decided_battles: r.decided_wins + r.decided_losses,
+          win_rate: winRate(r.decided_wins, r.decided_wins + r.decided_losses),
           first_recorded: r.first_recorded?.toISOString() ?? null,
           modes: windowModes,
         },
@@ -383,7 +402,7 @@ export const playersTools = {
           defenseNote,
           seasonFields.seasonNotes,
           rangeClash,
-          "Counts include every recorded battle (war modes carry no trophies); win_rate = wins/(wins+losses), draws excluded; net_trophies is Trophy Road's only.",
+          "Counts include every recorded battle (war modes carry no trophies); win_rate is decided wins over decided_battles, as battles_performance's is: boat battles and draws are in battles and never in the rate; net_trophies is Trophy Road's only.",
           "best_deck needs 10+ battles in the window and is omitted when it IS the top deck.",
           ARCHETYPE_NOTE,
           deckClash,

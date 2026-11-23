@@ -354,12 +354,26 @@ const ARCHETYPE = {
   required: ["family", "win_conditions", "label", "average_elixir"],
 };
 
+/** The denominator beside every win_rate (15.5.0): Elixir's one
+ *  definition of the rate (record/win-rate-sql). */
+const DECIDED_BATTLES = {
+  ...COUNT,
+  description:
+    "The head-to-head wins and losses win_rate is over (15.5.0): a boat battle has no live opponent and a draw no winner, so both are in battles and neither is here.",
+};
+const WIN_RATE = {
+  ...RATE,
+  description:
+    "Decided wins over decided_battles, 0..1 to three decimals; null when decided_battles is 0. One definition on every tool: boat battles and draws are never in it.",
+};
+
 const RECORD = {
   battles: COUNT,
   wins: COUNT,
   losses: COUNT,
   draws: COUNT,
-  win_rate: RATE,
+  decided_battles: DECIDED_BATTLES,
+  win_rate: WIN_RATE,
 };
 
 const PERF_WINDOW = {
@@ -372,7 +386,6 @@ const PERF_WINDOW = {
     crowns_against: COUNT,
     net_trophies: COUNT,
     current_streak: COUNT,
-    decided_battles: COUNT,
     decided_wins: COUNT,
     decided_losses: COUNT,
     head_to_head_battles: COUNT,
@@ -1117,13 +1130,14 @@ export const OUTPUT_SCHEMAS = {
           type: "object",
           properties: {
             battles: { type: ["number", "null"] },
+            decided_battles: DECIDED_BATTLES,
             form: { type: ["string", "null"] },
             id: { type: ["number", "null"] },
             losses: { type: ["number", "null"] },
             mean_level_gap: { type: ["number", "null"] },
             modes: { type: "object" },
             name: { type: ["string", "null"] },
-            win_rate: { type: ["number", "null"] },
+            win_rate: WIN_RATE,
             wins: { type: ["number", "null"] },
           },
         },
@@ -2036,7 +2050,8 @@ export const OUTPUT_SCHEMAS = {
           cards: { type: "array", items: DECK_CARD },
           archetype: ARCHETYPE,
           battles: COUNT,
-          win_rate: RATE,
+          decided_battles: DECIDED_BATTLES,
+          win_rate: WIN_RATE,
           modes: MODE_SPLIT,
           dominant_mode: {
             type: ["object", "null"],
@@ -2063,7 +2078,8 @@ export const OUTPUT_SCHEMAS = {
           cards: { type: "array", items: DECK_CARD },
           archetype: ARCHETYPE,
           battles: COUNT,
-          win_rate: RATE,
+          decided_battles: DECIDED_BATTLES,
+          win_rate: WIN_RATE,
           modes: MODE_SPLIT,
           dominant_mode: {
             type: ["object", "null"],
@@ -3145,7 +3161,8 @@ export const OUTPUT_SCHEMAS = {
               type: "number",
               description: "1 - (rank - 1) / ranked_members.",
             },
-            win_rate: RATE,
+            decided_battles: DECIDED_BATTLES,
+            win_rate: WIN_RATE,
             net_trophies: {
               type: ["integer", "null"],
               description:

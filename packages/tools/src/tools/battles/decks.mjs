@@ -27,6 +27,11 @@ import {
   shortHash,
 } from "../../controls.mjs";
 import { CONTROLS_DOCS, modeClause, ownBattlesClause } from "./common.mjs";
+import {
+  decidedLossesSql,
+  decidedWinsSql,
+  winRate,
+} from "@elixir-mcp/record/win-rate-sql";
 
 /** Decks from duel rounds listed beside the rows, most rounds first. */
 const DUEL_DECKS = 8;
@@ -125,6 +130,8 @@ export const battles_decks = {
                 count(*) filter (where bp.outcome = 'win')::int as wins,
                 count(*) filter (where bp.outcome = 'loss')::int as losses,
                 count(*) filter (where bp.outcome = 'draw')::int as draws,
+                ${decidedWinsSql("bp.outcome", "bp.type_class")}::int as decided_wins,
+                ${decidedLossesSql("bp.outcome", "bp.type_class")}::int as decided_losses,
                 round(avg(bp.deck_avg_level - opp.lvl)::numeric, 2) as mean_level_gap,
                 round(avg(opp.lvl)::numeric, 2) as opponent_mean_level,
                 round(avg(bp.deck_avg_level) filter (where opp.lvl is not null)::numeric, 2) as own_mean_level,
@@ -261,8 +268,10 @@ export const battles_decks = {
         matchesArchetype(identities.get(r.deck_hash)?.archetype, archetype),
       );
     }
-    const wr = (r) =>
-      r.wins + r.losses > 0 ? r.wins / (r.wins + r.losses) : -1;
+    // The rate the rows serve, unrounded for the sort; a deck with no
+    // decided battle sorts last.
+    const decided = (r) => r.decided_wins + r.decided_losses;
+    const wr = (r) => winRate(r.decided_wins, decided(r)) ?? -1;
     requireEnum(args.sort, ["battles", "wins", "win_rate"], "sort");
     if (args.sort === "wins") shaped.sort((a, z) => z.wins - a.wins);
     else if (args.sort === "win_rate") shaped.sort((a, z) => wr(z) - wr(a));
@@ -291,10 +300,8 @@ export const battles_decks = {
         wins: r.wins,
         losses: r.losses,
         draws: r.draws,
-        win_rate:
-          r.wins + r.losses > 0
-            ? Number((r.wins / (r.wins + r.losses)).toFixed(3))
-            : null,
+        decided_battles: decided(r),
+        win_rate: winRate(r.decided_wins, decided(r)),
         share_of_battles:
           totalBattles > 0
             ? Number((r.battles / totalBattles).toFixed(3))
@@ -376,6 +383,7 @@ export const battles_decks = {
         duelDecks.length
           ? "duel_decks are the decks played in duel rounds (river race duels and any other battle played as games on round decks, such as an event's multi-deck mode), one row per deck per mode group (mode), each round a game won or lost by its own crowns; a duel counts once in battles_performance and is outside the rows and shares above."
           : null,
+        "win_rate is decided wins over decided_battles: a boat battle has no live opponent and a draw no winner, so both are in battles and neither is in the rate.",
         "mean_level_gap is this deck's average card level minus the opposing side's over level_gap_battles (positive = you outlevelled them); modes splits the row by mode group, and win rates across rows are comparable only when comparable is true.",
       ),
       docs: CONTROLS_DOCS,

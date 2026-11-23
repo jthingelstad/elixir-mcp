@@ -258,6 +258,8 @@ export const battles_performance = {
                         count(*) filter (where bp.outcome = 'win')::int as wins,
                         count(*) filter (where bp.outcome = 'loss')::int as losses,
                         count(*) filter (where bp.outcome = 'draw')::int as draws,
+                        ${decidedWinsSql("bp.outcome", "bp.type_class")}::int as decided_wins,
+                        ${decidedLossesSql("bp.outcome", "bp.type_class")}::int as decided_losses,
                         max(b.battle_time) as last_played
                    from battle_participant bp join battle b on b.battle_id = bp.battle_id
                   where ${where.join(" and ")}
@@ -276,16 +278,14 @@ export const battles_performance = {
           wins: r.wins,
           losses: r.losses,
           draws: r.draws,
-          win_rate:
-            r.wins + r.losses > 0
-              ? Number((r.wins / (r.wins + r.losses)).toFixed(3))
-              : null,
+          decided_battles: r.decided_wins + r.decided_losses,
+          win_rate: winRate(r.decided_wins, r.decided_wins + r.decided_losses),
           last_played: r.last_played?.toISOString() ?? null,
         })),
       };
       caveats.push(
         "Rows are keyed by (game_mode, type, event_tag): the same mode name recurs under different API types, and Supercell reuses one (game_mode, type) slot for several events, so each event is its own row, named by event_tag and event_title (null when the events read never sighted it). event_tag is null on a row that is not event content, clanmate battles included (casual even when the game tagged them). 'unknown' is the API's own type for some friendly and event battles.",
-        "Per-row win_rate is wins/(wins+losses) within that row, boat rows included; filter battles_query by game_mode to drill in.",
+        "Per-row win_rate is the row's decided wins over its decided_battles, as the window's is: a boat battle has no live opponent and a draw no winner, so neither is decided, and a boat battle row carries its wins and losses with win_rate null. Filter battles_query by game_mode to drill in.",
       );
       if (args.before_after || args.compare_from || args.compare_to)
         caveats.push(
@@ -319,6 +319,8 @@ export const battles_performance = {
                   count(*) filter (where bp.outcome = 'win')::int as wins,
                   count(*) filter (where bp.outcome = 'loss')::int as losses,
                   count(*) filter (where bp.outcome = 'draw')::int as draws,
+                  ${decidedWinsSql("bp.outcome", "bp.type_class")}::int as decided_wins,
+                  ${decidedLossesSql("bp.outcome", "bp.type_class")}::int as decided_losses,
                   count(*) filter (where b.type = any(${trophyModes}) or bp.trophy_change is not null)::int as trophy_mode_battles,
                   count(*) filter (where bp.trophy_change is not null)::int as trophy_battles,
                   coalesce(sum(bp.trophy_change), 0)::int as net_trophies
@@ -339,13 +341,11 @@ export const battles_performance = {
           wins: r.wins,
           losses: r.losses,
           draws: r.draws,
+          decided_battles: r.decided_wins + r.decided_losses,
           trophy_mode_battles: r.trophy_mode_battles,
           trophy_battles: r.trophy_battles,
           net_trophies: r.net_trophies,
-          win_rate:
-            r.wins + r.losses > 0
-              ? Number((r.wins / (r.wins + r.losses)).toFixed(3))
-              : null,
+          win_rate: winRate(r.decided_wins, r.decided_wins + r.decided_losses),
         })),
         { from, to },
       );
@@ -353,7 +353,7 @@ export const battles_performance = {
       caveats.push(
         partialWeeksNote(weekly.partial),
         trophyBattlesNote(weekly.rows),
-        "week_of is the ISO week's Monday (UTC); win_rate = wins/(wins+losses), draws excluded.",
+        "week_of is the ISO week's Monday (UTC); win_rate is the week's decided wins over its decided_battles, as the window's is: boat battles and draws are in battles, wins and losses and never in the rate.",
         "net_trophies sums trophy_battles, the trophy-mode battles that reported a delta: Trophy Road, Path of Legends, and the seasonal Trophy Road past 14,000, which the API files as event content (type trail, game mode Ladder) but which moves trophies. War battles and other events carry none, so a rising win_rate with flat trophies usually means war-heavy weeks; trophy_mode_battles counts the trophy-mode battles played, trophy_battles those that reported a delta.",
       );
       if (args.before_after || args.compare_from || args.compare_to)

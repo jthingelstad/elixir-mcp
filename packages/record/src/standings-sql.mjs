@@ -10,11 +10,15 @@
  * members of it. The streak is the run of equal decided outcomes ending
  * at the member's latest battle, from the members' own raw rows (the
  * 2026-09-16 timeline request §2: a consumer called
- * battles_performance per member for this).
+ * battles_performance per member for this). The rate's own counts
+ * (`decided_wins`, `decided_losses`, win-rate-sql.mjs) come from those
+ * raw rows too: the rollup does not tell a boat attack from a
+ * head-to-head battle.
  */
 
 import { modeGroupSql } from "@elixir-mcp/contracts";
 import { dailySql } from "./daily-sql.mjs";
+import { decidedLossesSql, decidedWinsSql } from "./win-rate-sql.mjs";
 
 export function standingsQuery({ clanTag, from, to = null, mode = null }) {
   const members = `(select cm.player_tag from clan_membership cm
@@ -48,7 +52,7 @@ export function standingsQuery({ clanTag, from, to = null, mode = null }) {
   });
   const text = `with d as ${daily},
      s as (
-       select bp.player_tag, bp.battle_id, bp.outcome, bp.battle_time, bp.side, bp.deck_avg_level, bp.opp_deck_avg_level
+       select bp.player_tag, bp.battle_id, bp.outcome, bp.type_class, bp.battle_time, bp.side, bp.deck_avg_level, bp.opp_deck_avg_level
        from battle_participant bp
        where bp.player_tag in ${members}
          and bp.battle_time >= $2
@@ -67,6 +71,12 @@ export function standingsQuery({ clanTag, from, to = null, mode = null }) {
        join (select player_tag, outcome as latest from decided where drn = 1) l
          on l.player_tag = d.player_tag
        group by d.player_tag, l.latest
+     ),
+     rate as (
+       select player_tag,
+              ${decidedWinsSql()}::int as decided_wins,
+              ${decidedLossesSql()}::int as decided_losses
+       from s group by player_tag
      ),
      sums as (
        select player_tag,
@@ -111,6 +121,8 @@ export function standingsQuery({ clanTag, from, to = null, mode = null }) {
             coalesce(su.wins, 0)::int as wins,
             coalesce(su.losses, 0)::int as losses,
             coalesce(su.draws, 0)::int as draws,
+            coalesce(ra.decided_wins, 0)::int as decided_wins,
+            coalesce(ra.decided_losses, 0)::int as decided_losses,
             coalesce(su.net_trophies, 0)::int as net_trophies,
             coalesce(su.ladder_battles, 0)::int as ladder_battles,
             mo.modes, g.mean_level_gap, coalesce(g.level_gap_battles, 0)::int as level_gap_battles,
@@ -118,6 +130,7 @@ export function standingsQuery({ clanTag, from, to = null, mode = null }) {
      from clan_membership cm
      join player p on p.player_tag = cm.player_tag
      left join sums su on su.player_tag = cm.player_tag
+     left join rate ra on ra.player_tag = cm.player_tag
      left join modes mo on mo.player_tag = cm.player_tag
      left join gaps g on g.player_tag = cm.player_tag
      left join streak st on st.player_tag = cm.player_tag

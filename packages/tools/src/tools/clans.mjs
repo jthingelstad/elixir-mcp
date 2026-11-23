@@ -19,6 +19,7 @@ import {
 } from "@elixir-mcp/record/participation-sql";
 import { atWarFinishes, roleChangesSince } from "../role-history.mjs";
 import { standingsQuery } from "@elixir-mcp/record/standings-sql";
+import { winRate } from "@elixir-mcp/record/win-rate-sql";
 import { hydrateClanEvents, CLAN_EVENT_COLUMNS } from "../event-payloads.mjs";
 import { formatLocal } from "../time.mjs";
 import { captureByPlayer, underCaptureNote } from "../coverage.mjs";
@@ -355,7 +356,8 @@ export const clansTools = {
           minimum: 1,
           maximum: 200,
           default: 10,
-          description: "Decided battles (wins + losses) required to be ranked.",
+          description:
+            "Decided battles (head-to-head wins and losses; no boat battle, no draw) required to be ranked.",
         },
         mode: MODE_SCHEMA,
       },
@@ -395,10 +397,8 @@ export const clansTools = {
         wins: r.wins,
         losses: r.losses,
         draws: r.draws,
-        win_rate:
-          r.wins + r.losses > 0
-            ? Number((r.wins / (r.wins + r.losses)).toFixed(3))
-            : null,
+        decided_battles: r.decided_wins + r.decided_losses,
+        win_rate: winRate(r.decided_wins, r.decided_wins + r.decided_losses),
         // null, not 0, when the window holds no ladder battle: a sum over
         // nothing is not a net of nothing (3.16.0).
         // The name battles_performance uses (4.0.0).
@@ -416,7 +416,7 @@ export const clansTools = {
           : null,
       }));
       const rankedOnly = withRate
-        .filter((m) => m.wins + m.losses >= minBattles)
+        .filter((m) => m.decided_battles >= minBattles)
         .sort((a, z) => z.win_rate - a.win_rate || z.battles - a.battles);
       // The percentile the note has always stated, served (review
       // 2026-09-19, defect 6): rank 1 reads 1, the last rank reads
@@ -427,7 +427,7 @@ export const clansTools = {
         percentile: Number((1 - i / rankedOnly.length).toFixed(3)),
       }));
       const unranked = withRate
-        .filter((m) => m.wins + m.losses < minBattles)
+        .filter((m) => m.decided_battles < minBattles)
         .sort((a, z) => z.battles - a.battles);
       // Comparable only within one mode and at similar gaps: the guard
       // names the two members that clash (3.16.0).
@@ -477,7 +477,7 @@ export const clansTools = {
           win.seasonNotes,
           coverageBasisNote(coverage.basis),
           "Covers RECORDED battles only, and capture starts differ per member (recorded_since per member; elixir_coverage per tag).",
-          "win_rate = wins/(wins+losses), draws excluded; percentile = 1 - (rank-1)/ranked_members; members below min_battles are in below_floor without a rank.",
+          "win_rate is decided wins over decided_battles, as battles_performance's is: boat battles and draws are in battles and never in the rate; percentile = 1 - (rank-1)/ranked_members; members with fewer decided_battles than min_battles are in below_floor without a rank.",
           "net_trophies sums trophy_change on ladder battles in the window and is null when ladder_battles is 0; modes splits each member's battles by mode group and mean_level_gap is their deck's average level minus the opposing side's over their latest level_gap_battles (at most 50) battles in the window; current_streak is the run of equal decided outcomes ending at the member's latest recorded battle in the window, null with no decided battle.",
         ),
         docs: docsRef("freshness-and-gaps", "completeness"),

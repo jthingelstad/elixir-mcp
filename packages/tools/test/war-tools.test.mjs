@@ -14,7 +14,7 @@ import { participationObjects } from "../src/participation-table.mjs";
 import { refreshDailyRollups } from "../../ingest/src/rollups.mjs";
 import { periodAt } from "../src/war-period.mjs";
 import { ensureSeasonsAround } from "@elixir-mcp/record/season";
-import { seedDeck } from "./deck-rows.mjs";
+import { seedDeck, seedPlayedDeck } from "./deck-rows.mjs";
 import { createScratch, dropScratch } from "../../ingest/test/helpers.mjs";
 
 /** The (player, UTC day) pairs of hand-seeded battles, as ingest would
@@ -703,6 +703,166 @@ test("players_summary leaves out boat defenses, agreeing with battles_performanc
       `delete from battle_participant where battle_id like 'sd-%'`,
     );
     await db.query(`delete from battle where battle_id like 'sd-%'`);
+    await refreshDailyRollups(db, pairs);
+  }
+});
+
+test("one win rate on every tool: boat attacks and draws are counted and never in the rate", async () => {
+  // A member with no battle yet, so every number below is this test's.
+  const tag = (
+    await db.query(
+      `select cm.player_tag from clan_membership cm
+        where cm.clan_tag = $1 and cm.left_observed_at is null
+          and not exists (select 1 from battle_participant bp
+                           where bp.player_tag = cm.player_tag)
+        order by cm.player_tag desc limit 1`,
+      [CLAN],
+    )
+  ).rows[0].player_tag;
+  // Two days back at noon UTC: one whole day the rollup answers, one ISO week.
+  const noon = new Date();
+  noon.setUTCHours(12, 0, 0, 0);
+  const base = noon.getTime() - 2 * 86_400_000;
+  const ladderCards = [1, 2, 3, 4, 5, 6, 7, 8].map((i) => ({
+    id: 26_880_000 + i,
+  }));
+  const warCards = [1, 2, 3, 4, 5, 6, 7, 8].map((i) => ({
+    id: 26_881_000 + i,
+  }));
+  // The ladder deck: two wins, two losses and a draw. The war deck: a
+  // win and a loss head to head, and two boat attacks won (a boat
+  // battle has no live opponent). Decided: 3 wins, 3 losses. The rate
+  // every tool once served but battles_performance's window was
+  // wins / (wins + losses) = 5 / 8.
+  const rows = [
+    ["wr-l1", "PvP", "pvp", null, "win", ladderCards],
+    ["wr-l2", "PvP", "pvp", null, "win", ladderCards],
+    ["wr-l3", "PvP", "pvp", null, "loss", ladderCards],
+    ["wr-l4", "PvP", "pvp", null, "loss", ladderCards],
+    ["wr-l5", "PvP", "pvp", null, "draw", ladderCards],
+    ["wr-w1", "riverRacePvP", "pvp", null, "win", warCards],
+    ["wr-w2", "riverRacePvP", "pvp", null, "loss", warCards],
+    ["wr-b1", "boatBattle", "boat", "attacker", "win", warCards],
+    ["wr-b2", "boatBattle", "boat", "attacker", "win", warCards],
+  ];
+  const hashes = {};
+  for (const [i, [id, type, cls, boat, outcome, cards]] of rows.entries()) {
+    const at = new Date(base + i * 60_000);
+    const deck = await seedDeck(db, { cards });
+    hashes[id] = deck;
+    await db.query(
+      `insert into battle (battle_id, battle_time, type, type_class, boat_battle_side)
+       values ($1, $2, $3, $4, $5)`,
+      [id, at, type, cls, boat],
+    );
+    await db.query(
+      `insert into battle_participant (battle_id, player_tag, battle_time, side, outcome, type, type_class, clan_tag, deck_hash)
+       values ($1, $2, $3, 0, $4, $5, $6, $7, $8)`,
+      [id, tag, at, outcome, type, cls, CLAN, deck],
+    );
+    await seedPlayedDeck(db, { battle_id: id, player_tag: tag, cards });
+  }
+  const pairs = await rollupPairs(db, "wr-%");
+  await refreshDailyRollups(db, pairs);
+  const ok = async (name, args) => {
+    const r = await call(invoke, name, args);
+    assert.equal(r.isError, false, `${name}: ${JSON.stringify(r.body)}`);
+    return r.body;
+  };
+  try {
+    const window = (
+      await ok("battles_performance", { player_tag: tag, days: 7 })
+    ).window;
+    assert.equal(window.battles, 9);
+    assert.equal(window.wins, 5, "boat wins are wins");
+    assert.equal(window.losses, 3);
+    assert.equal(window.decided_battles, 6);
+    assert.equal(window.win_rate, 0.5);
+    const same = (row, what) => {
+      assert.equal(row.wins, 5, `${what}: wins`);
+      assert.equal(row.losses, 3, `${what}: losses`);
+      assert.equal(row.decided_battles, 6, `${what}: decided_battles`);
+      assert.equal(row.win_rate, window.win_rate, `${what}: win_rate`);
+    };
+
+    const weekly = (
+      await ok("battles_performance", {
+        player_tag: tag,
+        days: 7,
+        group_by: "week",
+      })
+    ).weekly;
+    assert.equal(weekly.length, 1);
+    same(weekly[0], "the week");
+
+    const byMode = (
+      await ok("battles_performance", {
+        player_tag: tag,
+        days: 7,
+        group_by: "game_mode",
+      })
+    ).by_mode;
+    const boat = byMode.find((m) => m.type === "boatBattle");
+    assert.equal(boat.wins, 2, "the boat row keeps its record");
+    assert.equal(boat.decided_battles, 0);
+    assert.equal(boat.win_rate, null, "and has no rate: nothing was decided");
+    assert.equal(
+      byMode.reduce((n, m) => n + m.decided_battles, 0),
+      window.decided_battles,
+      "the rows' decided battles are the window's",
+    );
+
+    const summary = await ok("players_summary", { player_tag: tag });
+    same(summary.last_30_days, "players_summary");
+    assert.equal(summary.top_deck.deck_hash, hashes["wr-l1"]);
+    assert.equal(summary.top_deck.battles, 5);
+    assert.equal(summary.top_deck.decided_battles, 4, "the draw is out");
+    assert.equal(summary.top_deck.win_rate, 0.5);
+
+    const standings = await ok("clans_standings", {
+      days: 7,
+      min_battles: 6,
+    });
+    const member = standings.members.find((m) => m.player_tag === tag);
+    assert.ok(member, "ranked on six decided battles, not on eight");
+    same(member, "clans_standings");
+    assert.equal(
+      (await ok("clans_standings", { days: 7, min_battles: 7 })).members.some(
+        (m) => m.player_tag === tag,
+      ),
+      false,
+      "boat wins do not lift a member over the floor",
+    );
+
+    const decks = (
+      await ok("battles_decks", {
+        player_tag: tag,
+        days: 7,
+        sort: "win_rate",
+      })
+    ).decks;
+    const war = decks.find((d) => d.deck_hash === hashes["wr-w1"]);
+    assert.equal(war.battles, 4);
+    assert.equal(war.wins, 3);
+    assert.equal(war.decided_battles, 2);
+    assert.equal(war.win_rate, 0.5, "not 3 of 4: two of those were boats");
+    const ladder = decks.find((d) => d.deck_hash === hashes["wr-l1"]);
+    assert.equal(ladder.decided_battles, 4);
+    assert.equal(ladder.win_rate, 0.5);
+
+    const cards = (await ok("battles_cards", { player_tag: tag, days: 7 }))
+      .cards;
+    const warCard = cards.find((c) => c.id === warCards[0].id);
+    assert.equal(warCard.wins, 3);
+    assert.equal(warCard.losses, 1);
+    assert.equal(warCard.decided_battles, 2);
+    assert.equal(warCard.win_rate, 0.5);
+  } finally {
+    // Later tests count this clan's battles from their own rows.
+    await db.query(
+      `delete from battle_participant where battle_id like 'wr-%'`,
+    );
+    await db.query(`delete from battle where battle_id like 'wr-%'`);
     await refreshDailyRollups(db, pairs);
   }
 });

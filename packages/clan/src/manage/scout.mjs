@@ -12,6 +12,7 @@
  */
 
 import { ranksElder, removalDay, setMinimums } from "@elixir-mcp/clan-engine";
+import { isDecided, winRate } from "@elixir-mcp/record/win-rate-sql";
 import { normalizeTag } from "../gate.mjs";
 
 const DAY_MS = 86400_000;
@@ -97,6 +98,10 @@ export function createScout({ record, now = () => Date.now() }) {
     const daysIdle = last ? Number(((t - last) / DAY_MS).toFixed(2)) : null;
     const wins = battles.filter((b) => b.me?.outcome === "win").length;
     const losses = battles.filter((b) => b.me?.outcome === "loss").length;
+    // The rate by Elixir's one definition (record/win-rate-sql): a boat
+    // battle is in the counts and never in the rate.
+    const decided = battles.filter((b) => isDecided(b.me?.outcome, b.type));
+    const decidedWins = decided.filter((b) => b.me.outcome === "win").length;
     const oldest =
       battles.map((b) => Date.parse(b.battle_time)).sort((a, b) => a - b)[0] ??
       null;
@@ -136,8 +141,7 @@ export function createScout({ record, now = () => Date.now() }) {
         newest: last ? new Date(last).toISOString() : null,
         wins,
         losses,
-        win_rate:
-          wins + losses ? Number((wins / (wins + losses)).toFixed(3)) : null,
+        win_rate: winRate(decidedWins, decided.length),
         ranked_in_window: rankedInFloor,
         war_decks_in_window: warDecks,
         covers_window: logCoversFloor,

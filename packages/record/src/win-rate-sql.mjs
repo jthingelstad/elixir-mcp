@@ -1,8 +1,11 @@
 /**
- * The win rate's one definition, as SQL (2026-11-22): battles_performance's
- * window and the Timeline's week_form both count with these, so the two
- * doors can never disagree about a rate (packages/tools AGENTS.md, one
- * derivation).
+ * The win rate's one definition (2026-11-22): every `win_rate` Elixir
+ * serves counts with these (battles_performance's window, its weeks and
+ * its modes, battles_decks, battles_cards, players_summary,
+ * clans_standings, Scout's log, the Timeline's week_form), so no two doors
+ * can disagree about a rate (packages/tools AGENTS.md, one derivation).
+ * `services/mcp/test/win-rate-one-definition.test.mjs` refuses a rate
+ * computed anywhere else.
  *
  * A decided battle is a head-to-head win or loss (`type_class = 'pvp'`):
  * boat attacks (a static defense, no live opponent) and draws stay in the
@@ -30,6 +33,13 @@ export const decidedLossesSql = (
 /** decided_wins / decided_battles to three places, null when none. */
 export const winRate = (decidedWins, decided) =>
   decided > 0 ? Number((decidedWins / decided).toFixed(3)) : null;
+
+/** The same rule over a battle row a reader already holds (a prospect's
+ *  log from battles_query): a win or a loss that is not a boat battle,
+ *  by the test ingest stamps `type_class` with (`battles.mjs`). */
+export const isDecided = (outcome, type) =>
+  (outcome === "win" || outcome === "loss") &&
+  !String(type ?? "").startsWith("boatBattle");
 
 const quote = (s) => `'${String(s).replace(/'/g, "''")}'`;
 

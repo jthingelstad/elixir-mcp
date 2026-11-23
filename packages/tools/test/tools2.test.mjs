@@ -602,12 +602,22 @@ test("round-3 fixes: honest validation and richer shapes", async () => {
     );
     assert.ok(typeof w.trophy_battles === "number");
   }
-  assert.match(trend.body.notes.join(" "), /draws excluded/);
+  // Draws and boat battles are counted and in no rate (15.5.0).
+  assert.match(
+    trend.body.notes.join(" "),
+    /draws are in battles[^.]*never in the rate/,
+  );
+  for (const w of trend.body.weekly)
+    assert.ok(w.decided_battles <= w.wins + w.losses, "decided is a subset");
 
   // Summary: draws counted, denominator explained, best_deck slot exists.
   const sum = await call("players_summary", {});
   assert.ok(typeof sum.body.last_30_days.draws === "number");
-  assert.match(sum.body.notes.join(" "), /draws excluded/);
+  assert.match(
+    sum.body.notes.join(" "),
+    /draws are in battles[^.]*never in the rate/,
+  );
+  assert.ok(typeof sum.body.last_30_days.decided_battles === "number");
   assert.ok("best_deck" in sum.body);
 
   // Full verbosity delivers the promised opponent perspective.

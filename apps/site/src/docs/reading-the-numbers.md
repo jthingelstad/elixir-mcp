@@ -140,6 +140,12 @@ denominator:
   are outside both sides of that fraction. `wins` and `losses` are the plain
   counts and **do** include boat attack wins, so `wins` can exceed
   `decided_wins`.
+- Every `win_rate` is that one fraction, and every row that carries one
+  carries `decided_battles` beside it: `battles_performance` (the window and
+  its `game_mode` and `week` rows), `battles_decks`, `battles_cards`,
+  `players_summary` and `clans_standings`. A row with no decided battle,
+  such as a boat battle mode, has `win_rate: null`. `clans_standings`
+  counts `min_battles` in decided battles.
 - `three_crown_rate = three-crown wins / head_to_head_battles`. Duels and boat
   battles are excluded from both sides.
 - `battles` is every recorded battle of the player's own in the window,
