@@ -6663,26 +6663,27 @@ button.kit-row {
   flex: 1 0 auto;
   min-width: 0;
 }
-/* Installed on a phone (viewport-fit=cover, a translucent status bar), the
-   page draws under the clock: the bar starts below it, and a strip the
-   bar's colour stays over it while the page scrolls. Both are zero in a
-   browser tab, where the browser keeps that space. */
-.kit-shell::before {
-  content: "";
-  position: fixed;
-  top: 0;
-  right: 0;
-  left: 0;
-  z-index: 40;
-  height: env(safe-area-inset-top);
-  background: var(--ground-chrome);
-  pointer-events: none;
+/* The page is laid out BELOW the phone's clock, never under it (no
+   viewport-fit=cover, 2026-11-23). An installed web app on iOS 27 (seen on
+   27.0 and 27.2) blurs and dims whatever the page draws in roughly the top
+   100px, and nothing a page that draws under the clock can do turns that
+   off: the bar was soft at rest and smeared once the page moved. Laid out
+   below the clock, with a bar that stays at the top edge (the phone rule
+   below), iOS drops the blur and fills the clock's strip with the bar's
+   own colour. So no rule here reads env(safe-area-inset-*): they are all
+   zero. --kit-top-stuck is the height of a bar that stays put, zero where
+   it scrolls away; what sticks under it, and a jump to a place on the
+   page, start from it. */
+:root {
+  --kit-top-stuck: 0px;
+}
+html {
+  scroll-padding-top: var(--kit-top-stuck);
 }
 .kit-top {
   position: relative;
   z-index: 30;
   background: var(--ground-chrome);
-  padding-top: env(safe-area-inset-top);
 }
 .kit-top__row {
   display: flex;
@@ -6691,8 +6692,7 @@ button.kit-row {
   max-width: var(--page-max);
   min-height: 60px;
   margin-inline: auto;
-  padding-inline: max(var(--s-6), env(safe-area-inset-left))
-    max(var(--s-6), env(safe-area-inset-right));
+  padding-inline: var(--s-6);
 }
 /* Only the wordmark keeps the display face and brand gold. */
 .kit-top__brand {
@@ -7689,7 +7689,7 @@ button.kit-row {
 }
 .kit-feed__newpill {
   position: sticky;
-  top: var(--s-3);
+  top: calc(var(--kit-top-stuck) + var(--s-3));
   z-index: 3;
   height: 0;
   margin-bottom: -14px;
@@ -9391,13 +9391,9 @@ a.kit-bell__hit:focus-visible::after {
      width less a margin, ending above the tabs. It scrolls inside; the page
      behind is dimmed and holds still while it is open. */
   .kit-bell__sheet {
-    inset: var(--bell-top, 62px) max(var(--s-2), env(safe-area-inset-right))
-      auto max(var(--s-2), env(safe-area-inset-left));
+    inset: var(--bell-top, 62px) var(--s-2) auto var(--s-2);
     width: auto;
-    max-height: calc(
-      100dvh - var(--bell-top, 62px) - 61px - env(safe-area-inset-bottom) -
-        var(--s-2)
-    );
+    max-height: calc(100dvh - var(--bell-top, 62px) - 61px - var(--s-2));
   }
   .kit-bell__sheet::backdrop {
     background: var(--scrim);
@@ -10032,11 +10028,20 @@ a.kit-bell__hit:focus-visible::after {
   }
 }
 @media (max-width: 760px) {
+  /* The bar stays at the top of a phone (2026-11-23): see .kit-top. The
+     tabs under the page already do. */
+  :root {
+    --kit-top-stuck: 54px;
+  }
+  .kit-top {
+    position: sticky;
+    top: 0;
+  }
   /* Room under the page for the tab bar (.kit-bottom: 60px of tabs and
-     its top rule) and the phone's home indicator under it. */
+     its top rule). */
   .kit-shell--in,
   html[data-session="in"] .kit-shell {
-    padding-bottom: calc(61px + env(safe-area-inset-bottom));
+    padding-bottom: 61px;
   }
   /* A field under 16px makes iOS zoom the page when it takes focus, and an
      installed app has no easy way back out. */
@@ -10051,8 +10056,7 @@ a.kit-bell__hit:focus-visible::after {
   }
   .kit-top__row {
     gap: 10px;
-    padding-inline: max(var(--s-4), env(safe-area-inset-left))
-      max(var(--s-4), env(safe-area-inset-right));
+    padding-inline: var(--s-4);
     min-height: 54px;
   }
   .kit-top__nav,
@@ -10109,8 +10113,6 @@ a.kit-bell__hit:focus-visible::after {
     grid-template-columns: repeat(5, 1fr);
     background: var(--ground-chrome);
     box-shadow: 0 -1px 0 var(--line-soft);
-    padding: 0 env(safe-area-inset-right) env(safe-area-inset-bottom)
-      env(safe-area-inset-left);
     -webkit-tap-highlight-color: transparent;
     user-select: none;
     -webkit-user-select: none;
@@ -11471,16 +11473,6 @@ a.kit-bell__hit:focus-visible::after {
   }
   .kit-help {
     width: 100%;
-  }
-  /* Full-screen sheets keep clear of the clock and the home indicator. */
-  .kit-search__box,
-  .kit-help__box {
-    padding-top: env(safe-area-inset-top);
-    padding-bottom: env(safe-area-inset-bottom);
-  }
-  .kit-help__box {
-    padding-top: calc(var(--s-4) + env(safe-area-inset-top));
-    padding-bottom: calc(var(--s-6) + env(safe-area-inset-bottom));
   }
 }
 
