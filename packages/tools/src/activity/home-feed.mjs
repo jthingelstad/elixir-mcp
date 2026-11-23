@@ -407,6 +407,95 @@ export async function readHomeWeek(
   };
 }
 
+/**
+ * The stored week as the RSS feed reads it (2026-11-22). The feed used to
+ * build seven days of every followed player and clan on each poll (p50
+ * 0.9 s, and a reader polls about every twenty minutes); it reads Home's
+ * row instead, so a poll is a select.
+ *
+ * What the feed may carry is narrower than Home, and decided here, at the
+ * read, never by what was stored:
+ * - no leaders-only fact: attested facts are read live and not
+ *   interactively (`windowFacts`, `interactive: false`), as the feed's own
+ *   build read them;
+ * - no people line (section `people`): the feed's build never asked for
+ *   them (`buildTimeline` without `people`);
+ * - game words only: the clan-story overlay (`clanStoriesFor`) is Home's.
+ *
+ * A poll is not a read of Home, so `read_at` is left alone: the row stays
+ * fresh through the poll's own wake past FRESH, and with no servable row
+ * the poll builds Home's week once (one build at a time) and stores it.
+ * So the feed is at most SERVE old and, for a reader that keeps polling,
+ * about one poll behind.
+ */
+export async function readFeedWeek(
+  db,
+  accountId,
+  { timezone, now = Date.now(), wake = null },
+) {
+  const subjects = await subjectsFor(db, accountId);
+  const accounts = await followedAccountIds(db, accountId);
+  const key = homeKey(subjects, accounts);
+  const serves = (r) =>
+    r &&
+    r.subjects_key === key &&
+    r.timezone === timezone &&
+    now - r.built_at.getTime() <= HOME_SERVE_MS;
+  const row = await storedWeek(db, accountId);
+  let week;
+  if (serves(row)) {
+    week = fromRow(row);
+    if (now - row.built_at.getTime() > HOME_FRESH_MS && wake)
+      await wake(accountId, now).catch((err) =>
+        console.error(
+          JSON.stringify({
+            at: "home_feed_wake_failed",
+            code: err?.code ?? err?.name ?? null,
+          }),
+        ),
+      );
+  } else {
+    week = await buildOnce(db, "home_feed", accountId, {
+      build: async () => ({
+        ...(await buildHomeWeek(db, accountId, {
+          subjects,
+          accounts,
+          timezone,
+          now,
+        })),
+        stored: false,
+      }),
+      reuse: async () => {
+        const kept = await storedWeek(db, accountId);
+        return serves(kept) ? fromRow(kept) : null;
+      },
+    });
+  }
+  const live = { fromMs: week.fromMs, toMs: Math.max(now, week.toMs) };
+  const highlights = await windowHighlights(db, subjects, {
+    accountId,
+    ...live,
+    timezone,
+  });
+  const facts = await windowFacts(db, subjects, {
+    accountId,
+    ...live,
+    timezone,
+    interactive: false,
+  });
+  return {
+    subjects,
+    fromMs: week.fromMs,
+    toMs: live.toMs,
+    items: [
+      ...week.items.filter((it) => !liveItem(it) && it.section !== "people"),
+      ...highlights,
+      ...facts,
+    ],
+    stored: week.stored,
+  };
+}
+
 /** Newest first by the instant shown, then by id: one total order, so a
  *  page's place can be the last item it served (feedAfter). */
 export function feedOrder(a, b) {

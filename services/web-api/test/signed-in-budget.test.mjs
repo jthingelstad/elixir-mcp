@@ -793,6 +793,12 @@ test("Settings' reads stay in their budgets, and Players reads each claim's play
  *  each. */
 const TIMELINE_STATEMENTS = 32;
 
+/** A poll of the RSS feed over a stored week (2026-11-22): the token,
+ *  the hour's cap, the reader's follows, the row, and the live reads over
+ *  it (highlights, attested facts, posts, names). Measured: 11 statements
+ *  and 55 shared buffers, where the build it replaced read thousands. */
+const RSS_STORED_STATEMENTS = 11;
+
 /** The statement that counts an observed week's late captures. */
 const LATE_ONCE = /with late as materialized \(/;
 const LATE_ANY = /b\.battle_time < b\.created_at - interval '1 day'/;
@@ -821,18 +827,29 @@ test("the timeline page counts the week's late captures once, and the feed never
   });
   assert.equal(link.status, 200, JSON.stringify(link.body));
   const token = link.body.url.split("/").pop();
+  // The first poll finds no stored week and builds Home's once (Home's
+  // own built budget, below); every poll after it is a select of that row
+  // and the live reads over it (2026-11-22), never a build.
+  await seed.db.query("delete from home_feed");
   const feed = await inOrder([
     [
       "rss",
       `/api/rss/${token}`,
       {},
-      { statements: TIMELINE_STATEMENTS, buffers: 42000 },
+      { statements: TIMELINE_STATEMENTS + 8, buffers: 42000 },
+    ],
+    [
+      "rss (stored)",
+      `/api/rss/${token}`,
+      {},
+      { statements: RSS_STORED_STATEMENTS, buffers: 400 },
     ],
   ]);
-  assert.ok(
-    !feed.rss.seen.some((s) => LATE_ANY.test(s.text)),
-    "the feed read the late-capture count",
-  );
+  for (const r of Object.values(feed))
+    assert.ok(
+      !r.seen.some((s) => LATE_ANY.test(s.text)),
+      "the feed read the late-capture count",
+    );
   await request(handler, seed.cookie, "/api/me/rss", { method: "DELETE" });
 });
 

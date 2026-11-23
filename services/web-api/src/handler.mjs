@@ -501,7 +501,7 @@ export function makeHandler({
     ...verifyRoutes({ resolveAccount, logEvent }),
     ...battleRoutes({ siteShell, shareImage, resolveAccount }),
     // A session's public page, picture and JSON (2026-11-17).
-    ...cheersRoutes({ resolveAccount, posts: postsOn }),
+    ...cheersRoutes({ resolveAccount, posts: postsOn, wake: homeWake }),
     // Comments, blocks and reports (2026-11-16), off unless the stack's
     // CommentsEnabled is true.
     ...commentsRoutes({ resolveAccount, comments, posts: postsOn, secret }),

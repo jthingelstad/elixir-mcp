@@ -17,7 +17,8 @@
  *  (class "private link" in the public-boundary test). */
 import { checkRateLimit } from "@elixir-mcp/auth";
 import { normalizeTag } from "@elixir-mcp/contracts";
-import { buildTimeline, subjectsFor } from "@elixir-mcp/tools/activity/entries";
+import { subjectsFor } from "@elixir-mcp/tools/activity/entries";
+import { readFeedWeek } from "@elixir-mcp/tools/activity/home-feed";
 import { readPostTimeline } from "@elixir-mcp/tools/activity/posts";
 import { json } from "../http.mjs";
 import { annotateFeed } from "../feed.mjs";
@@ -36,6 +37,8 @@ import {
   FEED_READS_PER_HOUR,
   FEED_RESETS_PER_HOUR,
   accountForToken,
+  etagMatches,
+  feedEtag,
   feedItems,
   feedLinkState,
   removeFeedLink,
@@ -87,7 +90,7 @@ async function cheerFact(db, accountId, item) {
   });
 }
 
-export function cheersRoutes({ resolveAccount, posts = false }) {
+export function cheersRoutes({ resolveAccount, posts = false, wake = null }) {
   const person = async (db, event, write) => {
     const account = await resolveAccount(db, event, {
       requireContractHeader: write,
@@ -218,19 +221,16 @@ export function cheersRoutes({ resolveAccount, posts = false }) {
         return text(429, "Too many reads in an hour.", {
           "retry-after": "900",
         });
-      const subjects = await subjectsFor(db, owner.account_id);
       const toMs = Date.now();
-      const built = await buildTimeline(db, subjects, {
-        fromMs: toMs - 7 * 86_400_000,
-        toMs,
+      // Home's stored week, read as the feed may carry it: never the
+      // account's administration, a leaders-only fact or a people line
+      // (readFeedWeek). A poll is a select, not a build.
+      const week = await readFeedWeek(db, owner.account_id, {
         timezone: owner.timezone ?? "UTC",
-        accountId: owner.account_id,
-        // Never the account's administration: left out at the read, so it
-        // spends none of the timeline's cap either.
-        accountLines: false,
-        // Items only: the feed says no entry's late-capture count.
-        lateCounts: false,
+        now: toMs,
+        wake,
       });
+      const { subjects } = week;
       const postPage = posts
         ? await readPostTimeline(db, owner.account_id, {
             subjects,
@@ -243,19 +243,30 @@ export function cheersRoutes({ resolveAccount, posts = false }) {
         : { items: [] };
       const items = await annotateFeed(
         db,
-        feedItems([...built.timeline, ...postPage.items]),
+        feedItems([...week.items, ...postPage.items]),
         subjects,
       );
+      const body = renderRss(items);
+      const etag = feedEtag(body);
+      const headers = {
+        // The link is private: no shared cache keeps it, so a reset
+        // stops it at once.
+        "cache-control": "private, max-age=300",
+        etag,
+        "x-robots-tag": "noindex",
+      };
+      // A reader that holds these items already is told so, with no body
+      // (checked after the token and the hour's cap, so a 304 says nothing
+      // a 200 would not).
+      if (etagMatches(event.headers?.["if-none-match"], etag))
+        return { statusCode: 304, headers, body: "" };
       return {
         statusCode: 200,
         headers: {
           "content-type": "application/rss+xml; charset=utf-8",
-          // The link is private: no shared cache keeps it, so a reset
-          // stops it at once.
-          "cache-control": "private, max-age=300",
-          "x-robots-tag": "noindex",
+          ...headers,
         },
-        body: renderRss(items),
+        body,
       };
     },
   };

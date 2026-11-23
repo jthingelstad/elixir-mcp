@@ -140,6 +140,25 @@ export const feedItems = (timeline) =>
     )
     .slice(0, FEED_ITEMS);
 
+/** The feed's validator: a weak ETag over the document without its build
+ *  instant, so the same items are the same tag at any time. Weak because
+ *  CloudFront compresses the response, which weakens a strong one anyway. */
+export const feedEtag = (xml) =>
+  `W/"${createHash("sha256")
+    .update(xml.replace(/<lastBuildDate>[^<]*<\/lastBuildDate>\n?/, ""))
+    .digest("base64url")
+    .slice(0, 27)}"`;
+
+/** Whether an If-None-Match header names this tag (weak comparison,
+ *  RFC 9110 13.1.2): a list, a W/ prefix on either side, or `*`. */
+export function etagMatches(header, etag) {
+  const opaque = (t) => t.trim().replace(/^W\//, "");
+  const ours = opaque(etag);
+  return String(header ?? "")
+    .split(",")
+    .some((t) => t.trim() === "*" || (t.trim() !== "" && opaque(t) === ours));
+}
+
 /** RSS 2.0 for the items, untitled. Each item's guid is its story id, so a sitting
  *  that grows is the same entry, updated, not a new one. */
 export function renderRss(items, { now = new Date() } = {}) {

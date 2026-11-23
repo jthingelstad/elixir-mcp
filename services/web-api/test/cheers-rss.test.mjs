@@ -19,7 +19,12 @@ import { processResult } from "../../../packages/ingest/src/pipeline.mjs";
 import { emailHash } from "../../../packages/auth/src/index.mjs";
 import { AGENT_SCOPED_ROUTES, makeHandler } from "../src/handler.mjs";
 import { CHEER_KEYS, CHEERS_PER_HOUR } from "../src/cheers.mjs";
-import { hashToken, xmlText } from "../src/feed-link.mjs";
+import { feedItems, hashToken, xmlText } from "../src/feed-link.mjs";
+import {
+  buildTimeline,
+  subjectsFor,
+} from "../../../packages/tools/src/activity/entries.mjs";
+import { readPostTimeline } from "../../../packages/tools/src/activity/posts.mjs";
 import {
   createScratch,
   dropScratch,
@@ -396,6 +401,114 @@ test("the RSS link: shown once, kept as a hash, reset and turned off", async () 
   assert.equal((await request("GET", `/api/rss/${fresh}`)).statusCode, 404);
   // A token of the wrong shape is never looked up.
   assert.equal((await request("GET", "/api/rss/short")).statusCode, 404);
+});
+
+test("the RSS feed reads Home's stored week: its own build's items, and a 304 for a reader that holds them", async () => {
+  const made = await call("POST", "/api/me/rss", { who: "owner" });
+  const token = made.body.url.split("/").at(-1);
+  const {
+    rows: [{ account_id: ownerId }],
+  } = await db.query(
+    `select account_id from timeline_feed_link where token_hash = $1`,
+    [hashToken(token)],
+  );
+  const poll = (headers = {}) =>
+    handler({
+      path: `/api/rss/${token}`,
+      method: "GET",
+      headers: { "cloudfront-viewer-address": "8.8.4.4:443", ...headers },
+    });
+  const guids = (xml) =>
+    [...xml.matchAll(/<guid isPermaLink="false">([^<]*)<\/guid>/g)]
+      .map((m) => m[1])
+      .sort();
+  const stored = async () =>
+    (
+      await db.query(
+        `select built_at, read_at from home_feed where account_id = $1`,
+        [ownerId],
+      )
+    ).rows[0];
+
+  // With no stored week the poll builds Home's and stores it; a poll is
+  // not a read of Home.
+  await db.query(`delete from home_feed where account_id = $1`, [ownerId]);
+  const first = await poll();
+  assert.equal(first.statusCode, 200);
+  assert.match(first.headers.etag, /^W\/"[A-Za-z0-9_-]{27}"$/);
+  const row = await stored();
+  assert.ok(row, "the poll stored the week");
+  assert.equal(row.read_at, null);
+
+  // The items are the ones the feed's own build served before: seven
+  // days, not interactive, no account lines, with the posts beside them.
+  const subjects = await subjectsFor(db, ownerId);
+  const toMs = Date.now();
+  const window = { fromMs: toMs - 7 * 86_400_000, toMs, timezone: "UTC" };
+  const built = await buildTimeline(db, subjects, {
+    ...window,
+    accountId: ownerId,
+    accountLines: false,
+    lateCounts: false,
+  });
+  const postPage = await readPostTimeline(db, ownerId, {
+    subjects,
+    ...window,
+    basis: "observed",
+    limit: 50,
+  });
+  const wanted = feedItems([...built.timeline, ...postPage.items])
+    .map((it) => xmlText(it.id))
+    .sort();
+  assert.ok(wanted.length > 0, "the fixture has a week to serve");
+  assert.deepEqual(guids(first.body), wanted);
+
+  // The next poll reads the row: no build, the same items, the same tag.
+  const second = await poll();
+  assert.equal(second.statusCode, 200);
+  assert.deepEqual((await stored()).built_at, row.built_at);
+  assert.deepEqual(guids(second.body), wanted);
+  assert.equal(second.headers.etag, first.headers.etag);
+
+  // A reader that holds these items is told so, with no body; the tag it
+  // sends may be one of several, and weak or strong.
+  const strong = first.headers.etag.replace(/^W\//, "");
+  for (const sent of [first.headers.etag, strong, `"other", ${strong}`]) {
+    const held = await poll({ "if-none-match": sent });
+    assert.equal(held.statusCode, 304, sent);
+    assert.equal(held.body, "");
+    assert.equal(held.headers.etag, first.headers.etag);
+    assert.match(held.headers["cache-control"], /^private/);
+  }
+  // Another tag, or none, is the whole feed.
+  assert.equal((await poll({ "if-none-match": '"other"' })).statusCode, 200);
+
+  // A new item is a new tag: the old one no longer matches.
+  await db.query(
+    `update home_feed
+        set items = items || jsonb_build_array(jsonb_build_object(
+              'id', 'st_added_for_the_tag', 'revision', 1, 'kind', 'arena_changed',
+              'section', 'moments', 'at', now(), 'observed_at', now(),
+              'subject_tag', $2::text, 'text', 'A stored line',
+              'subjects', jsonb_build_array(jsonb_build_object(
+                'kind', 'player', 'tag', $2::text, 'name', 'Fixture'))))
+      where account_id = $1`,
+    [ownerId, PLAYER],
+  );
+  const changed = await poll({ "if-none-match": first.headers.etag });
+  assert.equal(changed.statusCode, 200);
+  assert.notEqual(changed.headers.etag, first.headers.etag);
+  assert.ok(changed.body.includes("A stored line"));
+
+  // A 304 is behind the token like the feed itself.
+  await call("DELETE", "/api/me/rss", { who: "owner" });
+  const gone = await poll({ "if-none-match": changed.headers.etag });
+  assert.equal(gone.statusCode, 404);
+  assert.equal("etag" in gone.headers, false);
+  // The hour's reads here are not the next test's.
+  await db.query(`delete from rate_limit where bucket = $1`, [
+    `rss#${ownerId}`,
+  ]);
 });
 
 test("the RSS feed's hour is capped per link", async () => {
