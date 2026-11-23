@@ -83,7 +83,7 @@ export const elixir_timeline = {
         minimum: 1,
         maximum: 500,
         description:
-          "The newest N items in the window, after kinds, sections and player_tag; a cut says so like a busy window (has_more, timeline_more_to). A read with limit never moves a read pointer.",
+          "The newest N items in the window, after kinds, sections and player_tag; items sharing the Nth's instant come with it. A cut says so like a busy window (has_more, timeline_more_to). A read with limit never moves a read pointer.",
       },
       evidence_item_id: {
         type: "string",
@@ -540,11 +540,19 @@ export const elixir_timeline = {
     // limit (the newest N) cuts as the page budget does: on the instant
     // of the newest item it leaves out, so what it served and what it
     // counted are split by one `to`, and the older items are read by the
-    // same paging (timeline_more_to). Ties at that instant go with it.
-    const limitCutMs =
+    // same paging (timeline_more_to). Items sharing the Nth's instant come
+    // with it: a cut inside them could not be continued, since no `to`
+    // splits one instant (Codex on #1207), so the cut falls on the first
+    // item older than the Nth.
+    const nthMs =
       limit !== null && byObserved.length > limit
-        ? pageMs(byObserved[limit])
+        ? pageMs(byObserved[limit - 1])
         : null;
+    const pastTheNth =
+      nthMs === null
+        ? undefined
+        : byObserved.slice(limit).find((it) => pageMs(it) < nthMs);
+    const limitCutMs = pastTheNth ? pageMs(pastTheNth) : null;
     const newestLeftOut = Math.max(
       ...droppedShown.map(pageMs),
       built.post_more_at ? Date.parse(built.post_more_at) : -Infinity,
@@ -565,7 +573,6 @@ export const elixir_timeline = {
       for (const it of byObserved) {
         size += JSON.stringify(it).length + 1;
         if (timeline.length > 0 && size > PAGE_CHAR_BUDGET) break;
-        if (limit !== null && timeline.length >= limit) break;
         timeline.push(it);
       }
       timeline.sort(
@@ -801,8 +808,11 @@ export const elixir_timeline = {
         capped
           ? `The timeline reaches back one week, so this window starts at ${iso(fromMs)}, ${TIMELINE_LOOKBACK_DAYS} days before now. Older history is in the data tools: ${OLDER_HISTORY}.`
           : null,
-        limitCutMs !== null
+        limitCutMs !== null && cutMs === limitCutMs
           ? `limit ${limit} cut this window: timeline holds its newest items and timeline_more counts the older ones, read as a busy window's are.`
+          : null,
+        limit !== null && timeline.length > limit
+          ? `timeline holds ${timeline.length} items for limit ${limit}: items ${occurred ? "at" : "the record observed at"} one instant are served together, since no window can split them.`
           : null,
         limit !== null && !occurred && args.mark_read !== false && !memberTag
           ? "A read with limit keeps the read pointer (read_to is where it stays), so nothing the limit left out is skipped; poll without limit to move it."

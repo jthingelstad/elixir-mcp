@@ -483,9 +483,11 @@ with a note. A window that ends a week ago or earlier is refused as
 
 Count or time: `limit` asks for the newest N items, after `kinds`,
 `sections` and `player_tag`. A cut reads as a busy window's: `has_more`,
-`timeline_more` and `timeline_more_to`. A read with `limit` never moves a
-read pointer, so nothing it left out is skipped; with `mark_read: true` it
-is refused.
+`timeline_more` and `timeline_more_to`. Items that share the Nth item's
+instant come with it, so a read can hold more than N: no window splits one
+instant, and a note says when it happened. A read with `limit` never moves
+a read pointer, so nothing it left out is skipped; with `mark_read: true`
+it is refused.
 
 A link to one item or one session is not a timeline read: an item's link
 opens for up to a year and a session's page for 30 days
