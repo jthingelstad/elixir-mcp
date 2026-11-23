@@ -4,6 +4,7 @@ import pg from "pg";
 import crypto from "node:crypto";
 import { emailHash } from "../../../packages/auth/src/index.mjs";
 import { makeHandler } from "../src/handler.mjs";
+import { makeCollectorDoor } from "@elixir-mcp/collector-door";
 import { signUnsubscribe } from "@elixir-mcp/mail";
 import {
   createScratch,
@@ -320,19 +321,19 @@ test("seed: a recorded clan the newcomer belongs to", async () => {
   );
 });
 
-// A collector that delivered an admitted fetch (ingest stamps
-// last_success_at; the door's own test covers the promotion) and was then
-// drained: proven, so it no longer holds back its operator's next raise,
-// and not active, so later tests do not see an operator bonus.
+// A collector that was approved, delivered an admitted fetch (ingest
+// stamps last_success_at; the door's own test covers the promotion) and
+// was then drained: proven, so it no longer holds back its operator's
+// next raise, and not active, so later tests do not see an operator bonus.
 async function deliveredThenDrained(name) {
   await db.query(
     `update gateway set status = 'draining', last_success_at = now()
-     where name = $1 and status = 'probation'`,
+     where name = $1 and status in ('pending', 'probation')`,
     [name],
   );
 }
 
-test("open enrollment (#540): a raised hand is approved at once, token staged; the operator re-stages; the owner still drains and revokes", async () => {
+test("the owner vets every operator (2026-11-23): a raise waits for approval, token staged; the owner approves, drains and revokes", async () => {
   const cookie = memberCookie;
   const notesBefore = ownerNotes.length;
 
@@ -356,11 +357,23 @@ test("open enrollment (#540): a raised hand is approved at once, token staged; t
       }),
     ),
   );
-  // Approved at once: probation is the state the door leases to, and the
-  // token is staged for the operator's one-time reveal. No owner step.
-  assert.equal(raise.status, "probation");
+  // Waiting for the owner: pending is the state the door never leases
+  // to, and the token is staged so the machine can be set up meanwhile.
+  assert.equal(raise.status, "pending");
   assert.equal(raise.provision_ready, true);
-  assert.equal(ownerNotes.length, notesBefore + 1, "owner still told");
+  assert.match(raise.next, /^Request sent\./);
+  assert.doesNotMatch(raise.next, /approved:|^Approved/i);
+  assert.match(raise.next, /starts working once it is approved/);
+  assert.equal(ownerNotes.length, notesBefore + 1, "owner asked to decide");
+  const asked = ownerNotes.at(-1);
+  assert.equal(asked.kind, "gateway_request");
+  assert.equal(asked.status, "pending");
+  const { ownerNotifyMessage } =
+    await import("../../../packages/outbox/src/notify.mjs");
+  const notice = ownerNotifyMessage(asked);
+  assert.match(notice.note, /waiting for your decision/);
+  assert.match(notice.note, /Approve it .* or revoke it/);
+  assert.match(notice.link, /\/settings\/collectors\/kitchen-mac$/);
   const gwId = raise.gateway_id;
   const { rows: born } = await db.query(
     `select status, token_hash, provision_env,
@@ -368,7 +381,7 @@ test("open enrollment (#540): a raised hand is approved at once, token staged; t
      from gateway where gateway_id = $1`,
     [gwId],
   );
-  assert.equal(born[0].status, "probation");
+  assert.equal(born[0].status, "pending");
   assert.match(born[0].provision_env, /^emcg_/, "raw staged for the reveal");
   assert.equal(
     born[0].token_hash,
@@ -386,14 +399,15 @@ test("open enrollment (#540): a raised hand is approved at once, token staged; t
   );
   assert.equal(dupe.statusCode, 409, "names are unique among live gateways");
 
-  // One unproven collector per account (Codex on #554): every raise
-  // mints a usable token, and the door's limits are per collector.
+  // One unproven collector per account (Codex on #554), and a request
+  // waiting for approval is one: a second ask is refused until then.
   const second = await handler(
     event({ path: "/api/gateways", cookie, body: { name: "kitchen-pi" } }),
   );
   assert.equal(second.statusCode, 409);
   assert.equal(parse(second).error, "unproven_collector");
   assert.match(parse(second).message, /kitchen-mac/);
+  assert.match(parse(second).message, /waiting for approval/);
 
   const mine = parse(
     await handler(
@@ -422,7 +436,7 @@ test("open enrollment (#540): a raised hand is approved at once, token staged; t
     ),
   );
   const listed = fleet.gateways.find((g) => g.gateway_id === gwId);
-  assert.equal(listed.status, "probation");
+  assert.equal(listed.status, "pending");
   assert.equal(listed.owner_is_me, false);
 
   // The operator reveals it once.
@@ -468,6 +482,41 @@ test("open enrollment (#540): a raised hand is approved at once, token staged; t
     }),
   );
   assert.equal(nonOwner.statusCode, 403);
+  const selfApproved = await handler(
+    event({
+      path: "/api/admin/gateways",
+      cookie,
+      body: { gateway_id: gwId, action: "probation" },
+    }),
+  );
+  assert.equal(selfApproved.statusCode, 403, "nobody approves their own");
+  // At the door: the staged token is real, and it leases nothing until
+  // the owner approves.
+  const door = makeCollectorDoor({ ingest: async () => ({}) });
+  const atDoor = {
+    headers: { authorization: `Bearer ${after[0].provision_env}` },
+  };
+  assert.equal((await door.config(db, atDoor)).body.gateway.status, "pending");
+  assert.equal((await door.lease(db, atDoor, {})).status, 401);
+  const approved = parse(
+    await handler(
+      event({
+        path: "/api/admin/gateways",
+        cookie: ownerCookie,
+        body: { gateway_id: gwId, action: "probation" },
+      }),
+    ),
+  );
+  assert.equal(
+    approved.status,
+    "probation",
+    "approval is pending -> probation",
+  );
+  assert.equal(
+    (await door.lease(db, atDoor, {})).status,
+    200,
+    "approved, it leases",
+  );
   const drained = parse(
     await handler(
       event({
@@ -517,14 +566,14 @@ test("open enrollment (#540): a raised hand is approved at once, token staged; t
   // never does.
   await db.query(
     `update gateway set status = 'draining'
-     where name = 'kitchen-mac' and status = 'probation'`,
+     where name = 'kitchen-mac' and status = 'pending'`,
   );
   const stillHeld = await handler(
     event({ path: "/api/gateways", cookie, body: { name: "kitchen-pi" } }),
   );
   assert.equal(parse(stillHeld).error, "unproven_collector");
   await db.query(
-    `update gateway set status = 'probation'
+    `update gateway set status = 'pending'
      where name = 'kitchen-mac' and status = 'draining'`,
   );
   await deliveredThenDrained("kitchen-mac");
@@ -2295,7 +2344,7 @@ test("admin provisioning says what it did: staged state and ownership on the adm
       }),
     ),
   );
-  assert.equal(raise.status, "probation");
+  assert.equal(raise.status, "pending");
   const id = raise.gateway_id;
   const staged = parse(
     await handler(
@@ -2352,6 +2401,11 @@ test("admin provisioning says what it did: staged state and ownership on the adm
       }),
     ),
   );
+  // The owner's own raise is unchanged by vetting (2026-11-23): on
+  // probation at once, with nothing to approve.
+  assert.equal(own.status, "probation");
+  assert.doesNotMatch(own.next, /Request sent|approved/i);
+  assert.equal(ownerNotes.at(-1).status, "probation");
   await handler(
     event({
       path: "/api/admin/gateways",
@@ -3414,7 +3468,7 @@ test("an operator picks their collector's card; a card is one live collector's",
       }),
     ),
   );
-  assert.equal(raise.status, "probation");
+  assert.equal(raise.status, "pending");
   assert.equal(raise.card, first);
   const mine = parse(
     await handler(
@@ -3438,6 +3492,25 @@ test("an operator picks their collector's card; a card is one live collector's",
     legacyIcon,
   ]);
   const ownerCookie = await signIn(JAMIE, "203.0.113.42");
+  // A request still waiting for approval is not on the public page; the
+  // operator and the owner see it. Approved, it is listed.
+  const beforeApproval = parse(
+    await handler(
+      event({ method: "GET", path: "/api/public/status", body: undefined }),
+    ),
+  );
+  assert.ok(
+    !beforeApproval.collectors.some((x) => x.name === first),
+    "a pending collector is not public",
+  );
+  const approval = await handler(
+    event({
+      path: "/api/admin/gateways",
+      cookie: ownerCookie,
+      body: { gateway_id: raise.gateway_id, action: "probation" },
+    }),
+  );
+  assert.equal(approval.statusCode, 200, approval.body);
   for (const [path, reader, field] of [
     ["/api/me/gateways", cookie, "gateways"],
     ["/api/admin/gateways", ownerCookie, "gateways"],
@@ -3470,7 +3543,7 @@ test("an operator picks their collector's card; a card is one live collector's",
   );
 
   // A second collector from the same account is fine once the first has
-  // delivered (one unproven at a time, #540) - but not on the same card.
+  // delivered (one unproven at a time) - but not on the same card.
   await deliveredThenDrained("picker-one");
   const twin = await handler(
     event({

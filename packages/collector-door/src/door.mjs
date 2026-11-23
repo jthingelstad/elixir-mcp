@@ -393,10 +393,12 @@ export function makeCollectorDoor({
 }) {
   return {
     async config(db, event) {
-      // Config answers a PENDING token too - the most common new-operator
-      // state is "installed, not yet promoted", and from inside the box it
-      // was indistinguishable from a typo (both 401). Lease and submit
-      // still refuse it; config is what `collector doctor` reads.
+      // Config answers a PENDING token too - every member's collector
+      // starts there, waiting for the owner's approval (2026-11-23), and
+      // from inside the box that was indistinguishable from a typo (both
+      // 401). Lease and submit refuse it: an unapproved collector never
+      // takes work or puts a fact in the record. Config is what
+      // `collector doctor` reads.
       const gw = await authGateway(db, event, [
         "pending",
         "probation",
@@ -673,9 +675,10 @@ export function makeCollectorDoor({
       // Contact, not success: last_success_at is owned by ingest and
       // advances only on ADMISSION (issue #7) — a client-declared "ok"
       // whose payload was rejected must not look like a good fetch.
-      // Open enrollment (#540): a raised hand starts on probation, and
-      // its first ADMITTED fetch makes it active, the state that counts
-      // as running one. A rejection or a fetch error promotes nothing.
+      // An approved collector is on probation, and its first ADMITTED
+      // fetch makes it active, the state that counts as running one. A
+      // rejection or a fetch error promotes nothing. A pending one never
+      // reaches here: auth above refuses it.
       await db.query(
         `update gateway set results_submitted = results_submitted + 1,
                 missed_streak = 0,

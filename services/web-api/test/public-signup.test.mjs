@@ -676,10 +676,10 @@ test("a public member retains recording slot limits across concurrent adds and c
   const raised = await handler(
     event("/api/gateways", { name: "public-test-collector" }, cookie),
   );
-  // Open enrollment (#540): the raise is approved at once, on probation,
-  // with its token staged for this account's own reveal. Minting for
-  // someone else's collector stays the maintainer's.
-  assert.equal(parse(raised).status, "probation");
+  // The owner vets every operator (2026-11-23): the raise waits for
+  // approval, with its token staged for this account's own reveal.
+  // Minting for someone else's collector stays the owner's.
+  assert.equal(parse(raised).status, "pending");
   const provision = await handler(
     event(
       "/api/admin/gateways",
@@ -694,7 +694,7 @@ test("a public member retains recording slot limits across concurrent adds and c
     "select status,provision_env from gateway where gateway_id=$1",
     [parse(raised).gateway_id],
   );
-  assert.equal(gateway.status, "probation");
+  assert.equal(gateway.status, "pending");
   assert.match(gateway.provision_env, /^emcg_/);
 });
 

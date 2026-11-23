@@ -161,7 +161,8 @@ Elixir checks it every time you use it:
   Elixir last recorded.
 - **Family**: [run a collector](/docs/operators) for Elixir. It counts
   while it is active: its last fetch was admitted since its last
-  probation. A collector on probation, draining or revoked does not.
+  probation. A collector waiting for approval, on probation, draining
+  or revoked does not.
   Running one earns the Family role, and nothing else: there are no
   points, call credits or bonus slots.
 - **Partner**: granted by the maintainer, on request through

@@ -180,12 +180,16 @@ export function gatewaysRoutes({ resolveAccount, logEvent, notifyOwner }) {
     // raised rather than creating. The operator names their favourite
     // card as its public face; a card is one live collector's.
     //
-    // Open enrollment (Jamie, 2026-10-12, #540): whoever raises a hand is
-    // approved, and the admission checks are the trust. The collector is
-    // born on probation, the state the door leases to, with its token
-    // staged for the operator's one-time reveal; its first admitted
-    // submit makes it active (the door), so a raise alone earns nothing
-    // that running one earns. The maintainer keeps drain and revoke.
+    // The owner vets every operator (Jamie, 2026-11-23, superseding open
+    // enrollment, #540): an admitted payload goes straight into the
+    // record, and a verification proof is any recorded battle with the
+    // target deck, so nobody may mint a working collector on their own.
+    // A raise is born pending, the state the door reads config for but
+    // never leases to or takes a submit from, with its token staged for
+    // the operator's one-time reveal so the machine can be set up while
+    // it waits. The owner approves it to probation in Admin (or revokes
+    // it); its first admitted submit then makes it active (the door).
+    // The owner's own raise starts on probation, as before.
     "POST /api/gateways": async (db, event, body) => {
       const account = await resolveAccount(db, event, {
         requireContractHeader: true,
@@ -211,11 +215,12 @@ export function gatewaysRoutes({ resolveAccount, logEvent, notifyOwner }) {
       if (dupe.rows.length > 0) return json(409, { error: "name_taken" });
       // One UNPROVEN collector per account (Codex on #554). The door's
       // budget, lease cap and missed-streak drain are all per gateway, so
-      // with every raise minting a usable token, an account free to raise
-      // at will could multiply them with throwaway collectors. Unproven
-      // means on probation, or drained without one admitted fetch ever
-      // (last_success_at is stamped by ingest on admission only); it
-      // counts until it delivers or the maintainer revokes it. A proven
+      // an account free to raise at will could multiply them with
+      // throwaway collectors, and pile requests on the owner. Unproven
+      // means waiting for approval, on probation, or drained without one
+      // admitted fetch ever (last_success_at is stamped by ingest on
+      // admission only); it counts until it delivers or the owner
+      // revokes it. A proven
       // collector never blocks the next raise, so "any account can raise
       // any number" (2026-09-11) still holds, one proof at a time.
       //
@@ -223,6 +228,7 @@ export function gatewaysRoutes({ resolveAccount, logEvent, notifyOwner }) {
       // advisory lock on the account serializes concurrent raises, so two
       // at once cannot both pass the check before either inserts.
       const token = mintToken();
+      const status = account.isOwner ? "probation" : "pending";
       let rows;
       await db.query("begin");
       try {
@@ -231,9 +237,9 @@ export function gatewaysRoutes({ resolveAccount, logEvent, notifyOwner }) {
         ]);
         if (!account.isOwner) {
           const { rows: unproven } = await db.query(
-            `select coalesce(card_name, name) as label from gateway
+            `select coalesce(card_name, name) as label, status from gateway
              where owner_account_id = $1
-               and (status = 'probation'
+               and (status in ('pending', 'probation')
                     or (status = 'draining' and last_success_at is null))
              order by enrolled_at limit 1`,
             [account.accountId],
@@ -242,7 +248,10 @@ export function gatewaysRoutes({ resolveAccount, logEvent, notifyOwner }) {
             await db.query("rollback");
             return json(409, {
               error: "unproven_collector",
-              message: `Your collector ${unproven[0].label} has not delivered a fetch yet. Run it first: once one of its results is admitted you can raise another.`,
+              message:
+                unproven[0].status === "pending"
+                  ? `Your request for ${unproven[0].label} is still waiting for approval. You can ask for another once it is approved and has delivered a fetch.`
+                  : `Your collector ${unproven[0].label} has not delivered a fetch yet. Run it first: once one of its results is admitted you can raise another.`,
             });
           }
         }
@@ -250,14 +259,15 @@ export function gatewaysRoutes({ resolveAccount, logEvent, notifyOwner }) {
           `insert into gateway (owner_account_id, name, card_name, card_icon,
                                 status, token_hash, provision_env,
                                 provision_expires_at)
-           values ($1, $2, $3, $4, 'probation', $5, $6,
-                   now() + $7::interval)
+           values ($1, $2, $3, $4, $5, $6, $7,
+                   now() + $8::interval)
            returning gateway_id`,
           [
             account.accountId,
             name,
             card?.name ?? null,
             card?.icon ?? null,
+            status,
             token.hash,
             token.raw,
             PROVISION_TTL,
@@ -269,7 +279,12 @@ export function gatewaysRoutes({ resolveAccount, logEvent, notifyOwner }) {
         if (isCardTakenError(err)) return json(...cardRefusal("card_taken"));
         throw err;
       }
-      await notifyOwner({ kind: "gateway_request", playerTag: name });
+      await notifyOwner({
+        kind: "gateway_request",
+        playerTag: name,
+        card: card?.name ?? null,
+        status,
+      });
       await logEvent(db, account.accountId, "gateway_raised", {
         name,
         card: card?.name ?? null,
@@ -277,17 +292,20 @@ export function gatewaysRoutes({ resolveAccount, logEvent, notifyOwner }) {
       return json(200, {
         ok: true,
         gateway_id: rows[0].gateway_id,
-        status: "probation",
+        status,
         provision_ready: true,
         card: card?.name ?? null,
-        next: "Approved: your collector token waits on the collector's own page, to reveal once within 72 hours. You bring your own CR API key (IP-bound by Supercell to your machine). Setup: https://elixir.poapkings.com/docs/operators",
+        next:
+          status === "pending"
+            ? "Request sent. Every collector is reviewed before it starts, and this one starts working once it is approved. Its token waits on the collector's own page, to reveal once within 72 hours, so you can set the machine up now. You bring your own CR API key (IP-bound by Supercell to your machine). Setup: https://elixir.poapkings.com/docs/operators"
+            : "Your collector token waits on the collector's own page, to reveal once within 72 hours. You bring your own CR API key (IP-bound by Supercell to your machine). Setup: https://elixir.poapkings.com/docs/operators",
       });
     },
 
     // The operator stages a fresh token for their own collector: the
     // staged one lapsed unclaimed, or the machine's copy is lost. It
-    // replaces the token the machine holds (open enrollment, #540: no
-    // maintainer step stands between an operator and their own token).
+    // replaces the token the machine holds. Restaging is no way around
+    // approval: the door gates on the collector's state, not its token.
     "POST /api/me/gateway-token": async (db, event, body) => {
       const account = await resolveAccount(db, event, {
         requireContractHeader: true,
@@ -405,9 +423,9 @@ export function gatewaysRoutes({ resolveAccount, logEvent, notifyOwner }) {
         return json(200, { ok: true, staged: true, gateway: minted[0] });
       }
       // Forward-only lifecycle; probation is the only entry to active.
-      // A raise lands on probation and the door activates it on its
-      // first admitted submit (#540); these are the maintainer's moves
-      // for an older pending row, a drain, a retry and a revoke.
+      // A member's raise lands pending, and pending -> probation is the
+      // owner's approval (2026-11-23); the door activates it on its first
+      // admitted submit. The rest are a drain, a retry and a revoke.
       const TRANSITIONS = {
         probation: ["pending", "draining"],
         activate: ["probation"],

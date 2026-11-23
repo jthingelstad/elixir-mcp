@@ -555,3 +555,79 @@ test("the budget gauge leads with the last 24 hours against the background share
   expect(screen.getByText(/live lookups spent 140 in 24 hours/)).toBeTruthy();
   expect(screen.queryByText(/pace at/)).toBeNull();
 });
+
+test("an operator's own collector waiting for approval says so in plain words", async () => {
+  const fetchMock = vi.fn(async (path) => {
+    const p = String(path);
+    const body = p.includes("me/gateways")
+      ? {
+          gateways: [
+            {
+              gateway_id: "g9",
+              name: "attic-mini",
+              card_name: "Golem",
+              status: "pending",
+              provision_ready: true,
+            },
+          ],
+        }
+      : p.includes("gateway-detail")
+        ? { gateway: {}, daily: [], endpoints_7d: [] }
+        : PAYLOAD;
+    return {
+      ok: true,
+      status: 200,
+      json: async () => body,
+      text: async () => JSON.stringify(body),
+    };
+  });
+  vi.stubGlobal("fetch", fetchMock);
+  renderWithProviders(<CollectorPage id="Golem" navigate={() => {}} />);
+  await waitFor(() =>
+    expect(screen.getByText(/Every collector is reviewed/)).toBeTruthy(),
+  );
+  expect(screen.getByText(/nothing more you need to do/)).toBeTruthy();
+  expect(screen.getAllByText(/Waiting for approval/).length).toBeGreaterThan(0);
+  // The token is still offered, so the machine can be set up meanwhile.
+  expect(screen.getByRole("button", { name: "Reveal once" })).toBeTruthy();
+});
+
+test("the raise page says a raise is a request, never that it is approved", async () => {
+  await paintRaise();
+  expect(screen.getByText(/This sends a request/)).toBeTruthy();
+  expect(screen.queryByText(/Approved/)).toBeNull();
+});
+
+test("the owner's controls on a pending collector are Approve and Turn down", async () => {
+  const row = {
+    gateway_id: "g9",
+    name: "attic-mini",
+    card_name: "Golem",
+    status: "pending",
+  };
+  const fetchMock = vi.fn(async (path) => {
+    const p = String(path);
+    const body = p.includes("admin/gateways")
+      ? { gateways: [row] }
+      : p.includes("me/gateways")
+        ? { gateways: [row] }
+        : p.includes("gateway-detail")
+          ? { gateway: {}, daily: [], endpoints_7d: [] }
+          : PAYLOAD;
+    return {
+      ok: true,
+      status: 200,
+      json: async () => body,
+      text: async () => JSON.stringify(body),
+    };
+  });
+  vi.stubGlobal("fetch", fetchMock);
+  renderWithProviders(
+    <CollectorPage id="Golem" navigate={() => {}} me={{ is_admin: true }} />,
+  );
+  await waitFor(() =>
+    expect(screen.getByRole("button", { name: "Approve" })).toBeTruthy(),
+  );
+  expect(screen.getByRole("button", { name: "Turn down" })).toBeTruthy();
+  expect(screen.queryByRole("button", { name: /probation/ })).toBeNull();
+});

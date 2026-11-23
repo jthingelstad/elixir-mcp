@@ -155,9 +155,10 @@ function Hours({ daily }) {
  * What an admin may do to this collector, on the collector's own page.
  *
  * Lifecycle is forward-only — pending → probation → active → draining →
- * probation — so exactly one move is offered, named for what it does.
- * A raise lands on probation and its first admitted fetch makes it
- * active (#540); pending is only an older raise's state.
+ * probation — so exactly one move is offered, named for what it does,
+ * with revoke beside it. A member's raise lands pending, and moving it
+ * to probation is the owner's approval (2026-11-23); its first admitted
+ * fetch then makes it active.
  * Provisioning stages a token server-side for the operator's one-time
  * reveal, which is why it reports rather than silently refreshing.
  */
@@ -175,10 +176,9 @@ function Operations({ g, staged, setStaged, reload }) {
     draining: "probation",
   }[g.status];
   // Draining goes BACK to probation: it has been active, and the word
-  // says so. Pending goes forward into it.
+  // says so. Pending goes forward into it, and that is the approval.
   const label = {
-    probation:
-      g.status === "draining" ? "Back to probation" : "Put on probation",
+    probation: g.status === "draining" ? "Back to probation" : "Approve",
     activate: "Activate",
     drain: "Drain",
   }[next];
@@ -231,6 +231,16 @@ function Operations({ g, staged, setStaged, reload }) {
           >
             {label ?? next}
           </button>
+        )}
+        {g.status !== "revoked" && (
+          <ConfirmAction
+            label={g.status === "pending" ? "Turn down" : "Revoke"}
+            title="Revoke this collector?"
+            body="Its token stops working for good, and it never fetches again. The operator can ask again with a new collector."
+            confirm="Revoke"
+            run={() => api.adminGatewayAction(g.gateway_id, "revoke")}
+            onDone={() => reload()}
+          />
         )}
         {g.status !== "revoked" && (
           <button
@@ -362,9 +372,9 @@ function YourCard({ own, navigate, home }) {
 }
 
 /**
- * The operator's own token, staged again (#540, open enrollment): the
- * one staged at the raise lapsed after 72 hours unclaimed, or the
- * machine's copy is lost. A new one replaces the token the machine
+ * The operator's own token, staged again: the one staged at the raise
+ * lapsed after 72 hours unclaimed (a request can wait longer than that
+ * for approval), or the machine's copy is lost. A new one replaces the token the machine
  * holds, so the click is a confirm, and the page then offers the
  * one-time reveal above.
  */
@@ -483,11 +493,13 @@ export function CollectorPage({
         aside={
           <span className={`chip chip--${tone} ml-auto`}>
             <span className="chip__dot" />
-            {status_ !== "active"
-              ? status_[0].toUpperCase() + status_.slice(1)
-              : behind
-                ? "Behind"
-                : "Active"}
+            {status_ === "pending"
+              ? "Waiting for approval"
+              : status_ !== "active"
+                ? status_[0].toUpperCase() + status_.slice(1)
+                : behind
+                  ? "Behind"
+                  : "Active"}
             , last fetch{" "}
             {ago(pub?.last_success_at ?? own?.last_success_at, now)}
           </span>
@@ -535,6 +547,18 @@ export function CollectorPage({
           navigate={navigate}
           home={home}
         />
+      )}
+
+      {own && status_ === "pending" && (
+        <div className="callout callout--warn mb-[14px]">
+          <Icon name="circle-dashed" size={17} />
+          <span>
+            Waiting for approval. Every collector is reviewed before it starts,
+            and this one fetches nothing until it is approved. There is nothing
+            more you need to do. You can set the machine up now with the token
+            below, and it starts working once it is approved.
+          </span>
+        </div>
       )}
 
       {status_ === "draining" && (

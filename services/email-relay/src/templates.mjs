@@ -176,13 +176,13 @@ export function renderEmail(msg) {
     // no notify_kind predates 2026-09-09 and gets the generic line.
     const subjects = {
       feedback: "Elixir: new feedback",
-      gateway_request: "Elixir: collector enrolled",
+      gateway_request: "Elixir: collector request",
       gateway_quarantined: "Elixir: collector quarantined",
       gateway_silent: "Elixir: collector silent",
     };
     const leads = {
       feedback: "New feedback.",
-      gateway_request: "Collector enrolled.",
+      gateway_request: "Collector request.",
       gateway_quarantined: "Collector quarantined.",
       gateway_silent: "Collector silent.",
     };
