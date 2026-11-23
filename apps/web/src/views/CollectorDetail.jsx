@@ -424,8 +424,8 @@ export function CollectorPage({
   // list used to carry ten columns and every action inline; the actions
   // live here now, on the record, where what you are acting on is on
   // screen (2026-09-10).
-  const fleet = useAdminGateways({ enabled: Boolean(me?.is_admin) }).data
-    ?.gateways;
+  const fleetQuery = useAdminGateways({ enabled: Boolean(me?.is_admin) });
+  const fleet = fleetQuery.data?.gateways;
   const [staged, setStaged] = useState(null);
   const invalidate = useInvalidate();
   const loadFleet = () => invalidate(keys.adminGateways);
@@ -437,10 +437,14 @@ export function CollectorPage({
 
   const detail = useGatewayDetail(own?.gateway_id).data ?? null;
 
-  if (!status || mine === null)
+  // An admin's fleet row is the only one a request waiting for approval
+  // has for anyone but its operator: it is off the public list
+  // (2026-11-23), so the page waits for the fleet before saying there is
+  // no such collector, and draws from that row.
+  if (!status || mine === null || (me?.is_admin && fleetQuery.isPending))
     return <p className="text-ink-faint">Loading…</p>;
 
-  if (!pub && !own)
+  if (!pub && !own && !admin)
     return (
       <>
         <div className="page__crumb">
@@ -457,7 +461,9 @@ export function CollectorPage({
     );
 
   const beat = secsSince(pub?.last_heartbeat_at, now);
-  const status_ = pub?.status ?? own?.status ?? "unknown";
+  const status_ = pub?.status ?? own?.status ?? admin?.status ?? "unknown";
+  const lastSuccess =
+    pub?.last_success_at ?? own?.last_success_at ?? admin?.last_success_at;
   const behind = status_ === "active" && (beat == null || beat > 600);
   const tone = status_ !== "active" ? "warn" : behind ? "warn" : "ok";
   const env = revealed
@@ -478,7 +484,7 @@ export function CollectorPage({
           <>
             {own
               ? `Yours, on ${own.name}`
-              : `Run by ${pub?.operator ?? "an operator"}`}
+              : `Run by ${pub?.operator ?? admin?.owner_player_name ?? "an operator"}`}
             {detail?.gateway?.last_seen_sha
               ? ` · ${detail.gateway.last_seen_sha.slice(0, 7)}`
               : ""}
@@ -500,8 +506,7 @@ export function CollectorPage({
                 : behind
                   ? "Behind"
                   : "Active"}
-            , last fetch{" "}
-            {ago(pub?.last_success_at ?? own?.last_success_at, now)}
+            , last fetch {ago(lastSuccess, now)}
           </span>
         }
       />
@@ -572,11 +577,7 @@ export function CollectorPage({
         </div>
       )}
 
-      <Clocks
-        heartbeat={pub?.last_heartbeat_at}
-        data={pub?.last_success_at ?? own?.last_success_at}
-        now={now}
-      />
+      <Clocks heartbeat={pub?.last_heartbeat_at} data={lastSuccess} now={now} />
 
       {own?.provision_ready && !revealed && (
         <Panel
