@@ -47,6 +47,16 @@ test("routes collapse tags, ids and uuids so they aggregate", () => {
     "GET /api/me/clans": "GET /api/me/clans",
     "GET /api/agent/*": "GET /api/agent/*",
     "GET /api/me/home?x=1": "GET /api/me/home",
+    // A line from before 2026-11-22 holds the real path: a feed link's
+    // token (invented here) and a share id never reach the report.
+    "GET /api/rss/Zk3v0aQ_x9LmT2bR-7cYw1HdE5uNpJ6s": "GET /api/rss/*",
+    "GET /api/rss/short": "GET /api/rss/*",
+    "GET /share/sh_0a1b2c": "GET /share/*",
+    "GET /api/passports/0a1b2c3d4e5f": "GET /api/passports/*",
+    "GET /api/me/timeline-items/tl_0123456789abcdef0123":
+      "GET /api/me/timeline-items/*",
+    // Today's line already carries the route's shape.
+    "GET /api/rss/*": "GET /api/rss/*",
   };
   for (const [raw, want] of Object.entries(cases))
     assert.equal(normaliseRoute(raw), want, raw);

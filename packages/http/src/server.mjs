@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { Hono } from "hono";
 import { bodyLimit } from "hono/body-limit";
 import { serve } from "@hono/node-server";
+import { logPath } from "./log-path.mjs";
 
 /** A native HTTP request becomes the route layer's small request record.
  * No API Gateway event, Lambda adapter or invocation context is created. */
@@ -21,6 +22,9 @@ export function makeHttpApp({ dispatch, timeoutSeconds = 30 }) {
     };
     const context = {
       requestId: randomUUID(),
+      // The matched route's shape, set by a door that has one
+      // (`/api/rss/*`): what the request line names instead of the path.
+      route: null,
       remainingMs: () =>
         Math.max(1, timeoutSeconds * 1000 - (Date.now() - start)),
     };
@@ -30,7 +34,9 @@ export function makeHttpApp({ dispatch, timeoutSeconds = 30 }) {
     } finally {
       console.info({
         event: "http_request",
-        http: `${request.method} ${request.path.replace(/^\/a\/[^/]+/, "/a/*").replace(/^\/api\/agent\/[^/]+/, "/api/agent/*")}`,
+        // Never the raw path: a wildcard segment can be a credential
+        // (log-path.mjs). The door's route shape, else the masked path.
+        http: `${request.method} ${context.route ?? logPath(request.path)}`,
         status: res?.statusCode ?? 503,
         ms: Date.now() - start,
         request_id: context.requestId,

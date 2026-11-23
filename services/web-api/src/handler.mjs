@@ -649,6 +649,12 @@ export function makeHandler({
     const routeKey = agentPath
       ? found.key.replace(" /api/me", " /api/agent/*")
       : found.key;
+    // The request line (packages/http server.mjs) names this route by its
+    // shape, so a wildcard's value (a feed link's token, a share id) is
+    // never logged. A family (`/**`, Clan) and the JSON API's one
+    // operation keep their path, masked there: their keys name no route.
+    if (context && !found.key.endsWith("/**") && !isApi)
+      context.route = routeKey.slice(routeKey.indexOf(" ") + 1);
     const requestId = context?.requestId ?? null;
     let status = 500;
     let connectMs = 0;
