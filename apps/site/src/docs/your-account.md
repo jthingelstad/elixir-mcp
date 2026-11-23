@@ -226,7 +226,8 @@ to verify one. Nothing in the bell is mailed or posted to Discord.
 
 Elixir installs on a phone's home screen and opens like an app: full
 screen, with its own icon, **Timeline**, **Find**, **Clan** and **Profile**
-as tabs at the foot, and the bell at the top next to your account.
+as tabs at the foot, and the bell at the top next to your account. On a
+phone the bar at the top stays put while you scroll, as the tabs do.
 
 - **iPhone or iPad:** open [elixir.poapkings.com](/timeline) in Safari, tap
   **Share**, then **Add to Home Screen**.
