@@ -260,12 +260,18 @@ test(
         'name="apple-mobile-web-app-capable" content="yes"',
         'name="apple-mobile-web-app-title" content="Elixir"',
         `name="theme-color" content="${manifest.theme_color}"`,
-        "viewport-fit=cover",
       ])
         assert.ok(
           html.replace(/\s+/g, " ").includes(tag),
           `${rel} lacks ${tag}`,
         );
+      // The page is laid out below the phone's clock, never under it: an
+      // installed web app on iOS 27 blurs the top of a page that draws
+      // there, and the top bar sat in the blur (2026-11-23).
+      assert.ok(
+        !html.includes("viewport-fit"),
+        `${rel} draws under the phone's clock (viewport-fit)`,
+      );
     }
   },
 );
