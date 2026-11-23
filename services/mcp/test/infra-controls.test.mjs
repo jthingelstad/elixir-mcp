@@ -1517,7 +1517,13 @@ test("both cookie doors are sent origin and sec-fetch-site, within CloudFront's 
     assert.ok(headers.includes("sec-fetch-site"), `${policy}: sec-fetch-site`);
     assert.ok(headers.length <= 10, `${policy}: ${headers.length} headers`);
   }
-  const cache = resource(template, "WebPrivateCachePolicy", "WebApiLogGroup");
+  // The policy's own block: what follows the blank line is the next
+  // resource's comment, and the RSS policy's says "origin" in prose.
+  const [cache] = resource(
+    template,
+    "WebPrivateCachePolicy",
+    "RssFeedCachePolicy",
+  ).split("\n\n");
   assert.match(cache, /Headers: \[Authorization\]/);
   assert.doesNotMatch(cache, /\b(origin|sec-fetch-site)\b/i);
   const behaviours = cacheBehaviours(template);
