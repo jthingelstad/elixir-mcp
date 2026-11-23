@@ -32,7 +32,7 @@ export const elixir_my_identities = {
           ? 'No humans are mapped on this connection. A person who links Discord in their Elixir Settings is known by on_behalf_of: "discord:<their user id>"; otherwise pass player_tag.'
           : "external_id is the id mapped before 12.0.0; pass it as on_behalf_of and 'how am I doing' resolves to that player. New humans are known by their Discord link, never a new mapping.",
       ),
-      docs: docsRef("agents", "knowing-which-human-is-asking"),
+      docs: docsRef("agents", "sign-it-in"),
       meta: responseMeta({ as_of: new Date().toISOString() }),
     };
   },

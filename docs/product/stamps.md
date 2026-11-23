@@ -64,8 +64,8 @@ no hide switch or verification gate for the passport.
 
 “Visible” follows Elixir's existing member boundary: signed-in members
 can open any person's passport. This does not create a new anonymous
-exception beside shared highlights and battles. Agent principals do not
-become human passport owners.
+exception beside shared highlights and battles. Only a person has a
+passport.
 
 An unverified claim is never used to attach an account's Stamps to the
 canonical game player page as its owner. The account has its own passport
@@ -75,7 +75,7 @@ the same account-wide collection appears on its verified alts.
 The public view contains earned Stamp IDs, highest levels and earned
 dates, with an explanatory catalog. Exact progress counts are for the
 owner. Email, Discord username, city, coordinates, nicknames, account
-UUIDs, agent keys, limits and usage records never enter the public view.
+UUIDs, keys, limits and usage records never enter the public view.
 This is a public achievement surface, not a public account-settings page.
 
 ## Initial catalog

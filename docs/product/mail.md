@@ -64,8 +64,9 @@ something for that role to do.
   updating or stops sending data. It is operational." [Jamie,
   2026-11-12]
 - **Service mail.** Sign-in codes, the welcome and account notices are
-  service mail, with no turn-off. Agents are never mailed; an agent's
-  feedback is answered to the agent. [Jamie, 2026-09-17, 2026-09-18]
+  service mail, with no turn-off. Only people are mailed; a test
+  account has no address and is sent nothing. [Jamie, 2026-09-17,
+  2026-09-18; engineering, 2026-11-23]
 
 ## What the digest tells
 
@@ -128,7 +129,7 @@ something for that role to do.
 
 ## What it never does
 
-Send a second scheduled mail to members; mail an agent; count a reader;
+Send a second scheduled mail to members; mail an account with no address; count a reader;
 resend after a stop; print a nickname in public; tell a removal in the
 digest; hide a
 gap in the record; hotlink Supercell's art; carry a cheer, a follower or
@@ -139,7 +140,7 @@ mail or Discord"]
 
 Elixir funds no model use. Its own voice (mail, timeline text, Stats,
 the site) is written from the record by code; models run on a clan's
-own key in Clan, or in a person's own agent. [Jamie, 2026-10-12]
+own key in Clan, or in a person's own AI. [Jamie, 2026-10-12]
 
 ## Open
 

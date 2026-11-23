@@ -15,8 +15,7 @@ lede: "The transport, how a client authenticates, and the OAuth 2.1 flow."
 
 | Property | Value |
 |---|---|
-| Endpoint (personal) | `POST https://elixir.poapkings.com/mcp` |
-| Endpoint (agent) | `POST https://elixir.poapkings.com/a/<public_id>/mcp` |
+| Endpoint | `POST https://elixir.poapkings.com/mcp`, the one door; every connection is a person's |
 | MCP protocol versions | `2026-07-28` uses `server/discover`. Clients using `2025-06-18` or `2025-03-26` use `initialize`. |
 | Request headers | On `2026-07-28`, send `MCP-Protocol-Version` and `Mcp-Method` on every request. Tool calls, prompt reads and resource reads also need `Mcp-Name`. Send the matching protocol version and client capabilities in `params._meta`. See [Connection discovery](/docs/protocol#connection-discovery). |
 | Legacy protocol header | After `initialize`, send the negotiated `MCP-Protocol-Version`. An absent header is treated as `2025-03-26`. An unsupported legacy header returns HTTP 400 with JSON-RPC `-32600`. |
@@ -31,12 +30,9 @@ lede: "The transport, how a client authenticates, and the OAuth 2.1 flow."
 | CORS | No `Access-Control-*` headers and no `OPTIONS` handling. Requests with an Origin header must name Elixir's own origin. Other browser origins need a server-side client. |
 | Capabilities declared | `tools: { listChanged: false }`, `resources: { subscribe: false, listChanged: false }`, `prompts: { listChanged: false }`. No logging. Every successful `tools/call` result carries the same JSON as `structuredContent` beside the text block, conforming to the tool's `outputSchema`; a result with `isError: true` carries the text block alone. |
 
-`public_id` is 8 to 16 characters of `[a-z0-9]`.
-
 ## Authentication
 
-Bearer only. Cookies never reach the door: `/mcp`, the principal doors,
-`/oauth/token` and the discovery documents are served behind a CloudFront
+Bearer only. Cookies never reach the door: `/mcp`, `/oauth/token` and the discovery documents are served behind a CloudFront
 behavior that forwards none. The one exception is the consent page itself,
 `/oauth/authorize`, which is a browser page and honours the site session
 (below).
@@ -44,20 +40,19 @@ behavior that forwards none. The one exception is the consent page itself,
 | Credential | Shape | Where it works |
 |---|---|---|
 | OAuth access token | opaque, `eat_` + 43 base64url chars | the resource it was issued for |
-| Service token (agent key) | `svt_` + 43 base64url chars | the agent's own URL |
+| Service token | `svt_` + 43 base64url chars | `/mcp`; issued only by Elixir's operator to its own test accounts, never by a person |
 
 Refusals:
 
 | Case | Status | Body | Header |
 |---|---|---|---|
 | No `Authorization: Bearer` | 401 | `{"error":"invalid_token"}` | `WWW-Authenticate: Bearer resource_metadata="<issuer>/.well-known/oauth-protected-resource[<door path>]", scope="cr:read follows:write account:write feedback:write"` |
-| Unknown, expired, revoked, or suspended credential, or an OAuth token at a door it was not issued for | 401 | same | same |
-| Valid key (`svt_`) at a door not its own | 403 | `{"error":"wrong_resource","message":"This credential is not for <resource>.","hint":"…"}` | none |
+| Unknown, expired, revoked or suspended credential, or an OAuth token issued for another resource (`/api/v1`) | 401 | same | same |
 | Tool needs a scope the token lacks | 403 | JSON-RPC error `-32003` (below) | `WWW-Authenticate: Bearer error="insufficient_scope", scope="<granted + required>", resource_metadata="…"` |
 
 Every refused credential that names a real key or account is counted (per
-credential, per source address, per day) and shown to the owner on Settings › Connections & agents or the agent's page, so a
-runtime still presenting a revoked key is visible even though it never reaches
+credential, per source address, per day) and shown to the owner on Settings › Connections, so a
+runtime still presenting a revoked token is visible even though it never reaches
 the call log.
 
 ## OAuth 2.1
@@ -83,8 +78,7 @@ the call log.
 }
 ```
 
-`GET https://elixir.poapkings.com/.well-known/oauth-protected-resource` (and
-`…/oauth-protected-resource/a/<public_id>/mcp` for an agent door):
+`GET https://elixir.poapkings.com/.well-known/oauth-protected-resource`:
 
 ```json
 {
@@ -102,16 +96,14 @@ exception, offered only to the family's own apps that name it (described
 under [Signing a person in](#signing-a-person-in-with-elixir)). **What a
 client asks for is granted; every other standard capability is a checkbox the
 person decides on the consent page**, and a client that names no scope asks
-for `cr:read` alone. On a person's own connection the checkboxes start
-unticked; on an agent every write starts ticked except
-`follows:write`, which spends the owner's following slots. Each box
+for `cr:read` alone. The checkboxes start unticked. Each box
 says what the connection cannot do without it, and unticking one that started
 ticked asks for confirmation, naming what will not work, before the grant is
 made. What you tick is added to the grant, so a person can allow
 `feedback:write` to a client that only ever requests `cr:read`. The token response reports the scope
 actually granted (RFC 6749 §3.3), which is how the client learns it holds more
 than it asked for. Both documents are cacheable for 300 seconds. There is no
-introspection endpoint. A person revokes a connection on Settings › Connections & agents; a client revokes its own with [`POST /oauth/revoke`](#revocation).
+introspection endpoint. A person revokes a connection on Settings › Connections; a client revokes its own with [`POST /oauth/revoke`](#revocation).
 
 ### Dynamic client registration
 
@@ -195,10 +187,6 @@ signs the browser in to the site as well, so the next consent, and the
 website, do not ask again. Nothing about the grant differs between the two
 paths.
 
-For an agent door (`/a/<public_id>/mcp`), only the agent's owner may consent,
-and the resulting grant is for the agent, not the person. An agent that does
-not exist and an agent you do not own get the same refusal.
-
 ### Tokens
 
 `POST /oauth/token`, form-encoded. A registered client is public and sends no
@@ -246,7 +234,7 @@ scope answers HTTP 403 with the `insufficient_scope` challenge and this body:
   "error": { "code": -32003,
     "message": "The access token lacks the capability required by this tool: follows:write.",
     "data": { "required_scope": "follows:write", "granted_scope": "cr:read",
-              "hint": "Reconnect this client and tick 'follows:write' on the consent page (every capability the client did not ask for is offered there), or edit the connection's capabilities under Settings, Connections & agents, which takes effect on the next call. Owner-issued service tokens carry every capability. Read tools, including elixir_timeline, need only cr:read." } } }
+              "hint": "Reconnect this client and tick 'follows:write' on the consent page (every capability the client did not ask for is offered there), or edit the connection's capabilities under Settings, Connections, which takes effect on the next call. Read tools, including elixir_timeline, need only cr:read." } } }
 ```
 
 The challenge's `scope` is the granted set plus the missing one, so a client
@@ -258,18 +246,14 @@ which needs the client to cooperate:
 
 - **At consent:** reconnect and tick the capability on the consent page,
   which offers every standard scope the client did not ask for.
-- **After the fact:** Settings › Connections & agents lists every live OAuth
-  connection with its capabilities and lets you change them. This covers the
-  personal door and every agent door you own, each of which
-  carries its own grant. An agent can also connect with its **service key**
-  rather than OAuth, and a key's capabilities are not part of any grant - edit
-  those on the agent's Settings page. Editing takes effect on that connection's next call - no reconnect,
+- **After the fact:** Settings › Connections lists every live OAuth
+  connection with its capabilities and lets you change them. Editing takes
+  effect on that connection's next call - no reconnect,
   because the token's scope is read from the grant on every request. Narrowing
   works the same way, so a capability can be taken back without disconnecting
   the client.
 
-Either way the grant is yours; the client cannot ask on your behalf. Service
-tokens issued with no scope carry every capability.
+Either way the grant is yours; the client cannot ask on your behalf.
 
 ### Signing a person in with Elixir
 
@@ -279,16 +263,16 @@ grant it needs is the ordinary one, plus **`account:email`** when it needs the
 person's address. `account:email` is never
 offered unasked: it does not appear ticked
 on the consent page, is not part of the default grant, is never widened into
-from a checkbox or from Settings › Connections & agents, and is not advertised in a 401
+from a checkbox or from Settings › Connections, and is not advertised in a 401
 challenge. It is offered only to the family's own apps: a client Elixir provisioned,
 whose every redirect URI is on a family origin. Any other client that names
 it in `scope` is refused `invalid_scope`, so the address is never released
 outside the family. A family app signs the person in with no consent page;
 one that names it has it listed among what the app gets on the code page,
-and the person can end the grant on Settings › Connections & agents.
+and the person can end the grant on Settings › Connections.
 
 `GET /oauth/userinfo` with a bearer access token whose grant carries it,
-for either personal audience (`/mcp` or `/api/v1`; an agent's is refused):
+for either audience (`/mcp` or `/api/v1`):
 
 ```json
 { "sub": "<stable account id>", "email": "you@example.com", "email_verified": true, "kind": "person" }

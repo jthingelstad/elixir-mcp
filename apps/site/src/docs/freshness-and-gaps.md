@@ -86,7 +86,7 @@ read in the last two minutes is not read again. Your account asks at
 most once every five minutes, however many tabs or devices are open,
 and the reads come from a daily allowance of their own, the size of
 your [live fetches](/docs/limits) a day, so they never use up what your
-agent's live reads have. Each one is a read on the live lane from the
+AI's live reads have. Each one is a read on the live lane from the
 same one shared budget as everything else; when the budget or your
 allowance has no room, nothing is asked and the page shows what Elixir
 already has. An agent cannot ask for it.
@@ -353,7 +353,7 @@ What a live read leaves behind:
 | the first read of a player you add | the profile: the tag is followed from the moment it is added |
 
 Live fetches are capped per day by role (20 / 100 / 250 / 1,000; owner and
-admin unlimited), and an agent spends its owner's allowance; past the cap a
+admin unlimited), and every app you connect spends your allowance; past the cap a
 call is refused with `quota_exceeded`. A queued fetch is charged once, when
 it is queued; a second ask while it is queued, a fresh read already in hand
 and the follow-up call that finds it are free. When the shared API budget

@@ -167,8 +167,8 @@ Every windowed tool takes the same bounds and echoes what it used:
   is seven full days.
 - The timezone is the account's, or the call's own `timezone` argument (an
   IANA name such as `Europe/Paris`), which also drives `battle_time_local`
-  and every other local label. Agents serving people in several zones pass
-  the asker's. `meta.timezone_applied` names the zone that applied.
+  and every other local label. Pass it when a question is about
+  another zone's days. `meta.timezone_applied` names the zone that applied.
 - `days` and `weeks` are sugar: `days: 7` is `from` seven days before now
   with no `to`. `seasons` on `war_history` counts seasons back the same way.
 - `season` bounds one season on every windowed tool (below).

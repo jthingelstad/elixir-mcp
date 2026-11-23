@@ -46,7 +46,7 @@ judging to the person.
 
 The signed-in person. Signing in is where the Timeline starts: every read of
 Elixir needs an account (DECISIONS "Everyone signs in; shared posts stay
-public"). An agent has no Timeline page; it reads the same timeline over MCP.
+public"). A connected AI reads the same timeline over MCP, as the person.
 
 ## What it holds
 
@@ -155,7 +155,7 @@ left rail stays only in Settings"]
    one mode at a time; "No battle recorded this week", never that
    someone did not play. [Jamie, 2026-11-05, Q6, A34; standing]
 9. **The feed's place is its own.** Opening the Timeline clears New and changes
-   nothing an agent has read. [Jamie, 2026-10-20] Nothing moves under the
+   nothing a connection has read. [Jamie, 2026-10-20] Nothing moves under the
    reader: an open feed is read again only when they ask (tapping the
    freshness chip counts), and an "N new" pill says when items the feed
    does not hold have arrived, whatever their date, from a cheap count

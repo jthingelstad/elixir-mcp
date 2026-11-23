@@ -13,7 +13,7 @@ rulings in [DECISIONS](../DECISIONS.md) of 2026-11-11 and 2026-11-12. Ratified b
 
 The game forgets; Stats reads a player's season back from the record,
 one mode at a time: what they played and how it went. "A mirror, not a
-coach." It is Elixir's answer to "how am I doing?" without an agent, and
+coach." It is Elixir's answer to "how am I doing?" without an AI, and
 to "how is my friend doing?" for a player you follow. [Jamie,
 2026-10-02, 2026-10-03, 2026-11-12]
 
@@ -36,7 +36,7 @@ opens for the players you follow"]
    pools across them; a win rate across all would describe none.
    [Jamie, 2026-09-22]
 2. **Every number is one a tool returned.** Each page is a handful of the
-   same reads a connected agent makes; no number the tools do not
+   same reads a connected AI client makes; no number the tools do not
    return, no model behind it. [Jamie, 2026-10-02]
 3. **Form is numbers only.** "Am I improving?" is two stretches of one
    mode's record side by side (this game week beside the four before;
@@ -72,7 +72,7 @@ pool modes; run a model; show a number without its count.
 
 A person reading Stats on Elixir's website never spends their daily tool
 quota, as a first-party client does not; the hourly bucket still
-applies. Quotas are for agents and the live lane, which
+applies. Quotas are for MCP connections and the live lane, which
 spend the shared Clash Royale budget. [Jamie, 2026-10-12]
 
 ## Open

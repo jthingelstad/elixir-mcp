@@ -26,7 +26,7 @@ entries are on [The timeline tool](/docs/timeline-tool).
 It is **synthesized when you read it**, from the record and what Elixir
 keeps for each player and clan. Nothing is queued, fanned out or pruned. A
 timeline reaches back one week, everywhere: your Timeline, a player's page,
-an account page and an agent's read all show the last seven days. An agent
+an account page and your agent's read all show the last seven days. An agent
 that comes back after a month gets the last week (at most the newest 150
 items), and a note says where older history is: the data tools read it.
 Your Timeline shows the same cap on items, thirty at a time, and reading it
@@ -539,7 +539,7 @@ are distinct from earlier ones, and the notification opens that post at
 the notified reply. **New answer** marks unread answers from other people;
 **Older answers** reads back through a long conversation.
 Reply words and author names stay inside Elixir; they do not go to email,
-push, RSS or agents. Your post and its answers stay yours if your player claim changes.
+push, RSS or MCP. Your post and its answers stay yours if your player claim changes.
 Nobody you've blocked, or who has blocked
 you, sees your posts. You don't see theirs.
 
@@ -558,7 +558,7 @@ further (below).
 ## Your RSS link
 
 Your timeline can also be read in a feed reader app. **Settings ›
-Connections & agents › Your RSS link** makes one private link for your
+Connections › Your RSS link** makes one private link for your
 account: it opens your own timeline, everyone you follow together, the last
 seven days and at most 50 items, newest first.
 
@@ -604,7 +604,7 @@ both decks with the score between them and a link to the battle.
   and answer it. The player's page shows it to every signed-in member.
 - **Where else it goes:** your digest email, notifications, your RSS link,
   Timeline to Discord, a clan's Discord channel when its author shares it
-  there, and agents all carry it. Its owner's timeline carries its share
+  there, and your own agent all carry it. Its owner's timeline carries its share
   link once they have shared it; nobody else's does.
 - **Delete** takes it off every timeline.
 
@@ -612,8 +612,7 @@ Your own agent reads the posts about battles a player wrote, newest first,
 with the MCP tool `players_highlights`: each one's sentence, the words
 written with it and the battle's link. The tool and the timeline's item
 kind (`battle_highlight`) keep the name these had when they were called
-highlights. An agent reads them as you, its owner, and never posts or
-deletes one.
+highlights. It reads them as you and never posts or deletes one.
 
 ## Attested facts
 
@@ -638,9 +637,9 @@ On an Elixir Drop result, the gamepad beside the reactions and comments opens
 the same mode in Drop in a new tab. An older Drop personal best opens the game
 selection instead.
 
-"The clan" is anyone whose verified player is in it today, and an agent
-whose owner's player is. A fact for the clan's leaders reaches only a
-person whose verified player leads it: never an agent and never mail.
+"The clan" is anyone whose verified player is in it today. A fact for
+the clan's leaders reaches only a person whose verified player leads it,
+and never mail.
 A departure's kind is the clan's: the game already tells the whole clan
 in clan chat that a member was kicked, and its leaders say why there.
 
@@ -653,11 +652,11 @@ holds for it now; a role the type does not allow is refused.
 
 ## Cross-posting to Discord
 
-Your own timeline's sharing is **Timeline to Discord**, on Settings › Connections & agents › Discord. For an agent,
-**Manage sharing** on that agent's Timeline opens the same settings in a drawer, and closing it discards unsaved edits. Only the account
-owner can save changes, on the website, never MCP.
-Delivery history expands there; an agent's events and evidence stay on the
-page. Connections and agent pages show whether sharing is on.
+Your own timeline's sharing is **Timeline to Discord**, on Settings ›
+Connections › Discord. Only you can save changes, on the website, never
+MCP. Delivery history expands there, and Connections shows whether
+sharing is on. A clan's own Discord channel is set up by its leaders on
+the clan's **Run › Discord** page ([Clan Discord](/docs/clan-discord)).
 
 - **What posts.** Every `publishable` item the timeline holds for that
   account, not otherwise filtered: the same subjects, sections and kinds

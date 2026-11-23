@@ -31,12 +31,10 @@ flow. Create an account by verifying your email —
 
 <p>The connection page lists these before you enter your sign-in code. Every OAuth
 grant includes <code>cr:read</code>, and a client that names no scope asks for it
-alone. The consent page offers every other standard capability as a checkbox:
-unticked on your own connection, and on an agent's connection every write but
-<code>follows:write</code> starts ticked. If a connected agent
-needs a capability it does not have, Elixir refuses the call and asks the client
-to reconnect for that specific permission, or you change the connection's
-capabilities under Account → Connections.</p>
+alone. The consent page offers every other standard capability as a checkbox,
+unticked. If a connected agent needs a capability it does not have, Elixir
+refuses the call and asks the client to reconnect for that specific permission,
+or you change the connection's capabilities under Settings › Connections.</p>
 
 <ul>
   {%- for s in tools.scopes %}
@@ -44,17 +42,12 @@ capabilities under Account → Connections.</p>
   {%- endfor %}
 </ul>
 
-<p>An agent's key is different: it carries the capabilities it was issued
-with (every one unless its owner narrowed them), edited on the agent's
-Settings page, and is shown once and revocable from the website.</p>
-
 <h2>What every response carries</h2>
 
 <p>Beside the fields a tool is for, every response carries the same four things:
 <code>applied</code>, the one echo block saying what the tool actually used
-(window, limit, sort, mode, verbosity), on every tool but five
-(<code>elixir_my_players</code>, <code>elixir_my_identities</code>,
-<code>elixir_coverage</code>,
+(window, limit, sort, mode, verbosity), on every tool but these
+(<code>elixir_my_players</code>, <code>elixir_coverage</code>,
 <code>elixir_collectors</code>, and
 <code>elixir_examples</code> without an <code>example</code>); <code>notes[]</code>, one-sentence
 caveats to repeat with the numbers; <code>docs</code>, a <code>page#section</code>

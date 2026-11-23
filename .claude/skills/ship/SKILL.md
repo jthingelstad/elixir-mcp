@@ -88,7 +88,7 @@ tool, so an MCP change never moves it):
 - `apps/site/src/docs/sign-in-with-elixir.md` says what `/me` answers.
 
 **What a user sees**, when it is worth telling (not every change needs
-one; a tool change that agent owners should hear of does): a file in
+one; a tool change that people who connect a client should hear of does): a file in
 `apps/site/src/_data/updates/`,
 `<YYYY-MM-DD>-t<HHMMSS>-<slug>.md` (`apps/site/AGENTS.md`, "Updates"): use
 the current UTC date and time and this change's slug, without reserving a

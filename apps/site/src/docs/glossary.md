@@ -257,26 +257,16 @@ verbosity, at the top level on compact rows.
 
 ## Principals and the service
 
-**door**: an MCP endpoint: `/mcp` for a person, `/a/<public_id>/mcp` for an
-agent. A credential works at exactly one door.
+**door**: an MCP endpoint. Elixir has one, `/mcp`, and every connection
+there is a person's.
 
-**principal**: who is calling: a `person` (you, over OAuth) or an `agent`
-(a runtime you own that acts for one clan). See
-[Users and agents](/docs/connections).
+**principal**: who is calling: always a `person`, you over OAuth, with
+whatever app you connected. See [Your connections](/docs/connections).
 
-**budget account**: whose daily quotas a call spends. An agent spends its
-owner's call budget and live lane. A person's
-own reads on Find, player pages and Stats spend no daily call budget. The
-hourly rate limit is not a budget: it belongs to the principal, so each agent
-has its own hour, and a person's website reads share theirs.
-
-**on_behalf_of**: on an agent connection, the end user's id in your own
-space (`discord:1234`), resolved by the person's Discord link (or an
-older mapping the agent made); omit `player_tag` and the tools
-mean that person. Ignored on a personal connection.
-
-**external_id**: the same id as stored: the key `elixir_my_identities` lists
-and a Discord link or an older mapping resolves.
+**budget account**: whose daily quotas a call spends: yours, for every
+app you connect. Your own reads on Find, player pages and Stats spend no
+daily call budget. The hourly rate limit is not a budget: it is yours
+too, and your website reads share it.
 
 **request_id**: the id minted for one call and stamped into `meta`; quote it
 when reporting an answer.

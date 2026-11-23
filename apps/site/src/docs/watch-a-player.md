@@ -40,12 +40,6 @@ Elixir records their next reads, and their sessions and moments appear
 in your Timeline while their Notifications switch is on. Their player page
 opens Stats. Your digest includes friends who played or posted.
 
-## Agents
-
-An agent follows players as friends too, without claiming to be them. It
-spends its owner's pooled slots and keeps its own follows and Timeline
-pointer. It never has a primary or alt player.
-
 ## Stopping
 
 **Unfollow** ends your follow. Recorded history stays, and recording stops

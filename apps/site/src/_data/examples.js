@@ -7,7 +7,9 @@
  * tools under each window are the ones that were actually called, and
  * every number in an answer came back from them that morning. The
  * three "For builders" exchanges read the documentation through
- * elixir_docs, which serves the same Markdown the site renders. Answers
+ * elixir_docs, which serves the same Markdown the site renders; the
+ * first two were rewritten on 2026-11-23 to the documentation as it
+ * stands once agent accounts were removed (their numbers unchanged). Answers
  * are written the way a model writes them - Markdown, with the
  * provenance in the prose rather than a citation chip - so the page
  * shows what a connected client would actually show.
@@ -229,25 +231,24 @@ export default [
       {
         key: "discord",
         icon: "bot",
-        label: "Answer your clanmates",
-        title: "Answer your clanmates",
-        lede: "An agent acts for one clan rather than for you: its own door, its own key, its own feed, and a map from a Discord id to a player tag.",
+        label: "Your clan in Discord",
+        title: "Your clan in Discord",
+        lede: "Your clan's news and its leaders' Actions in its own Discord, set up by the leaders in Clan. No bot to run.",
         reads: [
           "The documentation itself, served over MCP",
-          "Recorded history for the clan the agent acts for",
-          "Its own identity map, built once per person",
+          "Your clan's recorded activity, as its members read it",
         ],
-        setup: ["Create an agent", "Read the agents doc"],
+        setup: ["Connect your clan's Discord", "Read the clan Discord doc"],
         script: {
           tool: "elixir_docs",
           lines: [
             {
               role: "user",
-              text: "Can my clanmates ask this in our Discord, without me in the loop?",
+              text: "Can my clanmates see our clan's news in our Discord, without me in the loop?",
             },
             {
               role: "agent",
-              text: 'Yes, that is what an **agent** is for. I read the Agents page of the documentation; the shape is:\n\n- An agent *acts for a clan, not for a person*: its own identity, its own key and URL (`https://elixir.poapkings.com/a/<public_id>/mcp`), its own timeline pointer and feedback inbox. Nothing it does lands in your history.\n- You create it under **Settings › Connections & agents › New agent** with a name and the clan tag. The key is shown once; only its hash is stored.\n- It spends *your* daily call budget, and every role can create agents, 3, 5, 10 or 25 depending on role.\n- A member who links Discord in their Elixir Settings is known to the bot by `on_behalf_of: "discord:<their id>"` with no lookup; one who has not is asked who they are, and the bot passes `player_tag`.\n\nSo the loop is: you create the agent, your bot holds the key, and your clanmates talk to the bot. There is a reference bot already running in POAP KINGS\' Discord if you want the pattern.',
+              text: "Yes, and nobody has to run a bot. I read the clan Discord page of the documentation; the shape is:\n\n- A Leader or Co-Leader opens **Run › Discord** in Clan and connects a Discord webhook for the clan's activity channel.\n- From then on the channel tells what happens in the clan, as its members read it: a member's new arena or best, a standout session, joins and departures, the war. Each post ends with **Open in Elixir**.\n- Leader **Actions** can go to a channel of their own, on its own webhook.\n\nThe channel only receives: questions about the clan are for each person's own AI, connected to Elixir as themselves.",
             },
           ],
         },
@@ -257,15 +258,15 @@ export default [
         icon: "share-2",
         label: "Publish your own stats",
         title: "Publish your own stats",
-        lede: "Build a clan site or a bot on the record instead of on a second Clash key. Pull at build time; no scraping, no push.",
+        lede: "Build a clan site on the record instead of on a second Clash key. Pull at build time, as yourself; no scraping, no push.",
         reads: [
           "The documentation itself, served over MCP",
           "Every recorded river race, past the API's ten-week window",
           "The clan's 30-day ladder table",
         ],
-        // An agent connection: elixir_docs and clans_standings are MCP tools
-        // only.
-        setup: ["Create an agent", "Read the agents doc"],
+        // Your own connection: elixir_docs and clans_standings are MCP
+        // tools only.
+        setup: ["Connect a client", "Read about your own agent"],
         script: {
           tool: "elixir_docs · war_history · clans_standings",
           lines: [
@@ -275,7 +276,7 @@ export default [
             },
             {
               role: "agent",
-              text: "You can build that on the record instead of on a second Clash key, through **an agent connection**: the same tools I am using, over MCP with the agent's own key and URL. It suits a site that renders at build time. The war history and the ladder table are MCP tools. The key is shown once and never belongs in a browser.\n\nWhat you would be publishing that the game's own API forgets: **every recorded river race**. POAP KINGS' record runs from Season 134, Week 1 to today, nine finished races, all firsts, plus a 30-day ladder table for the clan (48 ranked members, median win rate 52.8%).\n\nThe Agents page of the documentation covers the setup: create one under **Settings › Connections & agents › New agent**, then put its key and URL in the build's environment.",
+              text: "You can build that on the record instead of on a second Clash key, through **your own connection**: the same tools I am using, over MCP, signed in as you. It suits a site that renders at build time. The war history and the ladder table are MCP tools. Its sign-in never belongs in a browser.\n\nWhat you would be publishing that the game's own API forgets: **every recorded river race**. POAP KINGS' record runs from Season 134, Week 1 to today, nine finished races, all firsts, plus a 30-day ladder table for the clan (48 ranked members, median win rate 52.8%).\n\nThe Your own agent page of the documentation covers the setup: sign the build in once with OAuth at `https://elixir.poapkings.com/mcp`, and keep its refresh token in the build's environment.",
             },
           ],
         },

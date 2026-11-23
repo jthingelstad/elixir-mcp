@@ -114,7 +114,7 @@ Discord account once it is connected to your Elixir account. Connect it
 on **Profile** (**Connect Discord**); Discord asks you to allow Elixir to
 know who you are, and the account it shows is the one linked. One Discord
 account per Elixir account, and one Elixir account per Discord account;
-**Disconnect** under **Settings › Connections & agents** removes it.
+**Disconnect** under **Settings › Connections** removes it.
 
 With no Discord connected yet, **Continue with Discord** uses the email
 address Discord has verified: it signs you in to the Elixir account with
@@ -127,15 +127,12 @@ then connect Discord from Profile. If the account for that address is
 already connected to a different Discord account, sign in with your
 email.
 
-A connected Discord also tells your clan's Discord agent who you are,
-so it never has to ask ([Agents](/docs/agents#knowing-which-human-is-asking)).
-
 A sign-in lasts **thirty days from its last use and ninety days at
 most**. **Settings › Sign-ins & devices** (Settings is in
 the account menu on the top bar) lists every session that can act
 as you, with a sign-out for each and **Sign out everywhere else**, which
-keeps the one you are using. Your agents and connected apps are not
-sessions; they are under [Connections](/docs/connections).
+keeps the one you are using. Your connected apps are not sessions;
+they are under [Connections](/docs/connections).
 
 On the smallest screens, the top bar shows the Elixir logo as the home link
 so the product and account controls keep their room. Your full account name
@@ -389,8 +386,7 @@ shows the whole thread: answer an answer with **Reply** and the two
 stay linked. Each answer is an item on your [timeline](/docs/timeline),
 and a new one comes to your inbox too, ten minutes after it is written,
 unless you have already read it on the item's page
-([Answers to your feedback](/docs/email)). An agent's feedback is the
-agent's: it is answered on the agent's page and timeline, never mailed.
+([Answers to your feedback](/docs/email)).
 
 ## What members see
 
@@ -418,12 +414,7 @@ and each other choice it names links to the page that owns it.
   verified player's game name and tag. In Clan,
   your clan's verified members see your place on its map if you added
   one, its leaders see an away you mark, and what you decide as a leader
-  or elder shows under your player's game name. With Discord connected,
-  an AI agent that follows a clan your main player or an alt is in can
-  ask which player you are by your Discord user id, and learns that
-  player's tag and whether it is verified, never your Discord name or
-  your email ([Knowing which human is
-  asking](/docs/agents#knowing-which-human-is-asking)).
+  or elder shows under your player's game name.
 - **Someone with a link you send** opens it without an account. A
   battle link shows both sides' game names, clans, trophies and decks,
   the towers, how it ended, the left player's other battles in that
@@ -436,12 +427,12 @@ and each other choice it names links to the page that owns it.
   email.
 - **Only you, or nobody else:** the nicknames you give players, your
   email address, your Discord name and profile, and your account's
-  machinery: sign-ins, agents and their keys, connections,
+  machinery: sign-ins, connections,
   usage, the mail sent to you and your feedback.
 
 Your [@handle](#your-handle), if you set one, is public to members: on
 your account page, beside your verified player in follow lists, and in
-search. Agents and connected apps don't get it.
+search. Connected apps don't get it.
 
 **Location** shows your place, or **Not set**, and opens
 [Your place](#your-place) on Profile, where you change it.
@@ -464,7 +455,7 @@ member reads your nicknames, and no page shows another member which
 players are yours today, but for the lines [What members
 see](#what-members-see) lists. So is your own view in Clan (your standing line and
 the Actions waiting for you): your own connection reads it, for a
-player you have verified, and no agent does
+player you have verified, and nobody else's connection does
 ([Your own view](/docs/clan-your-own-view#your-own-view)). The game record
 itself (battles, profiles, clans) is public game data, and every
 active account can read it. The one public line tied to an account is
@@ -483,7 +474,6 @@ reviewed step. Removing the account deletes the account:
 - **your nicknames** for players;
 - **your posts**, those about battles included: their words, and their
   share links, which stop opening;
-- **your agents**, their keys and the identities they map;
 - **your connections**: sessions, apps you allowed, a timeline
   cross-post's Discord webhook, and the clan Clan remembers you
   working in;

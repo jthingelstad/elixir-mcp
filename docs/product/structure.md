@@ -1,5 +1,10 @@
 # Structure
 
+> Updated direction, 2026-11-23: Elixir has people, not agents
+> ([DECISIONS](../DECISIONS.md)). The agent pages below (an agent's five
+> tabs in Settings, New agent, `/agents/<id>/<tab>`, D3) no longer hold:
+> Settings has no Agents pages, and the rail entry is Connections.
+
 > Updated direction, 2026-11-17: Watching has retired into ordinary friend
 > follows. The Watching labels and exclusions below are superseded by
 > [Watching retires](../notes/2026-11-18-friend-follows.md).

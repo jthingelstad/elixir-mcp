@@ -17,7 +17,7 @@ official API is current-state only), served on one origin,
 | `/clan`, `/api/clan` | Clan, a part of Elixir: running a clan on its policy | `packages/clan*` |
 | `/battle/<id>` | a member battle page; anonymous reads 404 | `services/web-api` |
 | `/share/<id>` | one public-safe Timeline item through an opaque capability | `services/web-api` |
-| `/mcp`, `/a/<id>/mcp`, `/oauth/*`, `/.well-known/*` | the MCP and OAuth doors | `services/mcp`, `packages/tools` |
+| `/mcp`, `/oauth/*`, `/.well-known/*` | the MCP door (one endpoint, every connection a person's) and OAuth | `services/mcp`, `packages/tools` |
 | `/api/v1` | `GET /api/v1/me` alone, for Sign in with Elixir | `services/web-api` |
 
 Node 24 native HTTP Web Functions and asynchronous Event Functions, RDS
@@ -29,11 +29,11 @@ and secret safety everywhere.
 
 Elixir is the missing social layer of Clash Royale (`VISION.md`, the
 root): a timeline of the players you follow, built on the personal and
-clan recorder, with MCP and a person's own agent kept core. Never built:
+clan recorder, with MCP for a person's own AI client kept core. Never built:
 elite or pro tracking and a deck builder. Not part of Elixir: global
 leaderboards, corpus recording, game-wide meta statistics,
 recommendations in Elixir's own outputs, recording Collections or player
-ratings. Do not build them, even over a smaller population. Agents may coach from Elixir's facts;
+ratings. Do not build them, even over a smaller population. A person's own AI may coach from Elixir's facts;
 that is theirs, not Elixir's. The Ultimate Champions and Card of the
 Week mail are retired. A retired name still in code or docs is cleanup,
 not a feature to preserve.

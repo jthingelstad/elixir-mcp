@@ -32,7 +32,7 @@ only when it does not apply, and say why in the commit message.
   has `ownBattlesClause`, `modeClause`, `COMPACT_DESC` and the family's
   `*_DOCS` pointers.
 - `packages/tools/src/tools/shared.mjs`:
-  - schemas: `TAG_SCHEMA`, `ON_BEHALF_OF_SCHEMA`, `WINDOW_ARGS`,
+  - schemas: `TAG_SCHEMA`, `WINDOW_ARGS`,
     `SEASON_ARG_SCHEMA`, `TIMEZONE_SCHEMA`, `MODE_SCHEMA`,
     `VERBOSITY(compactDesc)`, `ARCHETYPE_ARG`, and the
     window descriptions `WINDOW_FROM_DESC`, `WINDOW_TO_DESC` and
@@ -208,8 +208,8 @@ only when it does not apply, and say why in the commit message.
 
 ## Telling and hand-off
 
-- [ ] A change worth telling (a new tool, a removal, a change agent
-      owners should hear of) has one What's new entry for the round, with
+- [ ] A change worth telling (a new tool, a removal, a change people
+      who connect a client should hear of) has one What's new entry for the round, with
       no versions line. A breaking change was asked of Jamie up front and
       is stated in the pull request.
 - [ ] Jamie's decisions are in `docs/DECISIONS.md` and a note in

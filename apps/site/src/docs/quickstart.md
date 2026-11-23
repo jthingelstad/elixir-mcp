@@ -106,7 +106,7 @@ Optional. You can connect your own AI agent to Elixir over MCP and ask about
 your battles, your friends and your clan.
 
 [Connect a client](/docs/connect-a-client) first. Then **Settings ›
-Connections & agents** suggests questions to start with, under **Try
+Connections** suggests questions to start with, under **Try
 asking…**. You never need to tell it your tag. The agent can read these docs
 itself, through `elixir_docs`.
 
@@ -120,8 +120,8 @@ and limits › Requests** lists every call with its `request_id`.
   your Leader and Co-Leaders run it by.
 - [Follow a friend](/docs/follow-a-friend): friends and
   nicknames.
-- [Users and agents](/docs/connections): a bot for your whole
-  clan instead of a connection just for you.
+- [Your connections](/docs/connections): what your AI knows about you,
+  and where things are in Settings.
 - [Tools](/docs/tools): everything a connection can call.
 
 ## If something goes wrong
@@ -129,4 +129,4 @@ and limits › Requests** lists every call with its `request_id`.
 Send feedback from Settings. If an AI answer looks wrong, include the
 `request_id` from the response's `meta`. Your call history, with those ids,
 is under **Settings › Usage and limits › Requests**. Refused connections show
-on **Settings › Connections & agents**.
+on **Settings › Connections**.

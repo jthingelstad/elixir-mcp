@@ -74,8 +74,7 @@ player of its own until you name one with `relationship: "primary"`.
 Through a [connected app](/docs/connections), `elixir_follow_player` takes a `relationship`, so
 "follow #TAG as a friend" adds the player as a friend in one call. The
 relationship is set when the player is added: for a player already on
-your account, change it under Settings › Players & following. An [agent](/docs/agents) you own
-follows players as friends, never as itself.
+your account, change it under Settings › Players & following.
 
 When adding your own player requests its first battles, an admitted
 profile already on record is enough: the missing first battle-log read
@@ -106,7 +105,7 @@ from your account: that belongs to your primary player and your alts.
 
 Give a friend a nickname on their page (**Nickname**, 1 to 40
 characters) or through a connected app with `elixir_nickname`. It is private
-to you (apps you connect as yourself see it; an agent keeps its own), and your digest uses it. A nickname
+to you (apps you connect as yourself see it), and your digest uses it. A nickname
 stays when you stop following the player, and an empty one clears it.
 
 ## Close friends

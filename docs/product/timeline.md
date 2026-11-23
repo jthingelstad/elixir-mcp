@@ -19,7 +19,7 @@ it with a few words of their own; that battle is the one single-battle
 item. [Jamie, 2026-11-11, `VISION.md`, "Timeline shape"]
 
 It is also the spine of delivery: everything Elixir tells a person, on
-the Timeline, in the digest, in Discord or to an agent, is a timeline item or a
+the Timeline, in the digest, in Discord or to their own AI, is a timeline item or a
 digest of items, so one derivation feeds every surface and a story is
 got right in one place. [Jamie, 2026-10-12]
 
@@ -37,9 +37,9 @@ got right in one place. [Jamie, 2026-10-12]
   [engineering, 2026-11-12] Clan's Actions are not timeline items: they
   reach leaders in the bell. [Jamie, 2026-11-13, "Clan's Actions are bell
   notifications"]
-- **An agent**, over `elixir_timeline`: the players and clans it
-  follows, with its own read pointer; a consumer may name a `reader` for a
-  pointer of its own. [Jamie, 2026-09-13, 2026-10-08]
+- **A person's own AI**, over `elixir_timeline`: the same players and
+  clans, as that person; a consumer may name a `reader` for a pointer of
+  its own. [Jamie, 2026-09-13, 2026-10-08, 2026-11-23]
 - **The editors.** Clan's Discord stories read the same items and
   decide what to tell. [Jamie, 2026-10-11]
 
@@ -68,18 +68,18 @@ got right in one place. [Jamie, 2026-10-12]
    2026-09-23]
 5. **The feed shows people's play.** The Timeline and the RSS feed carry
    sessions, moments and highlights; the account's own notices go to the
-   bell. Every item stays in the timeline an agent reads. [Jamie,
+   bell. Every item stays in the timeline a connection reads. [Jamie,
    2026-11-12, "The feed shows only people's play"]
 6. **People react, and comments are checked first.** A signed-in person
    cheers an item with one of twenty (six offered first, the rest behind
    More, since 2026-11-17); counts are shown, never who. A comment
    is a few plain words, checked by a small model before it posts, on an
-   item about a verified player, as that player's owner allows. Agents
-   read cheers and never write them, and never read or write comments.
+   item about a verified player, as that player's owner allows. A connection
+   reads cheers and never writes them, and never read or write comments.
    Neither goes to mail or Discord. [Jamie, 2026-11-11, 2026-11-12,
    2026-11-16, "Comments, checked before they post"]
 7. **Facts, never advice.** The text states what happened and lets the
-   reader conclude; coaching belongs to the person's own agent. [Jamie,
+   reader conclude; coaching belongs to the person's own AI. [Jamie,
    2026-10-11]
 8. **Visibility travels with the item.** Game facts are for every
    member; attested facts reach the clan, the player or the leaders by
@@ -95,7 +95,7 @@ got right in one place. [Jamie, 2026-10-12]
     week and the bell are stored and kept warm, and a stored item is
     never the authority over the record. [Jamie, 2026-11-09, 2026-11-12]
 11. **A person's cross-post is unfiltered and event-driven.** The owner
-    turns it on in Settings for their own timeline or an agent's; one line
+    turns it on in Settings for their own timeline; one line
     per item, edited in place as the story grows, a link back to the
     player page with no preview, no backfill, no time of its own unless
     the item is over three hours old. [Jamie, 2026-10-10, 2026-10-11,
@@ -109,18 +109,16 @@ got right in one place. [Jamie, 2026-10-12]
   in a voice its leaders write, frames stories for the clan's channel,
   each linking back to Elixir with no preview. [Jamie, 2026-10-11,
   2026-11-12]
-- **A person's own agent** may judge, coach and tell what is worth
-  telling; the judgment is the agent's. The Discord agent
-  (elixir-mcp-discord) is a separate experiment of an LLM using MCP as a
-  clan agent, run on its own tokens, and not part of how Elixir tells
-  the timeline. [Jamie, 2026-11-11, "Clan posts to Discord by webhook;
-  elixir-mcp-discord is a separate experiment"]
+- **A person's own AI** may judge, coach and tell what is worth
+  telling; the judgment is theirs. A bot built on MCP is an outside
+  client that connects as a person, and not part of how Elixir tells
+  the timeline. [Jamie, 2026-11-11, 2026-11-23]
 
 ## What it never does
 
 Narrate a backfill or a late capture; publish a nickname, a leaders-only
 item or the account's own lines; show who cheered; give advice; let an
-agent write a cheer or a highlight.
+AI client write a cheer or a highlight.
 
 ## Open
 

@@ -7,7 +7,7 @@ order: 15
 navTitle: "Clan directory"
 icon: layout-grid
 lede: "Every clan that saved its rules in Elixir, as a grid you can filter by those rules."
-reviewed: "2026-11-13; signed-in people and their agents, listed by name, the policy's public part, opened from Find"
+reviewed: "2026-11-23 your own agent reads it as you; 2026-11-13; signed-in people, listed by name, the policy's public part, opened from Find"
 ---
 
 # Clan directory
@@ -89,7 +89,5 @@ and `saved_at` is when the leaders last saved the policy. An agent that
 plans a routine on it reads it fresh first, and defers on unknown or a
 failed read rather than using a decision it kept.
 
-Your own connection reads it as you. An agent you own reads it as you,
-its owner: `yours` marks a clan one of your verified players is in now.
-Agents read the directory and never
-change it; a clan joins it only when its leaders save a policy in Clan.
+Your agent reads it as you: `yours` marks a clan one of your verified
+players is in now. It reads the directory and never changes it; a clan joins it only when its leaders save a policy in Clan.

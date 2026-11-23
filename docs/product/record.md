@@ -67,7 +67,7 @@ leaderboards, no game-wide statistics. [Jamie, VISION, 2026-09-23,
 4. **Facts are not judgments.** The record reports; it rates no player,
    recommends nothing, and names decks without judging them. Judgment
    belongs to a clan running under its leaders' policy (Clan) or to a
-   person's own agent, and is always labelled as theirs. [Jamie,
+   person's own AI, and is always labelled as theirs. [Jamie,
    2026-09-19, 2026-09-20, 2026-10-02, 2026-10-11]
 5. **History is kept for what someone follows, and for a while after.**
    A roster poll of a clan nobody follows keeps only the followed players
@@ -102,7 +102,7 @@ recording collections, no imported judgment from elixir-bot. [Jamie,
 ## When a person leaves
 
 Account removal deletes the account: claims, nicknames, highlights,
-agents, connections, mail and usage. The players' game history is game
+connections, mail and usage. The players' game history is game
 data and stays, as any subject's does, until the year's retention trim
 reaches it. [Jamie, 2026-10-12, 2026-11-13]
 

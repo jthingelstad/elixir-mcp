@@ -23,12 +23,11 @@ Elixir refuses Run's pages to them:
 - **Recording and visibility**, under Clan settings: the kinds of facts shared
   with Elixir, when each is shared and who sees it there. Kicks and
   leaves, promotions and demotions, awards, messages to the clan and
-  where the award races stand go to everyone verified in the clan; kicks,
-  leaves and the award races also to the clan's agent; a member's away
-  only to the leaders.
+  where the award races stand go to everyone verified in the clan; a
+  member's away only to the leaders.
 - **Member map**: the clan map, where members add a city or region and see
   each other's local time. Only the clan's members with a verified player here see it, and
-  it stays out of the game record, Elixir's tools and the clan's agent.
+  it stays out of the game record and Elixir's tools.
   Members reach it from **Clan map** over the roster, and set or remove
   their place there or in **Your place** on Settings › Profile. A place
   is the member's own: it stays set while the map is off and shows again
