@@ -115,8 +115,9 @@ export const contracts = [
     },
   },
   {
-    // Cheers are a person's: hidden from an agent's catalogue and answered
-    // for a person, the test person included (it has had none).
+    // Cheers are a person's: hidden from an agent's catalogue and listed
+    // for a person. The test person has no player and has written no post,
+    // so the tool refuses it no_subject and gives no counts.
     id: "personal-cheers-by-kind",
     tools: ["elixir_cheers"],
     run: async (ctx) => {
@@ -139,7 +140,11 @@ export const contracts = [
           ctx.tools.has("elixir_cheers"),
           "A person's catalogue lists personal cheers.",
         );
-        answered(result, "elixir_cheers for a person");
+        ok(
+          result.isError === true && !result.body?.items,
+          "A person with no player and no posts is refused and given no counts.",
+        );
+        eq(result.body?.error?.code, "no_subject", "elixir_cheers refusal");
       }
       return { ms: result.ms };
     },
