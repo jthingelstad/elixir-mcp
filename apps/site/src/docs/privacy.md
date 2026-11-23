@@ -13,187 +13,71 @@ lede: "A free hobby service: it keeps what it needs to work, and sells nothing."
 
 **What this is.** Elixir is a free service, built as a hobby, for
 folks who like the game. There is no company behind it, no
-advertising, and nothing here is sold. An account opens after you verify your email. This page
-says, in general terms, what the service keeps and why; the details
-move as the service grows.
+advertising, and nothing here is sold. This page says in plain words
+what it keeps and who can see it.
 
 **Game data.** Elixir records public Clash Royale data from Supercell's
 API (battles, profiles, clans, wars) and keeps it for a year. The game
-shows the present; Elixir keeps the history, and anyone with an account
-can read it. Nothing is recorded that the game's API does not already
-publish. Clan adds facts of its own (a clan's awards, a leader's note
-on why a member left). Each one says where it came from, and only the
-people it is meant for can see it.
+shows the present; Elixir keeps the history, and anyone with a free
+account can read it. Nothing is recorded that the game does not already
+publish. Without an account, [the status page](/data), the card list
+and these docs are open, and so is any single post or Timeline update a
+member shares by link.
 
-**Without an account.** Reading players, clans, Timelines, profiles and the record's browsing and data pages needs a free account, on the website and over MCP. Members can share individual Timeline updates and posts through a link. Anyone with that link can open the one item it names, with the players' game names and the item's facts, words, cards or battle. The shared page does not open a player's or clan's Timeline or history. Nicknames, comments, the account's own notices and private Clan state are not shared.
+**Your account.** Elixir keeps your email address, to sign you in and
+send you mail, and what you do here: the players you claim, who you
+follow, your posts, comments and cheers, your settings, and the agents
+and apps you connect, with a log of their calls. Your address is never
+public. An app of Elixir's own, like Elixir Drop, sees it only if you
+sign in there and allow it. If you connect Discord, Elixir keeps your
+Discord id and username until you disconnect it.
 
-[The status page](/data) and its JSON count what the recorder holds and name no player or clan, except that each collector is credited to its operator's primary player. The game's card list, this site and its docs, and signing in open too. Other pages of the record ask you to sign in, or to create an account.
+**What other people see.** Your posts are shown to the people who
+follow you and to your clanmates, and your comments to anyone who can
+see the item they are on. Treat both as public: a post can be shared by
+link with someone who has no account, and it can go out in emails,
+notifications, RSS feeds and Discord channels, where a copy already
+sent can't be taken back. You can delete your own posts
+and comments. You can block anyone, and they are never told. A game you
+finish in Elixir Drop with a verified player can show in your Timeline
+too.
 
-**Your account.** Signing in keeps your email address, so the service
-can send you sign-in codes and mail about your account. A new account
-also keeps the time zone the signup browser reports, so its times read
-on your clock; change it in your account's settings. A new account keeps
-when you said you are 13 or older; answering no keeps nothing. It also keeps
-the records the product is made of: what you claimed and recorded, your
-agents and connected apps and the calls they make, where they connected
-from, and the mail it sent you. You can see these records on your
-account pages. Some are trimmed after a while; the [Limits](/docs/limits)
-page lists how long. Your address is never public, and it goes to one
-kind of app only: an app of Elixir's own, like Elixir Drop, that you sign
-in to and allow to see it.
+**The check on posts and comments.** Posts and comments are checked
+before they go up, to keep things friendly. Anthropic's Claude model
+does the checking, so the words go to Anthropic for that and nothing
+else.
 
-**Connecting Discord.** If you connect Discord or sign in with it, Elixir
-keeps your Discord user id and username, to sign you in and to tell your
-clan's Discord agent who you are. Discord's sign-in also tells Elixir
-your email address if it has verified one; Elixir uses it to find or
-create your account and keeps nothing else Discord sends. Disconnecting Discord
-in your account's settings removes both.
+**Mail and notifications.** Elixir sends sign-in codes, and reports and
+notes about your own play, each with its own off switch. Product news
+is a separate newsletter, sent through
+[Buttondown](https://buttondown.com): uncheck the box when you sign up
+if you don't want it, or unsubscribe from any issue. Notifications on a
+phone or computer are off until you turn them on. Mail is counted by
+issue, never by who opened it.
 
-**Mail.** Occasional product news goes out through
-[Buttondown](https://buttondown.com). The sign-in/create-account form has
-**Send me Elixir product news**, checked by default for a new account;
-uncheck it before requesting the email to create your account without
-newsletter enrollment. Email proof keeps that choice. Signing in to an
-existing account leaves its newsletter choice and any unsubscribe intact.
-When a sign-in or signup enrolls you in product news, Elixir sends
-Buttondown your email address and your browser's IP address for spam checks.
-Sign-in and welcome mail are service mail, independent of this checkbox.
-Elixir also sends reports and notes about your own play, each
-with its own off switch. One of them, **Cheers on your play**, comes at
-most once a day when people cheered your play or followed you and you
-have not seen it in Elixir yet: it says how many, never who. Every mail has a way to stop it, and a stop is
-never undone by the service. Mail is counted by issue (how many were
-opened, which links were clicked), never by who opened it.
-
-**Notifications.** If you turn on notifications on a phone or computer,
-Elixir keeps what your browser gives it to reach that device: an address
-at your browser's push service (Google, Mozilla, Apple or Microsoft) and
-the keys that encrypt each notice so only that device can read it, with
-a short name like "Safari on iPhone" and when it was added and last
-reached. That address is private: it is never shown, even to you, and
-never shared. Each notice is encrypted before it leaves Elixir and says
-how many, never who, except Close friends' play, which names the friend
-you starred and goes only to you. A notice is kept with when it was sent
-and whether you tapped it, so the email does not tell you the same
-thing. A Close friends' play notice is also kept with which of your
-close friends' play it told, so it is told once. Remove a
-device in Settings › Notifications, or block notifications in your
-browser, and Elixir stops; a device your browser says is gone is
-removed. Deleting your account removes all of it.
-
-**Comments.** A comment you write is kept with your account and shown
-to the people who can see the item it's on, never to anyone in a block
-with you. Before it posts, its words and a line about the item go to
-Anthropic, whose Claude model checks them. They are used for that check
-and nothing else. Elixir keeps a record of each check for 35 days, with
-the words only when the check said no, so an admin can review it. A
-comment you delete goes at once. One the item's owner or an admin
-removes is kept 30 days for review, then deleted. Comments are deleted
-after a year, or with your account. The people you block are listed in
-your settings, and they are never told.
-
-**Posts.** A post you write is kept with your account and shown in Elixir
-to the people who follow you or your player and to your clanmates. Another
-member who can see your post can share its link. A shared post can be read
-without signing in. Treat a post as public: it may also go out in Elixir's emails and notifications
-to those people, in the RSS feeds and Discord channels that carry your
-timeline, to agents connected to Elixir, and on pages anyone with the
-link can open. Inside Elixir, people in a block with you don't see your
-posts. A deck or cards you add are kept as the cards, never as a link.
-Before it posts, its words go to Anthropic, whose Claude model checks
-them, as for a comment, and for nothing else. A post you delete goes at
-once, here and from any page of Elixir's; a copy already sent by email
-or to Discord can't be taken back. One an admin removes is kept 30 days
-for review, then deleted. Posts are deleted after a year, or with your
-account.
-
-**Sign-in check.** The sign-in forms, on this site and on the page an
-app sends you to when it connects to Elixir, use Cloudflare
-[Turnstile](https://www.cloudflare.com/application-services/products/turnstile/)
-to tell a person from a script that types someone else's address. Its
-script loads when you start typing your email, and it is usually
-invisible; Cloudflare may ask for a click. Cloudflare sees your browser
-and its IP address, under its own
-[privacy policy](https://www.cloudflare.com/privacypolicy/). Elixir
-sends Cloudflare only the check's token, never your email address, and
-keeps whether the check passed in its sign-in logs, beside a shortened
-fingerprint of the address rather than the address itself.
-
-**A note in your browser.** After you use the app, your browser keeps your
-player's name and an expiry date on that device, so public pages can show
-you as signed in without asking the server. It is never sent anywhere
-([Your account](/docs/your-account)).
-
-**Counting visits.** Pages use [Tinylytics](https://tinylytics.app), a
-small, cookie-free analytics service, to count visits, errors and use of features in
-aggregate. For example, Elixir can count how often someone opens a friend’s session from a shared event. No account is attached to a visit.
+**Clans and Discord.** A clan's leaders can connect Discord channels,
+and Clan posts the clan's news there, member names included, but never
+a proposed removal, promotion or demotion. If the leaders add their own
+Anthropic key, Clan sends Anthropic what it needs to write those
+messages. You can send your own timeline to a Discord channel too. What
+lands in Discord is Discord's to keep.
 
 **Services Elixir uses.** Elixir runs on Amazon Web Services in the
-United States, which also delivers its account mail. Buttondown holds
-and sends the newsletter, Tinylytics does the counting, Cloudflare
-Turnstile checks the sign-in forms, and Discord, when you connect it,
-confirms who you are there.
-Fonts are served from this site, so reading a page tells no one else
-what you read.
+United States, which also sends its account mail. Buttondown sends the
+newsletter. [Tinylytics](https://tinylytics.app) counts visits and
+which features get used, with no cookies and no account attached. Cloudflare
+[Turnstile](https://www.cloudflare.com/application-services/products/turnstile/)
+checks that a person is signing in, and sees your browser and its IP
+address to do it. Anthropic checks posts and comments. Discord is
+involved only if you or your clan connect it. Fonts are served from this site.
 
-**A clan's own AI key.** If a clan's leaders add their own Anthropic
-key, Clan sends Anthropic what it needs to draft the clan's
-messages, including member names, and the clan's key pays for it.
-
-**Discord.** If you cross-post your timeline (or an agent's) to a
-Discord channel, each new item on it is posted there, where Discord
-keeps it under its own terms and everyone in the channel can read it.
-Elixir keeps the webhook sealed and never shows it whole. Turning
-cross-posting off stops new posts; lines already in the channel are
-Discord's to delete. A clan's leaders may connect two Discord channels,
-each on its own: one for the clan's Actions and one for its activity.
-Clan posts to whichever is connected, member names included, but never
-a proposed removal, promotion or demotion.
-
-**What Elixir keeps about its Discord posts.** For every message Elixir
-posts, edits or decides not to post in a Discord channel (a timeline's
-cross-post, a clan's Actions, a clan's activity channel), it keeps a
-record for 90 days: the account or clan it was for, a fingerprint of
-the webhook (never the webhook itself), which timeline items or Action
-it told, the text as sent, what Discord answered, how long it took, and
-why anything was skipped. About a day after a message is posted, Elixir
-reads it back once through the same webhook: whether it is still in the
-channel, how many of each reaction it has (counts only, never who
-reacted), and whether a thread was started from it. It reads only its
-own messages, never anyone else's. When a clan's own model writes its activity
-channel, the record also holds each run's counts, about what it cost,
-and any text Elixir's checks refused, with the reason; what each run
-was given and looked up, and the model's full answers, are kept 30
-days. If you rate one of these posts (👍 or 👎 on a delivery list, with
-an optional note), the rating is a feedback item from your account that
-points at the post's record, kept and answered like any other feedback.
-Elixir's operators read these records to judge the posts' quality
-and fix what is wrong; they are never published and are not part of
-the game record.
-
-**Collectors.** If you run a collector for the service, its card name,
-status and fetch counts are public and credited to your primary player.
-Your machine's own name and address are not published.
-
-**Keeping and removing.** Game history is kept for a year; it is what the service
-is for. Elixir keeps what it records for one year, then deletes it. To remove your account and your address, email
+**Removing your account.** Email
 [admin@poapkings.com](mailto:admin@poapkings.com) or use the feedback
-form. Removing an account deletes the account, not the record: your
-address, claims, nicknames, posts, agents, connections, mail and usage go
-([your account](/docs/your-account#removing-the-account) lists them).
-The players' game history is public game data, as it is in the game
-itself, and stays for a year from when it happened, like everything Elixir records.
-A few copies outside the database go on their own clocks: captured call
-bodies within 28 days, Discord delivery records within 14, and your
-newsletter enrollment and archived mail are removed by hand. The reviewed cleanup
-removed retired automatic game-wide captures while preserving personal and clan overlap.
-Older data can remain in encrypted automated backups until their normal
-seven-day retention expires.
+form. Your address, claims, posts, comments, agents and mail records
+are deleted ([your account](/docs/your-account#removing-the-account)
+lists them). The players' game history is public game data, as it is in
+the game itself, and stays for its year. [Limits](/docs/limits#retention-windows)
+lists how long everything else is kept, and backups age out in about a week.
 
-**Changes.** When the service changes in a way that matters to this
-page, the page changes, and the change is listed under
-[What's new](/updates).
-
-### Elixir Drop games
-
-Finishing a game in Drop with a verified player can add its result and card highlights to your Timeline. You and your followers can see it. Drop sends the Elixir account ID and player tag privately so Elixir can verify ownership. Guest and offline games stay local. Timeline items omit the account ID, individual guesses and Fair Play evidence.
+**Changes.** When this page changes in a way that matters, the change
+is listed under [What's new](/updates).
