@@ -7,7 +7,7 @@ order: 1
 navTitle: "Follow a friend"
 icon: heart
 lede: "A friend is a player you follow on purpose. Elixir records them like anyone you follow, and includes their play and posts in your digest."
-reviewed: "2026-11-15 everyone with a place is on Near you and the player map; 2026-11-14 Near you and the player map; 2026-11-13 Find opens on Suggested; 2026-11-12 your digest; 2026-10-01 against contract 9.17.1"
+reviewed: "2026-11-23 boat battles never suggest anyone, and a player met in battle opens on Together; 2026-11-15 everyone with a place is on Near you and the player map; 2026-11-14 Near you and the player map; 2026-11-13 Find opens on Suggested; 2026-11-12 your digest; 2026-10-01 against contract 9.17.1"
 callout: ["Open it at Settings › Players & following", "/settings/players", "Open Players & following"]
 ---
 
@@ -55,11 +55,11 @@ Find is where you look for people to follow, in sections. It opens on
 
 | Section | What it holds |
 |---|---|
-| Suggested | a list to tap through: players you had a friendly battle with or teamed up with in 2v2 (or met twice) in the last 30 days, and players followed by the people you follow ("Ada follows them"). Your current clanmates already appear under **Your clan**. Each says why, and **Free** when following costs nothing; what a Follow costs is in its dialog. Ten show, then **Show more** (up to 30). With nobody to suggest yet, it says what fills it and offers Search and your Follow me link |
+| Suggested | a list to tap through: players you had a friendly battle with or teamed up with in 2v2 (or met twice) in the last 30 days, and players followed by the people you follow ("Ada follows them"). Your current clanmates already appear under **Your clan**. Each says why, and **Free** when following costs nothing; what a Follow costs is in its dialog. Boat battles never count: one side attacked the other's clan boat, so nobody played anybody. Tap someone you met in battle to open their page on [Together](/docs/player-page#your-games-together), your games with them. Ten show, then **Show more** (up to 30). With nobody to suggest yet, it says what fills it and offers Search and your Follow me link |
 | Near you | people who set a place in your country and region, each as the player they verified, with where ("Plays near you, in Austin") and a Follow button. People in your city come first, then by name. Never ranked, and never closer than the place each picked. You, your own players and people you already follow are left out. Below it, the **player map**: everyone who set a place, a pin at each one. You need [a place](/docs/your-account#your-place) of your own to see who's near you; without one it asks you to set it. There is nothing to join or leave: setting a place puts you on both, and removing it takes you off |
 | Your clan | the clans of your verified players, their current members and roles. Tap a name to open their page. **Invite clanmates** gives you words to bring the rest of your clan to Elixir ([Bring your clanmates](/docs/bring-your-clan#bring-your-clanmates)) |
 | Search | the search sheet (players Elixir has seen, by name or tag; clans, cards and help), and **Follow by player tag** for anyone else |
-| From your battles | the players your own players met in the last 30 days, opponents and 2v2 teammates: players you had a friendly battle with first, then your 2v2 teammates, then the most met. How often, how it went for you ("A friendly battle · Met once · 1 win") and when last ("Last met today, 3:52 pm"), in the Timeline's time format. From the log only, never a rating. Players you follow are marked, never hidden |
+| From your battles | the players your own players met in the last 30 days, opponents and 2v2 teammates: players you had a friendly battle with first, then your 2v2 teammates, then the most met. How often, how it went for you ("A friendly battle · Met once · 1 win") and when last ("Last met today, 3:52 pm"), in the Timeline's time format. From the log only, never a rating, and never a boat battle. Players you follow are marked, never hidden. Tap a name to open your games together ([Together](/docs/player-page#your-games-together)) |
 | Clan directory | a link to every clan on Elixir |
 | Your link | your Follow me link ([A player's page](/docs/player-page#follow-me-links)) |
 

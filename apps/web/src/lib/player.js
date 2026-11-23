@@ -18,6 +18,11 @@ export const FOLLOW_ME = `${HOME}/follow`;
 /** A player's page: the tag without its hash. */
 export const playerHref = (tag) => `${PLAYER}/${tagPath(tag)}`;
 
+/** A player's page open on Together, your games with them (2026-11-23):
+ *  where a "you played them" line leads. The page falls back to its
+ *  Timeline when it has no Together tab for you. */
+export const togetherHref = (tag) => `${playerHref(tag)}?tab=together`;
+
 /** A session's own page (2026-11-16): under its player's page, by the
  *  item's id, with its start so the read finds it in a short window. */
 export const sessionHref = (tag, id, at = null) =>

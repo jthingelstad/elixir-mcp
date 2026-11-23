@@ -478,6 +478,11 @@ export function whyLine(why, { dayHeading = null, compact = false } = {}) {
   return null;
 }
 
+/** Whether a person is here because you met in battle: their page then
+ *  opens on Together, your games with them. */
+export const metInBattle = (whys) =>
+  (whys ?? []).some((w) => w?.kind === "battles");
+
 /** A person's reasons, joined. */
 export const whyLines = (whys, clock) =>
   (whys ?? [])

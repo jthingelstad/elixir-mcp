@@ -11,6 +11,7 @@ import {
 import { makeHandler } from "../src/handler.mjs";
 import { playerPairRoutes } from "../src/routes/player-pair.mjs";
 import {
+  playerPairCount,
   playerPairSummary,
   playerPairBattles,
 } from "@elixir-mcp/record/player-pair";
@@ -28,6 +29,16 @@ async function call(who = "reader", query = {}) {
       "x-elixir-client": "web",
     },
   });
+}
+async function page(who, tag = AUTHOR_TAG) {
+  const r = await handler({
+    method: "GET",
+    path: "/api/player",
+    queryStringParameters: { tag },
+    headers: { cookie: `__Host-elixir_session=${tokens.get(who)}` },
+  });
+  assert.equal(r.statusCode, 200, r.body);
+  return payload(r);
 }
 async function battle(id, type, sides, hours = 1, eventTag = null) {
   const at = new Date(Date.now() - hours * 3600000);
@@ -101,8 +112,42 @@ test("a followed friend's actual pair records keep teammate and opponent evidenc
   );
 });
 
-test("only a current visible friend and a verified owned player can read pair associations", async () => {
-  assert.equal((await call("stranger")).statusCode, 404);
+test("Together answers on a player you played but do not follow, and its tab says how many games", async () => {
+  // The stranger follows nobody; their 2v2 met the author's team.
+  const response = await call("stranger");
+  assert.equal(response.statusCode, 200, response.body);
+  const data = payload(response);
+  assert.equal(data.selected_player, STRANGER_TAG);
+  assert.equal(data.modes.find((m) => m.key === "casual").against, 1);
+  assert.equal(data.modes.find((m) => m.key === "casual").teamed, 0);
+  const theirs = (await page("stranger")).you;
+  assert.equal(theirs.following, false);
+  assert.equal(theirs.pair, true, "games with them draw the tab");
+  assert.equal(theirs.pair_games, 1);
+  // A followed friend's tab, with its count: a teammate game and a duel.
+  const friend = (await page("reader")).you;
+  assert.equal(friend.pair, true);
+  assert.equal(friend.pair_games, 2);
+});
+
+test("no games and no follow draw no tab; your own player never has one", async () => {
+  await ctx.db.query(
+    "insert into player(player_tag,name) values('#0QYPU2RL','Invented Quiet')",
+  );
+  const quiet = (await page("reader", "#0QYPU2RL")).you;
+  assert.equal(quiet.pair, false);
+  assert.equal(quiet.pair_games, 0);
+  // The route itself answers with nothing in it: your own data, none.
+  const none = await call("reader", { tag: "#0QYPU2RL" });
+  assert.equal(none.statusCode, 200, none.body);
+  assert.deepEqual(payload(none).modes, []);
+  const own = (await page("reader", READER_TAG)).you;
+  assert.equal(own.own, true);
+  assert.equal(own.pair, false);
+  assert.equal((await call("reader", { tag: READER_TAG })).statusCode, 404);
+});
+
+test("only a person, unblocked either way, with a verified owned player can read pair associations", async () => {
   assert.equal((await call(null)).statusCode, 401);
   const notPerson = playerPairRoutes({
     resolveAccount: async () => ({
@@ -136,42 +181,45 @@ test("only a current visible friend and a verified owned player can read pair as
     ).statusCode,
     400,
   );
-  for (const [a, b] of [
-    [people.reader, people.author],
-    [people.author, people.reader],
-  ]) {
-    await ctx.db.query(
-      "insert into account_block(account_id,blocked_account_id) values($1,$2)",
-      [a, b],
-    );
-    assert.equal((await call()).statusCode, 404);
-    const page = await handler({
-      method: "GET",
-      path: "/api/player",
-      queryStringParameters: { tag: AUTHOR_TAG },
-      headers: { cookie: `__Host-elixir_session=${tokens.get("reader")}` },
-    });
-    assert.equal(page.statusCode, 200, page.body);
-    assert.equal(
-      payload(page).you.pair,
-      false,
-      "the tab does not disclose a blocked social association",
-    );
-    await ctx.db.query("delete from account_block");
-  }
+  // A block either way closes it, for a followed friend (reader) and for
+  // a player you only played (stranger) alike, with the same 404.
+  for (const who of ["reader", "stranger"])
+    for (const [a, b] of [
+      [people[who], people.author],
+      [people.author, people[who]],
+    ]) {
+      await ctx.db.query(
+        "insert into account_block(account_id,blocked_account_id) values($1,$2)",
+        [a, b],
+      );
+      assert.equal((await call(who)).statusCode, 404);
+      const { you } = await page(who);
+      assert.equal(
+        you.pair,
+        false,
+        "the tab does not disclose a blocked social association",
+      );
+      assert.equal(you.pair_games, 0);
+      await ctx.db.query("delete from account_block");
+    }
   await ctx.db.query(
-    "update claim set status='unverified' where account_id=$1 and is_primary",
-    [people.reader],
+    "update claim set status='unverified' where account_id = any($1) and is_primary",
+    [[people.reader, people.stranger]],
   );
   try {
     assert.equal(payload(await call()).state, "verify");
-    const page = await call("reader", { side: "teamed", mode: "casual" });
-    assert.equal(page.statusCode, 403, page.body);
-    assert.deepEqual(payload(page), { error: "verification_required" });
+    const rows = await call("reader", { side: "teamed", mode: "casual" });
+    assert.equal(rows.statusCode, 403, rows.body);
+    assert.deepEqual(payload(rows), { error: "verification_required" });
+    // A followed friend keeps its tab, to say how to verify; a player you
+    // only played has none until your player is verified.
+    assert.equal((await page("reader")).you.pair, true);
+    assert.equal((await page("stranger")).you.pair, false);
+    assert.equal(payload(await call("stranger")).state, "verify");
   } finally {
     await ctx.db.query(
-      "update claim set status='verified' where account_id=$1 and is_primary",
-      [people.reader],
+      "update claim set status='verified' where account_id = any($1) and is_primary",
+      [[people.reader, people.stranger]],
     );
   }
 });
@@ -207,6 +255,11 @@ test("boats, out-of-window games and unrelated players never imply a shared batt
   const modes = payload(await call()).modes;
   assert.equal(modes.find((m) => m.key === "casual").teamed, 1);
   assert.equal(modes.find((m) => m.key === "ladder").against, 1);
+  // The tab's count reads the same rule: the boat, the old game and the
+  // unrelated ones add nothing.
+  assert.equal((await page("reader")).you.pair_games, 2);
+  // The stranger's 2v2 and their duel with the author; never the boat.
+  assert.equal((await page("stranger")).you.pair_games, 2);
   assert.equal(
     modes.some((m) => m.key === "war"),
     false,
@@ -289,6 +342,17 @@ test("pair reads probe only the named player's range and matched battle keys", a
   };
   await playerPairSummary(db, ask);
   await playerPairBattles(db, { ...ask, mode: "casual", side: "against" });
+  // The player page's count for the Together tab: the same probe. Read
+  // from the other side (an unrecorded opponent's few rows) it is the
+  // same answer; here that side is the 10,000 filler battles, so it is
+  // checked for its answer, not its plan.
+  const own = { ...ask, playerTags: [READER_TAG, "#0PLUG2V9"] };
+  const count = await playerPairCount(db, own);
+  assert.ok(count > 0);
+  assert.equal(
+    await playerPairCount(ctx.db, { ...own, fromFriend: true }),
+    count,
+  );
   const visit = (node, fn) => {
     fn(node);
     for (const child of node.Plans ?? []) visit(child, fn);

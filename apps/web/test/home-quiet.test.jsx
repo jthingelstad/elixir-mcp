@@ -58,6 +58,17 @@ beforeEach(() => {
                   },
                 ],
               },
+              {
+                tag: "#0PYLQ2",
+                name: "Invented 2",
+                why: [
+                  {
+                    kind: "followed_by",
+                    via: { tag: "#00JQ20", name: "Invented 1" },
+                    others: 0,
+                  },
+                ],
+              },
             ],
             used: 1,
             limit: 50,
@@ -108,6 +119,14 @@ test("catching up is said as such, and People to follow sits under it with sugge
   expect(await screen.findByText("Still catching up")).toBeTruthy();
   expect(await screen.findByText("People to follow")).toBeTruthy();
   expect(await screen.findByText("Invented 1")).toBeTruthy();
+  // Met in battle: the page opens on your games together (2026-11-23).
+  expect(
+    screen.getByRole("link", { name: /Invented 1/ }).getAttribute("href"),
+  ).toBe("/home/player/00JQ20?tab=together");
+  // Any other reason opens the page as it is.
+  expect(
+    screen.getByRole("link", { name: /^Invented 2/ }).getAttribute("href"),
+  ).toBe("/home/player/0PYLQ2");
 });
 
 test("unread counts claim nothing either way", async () => {

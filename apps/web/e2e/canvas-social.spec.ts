@@ -156,9 +156,10 @@ for (const [label, width] of [
       const panel = page.locator(".panel").filter({
         has: page.getByRole("heading", { name: "People to follow" }),
       });
+      // Met in battle: the row opens on your games together (2026-11-23).
       await expect(
         panel.getByRole("link", { name: "Hedy", exact: true }),
-      ).toHaveAttribute("href", "/home/player/0JYQYV0");
+      ).toHaveAttribute("href", "/home/player/0JYQYV0?tab=together");
       await expect(
         panel.getByText("You played 2 friendly battles this week"),
       ).toBeVisible();

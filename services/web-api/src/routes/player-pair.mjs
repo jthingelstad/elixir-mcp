@@ -1,9 +1,14 @@
-/** Private pair facts on a followed friend's page. Current verification
- * and visible following are checked on every summary and page request. */
+/** Your games with another player: the Together tab on any player's page
+ * but your own (2026-11-23, was a followed friend's only). It reads only
+ * your own verified players' battles with them, so it needs no follow;
+ * a block either way with the player's verified owner closes it, as one
+ * reads like any other association between you. Current verification and
+ * the block are checked on every summary and page request. */
 import { checkRateLimit } from "@elixir-mcp/auth";
-import { visibleFriendSql } from "@elixir-mcp/claims";
+import { ownerBlockedSql } from "@elixir-mcp/claims";
 import { MODE_GROUPS, normalizeTag } from "@elixir-mcp/contracts";
 import {
+  PAIR_DAYS,
   pairCursor,
   playerPairSummary,
   playerPairBattles,
@@ -35,11 +40,16 @@ export function playerPairRoutes({ resolveAccount }) {
         }))
       )
         return json(429, { error: "rate_limited" });
-      const following = await db.query(
-        `select 1 from claim c where c.account_id=$1 and c.player_tag=$2 and ${visibleFriendSql("c")}`,
+      // Not your own player, and no block either way with its owner. The
+      // same 404 for both, so a block the other way is never said.
+      const { rows: gate } = await db.query(
+        `select exists (select 1 from claim c where c.account_id=$1 and c.player_tag=$2
+                  and (c.is_primary or c.relationship in ('primary','alt'))) as own,
+                ${ownerBlockedSql("$1::uuid", "$2")} as blocked`,
         [account.accountId, friendTag],
       );
-      if (!following.rows.length) return json(404, { error: "not_found" });
+      if (gate[0].own || gate[0].blocked)
+        return json(404, { error: "not_found" });
       const { rows: own } = await db.query(
         `select c.player_tag as tag,p.name from claim c join player p on p.player_tag=c.player_tag
       where c.account_id=$1 and c.status='verified' and(c.is_primary or c.relationship in('primary','alt'))
@@ -53,7 +63,7 @@ export function playerPairRoutes({ resolveAccount }) {
       const selected = q.as ? own.find((p) => p.tag === tag(q.as)) : own[0];
       if (!selected) return json(404, { error: "not_found" });
       const toMs = Date.now();
-      const window = { fromMs: toMs - 30 * DAY, toMs };
+      const window = { fromMs: toMs - PAIR_DAYS * DAY, toMs };
       const ask = { ...window, playerTag: selected.tag, friendTag };
       if (q.side !== undefined) {
         if (

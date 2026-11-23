@@ -15,7 +15,7 @@ import {
 import { useQueryClient } from "@tanstack/react-query";
 import { useWrite } from "../client/index.ts";
 import { api } from "../api.js";
-import { playerHref } from "../lib/player.js";
+import { playerHref, togetherHref } from "../lib/player.js";
 import { FeedItem } from "./FeedItem.jsx";
 import {
   followedMomentKey,
@@ -31,6 +31,7 @@ import {
   costMark,
   FREE_HINT,
   lastMetLine,
+  metInBattle,
   metLine,
   roleLabel,
   slotsLine,
@@ -67,8 +68,10 @@ const priced = (p, used, limit) => ({
   limit,
 });
 
-function Person({ p, detail, used, limit, roster = false }) {
+function Person({ p, detail, used, limit, roster = false, met = false }) {
   const tag = p.tag ?? p.player_tag;
+  // Met in battle: their page opens on your games together (2026-11-23).
+  const href = met || metInBattle(p.why) ? togetherHref(tag) : playerHref(tag);
   return (
     <Row
       className="kit-people__row"
@@ -81,7 +84,7 @@ function Person({ p, detail, used, limit, roster = false }) {
         />
       }
       title={
-        <Link to={playerHref(tag)} className="hit">
+        <Link to={href} className="hit">
           <PlayerName tag={tag}>
             <TagText>{p.name ?? tag}</TagText>
           </PlayerName>
@@ -387,6 +390,7 @@ export function FromYourBattles() {
             <Person
               key={p.tag}
               p={p}
+              met
               used={data.used}
               limit={data.limit}
               detail={
@@ -768,7 +772,12 @@ export function StarterSet({ query, onOpenTimeline, onFollowed }) {
                 </label>
               }
               title={
-                <Link to={playerHref(p.tag)} className="hit">
+                <Link
+                  to={
+                    metInBattle(p.why) ? togetherHref(p.tag) : playerHref(p.tag)
+                  }
+                  className="hit"
+                >
                   <TagText>{name}</TagText>
                 </Link>
               }

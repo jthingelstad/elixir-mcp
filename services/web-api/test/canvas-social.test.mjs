@@ -11,6 +11,7 @@
  */
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import { gzipSync } from "node:zlib";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -483,6 +484,62 @@ test("From your battles: how often you met and how it went, friendlies and teamm
   assert.equal(followed?.following, true, "a follow is marked, not hidden");
   for (const p of res.body.people)
     assert.equal(p.wins + p.losses + p.draws, p.against);
+});
+
+test("a boat battle is never a meeting: no battles reason, never counted against", async () => {
+  // An invented raider who only ever attacked the owner's clan boat, and
+  // an opponent the owner really played who also raided it twice.
+  const RAIDER = "#0QYPU2RV";
+  const met = opponents[1].player_tag;
+  const people = async (kind) =>
+    (await call("GET", `/api/me/people/${kind}`, { who: "owner" })).body.people;
+  const before = (await people("battles")).find((p) => p.tag === met);
+  assert.ok(before, "the opponent is met in a real battle");
+  await db.query(
+    `insert into player (player_tag, name) values ($1, 'Invented Raider')`,
+    [RAIDER],
+  );
+  const ids = [];
+  for (const [i, other] of [RAIDER, RAIDER, RAIDER, met, met].entries()) {
+    const id = createHash("sha256").update(`boat-meeting-${i}`).digest("hex");
+    ids.push(id);
+    const at = new Date(Date.now() - (i + 2) * 3600_000);
+    await db.query(
+      `insert into battle (battle_id, battle_time, type, type_class, boat_battle_side)
+       values ($1, $2, 'boatBattle', 'boat', 'defender')`,
+      [id, at],
+    );
+    for (const [side, tag] of [PLAYER, other].entries())
+      await db.query(
+        `insert into battle_participant (battle_id, player_tag, side, battle_time,
+                                         type, type_class, outcome)
+         values ($1, $2, $3, $4, 'boatBattle', 'boat', $5)`,
+        [id, tag, side, at, side === 0 ? "win" : "loss"],
+      );
+  }
+  try {
+    for (const kind of ["suggested", "find", "battles"]) {
+      const listed = await people(kind);
+      assert.ok(
+        !listed.some((p) => p.tag === RAIDER),
+        `${kind}: a boat raid alone never suggests anyone`,
+      );
+      for (const p of listed)
+        for (const w of p.why ?? [])
+          if (w.kind === "battles")
+            assert.ok(w.against + w.with_you > 0, JSON.stringify(p));
+    }
+    const after = (await people("battles")).find((p) => p.tag === met);
+    assert.equal(after.against, before.against, "boats add nothing to against");
+    assert.equal(after.wins, before.wins);
+    assert.equal(after.last_met, before.last_met);
+  } finally {
+    await db.query(`delete from battle_participant where battle_id = any($1)`, [
+      ids,
+    ]);
+    await db.query(`delete from battle where battle_id = any($1)`, [ids]);
+    await db.query(`delete from player where player_tag = $1`, [RAIDER]);
+  }
 });
 
 test("Your clan: its members, each priced, yours left out", async () => {

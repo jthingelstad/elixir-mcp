@@ -6,6 +6,9 @@ import { modeGroupSql } from "@elixir-mcp/contracts";
 import { battleLinks } from "./battle-links.mjs";
 
 export const PAIR_PAGE = 20;
+/** The pair record's window: the last 30 days, for the summary, its pages
+ *  and the player page's count alike. */
+export const PAIR_DAYS = 30;
 const mode = modeGroupSql("me.type", "b.event_tag");
 const from = `from battle_participant me
   cross join lateral(select peer.side from battle_participant peer
@@ -45,6 +48,32 @@ export async function playerPairSummary(
     modes.set(row.mode, item);
   }
   return [...modes.values()];
+}
+
+/** How many recorded battles any of `playerTags` (the reader's own
+ *  players) shared with `friendTag` in the window, by the same rule as the
+ *  summary: boats never count, a battle once however many of the tags were
+ *  in it. One read per tag, each a named range of the player/time cover as
+ *  the summary's is (a tag from a join reads as any tag, and the planner
+ *  then scans the window). The pair is symmetric, so `fromFriend` reads the
+ *  other player's range instead: the smaller one when Elixir does not
+ *  record them, whose rows are only the battles they met a recorded
+ *  player in. */
+export async function playerPairCount(
+  db,
+  { playerTags, friendTag, fromMs, toMs, fromFriend = false },
+) {
+  const seen = new Set();
+  for (const tag of new Set(playerTags)) {
+    const { rows } = await db.query(`select me.battle_id ${from}`, [
+      fromFriend ? friendTag : tag,
+      fromFriend ? tag : friendTag,
+      new Date(fromMs),
+      new Date(toMs),
+    ]);
+    for (const r of rows) seen.add(r.battle_id);
+  }
+  return seen.size;
 }
 
 export function pairCursor(raw) {

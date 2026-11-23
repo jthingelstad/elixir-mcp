@@ -43,6 +43,7 @@ export {
   blockedSql,
   blockedWith,
   listBlocks,
+  ownerBlockedSql,
   unblockAccount,
   visibleFriendSql,
 } from "./blocks.mjs";

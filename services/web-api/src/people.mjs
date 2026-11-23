@@ -28,6 +28,7 @@ import {
   visibleFriendSql,
 } from "@elixir-mcp/claims";
 import { CLANMATE_TYPES, FRIENDLY_TYPES } from "@elixir-mcp/contracts";
+import { notBoatDefense } from "@elixir-mcp/record/boat-defense-sql";
 import { readNearYou, readPlayerMap } from "@elixir-mcp/auth/clan-context";
 import { MAP_ATTRIBUTION, placeName, resolvePlace } from "./player-places.mjs";
 import { clanPlay } from "./clan-play.mjs";
@@ -61,6 +62,12 @@ const CLAIMED_SQL = `select player_tag from claim where account_id = $1`;
  *  first (2026-11-13): a friendly battle, then a 2v2 teammate, then the
  *  rest by how often and how recently. Never by trophies, wins or a score.
  *
+ *  A boat battle is never a meeting (2026-11-23): one side attacked the
+ *  other's clan boat, whose defense is a static deck, so nobody played
+ *  anybody. Its participant row's own type says so (boatBattleSide is
+ *  sent for boat battles only), so no battle lookup is needed to leave
+ *  it out; the pair record (record/player-pair.mjs) applies the same rule.
+ *
  *  Each of your players is one range of its own player/time cover, never
  *  `player_tag = any(...)`; each battle's other side is read by its key. */
 async function metInBattles(db, accountId, days, exclude) {
@@ -75,7 +82,8 @@ async function metInBattles(db, accountId, days, exclude) {
                   bp.player_tag
              from battle_participant bp
             where bp.player_tag = own.player_tag
-              and bp.battle_time >= now() - make_interval(days => $2)) me
+              and bp.battle_time >= now() - make_interval(days => $2)
+              and bp.type <> 'boatBattle') me
         order by me.battle_id, me.player_tag)
      select o.player_tag, p.name,
             count(*) filter (where o.side <> m.side)::int as against,
@@ -293,7 +301,8 @@ const STARTER_MAX = FOLLOW_ALL_MAX;
  *  account follows have a recorded battle in the last PLAYED_DAYS, its own
  *  (primary and alts) not counted, nor clans [engineering, 2026-11-13;
  *  engineering, 2026-11-14 (#1016): played, not merely followed, so ten
- *  quiet follows do not end the offer]. */
+ *  quiet follows do not end the offer]. A boat defense is not their battle
+ *  (boat-defense-sql.mjs), so a raid on their boat is not play. */
 const STARTER_UNDER = 5;
 const PLAYED_DAYS = 7;
 /** How long "Not now" keeps the set off Home's top. */
@@ -312,7 +321,8 @@ export async function starterSet(db, accountId) {
                     select 1 from battle_participant bp
                      where bp.player_tag = c.player_tag
                        and bp.battle_time >= now() - make_interval(days => $3)
-                       and bp.battle_time <= now())
+                       and bp.battle_time <= now()
+                       and ${notBoatDefense("bp", { lookupByKey: true })})
                 limit $4) p) as played,
             (select count(*)::int from claim c
               where c.account_id = a.account_id

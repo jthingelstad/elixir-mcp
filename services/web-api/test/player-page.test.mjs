@@ -191,6 +191,8 @@ test("a verified player's page: record, badges, follows and followers by game na
     own: false,
     following: false,
     pair: false,
+    // Your games with them (Together's count): none recorded.
+    pair_games: 0,
     // The reader's own close-friend mark (0281), in the reader's block only.
     close: false,
     relationship: null,
