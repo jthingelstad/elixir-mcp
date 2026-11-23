@@ -17,8 +17,8 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "lucide-react": "1.72.0",
-    "marked": "^18.2.0"
+    "lucide-react": "1.76.0",
+    "marked": "^18.2.1"
   },
   "peerDependencies": {
     "react": "^19.0.0",
