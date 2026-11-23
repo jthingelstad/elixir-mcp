@@ -34,6 +34,7 @@ import {
 } from "../cheers.mjs";
 import { factAfter } from "../passport-hooks.mjs";
 import {
+  FEED_ITEMS,
   FEED_READS_PER_HOUR,
   FEED_RESETS_PER_HOUR,
   accountForToken,
@@ -229,6 +230,7 @@ export function cheersRoutes({ resolveAccount, posts = false, wake = null }) {
         timezone: owner.timezone ?? "UTC",
         now: toMs,
         wake,
+        need: FEED_ITEMS,
       });
       const { subjects } = week;
       const postPage = posts

@@ -427,11 +427,18 @@ export async function readHomeWeek(
  * the poll builds Home's week once (one build at a time) and stores it.
  * So the feed is at most SERVE old and, for a reader that keeps polling,
  * about one poll behind.
+ *
+ * One week the row cannot answer (Codex on #1188): Home's cap counts the
+ * people lines and leaders-only facts the feed drops, so a week cut at
+ * the cap (`more`) may have lost stories the feed owes. When a cut week
+ * holds fewer stories than the feed serves (`need`), the poll builds the
+ * feed's own week from the record, as every poll did before; with `need`
+ * stories or more, the cut ones are older than any the feed would serve.
  */
 export async function readFeedWeek(
   db,
   accountId,
-  { timezone, now = Date.now(), wake = null },
+  { timezone, now = Date.now(), wake = null, need = 50 },
 ) {
   const subjects = await subjectsFor(db, accountId);
   const accounts = await followedAccountIds(db, accountId);
@@ -471,6 +478,26 @@ export async function readFeedWeek(
       },
     });
   }
+  const stories = week.items.filter(
+    (it) => !liveItem(it) && it.section !== "people",
+  );
+  if ((week.more ?? 0) > 0 && stories.length < need) {
+    const built = await buildTimeline(db, subjects, {
+      fromMs: now - HOME_WEEK_MS,
+      toMs: now,
+      timezone,
+      accountId,
+      accountLines: false,
+      lateCounts: false,
+    });
+    return {
+      subjects,
+      fromMs: now - HOME_WEEK_MS,
+      toMs: now,
+      items: built.timeline ?? [],
+      stored: false,
+    };
+  }
   const live = { fromMs: week.fromMs, toMs: Math.max(now, week.toMs) };
   const highlights = await windowHighlights(db, subjects, {
     accountId,
@@ -487,11 +514,7 @@ export async function readFeedWeek(
     subjects,
     fromMs: week.fromMs,
     toMs: live.toMs,
-    items: [
-      ...week.items.filter((it) => !liveItem(it) && it.section !== "people"),
-      ...highlights,
-      ...facts,
-    ],
+    items: [...stories, ...highlights, ...facts],
     stored: week.stored,
   };
 }
