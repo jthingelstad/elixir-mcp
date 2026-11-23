@@ -60,3 +60,15 @@ test("the request line names the door's route, else the masked path", async () =
   assert.equal(unmatched.http, "HEAD /api/rss/*");
   assert.ok(!JSON.stringify([named, unmatched]).includes(TOKEN));
 });
+
+test("the request line says a request was conditional, never the tag it sent", async () => {
+  const dispatch = async () => ({ statusCode: 304, body: "" });
+  const url = "https://origin.example/api/rss/short";
+  const held = await logged(dispatch, url, {
+    headers: { "if-none-match": 'W/"a-tag-the-reader-holds"' },
+  });
+  assert.equal(held.conditional, true);
+  assert.ok(!JSON.stringify(held).includes("a-tag-the-reader-holds"));
+  const plain = await logged(dispatch, url);
+  assert.equal("conditional" in plain, false);
+});

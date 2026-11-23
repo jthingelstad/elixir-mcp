@@ -39,6 +39,10 @@ export function makeHttpApp({ dispatch, timeoutSeconds = 30 }) {
         http: `${request.method} ${context.route ?? logPath(request.path)}`,
         status: res?.statusCode ?? 503,
         ms: Date.now() - start,
+        // Whether the caller asked conditionally, never the tag it sent:
+        // how an operator tells a reader that holds a feed from one that
+        // does not, and whether the edge passed the header on.
+        ...(request.headers["if-none-match"] ? { conditional: true } : {}),
         request_id: context.requestId,
         build: process.env.APP_BUILD,
       });
