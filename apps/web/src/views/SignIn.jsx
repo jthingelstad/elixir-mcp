@@ -33,7 +33,40 @@ function ChallengeWait({ waiting }) {
 }
 /** `newAccount` is the server's word that this proof opened the account
  *  ({ player_tag } or null otherwise): App lands a new person on it. */
+/** The poll id of the sign-in this browser asked for, kept for the
+ *  link's fifteen minutes so a link opened in another tab of this same
+ *  browser can show it is the screen that asked, and is not asked
+ *  "sign in the other screen too?" about itself. */
+const ASKED_POLL = "elixir:signin-asked";
+const ASKED_POLL_MS = 15 * 60 * 1000;
+
+function rememberAskedPoll(pollId) {
+  try {
+    if (pollId)
+      window.localStorage.setItem(
+        ASKED_POLL,
+        JSON.stringify({ id: pollId, at: Date.now() }),
+      );
+  } catch {
+    // Storage is optional; without it the link's screen is asked.
+  }
+}
+
+function askedPoll() {
+  try {
+    const kept = JSON.parse(window.localStorage.getItem(ASKED_POLL) ?? "null");
+    return kept?.id && Date.now() - kept.at < ASKED_POLL_MS ? kept.id : null;
+  } catch {
+    return null;
+  }
+}
+
 function finishSignIn(onAuthed, newAccount = null) {
+  try {
+    window.localStorage.removeItem(ASKED_POLL);
+  } catch {
+    // Storage is optional.
+  }
   try {
     window.sessionStorage.removeItem(PRODUCT_NEWS_DRAFT);
   } catch {
@@ -113,8 +146,8 @@ export function SignIn({
   // What the API said when the email was asked for: the poll id this
   // screen holds, and whether the send was refused for the hour.
   const [asked, setAsked] = useState(null);
-  // A link opened here from a different address than the screen that
-  // asked: { confirm, started } until answered.
+  // A link opened here while a screen that asked may still be waiting:
+  // { confirm, started } until answered.
   const [handoff, setHandoff] = useState(null);
   // The poll below must not restart every render (App hands down a fresh
   // onAuthed each time), so it reads the latest through a ref.
@@ -138,7 +171,7 @@ export function SignIn({
     const token = consumeLoginToken();
     if (!token) return;
     setStep("redeeming");
-    api.redeemToken(token).then((res) => {
+    api.redeemToken(token, askedPoll()).then((res) => {
       if (!res.ok && (res.error || res.status >= 500)) {
         setError(
           writeErrorText({
@@ -232,6 +265,7 @@ export function SignIn({
       return;
     }
     setAsked(res.data);
+    rememberAskedPoll(res.data?.poll_id);
     setCode("");
     setStep("code");
   }
@@ -243,29 +277,60 @@ export function SignIn({
       </div>
     );
 
-  if (step === "handoff")
+  // The link's screen is asked unless it is the browser that asked for
+  // the email (2026-11-23): a person meeting this
+  // for the first time on a phone, from a link they may never have asked
+  // for. It names only what Elixir was told about the waiting screen, and
+  // No is the first and the main button.
+  if (step === "handoff") {
+    const started = handoff?.started ?? {};
+    const facts = [
+      started.at ? `Asked at ${clockAt(started.at, browserZone())}` : null,
+      started.client ? `Looks like ${started.client}` : null,
+      started.country ? `Connected from ${started.country}` : null,
+    ].filter(Boolean);
     return (
       <div className="kit-door">
         <Eyebrow icon="circle-check" tone="ok">
           signed in here
         </Eyebrow>
         <h1 className="page__title kit-door__title">
-          Also sign in where you started?
+          Sign in the other screen too?
         </h1>
         <p className="kit-door__lead">
-          This sign-in was asked for from a different place
-          {handoff?.started?.client ? ` (${handoff.started.client}` : ""}
-          {handoff?.started?.country
-            ? `${handoff?.started?.client ? ", " : " ("}${handoff.started.country}`
-            : ""}
-          {handoff?.started?.client || handoff?.started?.country ? ")" : ""}
-          {handoff?.started?.at
-            ? ` at ${clockAt(handoff.started.at, browserZone())}`
-            : ""}
-          . If that was you, sign it in too. If it was not, leave it out.
+          You&apos;re signed in on this device. This sign-in email was asked for
+          on a screen that may still be waiting for it. Yes signs that screen in
+          to your account too.
+        </p>
+        {facts.length > 0 && (
+          <>
+            <p className="mb-1">What Elixir knows about that screen:</p>
+            <ul className="mt-0">
+              {facts.map((fact) => (
+                <li key={fact}>{fact}</li>
+              ))}
+            </ul>
+          </>
+        )}
+        <p>
+          That&apos;s all Elixir can tell. It can&apos;t see who is using it.
+        </p>
+        <p>
+          <strong>
+            Only tap Yes if you asked for this email yourself. If you
+            didn&apos;t, or you&apos;re not sure, tap No.
+          </strong>{" "}
+          You stay signed in here either way.
         </p>
         <button
           className="btn btn--primary kit-door__go"
+          disabled={busy}
+          onClick={() => finishSignIn(onAuthed, newAccount.current)}
+        >
+          No, just this device
+        </button>
+        <button
+          className="btn kit-door__go mt-2.5"
           disabled={busy}
           onClick={async () => {
             setBusy(true);
@@ -285,22 +350,16 @@ export function SignIn({
             finishSignIn(onAuthed, newAccount.current);
           }}
         >
-          {busy ? "Signing it in…" : "Yes, that was me"}
+          {busy ? "Signing it in…" : "Yes, sign in that screen too"}
         </button>
         {error && (
           <p className="field-error" role="alert">
             {error}
           </p>
         )}
-        <button
-          className="btn kit-door__go mt-2.5"
-          disabled={busy}
-          onClick={() => finishSignIn(onAuthed, newAccount.current)}
-        >
-          No, just here
-        </button>
       </div>
     );
+  }
 
   if (step === "expired" || step === "link_error")
     return (

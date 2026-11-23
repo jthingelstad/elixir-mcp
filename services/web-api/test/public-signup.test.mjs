@@ -706,6 +706,15 @@ test("handoff collection and existing sessions refuse an account that becomes a 
   );
   assert.equal(redeemed.statusCode, 200);
   const cookie = cookieOf(redeemed);
+  // The link's screen allows the handoff (always asked, 2026-11-23).
+  const allowed = await handler(
+    event(
+      "/api/auth/handoff",
+      { confirm: parse(redeemed).handoff.confirm },
+      cookie,
+    ),
+  );
+  assert.equal(allowed.statusCode, 200, allowed.body);
   await db.query(
     "update account set kind='agent',owned_by_account_id=(select account_id from account where email='new-public@example.com') where email_hash=$1",
     [emailHash(email)],

@@ -65,7 +65,13 @@ export const api = {
       ...(turnstileToken ? { turnstile_token: turnstileToken } : {}),
       ...(age13 === true ? { age_13: true } : {}),
     }),
-  redeemToken: (token) => request("POST", "/api/auth/redeem", { token }),
+  // pollId: the id this browser was given if it is the one that asked
+  // for the email, which proves the link came back to the same browser.
+  redeemToken: (token, pollId = null) =>
+    request("POST", "/api/auth/redeem", {
+      token,
+      ...(pollId ? { poll_id: pollId } : {}),
+    }),
   redeemCode: (email, code) =>
     request("POST", "/api/auth/code", { email, code }),
   // The cross-context handoff (0083): the screen that asked polls; the

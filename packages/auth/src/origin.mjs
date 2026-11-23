@@ -42,6 +42,38 @@ export const forbiddenOrigin = () => ({
 });
 
 /**
+ * Did a browser send this from somewhere other than Elixir's own pages?
+ * The one rule for a request that a session cookie could carry (the
+ * consent POST and the web API's writes, 2026-11-23). SameSite=Lax keeps
+ * the cookie off a cross-site POST, but every other poapkings.com
+ * subdomain is the same site, so the cookie alone is no proof.
+ *
+ * Sec-Fetch-Site decides when the browser sends it: `same-origin` is
+ * Elixir's own page and `none` is the person's own act (the address bar,
+ * a bookmark), which no page can cause; anything else is foreign. A
+ * browser too old to send it is judged by Origin: one that is present
+ * and not `ownOrigin` is foreign. A request naming neither passes: a mail
+ * client's one-click or a server never does. This is the rule Go's
+ * `http.CrossOriginProtection` applies. Returns why (for the log line),
+ * or null to proceed. The headers reach the Lambda only because the
+ * origin request policy forwards them (infra/template.yaml).
+ */
+export function foreignRequest(event, ownOrigin) {
+  const headers = event?.headers ?? {};
+  const site = String(
+    headers["sec-fetch-site"] ?? headers["Sec-Fetch-Site"] ?? "",
+  );
+  if (site) {
+    return site === "same-origin" || site === "none"
+      ? null
+      : `sec-fetch-site:${site}`;
+  }
+  const origin = String(headers.origin ?? headers.Origin ?? "");
+  if (origin && origin !== ownOrigin) return "origin";
+  return null;
+}
+
+/**
  * The caller's own address. A socket's peer is a CloudFront edge, shared by
  * everyone behind that edge. The viewer's address arrives in cloudfront-viewer-address
  * ("1.2.3.4:53422", IPv6 as "2001:db8::1:53422" or bracketed), forwarded

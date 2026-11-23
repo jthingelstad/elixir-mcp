@@ -24,6 +24,7 @@ import {
   viewerIp,
   originAllowed,
   forbiddenOrigin,
+  foreignRequest,
 } from "@elixir-mcp/auth";
 import { makeRegistry } from "@elixir-mcp/tools";
 
@@ -211,6 +212,9 @@ export function makeHandler({
   sendWelcomeEmail = async () => {},
   deadLetters = async () => null,
   originSecret = null,
+  /** Elixir's own origin, the one the app's pages are served from: a
+   *  cookie-carrying write from anywhere else is refused. */
+  siteOrigin = "https://elixir.poapkings.com",
   /** { s3, bucket } for reading captured tool calls (capture.mjs
    *  makeCaptureStore); null = the call record carries the row only. */
   capture = null,
@@ -590,6 +594,26 @@ export function makeHandler({
     if (!originAllowed(event, originSecret)) return forbiddenOrigin();
     const method = event.method ?? "GET";
     const path = event.path ?? "/";
+    // A write that carries the session cookie comes from Elixir's own
+    // pages (2026-11-23). SameSite=Lax keeps the cookie off another
+    // site's POST but not off another poapkings.com subdomain's, so the
+    // browser's own Origin and Sec-Fetch-Site decide; a request naming
+    // neither (an older browser) passes, and the x-elixir-client rule
+    // still applies after this. The one-click unsubscribe is exempt: it
+    // reads only its signed link, never the cookie, and a mail client
+    // posts it from wherever it runs.
+    if (
+      method !== "GET" &&
+      method !== "HEAD" &&
+      path !== "/api/email/unsubscribe" &&
+      readCookie(event)
+    ) {
+      const foreign = foreignRequest(event, siteOrigin);
+      if (foreign) {
+        console.warn({ event: "cross_site_refused", reason: foreign });
+        return json(403, { error: "cross_site_refused" });
+      }
+    }
     const isApi = path.startsWith("/api/v1/");
     const agentPath = isApi ? null : AGENT_PATH.exec(path);
     const found = isApi

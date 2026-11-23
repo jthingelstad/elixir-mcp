@@ -524,3 +524,108 @@ test("any other client keeps its consent page, even under a standing grant", asy
   assert.match(res.body, /named itself; Elixir has not checked it/);
   assert.deepEqual(await codesFor(p.id), []);
 });
+
+// Cross-site request defence (2026-11-23). SameSite=Lax keeps the cookie
+// off another site's form, but another poapkings.com subdomain is the
+// same site and its form carries the cookie, so the browser's Origin and
+// Sec-Fetch-Site decide. A browser that sends neither is let through.
+test("a consent POST another site or subdomain sent is refused and grants nothing", async () => {
+  const p = await newPerson();
+  for (const [label, headers] of [
+    [
+      "cross-site",
+      { "sec-fetch-site": "cross-site", origin: "https://attacker.example" },
+    ],
+    [
+      "another poapkings.com subdomain",
+      { "sec-fetch-site": "same-site", origin: "https://other.poapkings.com" },
+    ],
+    ["a foreign Origin alone", { origin: "https://other.poapkings.com" }],
+    ["Sec-Fetch-Site alone", { "sec-fetch-site": "same-site" }],
+  ]) {
+    const mailBefore = sentEmails.length;
+    const res = await handler(
+      event({
+        path: "/oauth/authorize",
+        cookie: p.cookie,
+        headers,
+        form: {
+          step: "session",
+          confirm: "1",
+          ...authQuery(),
+          grant: "feedback:write",
+        },
+      }),
+    );
+    assert.equal(res.statusCode, 403, label);
+    assert.match(res.body, /Start again from the app/, label);
+    assert.match(res.body, /Nothing was connected or shared/, label);
+    assert.equal(res.headers.location, undefined, label);
+    assert.equal(res.headers["set-cookie"], undefined, label);
+    assert.equal(sentEmails.length, mailBefore, `${label}: nothing mailed`);
+  }
+  // The email step is refused the same way: no code is mailed.
+  const mailBefore = sentEmails.length;
+  const email = await handler(
+    event({
+      path: "/oauth/authorize",
+      headers: { "sec-fetch-site": "same-site" },
+      form: { step: "email", email: "someone@example.com", ...authQuery() },
+    }),
+  );
+  assert.equal(email.statusCode, 403);
+  assert.equal(sentEmails.length, mailBefore);
+  assert.deepEqual(await codesFor(p.id), [], "no code was issued");
+});
+
+test("a consent POST from Elixir's own page, or naming nowhere, still grants", async () => {
+  for (const [label, headers] of [
+    ["same-origin", { "sec-fetch-site": "same-origin", origin: ISSUER }],
+    ["the person's own act", { "sec-fetch-site": "none" }],
+    ["no headers (an older browser)", {}],
+  ]) {
+    const p = await newPerson();
+    const res = await handler(
+      event({
+        path: "/oauth/authorize",
+        cookie: p.cookie,
+        headers,
+        form: { step: "session", confirm: "1", ...authQuery() },
+      }),
+    );
+    assert.equal(res.statusCode, 303, `${label}: ${res.body}`);
+    assert.match(
+      new URL(res.headers.location).searchParams.get("code"),
+      /^eac_/,
+    );
+    assert.equal((await codesFor(p.id)).length, 1, label);
+  }
+});
+
+test("a family sign-in another site sent is shown the page, not signed in silently", async () => {
+  const p = await newPerson();
+  const page = await authorize(await dropAsk(), p.cookie, {
+    headers: { "sec-fetch-site": "cross-site" },
+  });
+  assert.equal(page.statusCode, 200, page.body);
+  assert.match(page.body, /name="step" value="session"/);
+  assert.deepEqual(await codesFor(p.id), [], "no code without a tap");
+  // Drop's own redirect is same-site (drop.poapkings.com), and a typed
+  // address or bookmark names no site: both are signed straight back in.
+  for (const site of ["same-site", "none", "same-origin"]) {
+    const res = await authorize(await dropAsk(), p.cookie, {
+      headers: { "sec-fetch-site": site },
+    });
+    assert.equal(res.statusCode, 303, `${site}: ${res.body}`);
+  }
+  // The page's own Sign in posts from Elixir and completes.
+  const tapped = await handler(
+    event({
+      path: "/oauth/authorize",
+      cookie: p.cookie,
+      headers: { "sec-fetch-site": "same-origin", origin: ISSUER },
+      form: { step: "session", ...(await dropAsk()) },
+    }),
+  );
+  assert.equal(tapped.statusCode, 303, tapped.body);
+});

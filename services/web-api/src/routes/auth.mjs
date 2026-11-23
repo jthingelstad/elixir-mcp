@@ -11,6 +11,7 @@ import {
   createMagicToken,
   sha256hex,
   offerHandoff,
+  holdsPollId,
   confirmHandoff,
   takeHandoff,
   sessionSeenFrom,
@@ -128,6 +129,7 @@ export function authRoutes({
             email: emailRef(emailHash(email)),
             turnstile: turnstile.seen,
           });
+          const seen = sessionSeenFrom(event);
           const { token, code } = await startMagicLogin(db, {
             emailHash: emailHash(email),
             purpose: "web",
@@ -151,8 +153,12 @@ export function authRoutes({
                 body.age_13 === true ? new Date().toISOString() : null,
             },
             pollId,
+            // What the question on the link's screen names about this
+            // one. Not its address: since the same-address shortcut went
+            // (2026-11-23) nothing compares it, so it is not kept.
             startedFrom: {
-              ...sessionSeenFrom(event),
+              client: seen.client,
+              country: seen.country,
               at: new Date().toISOString(),
             },
           });
@@ -192,20 +198,22 @@ export function authRoutes({
         verifiedAgeAt: row.context?.signup_age_attested_at ?? null,
       });
       if (minted.statusCode !== 200) return minted;
-      // The screen that asked may be a different one (0083). From the
-      // same address the session is handed over now; from a different
-      // one this screen is asked first, and the answer rides back on
-      // the confirm secret.
+      // The screen that asked may be a different one (0083), and this
+      // screen is asked first (2026-11-23): only its Allow hands the
+      // session over. Until then a same-address link handed it over at
+      // once, so anyone on the same network who knew the address could
+      // start a sign-in and be signed in when its owner tapped the link.
+      // A browser that presents the request's own poll id IS the screen
+      // that asked (the link opened in another tab), so it is not asked.
       let extra = {};
       if (row.poll_id_hash) {
-        const here = sessionSeenFrom(event);
         const started = row.started_from ?? {};
-        const same = Boolean(here.from) && here.from === started.from;
+        const sameScreen = holdsPollId(row, body.poll_id);
         const confirm = await offerHandoff(db, {
           tokenHash: row.token_hash,
-          state: same ? "ready" : "confirm",
+          sameScreen,
         });
-        extra = same
+        extra = sameScreen
           ? { handoff: { state: "done" } }
           : {
               handoff: {

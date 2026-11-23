@@ -53,9 +53,13 @@ function notifyOwner(spec) {
   return enqueueEmail(ownerNotifyMessage(spec));
 }
 
+/** Elixir's one public origin, for Clan's links and the write check. */
+const SITE_ORIGIN = "https://elixir.poapkings.com";
+
 const handler = makeHandler({
+  siteOrigin: SITE_ORIGIN,
   clan: createClanRequest({
-    origin: "https://elixir.poapkings.com",
+    origin: SITE_ORIGIN,
     modelSecret: process.env.CLAN_MODEL_SECRET,
     modelStorage: modelStorage(process.env.OUTBOX_BUCKET),
     outbox,
