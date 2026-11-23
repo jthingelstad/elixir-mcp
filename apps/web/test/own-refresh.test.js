@@ -428,6 +428,25 @@ describe("a player page's button", () => {
     expect(seen.at(-1)).toBe("updated");
   });
 
+  test("slow: once landed, waits once for the stored week before refreshing", async () => {
+    const pending = ok({ players: [{ tag: TAG, pending: true }] });
+    const { r, waits, invalidated, status } = button({
+      ask: queuedTap,
+      statuses: [
+        ...Array.from({ length: MAX_POLLS }, () => pending),
+        ok({ players: [found], feed_current: false }),
+        ok({ players: [found], feed_current: true }),
+      ],
+    });
+    await r.ask({ asked: true });
+    expect(r.snapshot().outcome).toBe("slow");
+    expect(invalidated).toEqual([]);
+    await vi.waitFor(() => expect(r.snapshot().outcome).toBe("updated"));
+    expect(waits.slice(MAX_POLLS)).toEqual([SLOW_WAIT_MS, 5_000]);
+    expect(status).toHaveBeenCalledTimes(MAX_POLLS + 2);
+    expect(invalidated).toEqual(PLAYER_LANDED_KEYS);
+  });
+
   test("slow: never reads while hidden, and gives up after about three minutes", async () => {
     const pending = ok({ players: [{ tag: TAG, pending: true }] });
     const statuses = Array.from({ length: 40 }, () => pending);

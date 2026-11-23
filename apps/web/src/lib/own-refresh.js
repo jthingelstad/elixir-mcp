@@ -137,8 +137,11 @@ export function makeOwnRefresh({
   /** A button's slow path: a read every SLOW_WAIT_MS, skipped while the
    *  tab is hidden, at most SLOW_POLLS; a newer ask ends it. */
   async function slow(g, since, asked, entry) {
+    let feedTries = 0;
+    let waitMs = SLOW_WAIT_MS;
     for (let i = 0; i < SLOW_POLLS; i++) {
-      await wait(SLOW_WAIT_MS);
+      await wait(waitMs);
+      waitMs = SLOW_WAIT_MS;
       if (g !== generation) return;
       if (hidden()) continue;
       const r = await status(since).catch(() => null);
@@ -147,6 +150,13 @@ export function makeOwnRefresh({
       const players = r.data?.players ?? [];
       entry = entryOf(players) ?? entry;
       if (players.some(waiting)) continue;
+      // Landed. As in poll: the stored week builds again after a read, so
+      // give it one short wait before the pages read it.
+      if (r.data?.feed_current === false && feedTries++ < 1) {
+        waitMs = MIN_WAIT_S * 1000;
+        i -= 1;
+        continue;
+      }
       await landed(asked);
       if (g !== generation) return;
       set({ ...state, outcome: "updated", at: now(), result: entry });
