@@ -4674,13 +4674,15 @@ export async function classifiedExitLinks(
 export async function windowFacts(
   db,
   subjects,
-  { accountId, fromMs, toMs, timezone = "UTC" },
+  // `interactive: false` is a reader outside the app (the RSS feed): no
+  // leaders-only fact, as buildTimeline's own default.
+  { accountId, fromMs, toMs, timezone = "UTC", interactive = true },
 ) {
   const items = await factItems(db, subjects, {
     accountId,
     fromMs,
     toMs,
-    interactive: true,
+    interactive,
   });
   items.sort((a, b) => (a.at ?? "").localeCompare(b.at ?? ""));
   for (const it of items) it.observed_at ??= it.at;
