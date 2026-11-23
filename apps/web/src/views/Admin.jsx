@@ -96,6 +96,14 @@ function principalLabel(a) {
   return a.account_id ? a.account_id.slice(0, 8) : "unknown";
 }
 
+/** An account's name in the list and on its record: its address, a test
+ *  identity's name (0316), or a deleted account's tombstone. */
+function accountLabel(a) {
+  if (a.removed) return `Deleted · ${String(a.account_id).slice(0, 8)}`;
+  if (a.test_name) return `Test: ${a.test_name}`;
+  return a.email ?? principalLabel(a);
+}
+
 export function Admin({ me, page = "accounts", navigate, itemId }) {
   if (!me?.is_admin)
     return <p className="callout callout--warn">Admins only.</p>;
@@ -666,6 +674,13 @@ function AdminAccounts() {
   // settable_roles is read by the record page, which is where a tier is
   // now changed; the list only has to find an account.
   const accounts = useAdminAccounts().data?.accounts ?? [];
+  const { day } = useClock();
+  // A deleted account's tombstone stays a row (2026-11-23); hidden
+  // unless asked for, so the list is the people who are here.
+  const [showRemoved, setShowRemoved] = useState(false);
+  const removedCount = accounts.filter(
+    (a) => a.removed && !a.owned_by_account_id,
+  ).length;
 
   // Six columns became four, then five. The ops-lane overrides, the
   // collector flag and the tier prompt moved to the record page: a list
@@ -678,10 +693,10 @@ function AdminAccounts() {
   // and listing them beside their owners made the queue of actual humans
   // impossible to read. They are counted here and named on the record.
   const rows = accounts
-    .filter((a) => !a.owned_by_account_id)
+    .filter((a) => !a.owned_by_account_id && (showRemoved || !a.removed))
     .map((a) => [
       {
-        text: a.email ?? principalLabel(a),
+        text: accountLabel(a),
         title: a.account_id,
         href: `${ADMIN}/accounts/${a.account_id}`,
       },
@@ -692,6 +707,7 @@ function AdminAccounts() {
       },
       `${a.players_tracked ?? 0} ${noun(a.players_tracked ?? 0, "player")} · ${a.clans_tracked ?? 0} ${noun(a.clans_tracked ?? 0, "clan")}`,
       a.children ? String(a.children) : "—",
+      a.last_active_at ? day(a.last_active_at) : "never",
     ]);
 
   return (
@@ -699,6 +715,18 @@ function AdminAccounts() {
       admin
       crumb="Admin"
       title="Accounts"
+      actions={
+        removedCount > 0 ? (
+          <button
+            type="button"
+            className="btn btn--sm"
+            aria-pressed={showRemoved}
+            onClick={() => setShowRemoved((v) => !v)}
+          >
+            {showRemoved ? "Hide removed" : `Show ${removedCount} removed`}
+          </button>
+        ) : null
+      }
       note="Everyone with a door. Roles set what we record and the daily call budget, never read access."
       cols={[
         ["ACCOUNT", "left"],
@@ -706,16 +734,17 @@ function AdminAccounts() {
         ["ROLE", "left"],
         ["FOLLOWING", "left"],
         ["AGENTS & INTEGRATIONS", "right"],
+        ["LAST ACTIVE", "left"],
       ]}
       rows={rows}
-      monoCols={[0]}
+      monoCols={[0, 5]}
       filters={[
         { key: "tier", label: "Role", col: 2 },
         { key: "status", label: "Status", col: 1 },
       ]}
       minWidth={620}
       empty="No accounts yet."
-      footnote="People only. An agent or an integration is an account too, owned by whoever created it — the last column counts them, and the record page names them. An account is named by the address it signs in with; open one to read its overrides or grant Partner. Member, Leader and Family are earned in the game and read live; a stored leader or family from before 2026-10-12 is flagged and no longer counts."
+      footnote="People only. An agent or an integration is an account too, owned by whoever created it — its column counts them, and the record page names them. Last active is the latest session or key use. A test identity reads Test: and its name; a deleted account is hidden until you ask for it. An account is named by the address it signs in with; open one to read its overrides or grant Partner. Member, Leader and Family are earned in the game and read live; a stored leader or family from before 2026-10-12 is flagged and no longer counts."
     />
   );
 }
@@ -771,7 +800,7 @@ function AdminUsage() {
  *  list — a control with no context, on a row you had to count columns
  *  to read. Facts first, then the change, on a page that shows what you
  *  are changing. */
-function AdminAccountDetail({ id }) {
+function AdminAccountDetail({ id, navigate }) {
   const { day } = useClock();
   const query = useAdminAccounts();
   const accounts = query.data?.accounts ?? null;
@@ -847,8 +876,10 @@ function AdminAccountDetail({ id }) {
       ),
     ],
     ["Principal name", a.principal_name ?? "—"],
-    ["Status", a.status],
+    ["Status", a.removed ? "deleted" : a.status],
+    ["Test identity", a.test_name ?? "—"],
     ["Created", day(a.created_at)],
+    ["Last active", a.last_active_at ? day(a.last_active_at) : "never"],
     [
       "Following",
       `${a.players_tracked ?? 0} ${noun(a.players_tracked ?? 0, "player")} · ${a.clans_tracked ?? 0} ${noun(a.clans_tracked ?? 0, "clan")}`,
@@ -890,7 +921,7 @@ function AdminAccountDetail({ id }) {
       <section className="panel" style={{ maxWidth: "680px" }}>
         <div className="panel__head">
           <span className="panel-title">
-            <TagText>{a.email ?? principalLabel(a)}</TagText>
+            <TagText>{accountLabel(a)}</TagText>
           </span>
           {a.is_owner && <span className="chip chip--info">owner</span>}
         </div>
@@ -998,6 +1029,16 @@ function AdminAccountDetail({ id }) {
         </section>
       )}
 
+      {!a.removed && !a.is_owner && (a.kind ?? "person") === "person" && (
+        <AdminDeleteAccount
+          account={a}
+          onDeleted={() => {
+            load();
+            navigate?.(`${ADMIN}/accounts`);
+          }}
+        />
+      )}
+
       {parent && (
         <p className="footnote" style={{ margin: "14px 0 0" }}>
           This {a.kind ?? "principal"} belongs to{" "}
@@ -1008,6 +1049,100 @@ function AdminAccountDetail({ id }) {
         </p>
       )}
     </>
+  );
+}
+
+/**
+ * Delete an account (2026-11-23): the removal a person runs from
+ * Settings › Profile and ops runs on request. A dry run first, which
+ * counts what would go and says whether it would be refused; then the
+ * real run, behind a confirm. A test identity the suites sign in as
+ * (acceptance, gym) gets a warning: deleting it breaks their runs until
+ * it is seeded again.
+ */
+function AdminDeleteAccount({ account, onDeleted }) {
+  const [preview, setPreview] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const suiteIdentity =
+    account.test_name === "acceptance" || account.test_name === "gym";
+  const dryRun = async () => {
+    setBusy(true);
+    const r = await api.adminRemoveAccount(account.account_id, true);
+    setBusy(false);
+    setPreview(
+      r?.ok
+        ? { counts: r.data }
+        : {
+            refused: r?.data?.message ?? "The dry run did not work. Try again.",
+          },
+    );
+  };
+  const counts = preview?.counts
+    ? Object.entries(preview.counts.removed ?? {}).filter(([, n]) => n > 0)
+    : [];
+  return (
+    <section className="panel mt-[14px] max-w-[680px]">
+      <div className="panel__head">
+        <span className="panel-title">Delete account</span>
+      </div>
+      <div className="panel__body">
+        <p className="m-0">
+          Deletes the account, not the record: the same removal the person runs
+          from Settings › Profile. It cannot be undone. Their address leaves the
+          mailing list and their sent mail is deleted.
+        </p>
+        {suiteIdentity ? (
+          <p className="callout callout--warn">
+            This is the {account.test_name} suite&rsquo;s test identity.
+            Deleting it breaks those runs until it is seeded again.
+          </p>
+        ) : null}
+        {!preview ? (
+          <button
+            type="button"
+            className="btn btn--sm"
+            disabled={busy}
+            onClick={dryRun}
+          >
+            {busy ? "Counting…" : "Dry run"}
+          </button>
+        ) : preview.refused ? (
+          <p className="field-error" role="alert">
+            {preview.refused}
+          </p>
+        ) : (
+          <>
+            <p className="footnote">
+              Would delete{" "}
+              {counts.length
+                ? counts.map(([t, n]) => `${t} ${n}`).join(" · ")
+                : "no rows beyond the account itself"}
+              .
+            </p>
+            <p className="footnote">
+              {[
+                `${preview.counts.agents ?? 0} ${noun(preview.counts.agents ?? 0, "agent")}`,
+                `${preview.counts.subjects ?? 0} followed ${noun(preview.counts.subjects ?? 0, "subject")} lose this reason to record`,
+                `${preview.counts.mail_archived ?? 0} sent mail ${noun(preview.counts.mail_archived ?? 0, "body", "bodies")}`,
+              ].join(" · ")}
+            </p>
+            <ConfirmAction
+              label="Delete account"
+              className="btn btn--sm btn--danger"
+              title="Delete this account?"
+              body={
+                <p className="m-0">
+                  {accountLabel(account)} goes for good. The record stays.
+                </p>
+              }
+              confirm="Delete account"
+              run={() => api.adminRemoveAccount(account.account_id, false)}
+              onDone={onDeleted}
+            />
+          </>
+        )}
+      </div>
+    </section>
   );
 }
 

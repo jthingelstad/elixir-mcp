@@ -154,3 +154,76 @@ test(
     await waitFor(() => expect(document.activeElement).toBe(country));
   },
 );
+
+test(
+  "Delete your account asks for DELETE typed out, then deletes and leaves",
+  { timeout: 20000 },
+  async () => {
+    const sent = [];
+    let answer = {
+      status: 409,
+      body: {
+        error: "refused",
+        code: "collectors_live",
+        message: "Revoke your collector first, in Settings › Collectors.",
+      },
+    };
+    global.fetch = vi.fn(async (path, init) => {
+      const p = String(path);
+      let status = 200;
+      let body = p === "/api/me" ? ME : {};
+      if (p === "/api/me/account/delete") {
+        sent.push(JSON.parse(init.body));
+        ({ status, body } = answer);
+      }
+      return {
+        ok: status < 400,
+        status,
+        json: async () => body,
+        text: async () => JSON.stringify(body),
+      };
+    });
+    const assign = vi.fn();
+    const original = window.location;
+    Object.defineProperty(window, "location", {
+      configurable: true,
+      value: { ...original, assign, hash: "", pathname: original.pathname },
+    });
+    try {
+      window.history.pushState({}, "", "/settings/profile");
+      render(<App />);
+      const head = await screen.findByRole("heading", {
+        name: "Delete your account",
+      });
+      const panel = head.closest("section") ?? document.body;
+      expect(within(panel).getByText(/can’t be undone/)).toBeTruthy();
+      fireEvent.click(
+        within(panel).getByRole("button", { name: "Delete account" }),
+      );
+      const go = within(panel).getByRole("button", {
+        name: "Delete my account",
+      });
+      expect(go.disabled).toBe(true);
+      const box = within(panel).getByLabelText("Type DELETE to confirm");
+      fireEvent.change(box, { target: { value: "delete" } });
+      expect(go.disabled).toBe(true);
+      fireEvent.change(box, { target: { value: "DELETE" } });
+      expect(go.disabled).toBe(false);
+
+      // A refusal says why and deletes nothing.
+      fireEvent.click(go);
+      await within(panel).findByText(/Revoke your collector first/);
+      expect(assign).not.toHaveBeenCalled();
+
+      answer = { status: 200, body: { ok: true } };
+      fireEvent.click(go);
+      await waitFor(() => expect(assign).toHaveBeenCalledWith("/"));
+      expect(sent).toEqual([{ confirm: "DELETE" }, { confirm: "DELETE" }]);
+    } finally {
+      Object.defineProperty(window, "location", {
+        configurable: true,
+        value: original,
+      });
+    }
+  },
+);

@@ -46,6 +46,7 @@ import { gatewaysRoutes } from "./routes/gateways.mjs";
 import { toolBridgeRoutes } from "./routes/tool-bridge.mjs";
 import { feedbackRoutes } from "./routes/feedback.mjs";
 import { adminRoutes } from "./routes/admin.mjs";
+import { accountRemoveRoutes } from "./routes/account-remove.mjs";
 import { onboardAccount } from "@elixir-mcp/tools/onboard";
 import { makeLive, requestFirstRead } from "@elixir-mcp/tools/live";
 import { enqueueJob } from "@elixir-mcp/ledger";
@@ -166,6 +167,10 @@ export function makeHandler({
   sendLoginEmail,
   notifyOwner = async () => {},
   sendWelcomeEmail = async () => {},
+  /** (address) => hands a deleted account's address to the relay to take
+   *  off the mailing list (an email-lane newsletter_remove, 2026-11-23);
+   *  null = the list is left as it is. */
+  removeFromNewsletter = null,
   deadLetters = async () => null,
   originSecret = null,
   /** Elixir's own origin, the one the app's pages are served from: a
@@ -447,6 +452,14 @@ export function makeHandler({
       resolveAccount,
       logEvent,
       capture,
+      removeFromNewsletter,
+    }),
+    // Deleting your own account (2026-11-23); its sent mail lives in the
+    // archive bucket the call record reads.
+    ...accountRemoveRoutes({
+      resolveAccount,
+      removeFromNewsletter,
+      archive: capture,
     }),
     ...verifyRoutes({ resolveAccount, logEvent }),
     ...battleRoutes({ siteShell, shareImage, resolveAccount }),

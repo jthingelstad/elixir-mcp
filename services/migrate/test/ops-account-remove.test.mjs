@@ -236,6 +236,21 @@ before(async () => {
     `insert into comment_setting (account_id, who) values ($1, 'nobody')`,
     [ids.person],
   );
+  // My conversations (0303): writing a comment joins its thread, and
+  // the item's owner joins too (0312); a read receipt of the other
+  // person's comment on their item.
+  await db.query(
+    `insert into comment_conversation_read (account_id, item_id, comment_id)
+     select $1, item_id, comment_id from timeline_comment
+      where account_id = $2 and item_id = 'tl_0123456789abcdef0124'`,
+    [ids.person, ids.other],
+  );
+  // A home-clan reader's position (0308).
+  await db.query(
+    `insert into timeline_clan_reader (account_id, clan_tag, reader, read_to)
+     values ($1, '#0CP08QUC', '', now())`,
+    [ids.person],
+  );
   // Posts (0285): one they wrote, and their report of the other's.
   await db.query(
     `insert into account_post (item_id, account_id, player_tag, body)
@@ -370,6 +385,16 @@ before(async () => {
       pk,
       JSON.stringify({ pk, selected: { clan_tag: "#0CP08QUC" } }),
     ]);
+  // A place is written under each verified tag, stamped with the account
+  // that set it (0276): the person's goes, another account's stays.
+  for (const [pk, owner] of [
+    ["place##0VQRR8U0", ids.person],
+    ["place##0RY8UJUL", ids.other],
+  ])
+    await db.query(`insert into clan_state (pk, body) values ($1, $2)`, [
+      pk,
+      JSON.stringify({ pk, country: "CA", account_id: owner }),
+    ]);
   for (const bucket of [
     `mcpday#${ids.person}`,
     `firstread#${ids.person}`,
@@ -425,6 +450,10 @@ test("a dry run is the default: it reports what would go and writes nothing", as
     // row now.
     timeline_cheer: 1,
     timeline_feed_link: 1,
+    comment_conversation_read: 1,
+    // Their own comment's thread, and the thread on their item the
+    // other person's comment opened (0312).
+    comment_conversation: 2,
     comment_report: 1,
     timeline_comment: 2,
     comment_check: 1,
@@ -445,10 +474,11 @@ test("a dry run is the default: it reports what would go and writes nothing", as
     account_passport: 1,
     account_follow: 0,
     timeline_reader: 0,
+    timeline_clan_reader: 1,
     timeline_discord_told: 2,
     timeline_discord: 1,
     discord_post: 1,
-    clan_state: 1,
+    clan_state: 2,
     agent_identity: 0,
     account_discord: 1,
     discord_login: 1,
@@ -590,6 +620,9 @@ test("the run removes the person and their agent, keeps the game record, and lea
     "timeline_cheer",
     "timeline_feed_link",
     "timeline_comment",
+    "comment_conversation",
+    "comment_conversation_read",
+    "timeline_clan_reader",
     "comment_report",
     "comment_check",
     "account_block",
@@ -636,8 +669,8 @@ test("the run removes the person and their agent, keeps the game record, and lea
     (await db.query(`select pk from clan_state order by pk`)).rows.map(
       (x) => x.pk,
     ),
-    [`account#${ids.other}`, "note##0CP08QUC##0VQRR8U0"],
-    "Clan's remembered clan goes; the clan's ledger and others' rows stay",
+    [`account#${ids.other}`, "note##0CP08QUC##0VQRR8U0", "place##0RY8UJUL"],
+    "Clan's remembered clan and the person's place go; the clan's ledger and others' rows stay",
   );
   assert.deepEqual(
     (await db.query(`select bucket from rate_limit order by bucket`)).rows.map(
@@ -666,14 +699,15 @@ test("the run removes the person and their agent, keeps the game record, and lea
     "the relay's records are named for the outbox's own expiry",
   );
 
-  // The only event left is the removal itself.
+  // The only event left is the removal itself, saying which path ran.
   assert.deepEqual(
     (
-      await db.query(`select kind from account_event where account_id = $1`, [
-        ids.person,
-      ])
-    ).rows.map((e) => e.kind),
-    ["account_removed"],
+      await db.query(
+        `select kind, detail from account_event where account_id = $1`,
+        [ids.person],
+      )
+    ).rows,
+    [{ kind: "account_removed", detail: { via: "ops", agents: 1 } }],
   );
 
   // Credentials are dead.
@@ -853,5 +887,38 @@ test("account removal keeps reassigned game conversations and erases current-own
       )
     ).rows[0].n,
     0,
+  );
+});
+
+test("a test identity is removed like a person, and its test name goes with the tombstone (0316)", async () => {
+  const gym = (
+    await one(
+      `insert into account (email_hash, status, role, test_name, age_attested_at,
+                            welcome_finished_at, starter_hidden_at, own_refresh_at)
+       values ('test:gym', 'approved', 'member', 'gym', now(), now(), now(), now())
+       returning account_id`,
+    )
+  ).account_id;
+  const run = await accountRemoveOp(SCRATCH_URL, {
+    account_id: gym,
+    dry_run: false,
+  });
+  assert.equal(run.refused, undefined);
+  assert.deepEqual(
+    await one(
+      `select email_hash, test_name, status, age_attested_at, welcome_finished_at,
+              starter_hidden_at, own_refresh_at
+         from account where account_id = $1`,
+      [gym],
+    ),
+    {
+      email_hash: `removed:${gym}`,
+      test_name: null,
+      status: "disabled",
+      age_attested_at: null,
+      welcome_finished_at: null,
+      starter_hidden_at: null,
+      own_refresh_at: null,
+    },
   );
 });

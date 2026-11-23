@@ -40,11 +40,25 @@ function runtimeSources() {
   );
 }
 
+// The account removal's census (2026-11-23) names the table once, as a
+// key of KEPT_TABLES, to say a removal leaves it alone. Naming is allowed
+// there and nowhere else in the file: no query, so no reader.
+const CENSUS = "packages/auth/src/account-remove.mjs";
+
 test("only the read and the write name attested_fact", () => {
   const files = runtimeSources();
   assert.ok(files.length > 100, `scanned ${files.length} files`);
-  const naming = files.filter((f) =>
-    /\battested_fact\b/.test(readFileSync(path.join(repoRoot, f), "utf8")),
+  const naming = files.filter(
+    (f) =>
+      f !== CENSUS &&
+      /\battested_fact\b/.test(readFileSync(path.join(repoRoot, f), "utf8")),
   );
   assert.deepEqual(naming.sort(), [...ALLOWED].sort());
+  const census = readFileSync(path.join(repoRoot, CENSUS), "utf8");
+  const lines = census.split("\n").filter((l) => /\battested_fact\b/.test(l));
+  assert.deepEqual(
+    lines.map((l) => l.trim().split(":")[0]),
+    ["attested_fact"],
+    "the removal names attested_fact only as a kept table, never in a query",
+  );
 });

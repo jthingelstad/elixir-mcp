@@ -2,7 +2,10 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { renderEmail } from "../src/templates.mjs";
 import { makeHandler, queueUrlOf } from "../src/handler.mjs";
-import { makeButtondownEnroller } from "../src/index.mjs";
+import {
+  makeButtondownEnroller,
+  makeButtondownRemover,
+} from "../src/index.mjs";
 import { makeSesSender, makeSuppressionCheck } from "../src/ses.mjs";
 
 test("login template leads with the code and carries link, consent, disclaimer", () => {
@@ -977,4 +980,88 @@ test("the suppression check reads the list once per window, shares the read, pag
   });
   await assert.rejects(cold("fine@example.com"), /denied/);
   await assert.rejects(cold("fine@example.com"), /denied/);
+});
+
+test("a newsletter removal deletes the address at Buttondown, never retries and never logs it (2026-11-23)", async () => {
+  const sent = [];
+  const removed = [];
+  const lines = [];
+  const capture =
+    (sink) =>
+    (...args) =>
+      sink.push(args.map(String).join(" "));
+  const log = console.log;
+  const error = console.error;
+  console.log = capture(lines);
+  console.error = capture(lines);
+  const rec = (id, body) => ({ messageId: id, body: JSON.stringify(body) });
+  try {
+    const handler = makeHandler({
+      send: async (m) => sent.push(m),
+      unenroll: async (email) => removed.push(email),
+    });
+    const out = await handler({
+      Records: [
+        rec("a", { kind: "newsletter_remove", to: " gone@x.com " }),
+        rec("b", { kind: "newsletter_remove", to: "nobody" }),
+      ],
+    });
+    assert.deepEqual(removed, ["gone@x.com"]);
+    assert.deepEqual(sent, [], "no mail");
+    assert.deepEqual(out.batchItemFailures, [{ itemIdentifier: "b" }]);
+    assert.ok(lines.includes("newsletter_removed"));
+
+    // A refusal from Buttondown is a line, not a retry.
+    const refusing = makeHandler({
+      send: async (m) => sent.push(m),
+      unenroll: async () => {
+        throw new Error("buttondown 500");
+      },
+    });
+    const out2 = await refusing({
+      Records: [rec("c", { kind: "newsletter_remove", to: "gone@x.com" })],
+    });
+    assert.deepEqual(out2.batchItemFailures, []);
+    assert.ok(lines.includes("newsletter_remove_drop buttondown 500"));
+
+    // Not configured: dropped with a line.
+    const bare = makeHandler({ send: async (m) => sent.push(m) });
+    const out3 = await bare({
+      Records: [rec("d", { kind: "newsletter_remove", to: "gone@x.com" })],
+    });
+    assert.deepEqual(out3.batchItemFailures, []);
+    assert.ok(lines.includes("newsletter_remove_drop not_configured"));
+  } finally {
+    console.log = log;
+    console.error = error;
+  }
+  assert.ok(
+    !lines.some((l) => l.includes("gone@x.com")),
+    "the address is never logged",
+  );
+});
+
+test("Buttondown removal: 2xx and 404 are done, anything else throws its status", async () => {
+  const calls = [];
+  const remover = (status) =>
+    makeButtondownRemover({
+      token: "t",
+      fetchImpl: async (url, init) => {
+        calls.push({ url, method: init.method });
+        return { ok: status >= 200 && status < 300, status };
+      },
+    });
+  await remover(200)("a+b@x.com");
+  await remover(204)("a@x.com");
+  await remover(404)("a@x.com");
+  assert.deepEqual(calls[0], {
+    url: "https://api.buttondown.com/v1/subscribers/a%2Bb%40x.com",
+    method: "DELETE",
+  });
+  await assert.rejects(
+    () => remover(400)("a@x.com"),
+    /^Error: buttondown 400$/,
+  );
+  await assert.rejects(() => remover(500)("a@x.com"), /buttondown 500/);
+  assert.equal(makeButtondownRemover({ token: "" }), null);
 });

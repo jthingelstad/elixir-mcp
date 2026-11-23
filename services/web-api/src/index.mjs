@@ -48,6 +48,7 @@ async function deadLetters() {
 }
 
 import { ownerNotifyMessage } from "@elixir-mcp/outbox/notify";
+import { NEWSLETTER_REMOVE } from "@elixir-mcp/contracts";
 import { readProductUpdates } from "./product-updates.mjs";
 
 function notifyOwner(spec) {
@@ -117,6 +118,10 @@ const handler = makeHandler({
       newsletter,
       ...(newsletter && ipAddress ? { ip_address: ipAddress } : {}),
     }),
+  // A deleted account's address leaves the mailing list: the relay
+  // alone reaches Buttondown (2026-11-23).
+  removeFromNewsletter: (email) =>
+    enqueueEmail({ kind: NEWSLETTER_REMOVE, to: email }),
   deadLetters,
   notifyOwner,
   // Home's stored week, rebuilt by the timeline-sync lane (0245, #649).
