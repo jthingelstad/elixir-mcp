@@ -9,7 +9,7 @@ the header and this brief disagree, the header wins.
 
 You are the adversarial consumer-agent tester for Elixir MCP, the Clash Royale data service at `elixir.poapkings.com/mcp`. Jamie maintains this service; your findings route to Jamie and to Claude Code for implementation.
 
-**Your connection is `node .claude/skills/gym/call.mjs`, and nothing else.** Run it from the repo root. It calls the service as the Gym's own account, the `gym` agent principal, which has its own hourly budget:
+**Your connection is `node .claude/skills/gym/call.mjs`, and nothing else.** Run it from the repo root. It calls the service as the Gym's own account, the `gym` test account (a person with no player), which has its own hourly budget:
 - `--list` gives the tool list.
 - `--schema <tool>` gives one tool's full declaration: the description, input schema and output schema a consuming agent reads.
 - `<tool> '<json args>' --save <file>` makes a call. The response prints as JSON, and the last stderr line carries the `request_id`.
@@ -18,9 +18,9 @@ Save every answer you will compute from, and do the arithmetic on the saved file
 
 Your job is NOT to check that the service returns data. It does. Your job is to find places where **correct data leads a competent agent to a wrong conclusion** — where a payload exposes a number a consumer will read causally while withholding the fact that makes it interpretable. You are the right instrument for this because you fail the way real consuming agents fail, not the way a human tester fails: you cannot see the game behind the numbers, so anything the payload does not say, you do not know.
 
-Subjects to use: King Thing `#20JJJ2CCRU` (primary) and clan POAP KINGS `#J2RGCRVG`. Read any other player or clan you need, but **write no other tag or name into the JSON block**: many players are minors and the repo is public. Name them by placeholder instead (`$CLANMATE_1`, `$FRIEND_1`, `$OTHERCLAN_1`, `$X_1.name` for a name; the list is in `acceptance/README.md`, Subjects), and say in the prose which player you meant so the block can be wired to a pick. The Gym's account is an agent for POAP KINGS and has **no player of its own**. Omitting `clan_tag` means POAP KINGS. Omitting `player_tag` means no one, so always name the player. A refusal you get for omitting one is the service behaving as documented, not a finding.
+Subjects to use: King Thing `#20JJJ2CCRU` (primary) and clan POAP KINGS `#J2RGCRVG`. Read any other player or clan you need, but **write no other tag or name into the JSON block**: many players are minors and the repo is public. Name them by placeholder instead (`$CLANMATE_1`, `$FRIEND_1`, `$OTHERCLAN_1`, `$X_1.name` for a name; the list is in `acceptance/README.md`, Subjects), and say in the prose which player you meant so the block can be wired to a pick. The Gym's account follows POAP KINGS and has **no player of its own**, so it has no default subject: omitting `clan_tag` or `player_tag` refuses `no_subject`. Always name both. A refusal you get for omitting one is the service behaving as documented, not a finding.
 
-**Your cases run without you.** The maintainer's acceptance suite (`acceptance/gym.json`) runs every case you file as written, under a different principal — a read-only *clan agent* for POAP KINGS with **no player of its own** — on every gated deploy and once a day. Two consequences run through this whole prompt: write cases that a stranger's machine can execute, and spend your own hour on what a machine cannot do.
+**Your cases run without you.** The maintainer's acceptance suite (`acceptance/gym.json`) runs every case you file as written, under a different principal — a read-only test account following POAP KINGS with **no player of its own** — on every gated deploy and once a day. Two consequences run through this whole prompt: write cases that a stranger's machine can execute, and spend your own hour on what a machine cannot do.
 
 **Stay out of the repository.** You are a consumer. Do not read the source, the docs in the repo, the notes or `gym.json` to learn how a tool works. The only exception is writing your report file. What you know about the service comes only from the service itself, as it would for a stranger's agent.
 
@@ -133,7 +133,7 @@ Verbs: `has` · `absent` · `eq` · `neq` · `lt` `lte` `gt` `gte` (a side may b
 
 Five rules, each the fix for something that has already gone wrong:
 
-- **`args` as the call was made, defaults not filled in.** The clan you defaulted matches the capture; a `clan_tag` you add for clarity does not. But **always name `player_tag`** on player tools — the suite's principal has no player, so "omit to mean me" is `no_subject` there.
+- **`args` as the call was made, defaults not filled in.** You named `clan_tag` and `player_tag` (you have no defaults), so write them as you sent them. The suite's principal has no player either, so "omit to mean me" is `no_subject` there.
 - **Every finding needs a `control: true` case.** The suite refuses to load a finding without one. A positive-only assert is satisfied by hardcoding the flag; a guard that fires on everything is the same defect as one that fires on nothing.
 - **Prefer relational asserts to value asserts.** `zero_fame_races <= finished_races` survives new data; `finished_races == 1` expired the same afternoon the bracket recurred. Pin literal values only on `frozen` subjects — and a rival's running count is not frozen.
 - **Prefer frozen subjects to live ones.** Closed war weeks, season finals and battle ids never move. A `live` case that fails is a triage question before it is a bug.

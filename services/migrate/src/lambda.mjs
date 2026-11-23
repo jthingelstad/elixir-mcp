@@ -15,6 +15,7 @@ import { visibilityCheck } from "./vacuum.mjs";
 import { explainTimeline } from "./ops-activity.mjs";
 import { refusalCensus, controlsCensus } from "./ops-captures.mjs";
 import { profileRead, profileTool } from "./ops-profile.mjs";
+import { testAccountOp } from "./ops-test-account.mjs";
 
 import {
   seed,
@@ -322,6 +323,14 @@ async function dispatch(event, context) {
     const result = await serviceTokenLimitsOp(
       process.env.DATABASE_URL,
       event.service_token_limits,
+    );
+    console.log(JSON.stringify(result));
+    return result;
+  }
+  if (event?.test_account) {
+    const result = await testAccountOp(
+      process.env.DATABASE_URL,
+      event.test_account,
     );
     console.log(JSON.stringify(result));
     return result;

@@ -1139,7 +1139,7 @@ export const DEPLOY_PHASES = [
   },
   {
     // Acceptance gate (2026-09-21): the deployed product against the
-    // real record, read-only, as a read-only agent principal -
+    // real record, read-only, as a read-only test person at /mcp (a test account since 2026-11-23) -
     // invariants the fixture tests cannot see (live data shape, live
     // scale). Opt-in per deploy (Jamie, 2026-09-21: ~4.5 minutes and a
     // pass of heavy reads on the shared micro, so it is turned on when

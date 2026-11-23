@@ -130,7 +130,7 @@ and the record.
 
 ## Scripts
 
-`scripts/` also holds `cr-api.mjs` (`npm run cr`, a direct CR call to check
+`scripts/` also holds `mint-test-key.mjs` (a test account's key, written to a 0600 file and never printed; the `{test_account}` op), `cr-api.mjs` (`npm run cr`, a direct CR call to check
 a claim), `name-collector-release.mjs` (`docs/RELEASING-COLLECTOR.md`),
 `editor-replay.mjs` (`npm run editor-replay`, a clan model's raw run
 through today's editor on a maintainer's own key; the `discord-review`

@@ -116,10 +116,13 @@ run, and recruits who match how the clan wants to play.
 
 ## Agents
 
-Connecting your own AI agent to Elixir over MCP stays core. A player has
-one MCP endpoint, for their own agent, and a clan has one, for its
-agent: "Players should have one MCP endpoint. Clans have one too. That
-should be all we need." (Jamie, 2026-11-14)
+Connecting your own AI agent to Elixir over MCP stays core. Your agent
+connects at one endpoint, `/mcp`, as you. Elixir has no agent accounts
+of its own any more: "Now that 'Clans' are real entities in Elixir -- we
+can just associate config and web hooks and such with Clans as they are…
+This could really simplify Elixirs model and account setup" (Jamie,
+2026-11-23). A clan's setup belongs to the clan, not to an agent acting
+for it. This replaces "Clans have one too" (Jamie, 2026-11-14).
 
 ## Never
 

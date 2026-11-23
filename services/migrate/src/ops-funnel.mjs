@@ -103,7 +103,7 @@ export async function funnelOp(databaseUrl, spec = {}) {
                 date_trunc('week', a.created_at at time zone 'UTC')::date as week,
                 (a.created_at at time zone 'UTC')::date as day0
            from account a
-          where a.kind = 'person'
+          where a.kind = 'person' and a.test_name is null
             and a.created_at >= now() - make_interval(days => $1)),
        agents as (
          select o.account_id as agent_id, o.owned_by_account_id as person_id
@@ -240,7 +240,7 @@ export async function funnelOp(databaseUrl, spec = {}) {
       days,
       as_of: new Date().toISOString(),
       population:
-        "person accounts made in the window (agents and integrations excluded)",
+        "person accounts made in the window (agents, integrations and test accounts excluded)",
       overall: { ...overall, by_status: byStatus },
       // Newest first; a week with no accounts is not listed.
       by_week: [...weeks].map(([week, counts]) => ({

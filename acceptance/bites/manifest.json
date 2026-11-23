@@ -1486,10 +1486,10 @@
   },
   {
     "contract": "11.12.0",
-    "why": "constructed: clans_my_view answering the acceptance agent with a view; a person's own Clan view must refuse every agent (Jamie, 2026-10-12, #535)",
-    "case": "contracts/clans-my-view-agent-refused",
+    "why": "constructed: clans_my_view answering the acceptance identity with a view; a person's own Clan view must refuse every agent (Jamie, 2026-10-12, #535) and every caller with no verified player in the clan, the test person included (2026-11-23)",
+    "case": "contracts/clans-my-view-refused-without-a-verified-player",
     "captures": ["clans_my_view-agent-served.json"],
-    "expect": "An agent is refused a person's own Clan view"
+    "expect": "is refused its own Clan view"
   },
   {
     "contract": "11.13.0",

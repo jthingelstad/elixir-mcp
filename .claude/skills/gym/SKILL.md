@@ -28,23 +28,26 @@ and mirrors no tool, so no Gym fix reaches it.
 
 ## The Gym's account
 
-- **Principal:** the `gym` agent, created 2026-09-23, owned by Jamie.
-  - Clan: POAP KINGS `#J2RGCRVG`.
+- **Principal:** the `gym` test account (2026-11-23; the `gym` agent at
+  `/a/cd9e89e10d09/mcp` before it, from 2026-09-23): a person with no
+  address and no player, following POAP KINGS `#J2RGCRVG`
+  (docs/notes/2026-11-23-test-identities-are-people.md).
   - Scope: `cr:read feedback:write`.
-  - Door: `https://elixir.poapkings.com/a/cd9e89e10d09/mcp`.
-- **Budget and history:** it spends from its own hourly bucket, not Jamie's
-  and not the Discord agent's. The feedback it files is its own, so the call
-  audit and the queue can tell Gym traffic from people.
-- **Credentials:** `call.mjs` reads the token from `.env` here (mode 0600,
-  ignored by git). Never print, cat or read the token.
-- **Re-minting** follows the acceptance recipe in `acceptance/README.md`,
-  with name `gym`, scope `cr:read feedback:write`, and the `.env` path here.
-- **Queued for Jamie:** raise its ceiling with
-  `{service_token_limits: {name: "gym", hourly_rate_limit: 900}}` on
-  `elixir-mcp-migrate`, the same ceiling `acceptance` has. The op was not
-  run on 2026-09-23 because the session's permission check refused a live
-  write. Until it is run, the principal's tier default applies, and a
-  `rate_limited` refusal says what that is.
+  - Door: `https://elixir.poapkings.com/mcp`.
+- **Subjects:** it has no player and no primary clan, so an omitted
+  `player_tag` or `clan_tag` refuses `no_subject`. Name both, always.
+  The regression pass (`acceptance/run.mjs --gym`) fills an omitted clan
+  with `#J2RGCRVG` for a person, as the agent's default did.
+- **Budget and history:** it spends from its own hourly bucket and its
+  own daily quota (`mcp_daily_quota` on the account), not Jamie's. The
+  feedback it files is its own, so the call audit and the queue can tell
+  Gym traffic from people. It has no address, so no answer is mailed.
+- **Credentials:** `call.mjs` reads the URL and token from `.env` here
+  (mode 0600, ignored by git). Never print, cat or read the token.
+- **Re-minting:** `node infra/scripts/mint-test-key.mjs gym
+  .claude/skills/gym/.env.pending`, then the `{test_account}` payload it
+  prints through `npm run op` (dry run, then `"dry_run": false`), then
+  move `.env.pending` over `.env`. The op revokes the old key.
 
 Subagents also inherit Jamie's own `mcp__elixir-mcp__*` connection. The
 brief forbids them from using it, and your assignment header repeats that.
