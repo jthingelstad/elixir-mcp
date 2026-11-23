@@ -11959,6 +11959,12 @@ a.kit-bell__hit:focus-visible::after {
   object-position: var(--avatar-x, 50%) var(--avatar-y, 48%);
   transform: scale(var(--avatar-scale, 1.21));
 }
+/* Elixir's own mark in the round (a product update in the Timeline,
+   2026-11-23): whole and centred, not a card's crop. */
+.kit-av--mark {
+  --avatar-scale: 0.74;
+  --avatar-y: 50%;
+}
 .avpick {
   display: flex;
   flex-direction: column;
