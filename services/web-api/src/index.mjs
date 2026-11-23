@@ -48,6 +48,7 @@ async function deadLetters() {
 }
 
 import { ownerNotifyMessage } from "@elixir-mcp/outbox/notify";
+import { readProductUpdates } from "./product-updates.mjs";
 
 function notifyOwner(spec) {
   return enqueueEmail(ownerNotifyMessage(spec));
@@ -178,6 +179,9 @@ const handler = makeHandler({
   // The stored-story shadow on the player page (2026-11-23): the stack's
   // TimelineStoryShadow, on unless switched off.
   storyShadow: process.env.TIMELINE_STORY_SHADOW === "on",
+  // Product updates in Home's Timeline (2026-11-23): the What's new
+  // entries marked for everyone, carried in this bundle from the build.
+  productUpdates: readProductUpdates,
   comments:
     process.env.COMMENTS_ENABLED === "true" &&
     process.env.CLAN_MODEL_SECRET &&

@@ -173,6 +173,8 @@ export const KIND_MODES = {
   clan_message: NO_MODE,
   personal_record: NO_MODE,
   drop_game: NO_MODE,
+  // A product update, Elixir's own news (product-updates.mjs).
+  product_update: NO_MODE,
   // People items, an account's own news, are about no mode. Named from
   // their schemas so this file never names a Stamp (the stamps package's
   // boundary test).
@@ -196,8 +198,11 @@ const tagsOf = (it) =>
 
 /** Which chips an item sits under, from the account's own subjects. An
  *  item about nobody the account follows is the account's own (its
- *  administration, a feedback answer), so it is yours. */
+ *  administration, a feedback answer), so it is yours. A product update
+ *  (product-updates.mjs) is under none. */
 export function groupsOf(it, subjects, close = null, clanmates = null) {
+  // Elixir's own news is about nobody: Everyone, and no chip of its own.
+  if (it?.kind === "product_update") return [];
   const own = new Set();
   const friends = new Set();
   const clans = new Set();

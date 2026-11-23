@@ -34,6 +34,7 @@ import { annotateFeed, groupsOf, inMode } from "../feed.mjs";
 import { cheersReceived, withCheers } from "../cheers.mjs";
 import { withComments } from "../comments.mjs";
 import { homePosts } from "../posts.mjs";
+import { besideProductUpdates, isProductUpdate } from "../product-updates.mjs";
 import { countNewPosts } from "@elixir-mcp/posts";
 import { firstAnswer } from "../first-answer.mjs";
 import { readCircle } from "../circle.mjs";
@@ -699,6 +700,7 @@ async function readFeed(
   posts = false,
   mode = null,
   questionsOnly = false,
+  productUpdates = null,
 ) {
   const started = Date.now();
   const { timezone, seenTo: seen_to } = await homeAccount(
@@ -731,6 +733,17 @@ async function readFeed(
         clanmates: true,
       })
     : [];
+  // Product updates (2026-11-23, product-updates.mjs): the What's new
+  // entries marked for everyone, over the same week as the posts. A
+  // person's feed only; never stored, never a question, under no chip but
+  // Everyone and no mode, so a mode filter leaves them out.
+  const news =
+    person && productUpdates && !questionsOnly
+      ? await productUpdates({
+          fromMs: week.fromMs,
+          toMs: Math.max(Date.now(), week.toMs),
+        })
+      : [];
   const whole = [
     ...(questionsOnly
       ? []
@@ -738,6 +751,7 @@ async function readFeed(
         ? week.items.filter((it) => it.kind !== "battle_highlight")
         : week.items),
     ...own,
+    ...news,
   ].sort(feedOrder);
   // A mode filter (2026-11-17) chooses the week's items before the pages
   // are cut, so every page is thirty of that mode's items and More reads
@@ -784,16 +798,19 @@ async function readFeed(
     // And each item's comments (2026-11-16): a count, the newest two and
     // whether the reader may add one, read live for the page, never
     // stored, so a count is as fresh as the page; a person's only.
-    timeline: await withComments(
-      db,
-      await withCheers(
+    // A product update takes none of these and passes as it is.
+    timeline: await besideProductUpdates(page, async (items) =>
+      withComments(
         db,
-        await annotateFeed(db, page, week.subjects, close, clanmates),
-        account.accountId,
-        { allowed: person },
+        await withCheers(
+          db,
+          await annotateFeed(db, items, week.subjects, close, clanmates),
+          account.accountId,
+          { allowed: person },
+        ),
+        account.kind === "person" ? account.accountId : null,
+        { enabled: comments },
       ),
-      account.kind === "person" ? account.accountId : null,
-      { enabled: comments },
     ),
     total: all.length,
     next:
@@ -837,7 +854,11 @@ async function readFeed(
     // Where the "N new" pill counts from: the newest change among the
     // stored items and live posts this read holds. With neither, each item
     // that arrives is one the reader lacks, so count from the week's start.
-    out.watermark = feedWatermark(whole) ?? out.window.from;
+    // Never a product update's time: the pill counts neither them nor
+    // anything they would pass over.
+    out.watermark =
+      feedWatermark(whole.filter((it) => !isProductUpdate(it))) ??
+      out.window.from;
   }
   console.info(
     JSON.stringify({
@@ -978,6 +999,10 @@ export function homeRoutes({
   comments = false,
   /** Posts are on (2026-11-17): the feed holds them. */
   posts = false,
+  /** ({ fromMs, toMs }) => the product updates inside a window as feed
+   *  items (product-updates.mjs readProductUpdates, 2026-11-23); null =
+   *  none. */
+  productUpdates = null,
 }) {
   return {
     // What the first paint needs, and all it waits for.
@@ -1116,6 +1141,7 @@ export function homeRoutes({
           posts,
           mode,
           questionsOnly,
+          productUpdates,
         ),
       );
     },

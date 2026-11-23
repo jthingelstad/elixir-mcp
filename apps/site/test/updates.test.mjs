@@ -11,7 +11,13 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import updates from "../src/_data/updates.js";
-import { parseUpdate, readUpdates } from "../src/_lib/updates.mjs";
+import {
+  TIMELINE_LEDE_MAX,
+  TIMELINE_MARK,
+  parseUpdate,
+  readUpdates,
+  updateSlug,
+} from "../src/_lib/updates.mjs";
 
 const dir = new URL("../src/_data/updates/", import.meta.url);
 
@@ -139,4 +145,83 @@ test("newest day first, with legacy numbered entries still readable", () => {
       updates[i - 1].date >= updates[i].date,
       `${updates[i - 1].title} sits above a newer entry`,
     );
+});
+
+test("a marked entry is for everyone's Timeline: the mark is read and stripped", () => {
+  const { entry } = parseUpdate(
+    "2026-11-23-t151929-news.md",
+    `${TIMELINE_MARK}\n# News\n\nThe **first** paragraph, with [a link](/docs/home) and \`code\`,\nover two lines.\n\nA second paragraph.\n`,
+  );
+  assert.deepEqual(entry, {
+    date: "2026-11-23",
+    title: "News",
+    body: "The **first** paragraph, with [a link](/docs/home) and `code`,\nover two lines.\n\nA second paragraph.",
+    timeline: {
+      at: "2026-11-23T15:19:29.000Z",
+      lede: "The first paragraph, with a link and code, over two lines.",
+    },
+  });
+  // Unmarked entries carry nothing new.
+  assert.equal(
+    parseUpdate("2026-11-23-t151929-news.md", "# News\n\nBody.\n").entry
+      .timeline,
+    undefined,
+  );
+});
+
+test("a marked entry is refused when it would need cutting or is misplaced", () => {
+  const long = "word ".repeat(TIMELINE_LEDE_MAX / 5 + 1).trim();
+  assert.throws(
+    () =>
+      parseUpdate(
+        "2026-11-23-t151929-long.md",
+        `${TIMELINE_MARK}\n# Long\n\n${long}\n`,
+      ),
+    /first paragraph is shown whole/,
+  );
+  // Exactly at the limit is fine.
+  const fits = "x".repeat(TIMELINE_LEDE_MAX);
+  assert.equal(
+    parseUpdate(
+      "2026-11-23-t151929-fits.md",
+      `${TIMELINE_MARK}\n# Fits\n\n${fits}\n\nMore below.\n`,
+    ).entry.timeline.lede,
+    fits,
+  );
+  // Only on the first line, alone.
+  for (const text of [
+    `# T\n\n${TIMELINE_MARK}\nBody.\n`,
+    `# T\n\nBody.\n\n${TIMELINE_MARK}\n`,
+    `\n${TIMELINE_MARK}\n# T\n\nBody.\n`,
+  ])
+    assert.throws(
+      () => parseUpdate("2026-11-23-t151929-t.md", text),
+      /first line/,
+      JSON.stringify(text),
+    );
+  // A marked entry still needs its title and body.
+  assert.throws(
+    () => parseUpdate("2026-11-23-t151929-t.md", `${TIMELINE_MARK}\nBody.\n`),
+    /a "# Title" line/,
+  );
+  // Only a timed entry has a time to be placed at.
+  assert.throws(
+    () => parseUpdate("2026-11-23-01-t.md", `${TIMELINE_MARK}\n# T\n\nBody.\n`),
+    /only a timed entry/,
+  );
+});
+
+test("the mark never reaches a reader: no entry's body holds it", () => {
+  for (const u of updates) assert.ok(!u.body.includes("<!--"), u.title);
+  assert.ok(
+    updates.some((u) => u.timeline),
+    "the entry that announced product updates is marked",
+  );
+});
+
+test("an entry's address is its date and title, the one function", () => {
+  assert.equal(
+    updateSlug("2026-11-23", "News from Elixir: now in your Timeline!"),
+    "2026-11-23-news-from-elixir-now-in-your-timeline",
+  );
 });

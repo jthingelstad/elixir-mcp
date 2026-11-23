@@ -221,7 +221,9 @@ resolved at run time (`acceptance/README.md`, Subjects).
 - **Docs ship with the change, as files of their own:** user-visible
   behaviour updates `apps/site/src/docs/` in the same commit, and a change
   worth telling (tools included) adds a What's new entry in
-  `apps/site/src/_data/updates/`; a change note goes in `docs/notes/`.
+  `apps/site/src/_data/updates/`, marked for everyone's Timeline only by
+  the rule in `apps/site/AGENTS.md` ("Updates"); a change note goes in
+  `docs/notes/`.
   Two pull requests never edit one shared file for these. `/docs/tools` is
   generated from the registry, never hand-edited.
 - **Commits are small and message-first;** stage named paths, never

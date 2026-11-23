@@ -76,6 +76,19 @@ The mode is in the page's address, so a link you share opens on it and
 on the same device, like the chips. When a mode has nothing this week,
 your Timeline says so and offers **Show all modes**.
 
+### News from Elixir
+
+Now and then Elixir itself has news worth knowing: a change you'll notice
+in the app. It shows in your Timeline as an item from **Elixir**, with a
+title, a short paragraph and **Read more**, which opens its page in
+[What's new](/updates). It sits in its place by time and stays for the
+week your Timeline shows, the same for everyone, including people who
+joined after it was posted.
+
+It shows under **Everyone** with **All modes**, never under another chip or
+a mode. It takes no cheers or comments, the **N new** button doesn't count
+it, and it never rings the bell or comes as a push or an email.
+
 ### Your circle this week
 
 Star a friend you follow and they are a **close friend**. Your circle sits

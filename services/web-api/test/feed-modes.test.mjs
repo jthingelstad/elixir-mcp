@@ -20,6 +20,8 @@ test("every kind the timeline builds is classified for the mode filter", () => {
     ...Object.keys(ATTESTED_FACT_TYPES),
     // Posts are read live beside the week (posts.mjs).
     "post",
+    // So are product updates (product-updates.mjs).
+    "product_update",
   ];
   const missing = kinds.filter((k) => !(k in KIND_MODES));
   assert.deepEqual(
