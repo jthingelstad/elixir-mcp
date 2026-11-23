@@ -19,7 +19,7 @@ import {
   readProductUpdates,
 } from "../src/product-updates.mjs";
 
-const FRIEND = "#0QYV2LRC";
+const FRIEND = "#0QPPRRC9";
 const HOUR = 3_600_000;
 const DAY = 24 * HOUR;
 

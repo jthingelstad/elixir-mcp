@@ -245,11 +245,7 @@ function ProductUpdate({ it }) {
       <header className="kit-feed__head">
         {/* Elixir's own mark, whole inside the round: not a person's
             initials, and not a card's crop. */}
-        <span
-          className="kit-av kit-av--image"
-          style={{ "--avatar-scale": 0.74, "--avatar-y": "50%" }}
-          aria-hidden="true"
-        >
+        <span className="kit-av kit-av--image kit-av--mark" aria-hidden="true">
           <img src={SHELL_LOGO} alt="" />
         </span>
         <div className="kit-feed__who">
