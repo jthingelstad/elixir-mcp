@@ -41,7 +41,10 @@ export function makeHttpApp({ dispatch, timeoutSeconds = 30 }) {
         ms: Date.now() - start,
         // Whether the caller asked conditionally, never the tag it sent:
         // how an operator tells a reader that holds a feed from one that
-        // does not, and whether the edge passed the header on.
+        // does not, and whether the edge passed the header on. The feed
+        // is kept at the edge (2026-11-23), so this is seen only on what
+        // reaches the origin: misses, and the edge's own revalidation,
+        // which sends the tag it holds.
         ...(request.headers["if-none-match"] ? { conditional: true } : {}),
         request_id: context.requestId,
         build: process.env.APP_BUILD,

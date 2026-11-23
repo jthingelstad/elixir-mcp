@@ -41,7 +41,10 @@ test("private RSS carries posts and question attachments, escaped, at member des
   });
   const response = await read();
   assert.equal(response.statusCode, 200);
-  assert.equal(response.headers["cache-control"], "private, max-age=300");
+  assert.equal(
+    response.headers["cache-control"],
+    "public, max-age=300, s-maxage=3600",
+  );
   assert.equal(response.headers["x-robots-tag"], "noindex");
   const xml = response.body;
   assert.ok(xml.includes(`<guid isPermaLink="false">${p.item_id}</guid>`));

@@ -16,7 +16,8 @@ import { keys, useRssLink } from "../../lib/queries.js";
  * feed"): one private link to your own timeline, everyone you follow
  * together, for a feed reader app. Elixir keeps only a fingerprint of it,
  * so the link shows once, when it is made or reset; Reset makes a new one
- * and stops the old at once, and Turn off ends it.
+ * and Turn off ends it. CloudFront keeps each feed for up to an hour, so
+ * the old link stops within the hour, and the words say so.
  */
 export function RssLinkPanel() {
   const { whenDay } = useClock();
@@ -62,7 +63,7 @@ export function RssLinkPanel() {
             <ConfirmAction
               label="Reset link"
               title="Reset your RSS link?"
-              body="You get a new link, and the one your reader uses stops working at once. Put the new one in your reader."
+              body="You get a new link, and the one your reader uses stops working within an hour. Put the new one in your reader."
               confirm="Reset"
               danger={false}
               run={async () => keep(await make.run())}
@@ -70,7 +71,7 @@ export function RssLinkPanel() {
             <ConfirmAction
               label="Turn off"
               title="Turn off your RSS link?"
-              body="The link stops working at once. You can make a new one at any time."
+              body="The link stops working within an hour. You can make a new one at any time."
               confirm="Turn off"
               run={async () => {
                 const res = await off.run();

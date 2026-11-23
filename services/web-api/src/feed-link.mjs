@@ -5,8 +5,9 @@
  *
  * A feed reader cannot sign in, so the link's token is the credential.
  * Elixir keeps only its SHA-256 (0243): the link is shown once, when it is
- * made or reset, and Settings can reset it (the old one stops at once) or
- * turn it off. The feed carries what Home's feed says, in the game's
+ * made or reset, and Settings can reset it or turn it off (the old one
+ * stops here at once, and at CloudFront's edge within the hour it keeps a
+ * feed). The feed carries what Home's feed says, in the game's
  * names: never a nickname, an email or the account's own administration
  * (sign-ins, connections, feedback answers), and every name is escaped.
  */
@@ -19,8 +20,9 @@ import { memberPostUrl } from "@elixir-mcp/posts/paths";
 const TOKEN_RE = /^[A-Za-z0-9_-]{32}$/;
 const FEED_PATH = "/api/rss";
 
-/** Feed reads one link may make in an hour: a reader polls every few
- *  minutes at most; this leaves room for several. */
+/** Feed reads one link may make of Elixir in an hour: a reader polls every
+ *  few minutes at most; this leaves room for several. Reads the edge
+ *  answers from its copy never reach the count. */
 export const FEED_READS_PER_HOUR = 60;
 /** Links one account may make or reset in an hour. */
 export const FEED_RESETS_PER_HOUR = 10;
@@ -45,7 +47,8 @@ export async function feedLinkState(db, accountId) {
 }
 
 /** Make the account's link, or reset it: a new token replaces the old
- *  one's hash, so the old link stops at once. The token is answered here
+ *  one's hash, so Elixir refuses the old link at once (the edge's copy
+ *  lasts at most its hour). The token is answered here
  *  and nowhere else. */
 export async function resetFeedLink(db, accountId) {
   const token = randomBytes(24).toString("base64url");

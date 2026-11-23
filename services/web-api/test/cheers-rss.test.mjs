@@ -371,7 +371,12 @@ test("the RSS link: shown once, kept as a hash, reset and turned off", async () 
   const feed = await request("GET", `/api/rss/${token}`);
   assert.equal(feed.statusCode, 200);
   assert.match(feed.headers["content-type"], /^application\/rss\+xml/);
-  assert.match(feed.headers["cache-control"], /^private/);
+  // CloudFront keeps it for the hour under its path; the reader, five
+  // minutes.
+  assert.equal(
+    feed.headers["cache-control"],
+    "public, max-age=300, s-maxage=3600",
+  );
   const xml = feed.body;
   assert.match(
     xml,
@@ -389,11 +394,14 @@ test("the RSS link: shown once, kept as a hash, reset and turned off", async () 
   assert.equal(xml.includes("your account"), false);
   assert.match(xml, /not endorsed by Supercell/);
 
-  // Reset: the old link stops at once, the new one opens.
+  // Reset: Elixir refuses the old link at once (the edge's copy lasts
+  // at most its hour), the new one opens. The refusal is never kept.
   const reset = await call("POST", "/api/me/rss", { who: "friend" });
   const fresh = reset.body.url.split("/").at(-1);
   assert.notEqual(fresh, token);
-  assert.equal((await request("GET", `/api/rss/${token}`)).statusCode, 404);
+  const refused = await request("GET", `/api/rss/${token}`);
+  assert.equal(refused.statusCode, 404);
+  assert.equal(refused.headers["cache-control"], "no-store");
   assert.equal((await request("GET", `/api/rss/${fresh}`)).statusCode, 200);
   // Off: the link is gone.
   const off = await call("DELETE", "/api/me/rss", { who: "friend" });
@@ -478,7 +486,10 @@ test("the RSS feed reads Home's stored week: its own build's items, and a 304 fo
     assert.equal(held.statusCode, 304, sent);
     assert.equal(held.body, "");
     assert.equal(held.headers.etag, first.headers.etag);
-    assert.match(held.headers["cache-control"], /^private/);
+    assert.equal(
+      held.headers["cache-control"],
+      "public, max-age=300, s-maxage=3600",
+    );
   }
   // Another tag, or none, is the whole feed.
   assert.equal((await poll({ "if-none-match": '"other"' })).statusCode, 200);
@@ -580,5 +591,8 @@ test("the RSS feed's hour is capped per link", async () => {
      values ($1, date_trunc('hour', now()), 60)`,
     [`rss#${rows[0].account_id}`],
   );
-  assert.equal((await request("GET", `/api/rss/${token}`)).statusCode, 429);
+  const capped = await request("GET", `/api/rss/${token}`);
+  assert.equal(capped.statusCode, 429);
+  // Never kept at the edge: the cap is the link's, not its copy's.
+  assert.equal(capped.headers["cache-control"], "no-store");
 });

@@ -1444,6 +1444,27 @@ Resources:
           CookiesConfig: { CookieBehavior: none }
           QueryStringsConfig: { QueryStringBehavior: none }
 
+  # The private RSS link, kept at the edge for up to an hour (2026-11-23).
+  # The token is the whole path, so the path alone is the key: no header,
+  # cookie or query string, and one copy per link. The origin says how
+  # long (s-maxage=3600); MaxTTL caps it at the hour, which is how long a
+  # reset, a turned-off link or a removed post can linger at the edge.
+  # MinTTL 0, so the 404 and 429 keep their no-store.
+  RssFeedCachePolicy:
+    Type: AWS::CloudFront::CachePolicy
+    Properties:
+      CachePolicyConfig:
+        Name: elixir-mcp-rss-feed
+        MinTTL: 0
+        DefaultTTL: 0
+        MaxTTL: 3600
+        ParametersInCacheKeyAndForwardedToOrigin:
+          EnableAcceptEncodingGzip: true
+          EnableAcceptEncodingBrotli: true
+          HeadersConfig: { HeaderBehavior: none }
+          CookiesConfig: { CookieBehavior: none }
+          QueryStringsConfig: { QueryStringBehavior: none }
+
   # --------------------------------------------------------------- lambdas
   WebApiLogGroup:
     Type: AWS::Logs::LogGroup
@@ -2690,7 +2711,8 @@ Resources:
               x-collector-version,
               x-collector-binary-sha256,
               x-collector-release-key,
-              # WebPrivateCachePolicy forwards Authorization on every behavior using this policy.
+              # WebPrivateCachePolicy forwards Authorization on every behavior using this policy
+              # but /api/rss/*, whose RssFeedCachePolicy forwards none: its token is in the path.
               origin,
               content-type,
               mcp-protocol-version,
@@ -2977,11 +2999,17 @@ Resources:
           # is forwarded: CloudFront does not support If-None-Match on a
           # behaviour that forwards cookies, and a feed reader's 304
           # depends on that header reaching the origin (2026-11-22).
+          # Since 2026-11-23 the edge keeps each link's feed for up to an
+          # hour (RssFeedCachePolicy). The origin request policy still
+          # sends no cookie; what it does forward (the query, origin,
+          # content-type and the viewer's address and country) reaches the
+          # origin on a miss only and is not in the cache key, so it
+          # splits nothing. The feed reads none of it.
           - PathPattern: /api/rss/*
             TargetOriginId: api
             ViewerProtocolPolicy: https-only
             AllowedMethods: [GET, HEAD]
-            CachePolicyId: !Ref WebPrivateCachePolicy
+            CachePolicyId: !Ref RssFeedCachePolicy
             ResponseHeadersPolicyId: !Ref SecurityHeadersPolicy
             Compress: true
             OriginRequestPolicyId: !Ref McpOriginRequestPolicy
