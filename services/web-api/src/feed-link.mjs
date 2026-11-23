@@ -25,7 +25,7 @@ export const FEED_READS_PER_HOUR = 60;
 /** Links one account may make or reset in an hour. */
 export const FEED_RESETS_PER_HOUR = 10;
 /** Items one read carries, newest first. */
-const FEED_ITEMS = 50;
+export const FEED_ITEMS = 50;
 
 export const hashToken = (token) =>
   createHash("sha256").update(String(token)).digest("hex");

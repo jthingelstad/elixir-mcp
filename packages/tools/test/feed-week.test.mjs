@@ -190,3 +190,52 @@ test("past FRESH the poll serves the row and wakes a build; past SERVE it builds
   });
   assert.equal(other.stored, false);
 });
+
+test("a week cut at Home's cap with too few stories left: the feed builds its own", async () => {
+  // Home's cap counts people lines and leaders-only facts the feed drops
+  // (Codex on #1188). A row that says it was cut and holds one story
+  // cannot say which stories the cap took.
+  await readFeedWeek(ctx.db, leader, { timezone: "UTC" });
+  const at = new Date(Date.now() - 60_000).toISOString();
+  await ctx.db.query(
+    `update home_feed
+        set more = 7,
+            items = items || $2::jsonb
+      where account_id = $1`,
+    [
+      leader,
+      JSON.stringify([
+        {
+          id: "st_only_in_the_row",
+          revision: 1,
+          at,
+          observed_at: at,
+          sort_at: at,
+          kind: "arena_changed",
+          section: "moments",
+          subject_tag: LEADER,
+          subjects: [{ kind: "player", tag: LEADER, name: "Invented Leader" }],
+          text: "st_only_in_the_row",
+        },
+      ]),
+    ],
+  );
+  const before = await row();
+  const ids = (week) => week.items.map((it) => it.id);
+
+  const own = await readFeedWeek(ctx.db, leader, { timezone: "UTC" });
+  assert.equal(own.stored, false, "built from the record, not the row");
+  assert.equal(ids(own).includes("st_only_in_the_row"), false);
+  assert.ok(kinds(own).includes("award_standing"), "the record's items");
+  assert.equal(kinds(own).includes("member_away"), false, "as narrow as ever");
+  assert.deepEqual((await row()).built_at, before.built_at, "Home's row stays");
+
+  // With as many stories as the feed serves, the cut ones are older than
+  // any it would carry: the row answers.
+  const enough = await readFeedWeek(ctx.db, leader, {
+    timezone: "UTC",
+    need: 1,
+  });
+  assert.equal(enough.stored, true);
+  assert.ok(ids(enough).includes("st_only_in_the_row"));
+});
