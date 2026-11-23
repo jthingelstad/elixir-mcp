@@ -124,7 +124,11 @@ const PLAYER_PAGE = {
   // Recent play stories read changes and same-season progress together, then sampled decks and card levels.
   // +1: week_form (15.3.0), the weekly run's stored readings (0311), one
   // primary-key read of player_week_form; stored so no read counts weeks.
-  "/api/player": { statements: 41, buffers: 6000 },
+  // +2: the Timeline's own fields (annotateFeed, 2026-11-23): the
+  // catalog's cards a Mastery moment names, one keyed read, and the badge
+  // art a badge moment draws, one; the items' profile images ride the
+  // page's own avatar read before, and now theirs.
+  "/api/player": { statements: 43, buffers: 6000 },
   // 1500 to 900 (2026-11-14): 664 here, as on the battle page.
   // +1: the player's clan news reads (13.10.0, 2026-11-17).
   "/api/me/cheers": { statements: 27, buffers: 900 },

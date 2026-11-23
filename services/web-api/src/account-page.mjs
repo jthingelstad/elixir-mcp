@@ -36,6 +36,7 @@ import { TIMELINE_LOOKBACK_DAYS } from "@elixir-mcp/tools/activity/lookback";
 import { verifiedAvatars, withAvatar } from "./avatars.mjs";
 import { accountConnections, withPlayerConnections } from "./connections.mjs";
 import { HANDLE, normalizeHandle } from "./handle.mjs";
+import { annotateFeed } from "./feed.mjs";
 import { withTimelineSocial } from "./timeline-social.mjs";
 
 /** Page ids are twelve letters and digits with no look-alikes (0269). */
@@ -299,9 +300,11 @@ export async function readAccountPage(
     },
     passport: await readAccountPassport(db, account.account_id),
     window_days: ACCOUNT_PAGE_DAYS,
+    // What the Timeline draws each item with (feed.mjs annotateFeed,
+    // 2026-11-23), so the page draws them as the Timeline does.
     timeline: await withTimelineSocial(
       db,
-      built.timeline ?? [],
+      await annotateFeed(db, built.timeline ?? [], []),
       reader.accountId,
       { comments },
     ),

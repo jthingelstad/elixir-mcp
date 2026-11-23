@@ -195,7 +195,10 @@ played with or against a player you follow.
 Moments carry their art. A new card, a new Evo or Hero form and a Card
 Mastery show that card's own art, never changed. A badge moment (a new
 badge, a badge's new level, 12 wins in a challenge that raised the badge)
-shows the badge's own art from the game, never changed either. Badge art
+shows the badge's own art from the game, never changed either, about as
+big as a card in a deck. Cards on the Timeline are the card's art alone:
+an Evo or Hero card shows its own Evo or Hero art, with no label over it
+and no elixir cost on its corner. Badge art
 arrives as Elixir reads profiles: a badge level no profile it has read
 carries yet shows the moment's usual mark until one does. A new Arena, a new league
 in Ranked and a new best on Trophy Road read as the day's headline, with

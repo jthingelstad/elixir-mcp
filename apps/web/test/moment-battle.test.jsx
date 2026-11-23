@@ -138,6 +138,9 @@ test("a post about a battle shows its words, the battle, and both decks with the
     "Won 2 to 1",
   );
   expect(document.querySelector(".kit-vs__note").textContent).toBe("Ranked");
-  expect(document.querySelectorAll(".kit-deckrow__cost")).toHaveLength(16);
+  // The card art alone (2026-11-23): no costs, no Evo ribbon.
+  expect(document.querySelectorAll(".kit-vs .card-art")).toHaveLength(16);
+  expect(document.querySelectorAll(".kit-deckrow__cost")).toHaveLength(0);
+  expect(document.querySelectorAll(".card-art__form")).toHaveLength(0);
   expect(screen.getByRole("link", { name: "Open battle" })).toBeTruthy();
 });

@@ -283,6 +283,7 @@ function StoryItem({
   cheerWhere = undefined,
   publicView = false,
   commentEntry = null,
+  accountLinks = true,
 }) {
   const { when } = useClock();
   const sitting = SITTINGS.has(it.kind);
@@ -336,7 +337,7 @@ function StoryItem({
           Open battle
         </Link>
       ) : null}
-      {accountOf(it) ? (
+      {accountLinks && accountOf(it) ? (
         <Link to={accountHref(accountOf(it))} className="btn btn--sm">
           Open their account
         </Link>
@@ -593,7 +594,7 @@ function BadgeArt({ src, className, children }) {
 /** A moment's art (2026-11-17): the badge's own art for a badge it
  *  tells (badge_art), the card's own art for a card it names
  *  (never tinted, cropped or covered: the kit's CardArt draws it whole,
- *  its form's ribbon included), a day's Mastery cards side by side, a kit
+ *  and alone: no form ribbon, since 2026-11-23), a day's Mastery cards side by side, a kit
  *  mark for an Arena or a league (Elixir has no Arena art, and invents
  *  none), else the medal. */
 export function MomentArt({ it }) {
@@ -610,7 +611,13 @@ function MomentArtDrawn({ it }) {
     return (
       <span className="kit-mart kit-mart--cards">
         {it.moment_cards.map((c) => (
-          <CardArt key={c.id} card={c} size={40} showLevel={false} />
+          <CardArt
+            key={c.id}
+            card={c}
+            size={40}
+            showLevel={false}
+            showForm={false}
+          />
         ))}
       </span>
     );
@@ -618,7 +625,7 @@ function MomentArtDrawn({ it }) {
   if (cardOf)
     return (
       <span className="kit-mart kit-mart--card">
-        <CardArt card={cardOf} size={56} showLevel={false} />
+        <CardArt card={cardOf} size={56} showLevel={false} showForm={false} />
       </span>
     );
   const mark =
@@ -669,7 +676,7 @@ function MomentBody({ it, text }) {
         <div className="kit-scard__deck">
           <DeckRow
             cards={it.deck.cards}
-            showCost
+            showForm={false}
             label={`${it.deck.label ?? "The deck"}, the new deck`}
           />
         </div>
@@ -779,7 +786,12 @@ function MomentLine({ it, inGroup = false, cheerWhere, commentEntry }) {
           >
             {card ? (
               <span className="kit-line__art">
-                <CardArt card={card} size={24} showLevel={false} />
+                <CardArt
+                  card={card}
+                  size={24}
+                  showLevel={false}
+                  showForm={false}
+                />
               </span>
             ) : (
               <span
@@ -935,15 +947,20 @@ function NewMark() {
  * A day's rows in the feed's rhythm (feedRows): big items as their card,
  * a short session as one line, short sessions in a row as one group.
  * `openId` and `onToggle` open an item's evidence in place, and `below(it)`
- * draws it; without `onToggle` (Clan's Feed) nothing opens in place.
+ * draws it; without `onToggle` (Clan's Feed) nothing opens in place, and
+ * `canOpen(it)` narrows it to the items `below` can draw (a player page's
+ * sittings). `accountLinks` false leaves out "Open their account" where
+ * the page is that account's own.
  */
 export function FeedRows({
   rows,
   openId = null,
   onToggle = null,
+  canOpen = null,
   below = null,
   cheerWhere = undefined,
   commentEntry = null,
+  accountLinks = true,
 }) {
   return feedRows(rows).map((row, i) => (
     <div key={row.it.id ?? i}>
@@ -975,9 +992,14 @@ export function FeedRows({
         <FeedItem
           it={row.it}
           open={openId === row.it.id}
-          onToggle={onToggle ? () => onToggle(row.it.id) : null}
+          onToggle={
+            onToggle && (!canOpen || canOpen(row.it))
+              ? () => onToggle(row.it.id)
+              : null
+          }
           cheerWhere={cheerWhere}
           commentEntry={entryFor(commentEntry, row.it)}
+          accountLinks={accountLinks}
         />
       )}
       {row.type === "item" && openId === row.it.id && below

@@ -326,6 +326,10 @@ test("small moments fold into one row that opens to a line each (2026-11-17)", a
       return [cs.filter, cs.objectFit, cs.opacity, cs.mixBlendMode];
     }),
   ).toEqual(["none", "fill", "1", "normal"]);
+  // As wide as a deck row's card (2026-11-23), not the line's small mark.
+  expect(
+    await badgeArt.evaluate((img) => img.getBoundingClientRect().width),
+  ).toBe(48);
   // One moment alone is one line.
   await expect(
     page

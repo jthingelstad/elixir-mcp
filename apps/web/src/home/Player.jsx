@@ -1,6 +1,4 @@
-import { dropPlayHref } from "../lib/drop.js";
-import { ItemActions } from "./ItemActions.jsx";
-import { MomentArt } from "./FeedItem.jsx";
+import { FeedRows } from "./FeedItem.jsx";
 import { PlayerName } from "@elixir-mcp/ui";
 import { useState } from "react";
 import { useLocation } from "@tanstack/react-router";
@@ -40,16 +38,10 @@ import {
 } from "../lib/queries.js";
 import { normTag, tagFromPath, tagPath } from "../lib/tag-url.js";
 import { SessionGames } from "./SessionGames.jsx";
-import { Cheers, usePageCheered } from "./Cheers.jsx";
+import { usePageCheered } from "./Cheers.jsx";
 import { BlockButton, UnblockButton } from "./Block.jsx";
-import { Comments, useCommentsOn } from "./Comments.jsx";
-import {
-  evidenceWord,
-  Sitting,
-  SITTINGS,
-  sittingCard,
-  sessionLink,
-} from "./Session.jsx";
+import { useCommentsOn } from "./Comments.jsx";
+import { SITTINGS, sessionLink } from "./Session.jsx";
 import { FollowButton } from "./follow.jsx";
 import { FollowClan } from "./FollowClan.jsx";
 import { CloseToggle } from "./close.jsx";
@@ -60,7 +52,7 @@ import { useAskOnOpen } from "../lib/own-refresh.js";
 import { RefreshPlayer } from "./RefreshPlayer.jsx";
 import { PostList } from "./PostList.jsx";
 import { PassportRow } from "./PassportRow.jsx";
-import { accountHref, accountOf } from "../lib/account.js";
+import { accountHref } from "../lib/account.js";
 
 /**
  * A player's page (slice 6, #764): the one page every player name opens
@@ -351,7 +343,7 @@ export function PlayerView({
             />
           </>
         ) : shown === "moments" ? (
-          <Moments
+          <ItemList
             items={page.moments}
             empty={`No moments in the last ${page.window_days} days.`}
             cheered={cheered}
@@ -476,57 +468,29 @@ function Counts({ page, onPick }) {
   );
 }
 
-/** A clan's own line on a player's timeline wears the clan's medal. */
-const CLAN_KINDS = new Set([
-  "race_finished",
-  "week_resolved",
-  // The player's own war week wears its clan's medal too (13.10.0).
-  "war_week_played",
-  "bracket_observed",
-  "member_joined",
-  "member_left",
-  "member_role_changed",
-]);
-/** A card's first is a violet medal, as on Home. */
-const VIOLET = new Set([
-  "card_unlocked",
-  "card_form_unlocked",
-  "card_first_win",
-]);
-
-/** The medal tile beside an item (canvas Player .item): a sitting's bars, a
- *  clan's shield, a moment's star. */
-function Medal({ kind, tile = true }) {
-  const [icon, tone] = SITTINGS.has(kind)
-    ? ["activity", "violet"]
-    : CLAN_KINDS.has(kind)
-      ? ["shield", "clan"]
-      : ["star", VIOLET.has(kind) ? "violet" : ""];
-  return (
-    <span
-      className={`kit-medal${tile ? " kit-medal--tile" : ""}${tone ? ` kit-medal--${tone}` : ""}`}
-      aria-hidden="true"
-    >
-      <Icon name={icon} size={22} />
-    </span>
-  );
-}
-
-const battlePath = (it) =>
-  String(it.battle_url ?? "").replace(/^https?:\/\/[^/]+/, "");
-
-/** Items under the day they happened, newest first, as Home's feed. */
+/** Items under the day they happened, newest first, each day's rows in
+ *  the Timeline's own shape (FeedRows' `{it, isNew, newLine}`). */
 function byDay(items, dayKey) {
   const days = [];
   for (const it of items) {
     const key = it.at ? dayKey(it.at) : "";
+    const row = { it, isNew: false, newLine: false };
     const last = days[days.length - 1];
-    if (last && last.key === key) last.rows.push(it);
-    else days.push({ key, at: it.at, rows: [it] });
+    if (last && last.key === key) last.rows.push(row);
+    else days.push({ key, at: it.at, rows: [row] });
   }
   return days;
 }
 
+/**
+ * A player's or an account's items, drawn by the Timeline's own rows
+ * (FeedRows, 2026-11-23: "They should use a similar display to the
+ * timeline itself"): a session's card and deck, a moment's card or badge
+ * art, a short session or a small moment as one line, each with its
+ * cheers and comments. The read carries the Timeline's fields
+ * (annotateFeed). On a player's page a sitting with no page of its own
+ * (an old row) still opens its games in place.
+ */
 export function ItemList({
   items,
   empty,
@@ -536,116 +500,48 @@ export function ItemList({
   tag,
   accountLinks = true,
 }) {
-  const { when, feedWhen, day, feedDayHeading: dayHeading } = useClock();
+  const { day, feedDayHeading: dayHeading } = useClock();
   const [openId, setOpenId] = useState(null);
   if (items.length === 0) return <p className="kit-week__quiet">{empty}</p>;
+  // An item the page's own read carried no cheers for takes the page's
+  // cheers read (usePageCheered), and cheers through its key.
+  const shown = items.map((it) =>
+    "cheers" in it ? it : (cheered?.of(it) ?? it),
+  );
+  const cheerWhere = items.every((it) => "cheers" in it)
+    ? where
+    : (cheered?.where ?? where);
   return (
     <>
-      {byDay(items, day).map((d) => (
+      {byDay(shown, day).map((d) => (
         <section
           key={d.key}
           className="kit-day"
           aria-label={d.at ? dayHeading(d.at) : undefined}
         >
           {d.at ? <h2 className="kit-day__head">{dayHeading(d.at)}</h2> : null}
-          {d.rows.map((it, i) => {
-            const battle = battlePath(it);
-            const playHref = dropPlayHref(it);
-            const withCheers = "cheers" in it ? it : cheered?.of(it);
-            // A sitting draws as Home draws it (G7): its sparkline, its
-            // numbers and its games, read in place.
-            const sitting = SITTINGS.has(it.kind);
-            // Since 2026-11-16 the card opens the session's own page; one
-            // with no page to open (an old row) reads its games in place.
-            const card = sittingCard(it);
-            const href = card ? sessionLink(it, tag) : null;
-            const games = sitting && !href && tag && it.id && it.evidence;
-            const open = games && openId === it.id;
-            return (
-              <article
-                key={it.id ?? `${d.key}-${i}`}
-                className={`kit-feed__item kit-pitem${CLAN_KINDS.has(it.kind) ? " kit-feed__item--clan" : ""}`}
-              >
-                <div className="kit-pitem__body">
-                  {it.kind === "drop_game" ? (
-                    <MomentArt it={it} />
-                  ) : (
-                    <Medal kind={it.kind} />
-                  )}
-                  <div className="kit-pitem__main">
-                    {card ? null : (
-                      <p className="kit-feed__text">
-                        <TagText>{it.text}</TagText>
-                      </p>
-                    )}
-                    {it.at ? (
-                      <time
-                        className="kit-feed__time"
-                        dateTime={it.at}
-                        title={when(it.at)}
-                      >
-                        {feedWhen(it.at)}
-                      </time>
-                    ) : null}
-                    {card ? <Sitting it={it} href={href} /> : null}
-                    {open ? (
-                      <PlayerGames
-                        tag={tag}
-                        item={it}
-                        onClose={() => setOpenId(null)}
-                      />
-                    ) : null}
-                  </div>
-                </div>
-                {playHref ? (
-                  <ItemActions
-                    it={withCheers ?? it}
-                    playHref={playHref}
-                    cheerWhere={"cheers" in it ? where : cheered?.where}
-                    showComments={Boolean(withCheers) || "comments" in it}
-                  />
-                ) : withCheers ||
-                  games ||
-                  battle.startsWith("/battle/") ||
-                  (accountLinks && accountOf(it)) ? (
-                  <footer className="kit-feed__foot">
-                    {withCheers ? (
-                      <Cheers
-                        it={withCheers}
-                        where={"cheers" in it ? where : cheered.where}
-                      />
-                    ) : null}
-                    <span className="share-actions kit-feed__links">
-                      {games ? (
-                        <button
-                          type="button"
-                          className="btn btn--sm"
-                          aria-expanded={Boolean(open)}
-                          onClick={() => setOpenId(open ? null : it.id)}
-                        >
-                          {evidenceWord(it, open)}
-                        </button>
-                      ) : null}
-                      {battle.startsWith("/battle/") ? (
-                        <Link to={battle} className="btn btn--sm">
-                          Open the battle
-                        </Link>
-                      ) : null}
-                      {accountLinks && accountOf(it) ? (
-                        <Link
-                          to={accountHref(accountOf(it))}
-                          className="btn btn--sm"
-                        >
-                          Open their account
-                        </Link>
-                      ) : null}
-                    </span>
-                  </footer>
-                ) : null}
-                {!playHref && withCheers ? <Comments it={withCheers} /> : null}
-              </article>
-            );
-          })}
+          <FeedRows
+            rows={d.rows}
+            cheerWhere={cheerWhere}
+            accountLinks={accountLinks}
+            {...(tag
+              ? {
+                  openId,
+                  onToggle: (id) => setOpenId(openId === id ? null : id),
+                  canOpen: (it) =>
+                    SITTINGS.has(it.kind) &&
+                    Boolean(it.id && it.evidence) &&
+                    !sessionLink(it, tag),
+                  below: (it) => (
+                    <PlayerGames
+                      tag={tag}
+                      item={it}
+                      onClose={() => setOpenId(null)}
+                    />
+                  ),
+                }
+              : {})}
+          />
         </section>
       ))}
       {more > 0 ? (
@@ -655,47 +551,6 @@ export function ItemList({
         </p>
       ) : null}
     </>
-  );
-}
-
-/** The Moments tab: sunken tiles, a medal each (canvas Player moments). */
-function Moments({ items, empty, cheered, where }) {
-  const { when, feedWhen } = useClock();
-  if (items.length === 0) return <p className="kit-week__quiet">{empty}</p>;
-  return (
-    <ul className="kit-moments">
-      {items.map((it, i) => {
-        const battle = battlePath(it);
-        const withCheers = "cheers" in it ? it : cheered?.of(it);
-        return (
-          <li key={it.id ?? i} className="kit-moment">
-            <Medal kind={it.kind} tile={false} />
-            <div className="kit-moment__main">
-              <span className="kit-moment__title">
-                <TagText>{it.text}</TagText>
-              </span>
-              {it.at ? (
-                <time className="kit-tiny" dateTime={it.at} title={when(it.at)}>
-                  {feedWhen(it.at)}
-                </time>
-              ) : null}
-              {battle.startsWith("/battle/") ? (
-                <Link to={battle} className="link kit-tl__more">
-                  Open the battle
-                </Link>
-              ) : null}
-              {withCheers ? (
-                <Cheers
-                  it={withCheers}
-                  where={"cheers" in it ? where : cheered.where}
-                />
-              ) : null}
-              {withCheers ? <Comments it={withCheers} /> : null}
-            </div>
-          </li>
-        );
-      })}
-    </ul>
   );
 }
 

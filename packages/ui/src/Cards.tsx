@@ -114,19 +114,25 @@ export function cardLabel(card: Pick<DeckCard, "name" | "form">): string {
  *  width in CSS pixels, or "fill" for the width of the box the tile sits
  *  in (a deck row's column); the art keeps the game's 285:420 frame. With
  *  `to` it is a link (never put one inside another link: pass no `to`
- *  there, or the browser splits the links and the tiles fall apart). */
+ *  there, or the browser splits the links and the tiles fall apart).
+ *  `showForm` false draws the art alone, with no Evo or Hero ribbon: the
+ *  Timeline's tiles (Jamie, 2026-11-23: "Just let the card art show by
+ *  itself"), where the form's own art already says it. The label a
+ *  screen reader hears still names the form. */
 export function CardArt({
   card,
   size = 64,
   to,
   showName = false,
   showLevel = true,
+  showForm = true,
 }: {
   card: DeckCard;
   size?: number | "fill";
   to?: string | undefined;
   showName?: boolean;
   showLevel?: boolean;
+  showForm?: boolean;
 }) {
   // A card Elixir has no art for (Mirror, a card newer than the mirror)
   // is its name in the frame, never a broken image; a form the mirror
@@ -147,7 +153,7 @@ export function CardArt({
     : ({ "--card-w": `${size}px` } as CSSProperties);
   // The img's width and height are the frame's ratio; CSS sets the size.
   const imgW = fill ? 285 : size;
-  const ribbon = FORM_LABEL[form];
+  const ribbon = showForm ? FORM_LABEL[form] : undefined;
   const candidates = isTowerTroop(card.id) ? [] : artCandidates(card, source);
   const src = candidates?.find((u) => !failed.includes(u));
   const body: ReactNode = (
@@ -302,6 +308,7 @@ export function DeckRow({
   columns = 8,
   showLevel = false,
   showCost = false,
+  showForm = true,
   cardTo,
   label,
   preserveOrder = false,
@@ -310,6 +317,8 @@ export function DeckRow({
   columns?: 4 | 8;
   showLevel?: boolean;
   showCost?: boolean;
+  /** False for the art alone, no Evo or Hero ribbon (CardArt). */
+  showForm?: boolean;
   cardTo?: ((card: DeckCard) => string | undefined) | undefined;
   label?: string | undefined;
   preserveOrder?: boolean;
@@ -330,6 +339,7 @@ export function DeckRow({
               card={c}
               size="fill"
               showLevel={showLevel}
+              showForm={showForm}
               to={cardTo?.(c)}
             />
             {cost !== null ? (
@@ -366,6 +376,7 @@ export function DeckVersus({
   note,
   cardTo,
   showCost = false,
+  showForm = true,
 }: {
   left: VersusSide;
   right: VersusSide;
@@ -375,6 +386,8 @@ export function DeckVersus({
   note?: ReactNode;
   cardTo?: ((card: DeckCard) => string | undefined) | undefined;
   showCost?: boolean;
+  /** False for the art alone, no Evo or Hero ribbon (CardArt). */
+  showForm?: boolean;
 }) {
   const side = (s: VersusSide, key: string) => (
     <div className="kit-vs__side" key={key}>
@@ -387,6 +400,7 @@ export function DeckVersus({
         columns={4}
         cardTo={cardTo}
         showCost={showCost}
+        showForm={showForm}
       />
     </div>
   );

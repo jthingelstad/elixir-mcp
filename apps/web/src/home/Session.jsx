@@ -146,7 +146,7 @@ export function Sitting({ it, href = null, who = null }) {
         <div className={`kit-scard__deck${one ? " kit-scard__deck--one" : ""}`}>
           <DeckRow
             cards={deck.cards}
-            showCost
+            showForm={false}
             label={`${deck.label}, the deck played most`}
           />
         </div>

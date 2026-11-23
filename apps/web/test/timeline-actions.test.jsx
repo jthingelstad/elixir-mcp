@@ -204,14 +204,15 @@ test.each([
 });
 
 test("the player Timeline puts Play beside the existing conversation", () => {
+  // The player page's read carries comments as the Timeline's does
+  // (withTimelineSocial), and draws with the Timeline's rows (2026-11-23).
   const result = dropResult("drop_game", { mode: "surge" });
-  delete result.comments; // Player items load the thread on demand.
   renderWithProviders(<ItemList items={[result]} tag={tag} />);
   const row = screen.getByRole("group", { name: "Item actions" });
   expect(within(row).getByRole("link", { name: /play.*drop/i }).hash).toBe(
     "#/surge",
   );
-  expect(within(row).getByRole("button", { name: "Comments" })).toBeTruthy();
+  expect(within(row).getByRole("button", { name: "Comment" })).toBeTruthy();
 });
 
 test("only a personal best attributed to Drop offers Play", () => {
