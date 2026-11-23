@@ -2973,6 +2973,21 @@ Resources:
             FunctionAssociations:
               - EventType: viewer-request
                 FunctionARN: !GetAtt OauthQueryNormalizer.FunctionMetadata.FunctionARN
+          # The private RSS link. Its token is in the path, so no cookie
+          # is forwarded: CloudFront does not support If-None-Match on a
+          # behaviour that forwards cookies, and a feed reader's 304
+          # depends on that header reaching the origin (2026-11-22).
+          - PathPattern: /api/rss/*
+            TargetOriginId: api
+            ViewerProtocolPolicy: https-only
+            AllowedMethods: [GET, HEAD]
+            CachePolicyId: !Ref WebPrivateCachePolicy
+            ResponseHeadersPolicyId: !Ref SecurityHeadersPolicy
+            Compress: true
+            OriginRequestPolicyId: !Ref McpOriginRequestPolicy
+            FunctionAssociations:
+              - EventType: viewer-request
+                FunctionARN: !GetAtt OauthQueryNormalizer.FunctionMetadata.FunctionARN
           # Every other site API, Clan's /api/clan/* included: Clan is part
           # of Elixir and takes the same door.
           - PathPattern: /api/*
