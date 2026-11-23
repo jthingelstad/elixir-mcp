@@ -170,6 +170,9 @@ const handler = makeHandler({
   // comments are on (the handler checks): they share comments' check,
   // cap and log.
   posts: process.env.POSTS_ENABLED === "true",
+  // The stored-story shadow on the player page (2026-11-23): the stack's
+  // TimelineStoryShadow, on unless switched off.
+  storyShadow: process.env.TIMELINE_STORY_SHADOW === "on",
   comments:
     process.env.COMMENTS_ENABLED === "true" &&
     process.env.CLAN_MODEL_SECRET &&

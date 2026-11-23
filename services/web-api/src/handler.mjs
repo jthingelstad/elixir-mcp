@@ -258,6 +258,10 @@ export function makeHandler({
   /** Web push's VAPID public key (routes/push.mjs, 2026-11-16); null =
    *  notifications are not offered. Public: every browser is handed it. */
   vapidPublicKey = null,
+  /** The stored-story shadow on the player page (stage 1 of the stored
+   *  Timeline, 2026-11-23; routes/player.mjs shadowStories): the stack's
+   *  TimelineStoryShadow. False = no shadow read. */
+  storyShadow = false,
 }) {
   database ??= makeDatabase({
     connectionString: databaseUrl,
@@ -487,6 +491,7 @@ export function makeHandler({
       resolveAccount,
       live: liveRead,
       comments: comments?.enabled === true,
+      storyShadow,
     }),
     // Your own battles read now (2026-11-14): the same live lane, and the
     // stored week's wake once a read lands.

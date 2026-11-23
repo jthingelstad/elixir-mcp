@@ -408,6 +408,17 @@ async function dispatch(event, context) {
     console.log(JSON.stringify(result));
     return result;
   }
+  if (event?.timeline_story_backfill) {
+    // The stored Timeline's 35 days (0314, stage 1): timeline_story only.
+    const { timelineStoryBackfillOp } =
+      await import("./ops-timeline-story.mjs");
+    const result = await timelineStoryBackfillOp(
+      process.env.DATABASE_URL,
+      event.timeline_story_backfill,
+    );
+    console.log(JSON.stringify(result));
+    return result;
+  }
   if (event?.linked_follow_convert) {
     // Existing follows to linked follows (2026-11-15): account_follow,
     // friend claims and their account_event lines; the dry run reads.

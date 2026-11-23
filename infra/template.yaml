@@ -127,6 +127,15 @@ Parameters:
       the jobs drain writes notices and the relay sends them with the VAPID
       pair in the elixir-mcp/web-push secret, read at runtime. off - no
       offer, no drain, nothing sent; a deploy never resets it.
+  TimelineStoryShadow:
+    Type: String
+    Default: "on"
+    AllowedValues: ["on", "off"]
+    Description: >-
+      The stored Timeline's shadow (2026-11-23, stage 1). on - the player
+      page also reads the player's stored stories and logs one line of
+      differences from what it computed; the page is served either way.
+      off - no shadow read. A deploy never resets it.
   DiscordClientId:
     Type: String
     Default: ""
@@ -1535,6 +1544,8 @@ Resources:
           COMMENTS_CAP_USD: !Ref CommentsMonthlyCapUsd
           # Posts (2026-11-17): on only with PostsEnabled and comments on.
           POSTS_ENABLED: !If [HasPosts, "true", !Ref AWS::NoValue]
+          # The stored Timeline's shadow on the player page (2026-11-23).
+          TIMELINE_STORY_SHADOW: !Ref TimelineStoryShadow
           # Web push (2026-11-16): the VAPID PUBLIC key only, which every
           # browser is handed to subscribe; not a secret. The private key
           # stays in the secret and is read by the relay at runtime.

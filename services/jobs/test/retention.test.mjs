@@ -77,7 +77,10 @@ test("each trimmed entry's time column exists and holds a time", async () => {
         `${entry.table}.${column} is ${type ?? "missing"}`,
       );
     }
-    assert.ok(["1 year", "28 days"].includes(entry.window), entry.table);
+    assert.ok(
+      ["1 year", "28 days", "35 days"].includes(entry.window),
+      entry.table,
+    );
     if (entry.held) assert.equal(typeof entry.held, "string");
   }
 });

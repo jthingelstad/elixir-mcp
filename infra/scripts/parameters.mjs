@@ -103,6 +103,9 @@ export const PRESERVED_PARAMETERS = [
   "PostsEnabled",
   // Web push (2026-11-16): on by default, switched off only by hand.
   "WebPush",
+  // The stored Timeline's shadow on the player page (2026-11-23): on by
+  // default, switched off only by hand.
+  "TimelineStoryShadow",
 ];
 
 /**
