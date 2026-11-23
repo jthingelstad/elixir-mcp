@@ -78,7 +78,7 @@ brief forbids them from using it, and your assignment header repeats that.
    Connection: node .claude/skills/gym/call.mjs ONLY. Never use mcp__elixir-mcp__* tools.
    Legacy list (filed from Jamie's account before 2026-09-23; treat as your own history):
    <the lines>
-   Shipped since the last run of this family: <versions and one line each, if a sweep round>
+   Shipped since the last run of this family: <What's new entries and commits, one line each, if a sweep round>
    Scratch files: /tmp/gym-<family>/ only (Gyms running together collided in one directory on 2026-09-23).
    ```
 
@@ -135,8 +135,7 @@ Gym runs are read-only, so they may run while you fix another family.
    - **Prune a refuted case once what it tests is gone.** When the field,
      argument or behavior a refuted case exercises has left the contract
      (a removed war-day field, a retired trophy band, a changed timeline
-     order), delete the case from `gym.json`; git and the changelog keep
-     it. Keep a refutation where the Gym misread data that still exists
+     order), delete the case from `gym.json`; git keeps it. Keep a refutation where the Gym misread data that still exists
      (148.x, 183.x, 234.1, 238.3, 248.x, 249.2, 264.x): it guards against
      the same misreading next time. A case marked `refuted` that says it
      is held for Jamie is an open question, not a refutation; carry it in
@@ -156,9 +155,9 @@ Gym runs are read-only, so they may run while you fix another family.
      `clan_message` items", never what one says or who said it. The Gym
      reads its clan's facts; the fetcher stubs `attested` and `account`
      items in a bite, and `bites.test.mjs` fails on one that holds more.
-   - **One contract bump per family round**, not one per finding, which is
-     the cadence rule. Majors are off the table in a sweep. Anything that
-     would need one is a Jamie decision.
+   - **One What's new entry per family round** when the round is worth
+     telling, not one per finding. A breaking tool change is off the table
+     in a sweep; anything that would need one is a Jamie decision.
    - Ship with `/ship` (`.claude/skills/ship/`), deploying with
      `--acceptance=<family>`: only that family's cases. A Gym deploy
      always names its family; the whole suite (`--acceptance`) is only
@@ -171,7 +170,7 @@ Gym runs are read-only, so they may run while you fix another family.
      --family <family>` (paced; check the database's byte balance
      first).
      A change to a tool follows `/tool-change`.
-   - Answer each item with `{feedback_respond}`, `done` naming the version,
+   - Answer each item with `{feedback_respond}`, `done` with the UTC day it went live in `shipped_in`,
      following `docs/OPERATIONS.md`, "Feedback" (a compare-and-set, then a
      read-back). Add a short change note in `docs/notes/` for the round.
      Commit, merge through a PR (`/ship`'s Merge step), deploy, answer.
@@ -190,7 +189,7 @@ rest):
 **The sweep ends when** all ten families are clean, or clean-or-parked. The
 final message to Jamie has four parts:
 - the grid,
-- what shipped, with versions,
+- what shipped, with commits,
 - the parked decisions, each as one question,
 - whether the build is ready to announce.
 

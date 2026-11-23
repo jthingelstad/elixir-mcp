@@ -14,7 +14,8 @@ through `packages/docs` and the `elixir_docs` tool, for agents, who read
 the same corpus. Write what is true now, plainly:
 
 - No history in product pages: no "was X, now Y", no retired features, no
-  version tags in prose. `/updates` and `elixir_changelog` carry history.
+  version tags in prose. `/updates` (What's new, served to agents as
+  `elixir_updates`) and git carry history.
 - A decision in `docs/DECISIONS.md` that a page contradicts is a page bug.
 - Policy pages (`privacy.md`, `terms.md`) change only with Jamie's word.
 - **Anchors are API.** Tools point agents at `docsRef(page, section)`;

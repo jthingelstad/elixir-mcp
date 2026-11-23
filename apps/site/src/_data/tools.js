@@ -12,9 +12,8 @@
  * per-group modules keep declarations next to handlers, and only the
  * handlers touch a connection.
  */
-import { makeRegistry } from "@elixir-mcp/tools";
+import { makeRegistry, TOOLS_VERSION } from "@elixir-mcp/tools";
 import {
-  CONTRACT_VERSION,
   TOOL_GROUPS,
   GROUP_ORDER,
   OAUTH_SCOPE,
@@ -109,7 +108,8 @@ export default function tools() {
   return {
     all,
     groups,
-    contractVersion: CONTRACT_VERSION,
+    // The tool fingerprint, serverInfo.version (`tools.<12 hex>`).
+    toolsVersion: TOOLS_VERSION,
     count: all.length,
     liveFlagCount: declarations.filter((d) => d.inputSchema.properties?.live)
       .length,

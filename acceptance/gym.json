@@ -4249,6 +4249,7 @@
   {
     "id": "167.1",
     "feedback": 167,
+    "control": true,
     "stability": "live",
     "tool": "elixir_updates",
     "args": {
@@ -4284,25 +4285,6 @@
     "assert": [
       {
         "has": "docs"
-      }
-    ]
-  },
-  {
-    "id": "167.4",
-    "feedback": 167,
-    "control": true,
-    "stability": "live",
-    "tool": "elixir_changelog",
-    "args": {
-      "since": "6.23.0"
-    },
-    "request_id": "42651977-7dca-44a9-9efc-5ec5657ff751",
-    "assert": [
-      {
-        "has": "docs"
-      },
-      {
-        "has": "notes"
       }
     ]
   },

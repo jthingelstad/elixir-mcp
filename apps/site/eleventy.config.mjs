@@ -1,8 +1,8 @@
 /**
  * The static half of elixir.poapkings.com (2026-09-07 split).
  *
- * Everything that is CONTENT - home, docs, updates, the contract
- * changelog - is a real HTML page built here. Everything behind a
+ * Everything that is CONTENT - home, docs, updates - is a real HTML page
+ * built here. Everything behind a
  * session, or drawn from live data at read time, stays in the React app
  * (apps/web) and is served from /app.html by the edge router.
  *
@@ -60,7 +60,6 @@ export default function (eleventyConfig) {
   eleventyConfig.addPassthroughCopy("src/assets/rail-anchors.js");
   eleventyConfig.addPassthroughCopy("src/assets/site-help.js");
   eleventyConfig.addPassthroughCopy("src/assets/home-status.js");
-  eleventyConfig.addPassthroughCopy("src/assets/updates-filter.js");
   eleventyConfig.addPassthroughCopy("src/assets/site-rail.js");
   // The share image every page's og:image and twitter:image name.
   eleventyConfig.addPassthroughCopy("src/assets/og.png");

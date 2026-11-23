@@ -27,7 +27,6 @@ The source of truth for what stands, and the files that point agents at it.
 
 | Surface | Path | Must agree with |
 |---|---|---|
-| Versions | `packages/contracts/src/changes/<version>.ts`, one per version (`breaking` field, not prose) | the change's semver class (AGENTS.md rule 5) |
 | Shared vocabulary | `packages/contracts/src/{modes,principals,roles,queue,tool-groups}.ts` | JS and SQL readers (one answer in both), docs tables |
 | Tool registry | `packages/tools/src/tools.mjs`, `packages/tools/src/tools/**` | declarations, `output-schemas.mjs`, the brief |
 | Output schemas | `packages/tools/src/output-schemas.mjs` | every field the tool serves; nothing it does not |
@@ -77,7 +76,7 @@ is where the war-days gap lived.
 |---|---|---|
 | Docs pages | `apps/site/src/docs/*.md` | the registry, output schemas and DECISIONS |
 | Examples | `apps/site/src/_data/examples.js` | valid tool names and required arguments |
-| What's new | `apps/site/src/_data/updates/` (one file per entry) | the changelog, in plain words |
+| What's new | `apps/site/src/_data/updates/` (one file per entry) | what shipped, in plain words; no versions line on new entries |
 | Privacy promises | `privacy.md`, `connections.md`, `email.md`, `terms.md` | what the code sends, keeps and deletes |
 | Front page | `README.md` | the services and packages that exist |
 

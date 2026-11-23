@@ -1,7 +1,7 @@
 import { isRetiredRecordingEndpoint } from "./recording-policy.js";
 /**
  * Queue message contracts — the gateway <-> ingest seam (DESIGN §5.1).
- * Versioned like the tool contract: additive = fine, breaking = bump `v`.
+ * Additive changes are fine; a breaking one bumps `v`.
  */
 
 export interface CrJob {

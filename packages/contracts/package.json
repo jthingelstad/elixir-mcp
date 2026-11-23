@@ -6,7 +6,7 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
-    "build": "node scripts/changes-index.mjs && tsc -p tsconfig.json",
+    "build": "tsc -p tsconfig.json",
     "pretest": "npm run build",
     "test": "node --test '**/*.test.mjs'"
   },

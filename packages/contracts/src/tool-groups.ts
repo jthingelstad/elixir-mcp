@@ -386,11 +386,6 @@ export const TOOL_GROUPS: Record<string, ToolClass> = {
     title: "What's new",
     readOnly: true,
   },
-  elixir_changelog: {
-    group: "Help",
-    title: "Changelog",
-    readOnly: true,
-  },
   elixir_send_feedback: {
     group: "Help",
     title: "Send feedback",

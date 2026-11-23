@@ -127,7 +127,7 @@ capacity. Every route requires the CloudFront origin secret and a
 per-collector Bearer token.
 
 - **`GET /api/collector/config`**: the launch-time contract,
-  `{contract_version, min_client_version, pacing_ms, breaker,
+  `{min_client_version, pacing_ms, breaker,
   overflow_bytes, check_in, submit_retry, doctor, gateway, observed_ip,
   update}`.
   Read at startup and hourly. `observed_ip` is the caller's address from

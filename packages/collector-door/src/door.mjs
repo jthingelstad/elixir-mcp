@@ -85,7 +85,6 @@ function budgetRefusal(kind) {
   };
 }
 const CONFIG = {
-  contract_version: 2,
   // Jamie, 2026-10-13 (#418): 3.0.6 is the minimum. Below it the door
   // refuses lease and submit (426) when COLLECTOR_MIN_ENFORCE=1;
   // config is never refused. Unparseable versions (a dev build) are

@@ -4,7 +4,7 @@ import {
   assertResponseMeta,
   responseMeta,
   DISCLAIMER,
-  CONTRACT_VERSION,
+  TOOLS_VERSION_PATTERN,
   ERROR_CODES,
   ERROR_CLASS,
   ERROR_CLASSES,
@@ -12,11 +12,16 @@ import {
   unbandedTypes,
 } from "../dist/index.js";
 
-test("every response meta carries disclaimer and contract version", () => {
+test("a tool's meta carries the disclaimer; the registry stamps the fingerprint", () => {
   const meta = responseMeta({ as_of: "2026-09-03T12:00:00Z" });
   assert.equal(meta.disclaimer, DISCLAIMER);
-  assert.equal(meta.contract_version, CONTRACT_VERSION);
+  assert.equal(Object.hasOwn(meta, "contract_version"), false);
+  assert.throws(() => assertResponseMeta(meta), /contract_version/);
   assert.ok(DISCLAIMER.includes("not endorsed by Supercell"));
+  // The fingerprint form, and never the numbered contract it replaced.
+  assert.ok(TOOLS_VERSION_PATTERN.test("tools.0123456789ab"));
+  for (const old of ["15.5.0", "15.5.0+tools.0123456789ab", "tools.XYZ"])
+    assert.equal(TOOLS_VERSION_PATTERN.test(old), false, old);
 });
 
 test("error taxonomy is closed and stable", () => {
@@ -82,7 +87,7 @@ test("pre-reset window: final hour before Monday 00:10 UTC only", async () => {
 });
 
 test("metadata distinguishes absent history and unknown sources from zero age", () => {
-  const meta = responseMeta({
+  const built = responseMeta({
     as_of: "2026-09-08T00:00:00Z",
     recorded_since: "2026-08-01T00:00:00Z",
     recording_active_since: "2026-09-01T00:00:00Z",
@@ -93,6 +98,7 @@ test("metadata distinguishes absent history and unknown sources from zero age", 
       player_battlelog: { observed_at: null, freshness_seconds: null },
     },
   });
+  const meta = { ...built, contract_version: "tools.0123456789ab" };
   assert.doesNotThrow(() =>
     assertResponseMeta(JSON.parse(JSON.stringify(meta))),
   );

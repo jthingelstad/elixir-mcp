@@ -66,7 +66,6 @@ import {
   CloudWatchClient,
   GetMetricDataCommand,
 } from "@aws-sdk/client-cloudwatch";
-import { versionsIn } from "../../packages/contracts/scripts/changes-index.mjs";
 import { buildAll } from "./build.mjs";
 import {
   buildParameters,
@@ -1261,10 +1260,8 @@ async function writeRecord(d) {
     if (err?.name !== "NoSuchKey") throw err;
   }
   const declared = {
-    // The highest file in src/changes/ is CONTRACT_VERSION.
-    contract: versionsIn(
-      readdirSync(path.join(repoRoot, "packages/contracts/src/changes")),
-    )[0],
+    // The tool fingerprint this commit builds (serverInfo.version).
+    tools: (await import("../../packages/tools/src/tools.mjs")).TOOLS_VERSION,
     api: JSON.parse(
       await readFile(
         path.join(repoRoot, "packages/contracts/integration-api.openapi.json"),
@@ -1286,7 +1283,7 @@ async function writeRecord(d) {
     sha: headSha,
     deployed_at: deployedAt,
     lane,
-    contract_version: live.contract ?? declared.contract,
+    tools_version: live.tools ?? declared.tools,
     api_version: live.api ?? declared.api,
     acceptance: d.acceptanceResult,
     acceptance_headroom: d.acceptanceHeadroom ?? null,

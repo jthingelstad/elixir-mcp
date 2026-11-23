@@ -3,7 +3,7 @@
  *
  * The site is split in half (2026-09-07). apps/site is an Eleventy build
  * that emits real HTML documents for everything that is CONTENT - home,
- * docs, updates, the contract changelog - plus the machine-readable
+ * docs, updates - plus the machine-readable
  * surfaces (llms.txt, llms-full.txt, tools.json, sitemap.xml, feed.xml).
  * apps/web is the React application for everything behind a session or
  * drawn live at read time. Its immutable assets and the static documents

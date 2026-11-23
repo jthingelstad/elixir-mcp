@@ -72,7 +72,7 @@ form for followed players who appear in the battles section. Each post has
 one ID across both forms and appears once per feed.
 Clan-agent principals do not receive them, including with `on_behalf_of`.
 
-Since MCP 14.1, `facts.moment` is null or the author’s own recorded public game
+`facts.moment` is null or the author’s own recorded public game
 achievement: `id`, `kind`, `at`, `player_tag`, `text` and a game-only `item_ref`.
 Its sentence and time are the original record, attached to the author’s words.
 The post keeps its existing audience and `publishable: false` rule. Private

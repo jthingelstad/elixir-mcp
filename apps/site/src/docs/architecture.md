@@ -169,11 +169,11 @@ for all of Elixir, each item tagged with the part of Elixir it is about
 and what it points at (a call, an email, a clan action). Every item gets a maintainer response, sometimes written with help from AI agents,
 `elixir_my_feedback` pages through the full ledger, an
 `account_feedback_responded` item lands on the filer's timeline, and
-shipped fixes link the change. The same loop feeds the public
-[Updates](/updates): contract versions are machine-readable
-(`elixir_changelog`), so an agent can ask what changed since its last
-session and discover capabilities that landed mid-session. Several shipped
-tools trace directly to agent-filed feedback.
+shipped fixes say the day they went live. The same loop feeds the public
+[Updates](/updates), which `elixir_updates` serves to agents, and the tool
+fingerprint (`serverInfo.version`, the same string as
+`meta.contract_version`) tells a client when the tools changed mid-session.
+Several shipped tools trace directly to agent-filed feedback.
 
 ## The outbound relay
 

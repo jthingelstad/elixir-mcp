@@ -191,15 +191,17 @@ test("the old /data pages answer 301 to their sections, at the edge", () => {
 });
 
 test(
-  "Updates: months have pages, contract entries wait behind the switch",
+  "Updates: months have pages, and What's new is the only kind",
   { skip },
   () => {
     const doc = new JSDOM(read("updates/index.html")).window.document;
-    assert.ok(doc.querySelector("[data-contract-switch] input"), "the switch");
-    const contract = doc.querySelector('[data-kind="contract"]');
-    assert.ok(contract, "contract entries are in the page");
+    assert.ok(
+      doc.querySelector('[data-kind="shipped"]'),
+      "entries are in the page",
+    );
+    assert.equal(doc.querySelector('[data-kind="contract"]'), null);
     assert.ok(existsSync(path.join(out, "updates/2026-09/index.html")));
-    // Every entry keeps its own address, and the feed keeps both kinds.
+    // Every entry keeps its own address.
     assert.match(read("feed.json"), /"title"/);
   },
 );

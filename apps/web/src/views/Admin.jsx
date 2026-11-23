@@ -1828,7 +1828,7 @@ function AdminFeedbackItem({ id, navigate }) {
             <input
               className="input mono w-[160px]"
               aria-label="Shipped in"
-              placeholder="shipped in (11.3.0)"
+              placeholder="shipped (YYYY-MM-DD)"
               value={shipped}
               onChange={(e) => setShipped(e.target.value)}
             />

@@ -63,7 +63,7 @@ test(
   "a path the app does not own leaves for the static site",
   { timeout: 20000 },
   async () => {
-    // Home, docs, updates and the changelog are real documents built by
+    // Home, docs and updates are real documents built by
     // apps/site. The app must hand those paths back rather than render an
     // empty main - the state the old catch-all Landing fallback hid.
     const replace = vi.fn();

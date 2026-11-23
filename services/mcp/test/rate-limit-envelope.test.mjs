@@ -45,7 +45,7 @@ const COUNTED = {
   jsonrpc: "2.0",
   id: 1,
   method: "resources/read",
-  params: { uri: "elixir://changelog" },
+  params: { uri: "elixir://updates" },
 };
 
 const call = (body = COUNTED, key = KEY) =>

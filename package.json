@@ -53,7 +53,6 @@
     "op:batch": "node infra/scripts/op-batch.mjs",
     "web-latency": "node infra/scripts/web-latency.mjs",
     "editor-replay": "node infra/scripts/editor-replay.mjs",
-    "contract:bump": "node packages/contracts/scripts/bump.mjs",
     "e2e": "playwright test -c apps/web/playwright.config.ts"
   }
 }

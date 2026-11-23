@@ -28,12 +28,7 @@ const SKIP_DIRS = new Set([
   ".worktrees",
   "coverage",
 ]);
-const SKIP_PATHS = [
-  "db/migrations/",
-  "docs/",
-  ".claude/",
-  "packages/contracts/src/changes/",
-];
+const SKIP_PATHS = ["db/migrations/", "docs/", ".claude/"];
 // This guard, and its sibling that reads the migrated catalog to prove
 // the objects are gone, name them on purpose.
 const SELF = new Set([

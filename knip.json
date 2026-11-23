@@ -23,8 +23,8 @@
       "project": ["src/**/*.{ts,tsx}", "test/**/*.{ts,tsx}"]
     },
     "packages/contracts": {
-      "entry": ["src/changes/*.ts", "scripts/*.mjs", "test/**/*.test.mjs"],
-      "project": ["src/**/*.ts", "scripts/**/*.mjs", "test/**/*.mjs"]
+      "entry": ["test/**/*.test.mjs"],
+      "project": ["src/**/*.ts", "test/**/*.mjs"]
     },
     "packages/design": {
       "entry": ["test/*.test.mjs"],

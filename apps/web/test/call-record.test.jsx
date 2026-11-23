@@ -60,7 +60,7 @@ const RECORD = {
     meta: {
       request_id: ID,
       as_of: "2026-09-10T14:02:11Z",
-      contract_version: "1.0.0",
+      contract_version: "tools.0123456789ab",
       quota: { count: 41, max: 500 },
     },
   },
@@ -115,7 +115,7 @@ test("the record: tool, metrics strip, folded meta, cut arrays, neighbours, feed
   const foldMeta = screen.getByRole("button", { name: /4 fields/ });
   expect(rendered()).not.toContain('"contract_version"');
   fireEvent.click(foldMeta);
-  expect(rendered()).toContain('"contract_version": "1.0.0"');
+  expect(rendered()).toContain('"contract_version": "tools.0123456789ab"');
 
   const showAll = screen.getByRole("button", { name: "show all 30" });
   expect(rendered()).toContain('"week": 20');

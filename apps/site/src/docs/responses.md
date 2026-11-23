@@ -67,8 +67,8 @@ applied: the account's, or the call's own `timezone` argument. Stored
 timestamps and the envelope remain UTC. Every windowed tool that resolves a
 date-only bound or a local label emits it (the battle tools,
 `clans_standings`, `clans_participation`, the daily series,
-`elixir_timeline`); it is absent when no zone applied, and `live_fetch`,
-feedback and changelog answers never carry it.
+`elixir_timeline`); it is absent when no zone applied, and `live_fetch`
+and feedback answers never carry it.
 
 **`read_to`** (on `elixir_timeline`, beside the envelope), your read pointer
 after the call: the window's end when the call moved it, the pointer as it
@@ -105,10 +105,11 @@ rate limit is the exception: each agent has its own hour (see
 reporting an answer that looks wrong and we can find the exact row. Your own
 call history, with these ids, is under **Settings › Usage and limits › Requests**.
 
-**`contract_version`** identifies the Elixir release that produced the
-response. `elixir_changelog` explains release changes. Use `tools/list` on
-the active connection to discover callable tools and their arguments. On
-MCP 2026-07-28 refresh discovery when its private cache lifetime expires.
+**`contract_version`** is the tool fingerprint (`tools.<12 hex>`), the same
+string as `serverInfo.version`: it changes whenever a tool declaration does.
+When it differs from the one your client saw, read `tools/list` again on the
+active connection to discover callable tools and their arguments. On MCP
+2026-07-28 refresh discovery when its private cache lifetime expires.
 
 ### Beside the envelope
 

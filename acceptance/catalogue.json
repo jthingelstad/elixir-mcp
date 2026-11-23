@@ -165,31 +165,6 @@
         }
       ]
     },
-    "elixir_changelog": {
-      "calls": 3,
-      "p50_ms": 36,
-      "p95_ms": 134,
-      "sets": [
-        {
-          "args": {
-            "limit": 8
-          },
-          "calls": 1
-        },
-        {
-          "args": {
-            "since": "11.18.3"
-          },
-          "calls": 1
-        },
-        {
-          "args": {
-            "since": "11.18.6"
-          },
-          "calls": 1
-        }
-      ]
-    },
     "elixir_collectors": {
       "calls": 1,
       "p50_ms": 354,

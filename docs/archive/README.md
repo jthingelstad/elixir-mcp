@@ -13,9 +13,9 @@ does is <https://elixir.poapkings.com/docs>, the build invariants are
 `docs/ENGINEERING.md`, what stands is `docs/DECISIONS.md`, and open items
 are GitHub issues.
 
-Shipped migrations (`db/migrations`, checksum-immutable) and the published
-changelog (`packages/contracts/src/changes/`) still cite these paths.
-They are not edited; this table resolves them.
+Shipped migrations (`db/migrations`, checksum-immutable) and the old
+contract changelog (removed 2026-11-23, in git history) still cite these
+paths. They are not edited; this table resolves them.
 
 ## Archive bodies
 

@@ -11548,9 +11548,7 @@ a.kit-bell__hit:focus-visible::after {
 /* A class that sets display beats the browser's own [hidden] rule. */
 .chip[hidden],
 .data-chart[hidden],
-.data-range[hidden],
-.updates-switch[hidden],
-.updates-entry[hidden] {
+.data-range[hidden] {
   display: none;
 }
 @media (max-width: 719px) {
@@ -11569,43 +11567,12 @@ a.kit-bell__hit:focus-visible::after {
   }
 }
 
-/* Updates: the contract switch, an entry, the month pager. */
-.updates-switch {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--s-4);
-  margin: 0 0 18px;
-  padding: var(--s-3) 14px;
-  border-radius: var(--r-control);
-  cursor: pointer;
-}
-.updates-switch[hidden] {
-  display: none;
-}
-.updates-switch__words {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-}
-.updates-switch__name {
-  font-size: var(--t-body-sm);
-  font-weight: 600;
-}
-.updates-switch input {
-  width: 20px;
-  height: 20px;
-  flex: none;
-}
+/* Updates: an entry, the month pager. */
 .updates-month {
   margin: 26px 0 var(--s-3);
 }
 .updates-entry {
   margin-bottom: var(--s-3);
-}
-.updates-entry[hidden] {
-  display: none;
 }
 .updates-entry .panel__head {
   flex-wrap: wrap;

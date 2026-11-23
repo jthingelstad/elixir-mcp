@@ -4,8 +4,6 @@
  * the standing answer.
  */
 
-import { CONTRACT_VERSION } from "./version.js";
-
 export const DISCLAIMER =
   "This material is unofficial and is not endorsed by Supercell. For more " +
   "information see Supercell’s Fan Content Policy: " +
@@ -54,18 +52,25 @@ export interface ResponseMeta {
    */
   request_id?: string;
   disclaimer: typeof DISCLAIMER;
-  contract_version: typeof CONTRACT_VERSION;
+  /**
+   * The tool fingerprint, the same string as serverInfo.version:
+   * `tools.<12 hex>`, a hash of every tool declaration, so it changes
+   * whenever one does. The key kept its name when the numbered contract
+   * went (2026-11-23), so no response changed shape. Tools never set it:
+   * the registry stamps it on every body (@elixir-mcp/tools, TOOLS_VERSION).
+   */
+  contract_version: string;
 }
 
-export function responseMeta(
-  fields: Omit<ResponseMeta, "disclaimer" | "contract_version">,
-): ResponseMeta {
-  const meta = {
-    ...fields,
-    disclaimer: DISCLAIMER,
-    contract_version: CONTRACT_VERSION,
-  };
-  assertResponseMeta(meta);
+/** The envelope a tool builds, before the registry stamps contract_version. */
+export type ToolMeta = Omit<ResponseMeta, "contract_version">;
+
+/** The shape of meta.contract_version and serverInfo.version. */
+export const TOOLS_VERSION_PATTERN = /^tools\.[0-9a-f]{12}$/;
+
+export function responseMeta(fields: Omit<ToolMeta, "disclaimer">): ToolMeta {
+  const meta = { ...fields, disclaimer: DISCLAIMER };
+  checkMeta(meta, ["as_of", "disclaimer"]);
   return meta;
 }
 
@@ -119,7 +124,8 @@ const checks: Record<keyof ResponseMeta, (value: unknown) => boolean> = {
       value,
     ),
   disclaimer: (value) => value === DISCLAIMER,
-  contract_version: (value) => value === CONTRACT_VERSION,
+  contract_version: (value) =>
+    typeof value === "string" && TOOLS_VERSION_PATTERN.test(value),
 };
 
 /** Producer-side check: validate actual metadata, without printing its values.
@@ -129,8 +135,12 @@ const checks: Record<keyof ResponseMeta, (value: unknown) => boolean> = {
 export function assertResponseMeta(
   value: unknown,
 ): asserts value is ResponseMeta {
+  checkMeta(value, ["as_of", "disclaimer", "contract_version"]);
+}
+
+function checkMeta(value: unknown, needed: string[]) {
   if (!object(value)) throw new TypeError("Invalid response metadata");
-  for (const required of ["as_of", "disclaimer", "contract_version"]) {
+  for (const required of needed) {
     if (!Object.hasOwn(value, required))
       throw new TypeError(`Missing meta.${required}`);
   }

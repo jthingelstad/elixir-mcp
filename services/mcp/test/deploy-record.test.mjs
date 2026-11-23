@@ -133,8 +133,8 @@ test("deploy record: the comment says when (UTC and Central), which commit, whic
     sha: D,
     deployedAt: "2026-10-10T20:15:00.000Z",
     lane: "platform",
-    live: { contract: "11.7.2", api: "3.1.0" },
-    declared: { contract: "11.7.2", api: "3.2.0" },
+    live: { tools: "tools.0123456789ab", api: "3.1.0" },
+    declared: { tools: "tools.0123456789ab", api: "3.2.0" },
     acceptance: "passed (`--acceptance=clans`)",
     prCommits: [B, C],
   });
@@ -146,7 +146,7 @@ test("deploy record: the comment says when (UTC and Central), which commit, whic
     "platform lane",
     "`bbbbbbbb`",
     "`cccccccc`",
-    "MCP contract: 11.7.2\n",
+    "MCP tools: tools.0123456789ab\n",
     "JSON API: 3.1.0 (this commit declares 3.2.0)",
     "Acceptance: passed (`--acceptance=clans`)",
   ])
@@ -156,12 +156,12 @@ test("deploy record: the comment says when (UTC and Central), which commit, whic
       repo: REPO,
       sha: D,
       deployedAt: "2026-10-10T20:15:00Z",
-      live: { contract: null, api: null },
-      declared: { contract: "11.7.2", api: "3.1.0" },
+      live: { tools: null, api: null },
+      declared: { tools: "tools.0123456789ab", api: "3.1.0" },
       acceptance: "not run",
       prCommits: [D],
     }),
-    /MCP contract: unknown \(could not read it live; this commit declares 11\.7\.2\)[\s\S]*Acceptance: not run/,
+    /MCP tools: unknown \(could not read it live; this commit declares tools\.0123456789ab\)[\s\S]*Acceptance: not run/,
   );
 });
 
@@ -205,11 +205,14 @@ test("deploy record: live versions come from the published site; a failed read i
     fetch: async (url) => {
       seen.push(url);
       if (url.endsWith("/tools.json"))
-        return { ok: true, json: async () => ({ contract_version: "11.7.2" }) };
+        return {
+          ok: true,
+          json: async () => ({ contract_version: "tools.0123456789ab" }),
+        };
       return { ok: false, json: async () => ({}) };
     },
   });
-  assert.deepEqual(live, { contract: "11.7.2", api: null });
+  assert.deepEqual(live, { tools: "tools.0123456789ab", api: null });
   assert.deepEqual(seen, [
     "https://e.example/tools.json",
     "https://e.example/docs/integration-api.json",
@@ -221,7 +224,7 @@ test("deploy record: live versions come from the published site; a failed read i
         throw new Error("offline");
       },
     }),
-    { contract: null, api: null },
+    { tools: null, api: null },
   );
   assert.equal(
     deployHistoryKey("2026-10-10T20:15:00.123Z", D),
@@ -319,8 +322,8 @@ test("deploy record: the start, the CI gate's wait and each phase's seconds", ()
     sha: D,
     deployedAt: "2026-10-21T15:05:01.250Z",
     lane: "site",
-    live: { contract: "1.0.0", api: "1.0.0" },
-    declared: { contract: "1.0.0", api: "1.0.0" },
+    live: { tools: "tools.0123456789ab", api: "1.0.0" },
+    declared: { tools: "tools.0123456789ab", api: "1.0.0" },
     acceptance: "not run",
     prCommits: [D],
   };

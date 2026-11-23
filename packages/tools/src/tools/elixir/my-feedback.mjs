@@ -72,7 +72,7 @@ function compactRow(r) {
 
 export const elixir_my_feedback = {
   description:
-    "Your feedback and what happened to it: status (new/seen/planned/needs_info/done/declined), the maintainer's response, and ship links (shipped_in contract version, related_tools). needs_info is a question for you: reply with elixir_send_feedback follows_id. Every item you filed anywhere in Elixir is here. compact lists without bodies; feedback_id reads one item whole. Pages are bounded: pass next_offset as offset until null. Only responses delivered are marked seen. Poll only when meta.feedback_responses_pending says something is new.",
+    "Your feedback and what happened to it: status (new/seen/planned/needs_info/done/declined), the maintainer's response, and ship links (shipped_in: the day the fix went live, or a version on older answers; related_tools). needs_info is a question for you: reply with elixir_send_feedback follows_id. Every item you filed anywhere in Elixir is here. compact lists without bodies; feedback_id reads one item whole. Pages are bounded: pass next_offset as offset until null. Only responses delivered are marked seen. Poll only when meta.feedback_responses_pending says something is new.",
   inputSchema: {
     type: "object",
     properties: {
@@ -141,7 +141,7 @@ export const elixir_my_feedback = {
               ]
             : []),
         ),
-        docs: docsRef("protocol", "feedback-and-the-changelog-over-the-wire"),
+        docs: docsRef("protocol", "feedback-over-the-wire"),
         meta: responseMeta({ as_of: asOf }),
       };
     }
@@ -198,7 +198,7 @@ export const elixir_my_feedback = {
             ]
           : []),
       ),
-      docs: docsRef("protocol", "feedback-and-the-changelog-over-the-wire"),
+      docs: docsRef("protocol", "feedback-over-the-wire"),
       meta: responseMeta({ as_of: asOf }),
     });
     for (const row of mapped) {

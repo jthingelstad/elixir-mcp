@@ -7,7 +7,7 @@
  * back: the commits between that revision and this one are what this
  * deploy shipped for the first time. Each pull request those commits
  * came from gets one comment saying when it went live, at which commit,
- * with which contract versions, and what acceptance said.
+ * with which tool fingerprint and API version, and what acceptance said.
  *
  * Every outside effect is injected (`git(args)` returns trimmed stdout;
  * `ghApi(path)` parsed JSON; `ghPost(path, body)` posts), so the tests
@@ -95,7 +95,7 @@ export async function shippedPulls({ ghApi, repo, commits }) {
 }
 
 /** The versions production serves, read from the published site: the
- *  MCP contract from /tools.json and the JSON API from its OpenAPI
+ *  MCP tool fingerprint from /tools.json and the JSON API from its OpenAPI
  *  document. null where a read fails. */
 export async function liveVersions({ fetch, base }) {
   const read = async (url, pick) => {
@@ -109,7 +109,7 @@ export async function liveVersions({ fetch, base }) {
     }
   };
   return {
-    contract: await read(`${base}/tools.json`, (j) => j?.contract_version),
+    tools: await read(`${base}/tools.json`, (j) => j?.contract_version),
     api: await read(
       `${base}/docs/integration-api.json`,
       (j) => j?.info?.version,
@@ -194,7 +194,7 @@ export function commentBody({
     `**Deployed to production** ${utcAndCentral(deployedAt)}.`,
     "",
     `- Commit: ${link(sha)}${lane ? ` (${lane} lane)` : ""}; this PR's: ${prCommits.map(link).join(", ")}`,
-    `- MCP contract: ${versionLine(live.contract, declared.contract)}`,
+    `- MCP tools: ${versionLine(live.tools, declared.tools)}`,
     `- JSON API: ${versionLine(live.api, declared.api)}`,
     `- Acceptance: ${acceptance}`,
     ...(timing ? [timingLine(timing)] : []),

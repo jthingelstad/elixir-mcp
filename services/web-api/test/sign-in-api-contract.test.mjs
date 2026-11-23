@@ -10,6 +10,10 @@
  * stripped, of the operations and their schemas. When it moves, bump
  * info.version (a removed or renamed field is a major, an addition a
  * minor) and write the new version and fingerprint beside it.
+ *
+ * That pin (sign-in-api.pin.json, which is JSON and cannot hold this
+ * comment) is the real guard on info.version: since MCP dropped its
+ * version number (2026-11-23) nothing else moves or watches it.
  */
 import { test } from "node:test";
 import assert from "node:assert/strict";

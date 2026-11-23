@@ -10,7 +10,7 @@ import { createHash, randomUUID } from "node:crypto";
 import { performance } from "node:perf_hooks";
 import { responseMeta, ERROR_CLASS } from "@elixir-mcp/contracts";
 import { TOOL_GROUPS } from "@elixir-mcp/contracts";
-import { ToolFailure } from "./tools.mjs";
+import { ToolFailure, TOOLS_VERSION } from "./tools.mjs";
 import { pendingHints } from "./tools/shared.mjs";
 import { MCP_RESULT_MAX_CHARS } from "./result-text.mjs";
 import { captureCall } from "./capture.mjs";
@@ -462,10 +462,13 @@ function failureBody(err, requestId) {
       // on live_pending, 3.14.0).
       ...(err.data ?? {}),
     },
-    meta: responseMeta({
-      as_of: new Date().toISOString(),
-      ...(requestId ? { request_id: requestId } : {}),
-    }),
+    meta: {
+      ...responseMeta({
+        as_of: new Date().toISOString(),
+        ...(requestId ? { request_id: requestId } : {}),
+      }),
+      contract_version: TOOLS_VERSION,
+    },
   };
 }
 
@@ -603,10 +606,13 @@ export function makeInvoker({
               message: `Tool ${name} failed unexpectedly; the arguments were accepted and the server failed.`,
               hint: `Retry the same ${name} call once; if it fails again, elixir_send_feedback({ category: "bug", request_id: "${requestId}" }) with the arguments.`,
             },
-            meta: responseMeta({
-              as_of: new Date().toISOString(),
-              request_id: requestId,
-            }),
+            meta: {
+              ...responseMeta({
+                as_of: new Date().toISOString(),
+                request_id: requestId,
+              }),
+              contract_version: TOOLS_VERSION,
+            },
           },
           isError: true,
           errorCode: "internal",
@@ -741,7 +747,10 @@ export function makeRecordReader({
             message: `Reading ${name} failed unexpectedly.`,
             hint: "Try again in a moment.",
           },
-          meta: responseMeta({ as_of: new Date().toISOString() }),
+          meta: {
+            ...responseMeta({ as_of: new Date().toISOString() }),
+            contract_version: TOOLS_VERSION,
+          },
         },
         isError: true,
       };

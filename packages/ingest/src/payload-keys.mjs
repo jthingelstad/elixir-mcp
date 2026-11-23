@@ -18,7 +18,7 @@
  * This file is read by the fixture test (every fixture payload walked
  * against it) and by the nightly {shape_census} in the jobs Lambda; the
  * ingest path never reads it. Change it with the projection, the
- * contract bump, the docs and the cr-agent-api-docs entry, together.
+ * docs and the cr-agent-api-docs entry, together.
  */
 
 const to = (target, extra = {}) => ({ to: target, ...extra });

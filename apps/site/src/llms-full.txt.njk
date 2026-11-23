@@ -49,14 +49,4 @@ Takes no arguments.
 {% endfor %}
 ---
 
-## Contract changelog
-{% for c in changelog %}
-### {{ c.version }} ({{ c.date }})
-
-{{ c.summary | safe }}
-{% if c.tools_added %}Tools added: {{ c.tools_added | join(", ") | safe }}.
-{% endif %}{% if c.breaking %}BREAKING: {{ c.breaking | safe }}
-{% endif %}{% endfor %}
----
-
 {{ site.disclaimer | safe }}

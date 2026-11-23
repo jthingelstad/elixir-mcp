@@ -6,7 +6,7 @@ gate. `npm run acceptance` on demand; `node infra/scripts/deploy.mjs
 the deploy on a red case. Opt-in per deploy, and at most once per deploy
 train: a paced pass of heavy reads on the shared database (about 45
 minutes for the whole suite), so it is turned on when wanted - a
-contract bump, a query change, a release - not on every deploy. A deploy
+tool change, a query change, a release - not on every deploy. A deploy
 without it prints one line saying so.
 
 ## Why this exists beside the unit tests
@@ -39,7 +39,7 @@ equalled it: documented, named in every note, served on no row
 1. **Derive, record only as a stopgap.** Expectations come from artifacts of intent - the output schema, the docs section the response points at, a second tool computing the same fact. A recorded shape exists only where none of those does, carries `provenance: "recorded"`, and the run prints how many tools rest on one: a to-do list, not coverage.
 2. **One-directional.** A baseline path must be present now; a new path is information; an absence is never in the set, so it cannot be baselined.
 3. **Prove it bites.** Every rule is shown to fail on a capture from a version that had the defect (`bites/manifest.json`), under `verify`, forever - the archive bucket expires captures after 90 days, the proof must not. `bites/fetch.mjs <date> <request-id prefix> <name> [feedback id]` pulls one. A capture holds real players, so run `node infra/scripts/anonymize-fixtures.mjs acceptance/bites/<name>.json` on it before it is committed (the no-real-tags guard refuses it otherwise), then check it still fails its case.
-4. **Updating a baseline is a reviewed change.** `--update-shapes` refuses without `--reason`; the reason is written beside the baseline; the diff lands with the behaviour change and its changelog entry.
+4. **Updating a baseline is a reviewed change.** `--update-shapes` refuses without `--reason`; the reason is written beside the baseline; the diff lands with the behaviour change.
 5. **Sources the gate cannot own.** The Gym (an adversarial reader with no stake in the baseline) keeps its weekly hour for what the gate cannot imagine; when it files a finding, its capture becomes a bite the same day.
 
 ### Its own budget

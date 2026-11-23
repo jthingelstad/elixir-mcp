@@ -48,8 +48,8 @@ public milestone, after a burst of decisions, or about monthly. On
    themselves.
 2. Read `docs/DECISIONS.md` in full, `facets.md`, `classes.md`, and the
    previous report of this mode in `reports/`.
-3. Note HEAD, the contract version (the highest file in
-   `packages/contracts/src/changes/`)
+3. Note HEAD, the tool fingerprint (`contract_version` in the built
+   `/tools.json`, or `TOOLS_VERSION` from `packages/tools/src/tools.mjs`)
    and the JSON API version (`info.version` in
    `packages/contracts/integration-api.openapi.json`). The report states
    what it reviewed.
@@ -143,9 +143,10 @@ report. Every answer becomes a DECISIONS line in the fix phase.
 - Ledger in the same round: a line in `docs/DECISIONS.md` for every
   decision Jamie made, the stale lines rewritten, a change note in
   `docs/notes/`, and ENGINEERING.md where an invariant changed.
-- A contract change follows the versioning rules (AGENTS.md rule 5): one
-  MCP bump for the round (`npm run contract:bump`, then its entry), a
-  file in `apps/site/src/_data/updates/` for anything a user sees; a JSON API change moves `info.version` and the pin.
+- A contract change follows AGENTS.md rule 5: nothing to bump for MCP (the
+  fingerprint moves by itself), a breaking tool change asked of Jamie up
+  front, one file in `apps/site/src/_data/updates/` for the round when it
+  is worth telling; a JSON API change moves `info.version` and the pin.
 
 ## Phase 5: ship
 

@@ -352,13 +352,13 @@ person, their inbox (`feedback_answer`, after ten quiet minutes).
   for, or a manifest field absent for seven days. One kind of finding on
   one endpoint is one item listing its fields (`context.paths`, 11.10.0),
   never one per field. It is product work,
-  never an incident: the manifest entry and projection, a contract bump
-  if a shape moves, the site docs, and the `cr-agent-api-docs` entry.
+  never an incident: the manifest entry and projection, the site docs, and the `cr-agent-api-docs` entry.
 - **Answering** is a WRITE: `{feedback_respond}` through `npm run op`,
   which takes the lock. Re-read the item just before writing and pass
   what you read as `expected` (status, response, `responded_at`): it is
   a compare-and-set and refuses an item that moved. `done` means
-  deployed, with the version in `shipped_in`. A reply says what changed,
+  deployed, with the UTC day it went live in `shipped_in` (YYYY-MM-DD;
+  older answers carry a contract version and stay as they are). A reply says what changed,
   or why not, in plain words; never a promised feature or date. After an
   uncertain write, read the item back (`{feedback_read}`) before trying
   again; never replay one blindly, and skip an equivalent answer already
@@ -501,7 +501,7 @@ every command, probe and diff listed so anyone can re-verify it.
   token never authenticates at `/api/v1`, nor the reverse; rotation,
   revocation, expired-token refusal and session pruning; inherited and
   independent quotas, including the one shared live-fetch budget. Record
-  the contract version and source revision with the matrix.
+  the tool fingerprint and source revision with the matrix.
 - **Clan.** Person identity and current roster role checked on
   every request; clan and member isolation; maintainer access; session
   revocation; no private Clan state through MCP or the public API (the

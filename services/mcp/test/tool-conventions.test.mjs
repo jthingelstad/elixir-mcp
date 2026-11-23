@@ -201,7 +201,7 @@ test("no source names a retired tool, and every call-shaped mention is a real to
 });
 
 test("12.0.0: the renamed and retired tools appear in no declaration, and in tool sources only as history", () => {
-  // CHANGELOG 12.0.0 `breaking`: no aliases, no deprecation window.
+  // 12.0.0 was breaking: no aliases, no deprecation window.
   const retired =
     /\b(elixir_track_player|elixir_track_clan|players_timeline|clans_timeline|clans_members_timeline|battles_trends|elixir_data_insights|clans_context|elixir_identify)\b/;
   assert.doesNotMatch(JSON.stringify(declarations), retired);
@@ -216,7 +216,7 @@ test("12.0.0: the renamed and retired tools appear in no declaration, and in too
 });
 
 test("13.0.0: the analysis-era tools and modes are gone, and no name brings them back", () => {
-  // CHANGELOG 13.0.0 `breaking`: no tombstone, no alias, no window.
+  // 13.0.0 was breaking: no tombstone, no alias, no window.
   const registry = makeRegistry();
   for (const name of ["cards_card", "badges_rarity", "badges_holders"]) {
     assert.equal(registry.has(name), false, `${name} is not registered`);
@@ -253,7 +253,7 @@ test("13.0.0: the analysis-era tools and modes are gone, and no name brings them
 });
 
 test("4.0.0: no retired name survives in a declaration, a note, a docs pointer or the docs corpus", () => {
-  // The names the major retired (CHANGELOG 4.0.0 `breaking`), each with
+  // The names the major retired (4.0.0, a breaking change), each with
   // the shape it takes on the wire, so a description that still says
   // "days_seen" or a doc that still teaches `trophy_net` on the standings
   // fails here rather than in a consumer.

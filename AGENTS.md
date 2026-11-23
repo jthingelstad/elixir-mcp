@@ -60,7 +60,7 @@ not a feature to preserve.
   secrets, who is sent what, what is charged) say so. A line says no more
   than its answer: cite it, never restate it wider.
 - **`docs/ENGINEERING.md`:** the build invariants (rate budget, migrations,
-  contract versioning, ingest, packages, deploy).
+  the tool contract, ingest, packages, deploy).
 - **`docs/notes/`:** one note per change, written in its pull request
   (`docs/notes/README.md`); `docs/NOTES.md` is the frozen archive to
   2026-10-10. A new decision gets its note and its DECISIONS line in the
@@ -108,14 +108,15 @@ Skills and tests cite these by number; keep the numbering.
    quota: Supercell ToS posture, not an optimization.
 4. **CR tags are the only IDs for game entities.** One shared normalizer,
    no surrogate keys; accounts touch game data only through a claim.
-5. **Contracts are versioned in `packages/contracts`** (version,
-   changelog, errors, groups, principals, collector contract,
+5. **Contracts live in `packages/contracts`** (response meta, errors,
+   groups, principals, collector contract,
    `integration-api.openapi.json`); tool declarations and output schemas
-   sit with their handlers in `packages/tools`. MCP: an addition is a
-   minor, a correction a patch, a major is Jamie's call; every bump is a
-   file in `src/changes/` written by `npm run contract:bump`. `/api/v1`
-   (`GET /api/v1/me` alone) keeps ordinary semver of its own and mirrors
-   no tool.
+   sit with their handlers in `packages/tools`. MCP has no version
+   number: `serverInfo.version` and `meta.contract_version` are one
+   fingerprint of the declarations (`tools.<12 hex>`), and it moves by
+   itself. A breaking tool change is Jamie's call, asked up front and
+   stated in the pull request. `/api/v1` (`GET /api/v1/me` alone) keeps
+   ordinary semver of its own, guarded by its pin, and mirrors no tool.
 6. **Schema changes are ordered migrations in `db/migrations`**, applied
    only by the migrate Lambda during a deploy, never at handler start or
    by hand. Expand and contract; applied files are immutable
@@ -218,10 +219,10 @@ resolved at run time (`acceptance/README.md`, Subjects).
   and the test runner says so loudly on any other. After touching
   `.github/workflows/`, `sh infra/scripts/test-workflows.sh`.
 - **Docs ship with the change, as files of their own:** user-visible
-  behaviour updates `apps/site/src/docs/` and adds a What's new entry in
-  `apps/site/src/_data/updates/` in the same commit; a change note goes in
-  `docs/notes/`; a contract move is `npm run contract:bump`. Two pull
-  requests never edit one shared file for these. `/docs/tools` is
+  behaviour updates `apps/site/src/docs/` in the same commit, and a change
+  worth telling (tools included) adds a What's new entry in
+  `apps/site/src/_data/updates/`; a change note goes in `docs/notes/`.
+  Two pull requests never edit one shared file for these. `/docs/tools` is
   generated from the registry, never hand-edited.
 - **Commits are small and message-first;** stage named paths, never
   `git add -A`; assert HEAD moved.
@@ -234,7 +235,7 @@ resolved at run time (`acceptance/README.md`, Subjects).
   clear another holder's. `--break-glass` only when GitHub itself is
   down. `/ship` has the rest.
 - **Ask Jamie up front** for product calls (who sees what, what is
-  promised), an MCP or `/api/v1` major, IAM edits outside a deploy and
+  promised), a breaking tool change, an `/api/v1` major, IAM edits outside a deploy and
   deleting production rows. Steps only Jamie can do (Supercell keys, DNS,
   secret values) are one exact ask in a `needs-jamie` issue.
 

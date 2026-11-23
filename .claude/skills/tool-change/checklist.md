@@ -206,12 +206,12 @@ only when it does not apply, and say why in the commit message.
 - [ ] A new tool or argument shape has a seed in `catalogue-seed.json`,
       and the catalogue is refreshed and committed.
 
-## Version and hand-off
+## Telling and hand-off
 
-- [ ] `npm run contract:bump` wrote the version's file in
-      `packages/contracts/src/changes/`, its entry filled in with
-      `tools_added` or `breaking` where they apply. There is one bump
-      for the round. Test: `packages/contracts/test/changelog`.
+- [ ] A change worth telling (a new tool, a removal, a change agent
+      owners should hear of) has one What's new entry for the round, with
+      no versions line. A breaking change was asked of Jamie up front and
+      is stated in the pull request.
 - [ ] Jamie's decisions are in `docs/DECISIONS.md` and a note in
       `docs/notes/`.
 - [ ] Hand off to `/ship`, naming the family (the tool-name prefix) for
@@ -277,13 +277,9 @@ only when it does not apply, and say why in the commit message.
 - `/api/v1` declares `GET /me` alone, and `info.version` and its
   fingerprint match `sign-in-api.pin.json`; no tool reaches it.
 
-`packages/contracts/test/changelog.test.mjs`:
-- The newest entry is `CONTRACT_VERSION`.
-- Versions are unique and run newest first.
-- Every entry has a version, a date and a summary.
-- Each file in `src/changes/` is named for its version and carries it;
-  the contract is the highest file, and each version succeeds the one
-  before it.
+`services/mcp/test/mcp.test.mjs`:
+- `serverInfo.version` is the tool fingerprint for every kind, the same
+  string as `meta.contract_version`, and it moves when a declaration does.
 
 `apps/site/test/site.test.mjs` (only when the site is built):
 - The tools pages and `tools.json` cover the live registry.

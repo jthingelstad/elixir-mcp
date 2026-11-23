@@ -1,6 +1,6 @@
 ---
 name: ship
-description: Take a finished Elixir MCP change to production and prove it there. Preflight (your own worktree, AWS caller), release bookkeeping (the contract version file, JSON API version and pin, the What's new file, site docs, the change note), `npm run verify`, commits, a draft pull request merged on a green `validate` check, the deploy (it takes the production lock) with the right acceptance scope, triage of every acceptance failure, the live read-back, then sibling repos and the close. `/ship` runs every step; `/ship from <step>` resumes at one (`/ship from triage` after Jamie ran a deploy the session was refused). Use whenever work in this worktree is ready for production, including at the end of `/tool-change`, `/migration`, a Gym round or a consistency round.
+description: Take a finished Elixir MCP change to production and prove it there. Preflight (your own worktree, AWS caller), release bookkeeping (JSON API version and pin, the What's new file when worth telling, site docs, the change note), `npm run verify`, commits, a draft pull request merged on a green `validate` check, the deploy (it takes the production lock) with the right acceptance scope, triage of every acceptance failure, the live read-back, then sibling repos and the close. `/ship` runs every step; `/ship from <step>` resumes at one (`/ship from triage` after Jamie ran a deploy the session was refused). Use whenever work in this worktree is ready for production, including at the end of `/tool-change`, `/migration`, a Gym round or a consistency round.
 ---
 
 # Ship
@@ -62,29 +62,19 @@ file (the JSON API pin, a docs page) before editing it: on 2026-09-08 a
 version bump by string replace matched nothing, because another session
 had moved the file.
 
-**The MCP contract** (a declaration, response, note or error):
-- `npm run contract:bump -- <patch|minor|major>` writes
-  `packages/contracts/src/changes/<version>.ts`, the next version after
-  the highest on `origin/main`, with a skeleton entry to fill in.
-  `CONTRACT_VERSION` is the highest file; nothing else is typed. When
-  another pull request takes the number first, run `npm run
-  contract:bump` again before rebasing: it renumbers this branch's file
-  and the "MCP x.y.z" mentions in the fragments this branch added.
-  "Every contract bump updates the changelog" (DECISIONS);
-  `elixir_changelog(since)` is how an agent finds what moved, and
-  `packages/contracts/test/changelog.test.mjs` refuses a gap or a
-  duplicate.
-- MCP only, agent-aware: additive is a minor; "a patch is a behaviour
-  correction only, and an output-schema change is a patch that moves the
-  fingerprint"; "a correction that removes an unreliable field is a patch,
-  while a major is for a domain-model change that requires the agent to
-  change what its task means" (DECISIONS). A major is Jamie's call.
-- Breaking text goes in the entry's `breaking` field, never "Breaking:"
-  prose in `summary`: the site renders `breaking` as its own panel and
-  `elixir_changelog` serves it as a field. 9.1.0 moved three out.
-- `npm run build` in `packages/contracts` afterwards: other workspaces
-  read its `dist`, and `services/mcp`'s tests are a bare `node --test`, so
-  a focused run reads the old contract (the root `npm test` rebuilds).
+**The MCP tools** (a declaration, response, note or error): nothing to
+bump. MCP has no version number (2026-11-23): `serverInfo.version` and
+every `meta.contract_version` are the tool fingerprint, `tools.<12 hex>`,
+and move by themselves when a declaration does.
+- A change that breaks a caller (a removed or renamed tool, argument or
+  field, a changed meaning) is Jamie's call, asked up front and stated in
+  the pull request.
+- Agents learn of a change worth telling from What's new
+  (`elixir_updates`); write an entry when it is (below).
+- After editing `packages/contracts`, `npm run build` there: other
+  workspaces read its `dist`, and `services/mcp`'s tests are a bare
+  `node --test`, so a focused run reads the old build (the root
+  `npm test` rebuilds).
 
 **The JSON API** (`GET /api/v1/me` itself; since 5.0.0 it mirrors no
 tool, so an MCP change never moves it):
@@ -97,20 +87,21 @@ tool, so an MCP change never moves it):
   fingerprint.
 - `apps/site/src/docs/sign-in-with-elixir.md` says what `/me` answers.
 
-**What a user sees:** a file in `apps/site/src/_data/updates/`,
+**What a user sees**, when it is worth telling (not every change needs
+one; a tool change that agent owners should hear of does): a file in
+`apps/site/src/_data/updates/`,
 `<YYYY-MM-DD>-t<HHMMSS>-<slug>.md` (`apps/site/AGENTS.md`, "Updates"): use
 the current UTC date and time and this change's slug, without reserving a
 daily number. Same-second entries sort by file name; legacy numbered
 entries keep their relative order. Never rename an existing entry. A
-`# Title` line, then the body written for a person, ending with the versions
-("Contracts 9.0.0 and 9.0.1; JSON API 2.0.0."). `/updates` already shows
-the changelog entries; this is the story, not a copy.
+`# Title` line, then the body written for a person. No versions line:
+entries before 2026-11-23 end with one, and new ones do not.
 
 **Site docs** in `apps/site/src/docs/`, same commit. The tool reference is
 generated from the registry: fix the declaration, never the page.
 
 **The change note:** `docs/notes/<YYYY-MM-DD>-<slug>.md`
-(`docs/notes/README.md`: what, why, the versions); a decision gets its
+(`docs/notes/README.md`: what, why, what it ships with); a decision gets its
 `docs/DECISIONS.md` line in the same commit. `docs/NOTES.md` is the frozen
 archive; never append to it. Anything left open is a GitHub issue
 (`needs-jamie`, `engineering`, `parked`), not a note.
@@ -139,8 +130,8 @@ warns that it is not a pass on 24.
 - Logical chunks, message-first: write the message, then stage exactly the
   paths it describes. `git add -A` sweeps another worker's edits into a
   commit whose message does not say so.
-- A release commit leads with its version ("9.1.1: the war trophies note
-  names the field served; ..."). End every message with the attribution
+- A commit leads with what it does ("War trophies note names the field
+  served; ..."). End every message with the attribution
   trailer the session's instructions require, if any.
 - Assert HEAD moved (`git log --oneline -1`). Never pipe commit output
   through `tail`: the pipe's status is tail's, so a failed commit passes.
@@ -169,9 +160,7 @@ then tests the combination, and the deploy gate waits for it.
    check that fails and passes on a re-run is a flake, and a flake is a
    defect: fix it in this PR or file an `engineering` issue the same day.
 4. A rebase conflict with main (GitHub reports the PR `DIRTY`): rebase
-   the branch on `origin/main`, resolve, push; the check re-runs. A
-   contract version file that collides is renumbered with `npm run
-   contract:bump` first.
+   the branch on `origin/main`, resolve, push; the check re-runs.
 5. `gh pr view --json state -q .state` is `MERGED`, then
    `git fetch origin && git switch --detach origin/main` in the
    session's worktree. Deploy from there, never from a branch.
@@ -193,7 +182,7 @@ holder has is a wait, never a workaround: the refusal names the holder,
 since when and what for, and their deploy ships origin/main, so yours may
 find nothing left to do. Never clear another holder's lock. A live deploy
 writes `deploys/production.json` and comments on each pull request it
-shipped (the time, the versions, the acceptance result, and the timing:
+shipped (the time, the tool fingerprint and JSON API version, the acceptance result, and the timing:
 the start, the CI gate's wait, each phase's seconds).
 
 The profile goes in the environment: "the CLI profile flag alone does not
@@ -245,7 +234,7 @@ points an hour) and run `npm run acceptance` later, or deploy with one
 family; never retry in a loop. `--skip-headroom-check` only in an
 outage, and the report says so. A preflight SKIPPED line (CloudWatch
 unreadable) is reported, not ignored. `--skip-web` leaves `/docs`,
-`/updates` and `/tools.json` as they were: never with a contract or docs
+`/updates` and `/tools.json` as they were: never with a tool or docs
 change.
 
 **Refusals.** A dirty worktree (untracked files aside): the build bundles
@@ -314,15 +303,16 @@ this file. Without exception:
 The smoke read the doors; read what this change moved, reads only:
 - `curl -s https://elixir.poapkings.com/api/public/status`: `health.ok` is
   true (edge-cached about 60 s).
-- On Jamie's `elixir-mcp` connection, `elixir_changelog` with `since` the
-  previous version answers the new entry, and `meta.contract_version` on
-  any response is live. `serverInfo.version` (`<contract>+tools.<fingerprint>`)
-  shows on reconnect (`/mcp`), which a new argument may need first.
+- On Jamie's `elixir-mcp` connection, `meta.contract_version` on any
+  response is the new fingerprint (`tools.<12 hex>`, the same as
+  `/tools.json`), and `serverInfo.version` shows it on reconnect (`/mcp`),
+  which a new argument may need first. `elixir_updates` answers a new
+  What's new entry.
 - The change itself: re-make the call that showed the defect (the Gym
   case's arguments, the feedback item's call) and read the changed field.
-- On the same host, `/tools.json` carries `contract_version` and
-  `/docs/integration-api.json` the JSON API's `info.version`; `/updates`
-  lists the update and `/updates/<date>-contract-<x-y-z>/`.
+- On the same host, `/tools.json` carries `contract_version` (the
+  fingerprint) and `/docs/integration-api.json` the JSON API's
+  `info.version`; `/updates` lists a new entry at its own page.
 
 ## Siblings
 
@@ -357,12 +347,12 @@ The smoke read the doors; read what this change moved, reads only:
   an issue (`needs-jamie` or `engineering`). A deploy time quoted anywhere
   only if you read it: on 2026-09-25 an unverified one had to come out
   (dd546ed4). Write it `13:14Z (8:14 AM CT)`.
-- Answer the feedback the change closes after the read-back, `done` naming
-  the version, by `docs/OPERATIONS.md`, "Feedback" (through `npm run op`,
+- Answer the feedback the change closes after the read-back, `done` with
+  the UTC day it went live in `shipped_in`, by `docs/OPERATIONS.md`, "Feedback" (through `npm run op`,
   a compare-and-set, then a read-back).
 - A DECISIONS line added or changed: `/consistency <decision>` that day.
 - `git status --porcelain` empty (untracked files count), then end the
   session (`session-finish <slug>` on Jamie's machine).
-- Tell Jamie what shipped (versions, commits), what acceptance caught, and
+- Tell Jamie what shipped (commits, any JSON API version), what acceptance caught, and
   **Needs you** (a refused deploy's command, a live check only he can
   make). Times in US Central.

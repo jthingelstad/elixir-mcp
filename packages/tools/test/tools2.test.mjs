@@ -1105,42 +1105,14 @@ test("11.10.0 (#378): compact lists a whole page without bodies and marks nothin
   }
 });
 
-test("feedback round two: changelog since-filter, ship links, pending hint clears on read", async () => {
-  const releases = [];
-  let offset = 0;
-  do {
-    const page = await call("elixir_changelog", { since: "0.14.0", offset });
-    assert.equal(page.isError, false);
-    releases.push(...page.body.entries);
-    offset = page.body.next_offset;
-  } while (offset !== null);
-  const log = { isError: false, body: { entries: releases } };
-  assert.equal(log.isError, false);
-  assert.ok(
-    log.body.entries.every(
-      (e) =>
-        e.version > "0.14.0" ||
-        e.version.startsWith("0.15") ||
-        e.version.startsWith("0.16"),
-    ),
-  );
-  assert.ok(
-    log.body.entries.some((e) =>
-      (e.tools_added ?? []).includes("elixir_changelog"),
-    ),
-  );
-  assert.ok(
-    !log.body.entries.some((e) => e.version === "0.14.0"),
-    "since is exclusive",
-  );
-
+test("feedback round two: ship links, pending hint clears on read", async () => {
   // Ship links + pending hint: respond to an item, see the hint, read, hint clears.
   const filed = await call("elixir_send_feedback", {
-    message: "changelog test item",
+    message: "ship links test item",
   });
   await db.query(
     `update feedback set status='done', response='Shipped.', responded_at=now(),
-            shipped_in='0.16.0', related_tools=array['elixir_changelog']
+            shipped_in='2026-11-23', related_tools=array['elixir_updates']
      where feedback_id = $1`,
     [filed.body.feedback_id],
   );
@@ -1153,8 +1125,8 @@ test("feedback round two: changelog since-filter, ship links, pending hint clear
   const row = mine.body.feedback.find(
     (f) => f.feedback_id === filed.body.feedback_id,
   );
-  assert.equal(row.shipped_in, "0.16.0");
-  assert.deepEqual(row.related_tools, ["elixir_changelog"]);
+  assert.equal(row.shipped_in, "2026-11-23");
+  assert.deepEqual(row.related_tools, ["elixir_updates"]);
   const after2 = await call("players_summary", {});
   assert.equal(after2.body.meta.feedback_responses_pending, 0);
 });

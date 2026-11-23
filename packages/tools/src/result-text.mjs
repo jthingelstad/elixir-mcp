@@ -3,6 +3,7 @@
  *  2026-09-29 so they reach it without importing the MCP door). */
 
 import { responseMeta } from "@elixir-mcp/contracts";
+import { TOOLS_VERSION } from "./tools.mjs";
 
 export const MCP_RESULT_MAX_CHARS = 48_000;
 
@@ -81,13 +82,16 @@ export function renderToolResultText(registry, name, invoked, kind = null) {
         message: `Result is ${text.length} characters; the cap is ${MCP_RESULT_MAX_CHARS}.`,
         hint,
       },
-      meta: responseMeta({
-        as_of: invoked?.meta?.as_of ?? new Date().toISOString(),
-        ...(invoked?.meta?.request_id
-          ? { request_id: invoked.meta.request_id }
-          : {}),
-        ...(invoked?.meta?.quota ? { quota: invoked.meta.quota } : {}),
-      }),
+      meta: {
+        ...responseMeta({
+          as_of: invoked?.meta?.as_of ?? new Date().toISOString(),
+          ...(invoked?.meta?.request_id
+            ? { request_id: invoked.meta.request_id }
+            : {}),
+          ...(invoked?.meta?.quota ? { quota: invoked.meta.quota } : {}),
+        }),
+        contract_version: TOOLS_VERSION,
+      },
     };
     text = JSON.stringify(body);
   }
