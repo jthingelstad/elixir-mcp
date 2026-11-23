@@ -93,6 +93,11 @@ the check found:
   12,593", a new best, a new arena or league, "Joined" or "Left" a clan,
   a new name. Nothing is said for a profile Elixir had never read.
 
+The page shows the battles played in its seven days at the time they were
+played, even ones Elixir only just learned about. So after Check for new
+battles on a player nobody follows, the battles it found show up here.
+Your Timeline doesn't retell those older battles as new.
+
 The line stays for two minutes, and the button says "Check again". If
 Clash Royale is slow, it says "Still checking. New battles show up here
 shortly." and keeps looking for about three more minutes, never while the
