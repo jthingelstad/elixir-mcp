@@ -3,16 +3,18 @@
  * plain answer at the mail limit, and the Profile page's device list.
  *
  * The handoff: a sign-in started on one screen and finished on another
- * hands the session back to the screen that asked. From the same address
- * at once; from a different address only after the screen that opened
- * the link says yes. The poll id is minted for every request so the
+ * hands the session back to the screen that asked, but only after the
+ * screen that opened the link says yes. From any address: the
+ * same-address shortcut went on 2026-11-23, since anyone on the same
+ * network who knew the address could start a sign-in and be signed in by
+ * its owner's tap. The poll id is minted for every request so the
  * answer's shape cannot say whether an account exists.
  */
 
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
 import pg from "pg";
-import { emailHash } from "../../../packages/auth/src/index.mjs";
+import { emailHash, sha256hex } from "../../../packages/auth/src/index.mjs";
 import { makeHandler } from "../src/handler.mjs";
 import {
   createScratch,
@@ -86,7 +88,7 @@ after(async () => {
   await dropScratch(NAME);
 });
 
-test("same address: the link opened elsewhere hands the session to the screen that asked", async () => {
+test("same address: the link's screen is asked too, and nothing moves until it says yes", async () => {
   const ask = await handler(
     event({ path: "/api/auth", body: { age_13: true, email: MEMBER } }),
   );
@@ -100,7 +102,8 @@ test("same address: the link opened elsewhere hands the session to the screen th
   assert.deepEqual(parse(early), { ready: false });
   assert.equal(early.headers["set-cookie"], undefined);
 
-  // The mail app on the same phone opens the link: same viewer address.
+  // The mail app on the same network opens the link: the same viewer
+  // address, which used to hand the session over at once.
   const { token } = sentEmails.at(-1);
   const redeem = await handler(
     event({
@@ -110,13 +113,46 @@ test("same address: the link opened elsewhere hands the session to the screen th
     }),
   );
   assert.equal(redeem.statusCode, 200, redeem.body);
-  assert.deepEqual(parse(redeem), {
-    authenticated: true,
-    handoff: { state: "done" },
-  });
+  const body = parse(redeem);
+  assert.equal(body.authenticated, true);
+  assert.equal(body.handoff.state, "confirm");
+  assert.match(body.handoff.confirm, /^[A-Za-z0-9_-]{32,}$/);
+  assert.deepEqual(Object.keys(body.handoff.started).sort(), [
+    "at",
+    "client",
+    "country",
+  ]);
   assert.match(redeem.headers["set-cookie"], /^__Host-elixir_session=/);
 
-  // The screen that asked collects: a session of its own, once.
+  // The address is not kept: nothing reads it any more.
+  const { rows } = await db.query(
+    `select started_from from magic_login where token_hash = $1`,
+    [sha256hex(token)],
+  );
+  assert.deepEqual(Object.keys(rows[0].started_from).sort(), [
+    "at",
+    "client",
+    "country",
+  ]);
+
+  // The waiting screen polls, again and again: not ready.
+  for (let i = 0; i < 3; i += 1) {
+    const waiting = await handler(
+      event({ path: "/api/auth/poll", body: { poll_id } }),
+    );
+    assert.deepEqual(parse(waiting), { ready: false });
+    assert.equal(waiting.headers["set-cookie"], undefined);
+  }
+
+  // Allow: the screen that asked collects a session of its own, once.
+  const yes = await handler(
+    event({
+      path: "/api/auth/handoff",
+      body: { confirm: body.handoff.confirm },
+      cookie: cookieOf(redeem),
+    }),
+  );
+  assert.equal(yes.statusCode, 200, yes.body);
   const got = await handler(
     event({ path: "/api/auth/poll", body: { poll_id } }),
   );
@@ -131,6 +167,51 @@ test("same address: the link opened elsewhere hands the session to the screen th
     event({ path: "/api/auth/poll", body: { poll_id } }),
   );
   assert.deepEqual(parse(again), { ready: false }, "collected exactly once");
+});
+
+test("declining signs in only the link's screen; the waiting one never is", async () => {
+  const { poll_id } = parse(
+    await handler(
+      event({
+        path: "/api/auth",
+        body: { age_13: true, email: MEMBER },
+        viewer: "192.0.2.44:5000",
+      }),
+    ),
+  );
+  const redeem = await handler(
+    event({
+      path: "/api/auth/redeem",
+      body: { token: sentEmails.at(-1).token },
+    }),
+  );
+  assert.equal(parse(redeem).handoff.state, "confirm");
+  // "No, just this device" calls nothing: the link's screen is signed in...
+  const here = await handler(
+    event({ method: "GET", path: "/api/me", cookie: cookieOf(redeem) }),
+  );
+  assert.equal(parse(here).authenticated, true);
+  // ...and the waiting screen never is, however long it asks.
+  for (let i = 0; i < 5; i += 1) {
+    const waiting = await handler(
+      event({ path: "/api/auth/poll", body: { poll_id } }),
+    );
+    assert.deepEqual(parse(waiting), { ready: false });
+    assert.equal(waiting.headers["set-cookie"], undefined);
+  }
+  // A wrong confirm secret, even from the right session, readies nothing.
+  const wrong = await handler(
+    event({
+      path: "/api/auth/handoff",
+      body: { confirm: "x".repeat(43) },
+      cookie: cookieOf(redeem),
+    }),
+  );
+  assert.equal(wrong.statusCode, 400);
+  assert.deepEqual(
+    parse(await handler(event({ path: "/api/auth/poll", body: { poll_id } }))),
+    { ready: false },
+  );
 });
 
 test("different address: the redeeming screen is asked, and nothing moves until it says yes", async () => {
@@ -354,4 +435,63 @@ test("the device list shows every live session, this one marked, and revokes the
     }),
   );
   assert.equal(noHeader.statusCode, 401);
+});
+
+test("the browser that asked proves it with its poll id and is not asked; another id proves nothing", async () => {
+  // Another screen's poll id (a second, unrelated ask) proves nothing.
+  const other = parse(
+    await handler(
+      event({
+        path: "/api/auth",
+        body: { age_13: true, email: OTHER },
+        viewer: "192.0.2.61:5000",
+      }),
+    ),
+  ).poll_id;
+  const ask = await handler(
+    event({
+      path: "/api/auth",
+      body: { age_13: true, email: MEMBER },
+      viewer: "192.0.2.62:5000",
+    }),
+  );
+  const { poll_id } = parse(ask);
+  const { token } = sentEmails.at(-1);
+  const wrong = await handler(
+    event({ path: "/api/auth/redeem", body: { token, poll_id: other } }),
+  );
+  assert.equal(parse(wrong).handoff.state, "confirm");
+  const stillWaiting = await handler(
+    event({ path: "/api/auth/poll", body: { poll_id } }),
+  );
+  assert.deepEqual(parse(stillWaiting), { ready: false });
+
+  // The link opened in another tab of the browser that asked: it holds
+  // the poll id, so there is no question and the waiting tab collects.
+  const again = parse(
+    await handler(
+      event({
+        path: "/api/auth",
+        body: { age_13: true, email: "tab-handoff@example.com" },
+        viewer: "192.0.2.63:5000",
+      }),
+    ),
+  ).poll_id;
+  const redeem = await handler(
+    event({
+      path: "/api/auth/redeem",
+      body: { token: sentEmails.at(-1).token, poll_id: again },
+    }),
+  );
+  assert.equal(redeem.statusCode, 200, redeem.body);
+  assert.deepEqual(parse(redeem).handoff, { state: "done" });
+  const collected = await handler(
+    event({ path: "/api/auth/poll", body: { poll_id: again } }),
+  );
+  assert.equal(parse(collected).ready, true);
+  assert.match(collected.headers["set-cookie"], /^__Host-elixir_session=/);
+  const once = await handler(
+    event({ path: "/api/auth/poll", body: { poll_id: again } }),
+  );
+  assert.deepEqual(parse(once), { ready: false });
 });

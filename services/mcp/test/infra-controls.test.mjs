@@ -1495,6 +1495,47 @@ test("Clan always uses the shared account door and never falls back to the retir
   );
 });
 
+// Cross-site request defence (2026-11-23): the consent POST and the web
+// API's cookie writes read Origin and Sec-Fetch-Site, so both doors that
+// see the session cookie must be sent them. An origin request policy is
+// not part of the cache key; the one cache policy these behaviours use
+// keys on Authorization alone, so the new headers split no cache.
+test("both cookie doors are sent origin and sec-fetch-site, within CloudFront's ten", async () => {
+  const template = await readFile(templateUrl, "utf8");
+  for (const [policy, next] of [
+    ["SiteApiOriginRequestPolicy", "OauthAuthorizeOriginRequestPolicy"],
+    ["OauthAuthorizeOriginRequestPolicy", "McpOriginRequestPolicy"],
+  ]) {
+    const block = resource(template, policy, next);
+    const list = /Headers:\s*\[([^\]]*)\]/.exec(block);
+    assert.ok(list, policy);
+    const headers = list[1]
+      .split(",")
+      .map((h) => h.trim())
+      .filter(Boolean);
+    assert.ok(headers.includes("origin"), `${policy}: origin`);
+    assert.ok(headers.includes("sec-fetch-site"), `${policy}: sec-fetch-site`);
+    assert.ok(headers.length <= 10, `${policy}: ${headers.length} headers`);
+  }
+  const cache = resource(template, "WebPrivateCachePolicy", "WebApiLogGroup");
+  assert.match(cache, /Headers: \[Authorization\]/);
+  assert.doesNotMatch(cache, /\b(origin|sec-fetch-site)\b/i);
+  const behaviours = cacheBehaviours(template);
+  for (const [path, block] of behaviours) {
+    if (
+      !/OriginRequestPolicyId: !Ref (SiteApi|OauthAuthorize)OriginRequestPolicy/.test(
+        block,
+      )
+    )
+      continue;
+    assert.match(
+      block,
+      /CachePolicyId: !Ref WebPrivateCachePolicy/,
+      `${path} keys its cache on Authorization alone`,
+    );
+  }
+});
+
 // The jobs Lambda joined on 2026-10-10: the morning run posts a clan's
 // Actions to its Discord, through a webhook sealed under this secret. It
 // already holds the session secret, so no stronger key came with it.

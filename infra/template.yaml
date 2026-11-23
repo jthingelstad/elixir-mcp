@@ -2655,11 +2655,13 @@ Resources:
 
   # Cookies and the contract header flow to the site API; caching off.
   # user-agent is forwarded for the Profile page's device list (a short
-  # label is derived from it; the string itself is never stored). The
-  # x-collector-* headers are what a collector says it runs; a header
-  # missing here never reaches the door (0184 shipped reading two that
-  # were not listed, and every collector read unverified). A test holds
-  # this list to the headers the door reads. CloudFront allows ten.
+  # label is derived from it; the string itself is never stored). origin
+  # and sec-fetch-site are how a cookie-carrying write is known to come
+  # from Elixir's own pages (2026-11-23); an origin request policy is not
+  # part of the cache key, and WebPrivateCachePolicy keys on Authorization
+  # alone. The x-collector-* headers left this list that day: the
+  # collector door is /api/collector/*, which takes McpOriginRequestPolicy,
+  # and nothing behind /api/* reads them. CloudFront allows ten.
   SiteApiOriginRequestPolicy:
     Type: AWS::CloudFront::OriginRequestPolicy
     Properties:
@@ -2673,9 +2675,8 @@ Resources:
               x-elixir-client,
               content-type,
               authorization,
-              x-collector-version,
-              x-collector-binary-sha256,
-              x-collector-release-key,
+              origin,
+              sec-fetch-site,
               user-agent,
               cloudfront-viewer-address,
               cloudfront-viewer-country,
@@ -2686,7 +2687,9 @@ Resources:
   # A person signed in to the site consents without a code, and a person
   # who consents by code is signed in to the site (0083). Only that
   # cookie, and only on /oauth/authorize; /mcp, /oauth/token and every
-  # other door route keep the no-cookie policy below.
+  # other door route keep the no-cookie policy below. origin and
+  # sec-fetch-site let the consent POST refuse a form another site, or
+  # another poapkings.com subdomain, sent (2026-11-23).
   OauthAuthorizeOriginRequestPolicy:
     Type: AWS::CloudFront::OriginRequestPolicy
     Properties:
@@ -2700,6 +2703,8 @@ Resources:
           Headers:
             [
               content-type,
+              origin,
+              sec-fetch-site,
               user-agent,
               cloudfront-viewer-address,
               cloudfront-viewer-country,

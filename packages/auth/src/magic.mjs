@@ -77,24 +77,49 @@ export async function redeemMagicToken(db, token, { purpose = null } = {}) {
  * person had already spent by clicking. Drop solved this with a poll id
  * (drop.poapkings.com, /auth/poll) and the same shape is used here.
  *
- * The one thing added is WHERE the two sides are. A link opened from the
- * same address as the request (the phone's mail app beside the phone's
- * browser) hands the session over at once. A link opened from a
- * different address is asked first, on the screen that opened it: "also
- * sign in the screen that asked, from <country> at <time>?" Somebody who
- * clicks a link they never requested is the person best placed to say no.
+ * The screen that opened the link is asked first (2026-11-23): "also
+ * sign in the screen that asked?", naming what little is known of it.
+ * Until then a link opened from the same address as the request handed
+ * the session over at once, which let anyone on the same network who
+ * knew the address be signed in by its owner's tap. Somebody who taps a
+ * link they never requested is the person best placed to say no.
+ *
+ * One case is not asked: `sameScreen`, a redeeming browser that presents
+ * the poll id itself. Only the screen that asked ever held it, so the
+ * link was opened in the browser that asked (another tab) and there is
+ * nobody else to hand anything to; the waiting tab collects at once.
  */
-export async function offerHandoff(db, { tokenHash, state }) {
+export async function offerHandoff(db, { tokenHash, sameScreen = false }) {
+  if (sameScreen) {
+    await db.query(
+      `update magic_login
+         set handoff_state = 'ready', handoff_confirm_hash = null
+       where token_hash = $1 and poll_id_hash is not null and handoff_state = 'none'`,
+      [tokenHash],
+    );
+    return null;
+  }
   // The confirm secret is returned to the redeeming screen only; the
   // row keeps its hash, like every other credential here.
-  const confirm = state === "confirm" ? createMagicToken() : null;
+  const confirm = createMagicToken();
   await db.query(
     `update magic_login
-       set handoff_state = $2, handoff_confirm_hash = $3
+       set handoff_state = 'confirm', handoff_confirm_hash = $2
      where token_hash = $1 and poll_id_hash is not null and handoff_state = 'none'`,
-    [tokenHash, state, confirm ? sha256hex(confirm) : null],
+    [tokenHash, sha256hex(confirm)],
   );
   return confirm;
+}
+
+/**
+ * Whether a redeeming browser's poll id is this row's: the proof that it
+ * is the screen that asked. Compared as hashes, like every credential.
+ */
+export function holdsPollId(row, pollId) {
+  const value = validMagicToken(pollId);
+  return (
+    Boolean(value && row?.poll_id_hash) && sha256hex(value) === row.poll_id_hash
+  );
 }
 
 /** The redeeming screen said yes. Bound to the account that redeemed. */

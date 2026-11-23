@@ -60,13 +60,25 @@ function answers(state: { authed: boolean; ready?: boolean }) {
       state.authed = true;
       return [200, { authenticated: true }] as [number, unknown];
     },
+    // A link always asks first (2026-11-23): only Allow readies the
+    // screen that asked.
     "POST /api/auth/redeem": () => {
       state.authed = true;
+      return [
+        200,
+        {
+          authenticated: true,
+          handoff: {
+            state: "confirm",
+            confirm: "c".repeat(40),
+            started: { at: null, country: null, client: null },
+          },
+        },
+      ] as [number, unknown];
+    },
+    "POST /api/auth/handoff": () => {
       state.ready = true;
-      return [200, { authenticated: true, handoff: { state: "done" } }] as [
-        number,
-        unknown,
-      ];
+      return [200, { ok: true }] as [number, unknown];
     },
     "POST /api/auth/poll": () =>
       [200, { ready: !!state.ready, authenticated: !!state.ready }] as [
@@ -192,6 +204,9 @@ for (const width of [390, 1280]) {
           // navigation or a reload racing a redeemed one-shot proof.
           await page.goto("about:blank");
           await page.goto("/signin#login_token=" + "t".repeat(40));
+          await page
+            .getByRole("button", { name: "No, just this device" })
+            .click();
         }
         await arrived(page, path.to);
         expect(new URL(page.url()).hash).toBe("");
@@ -220,6 +235,9 @@ for (const width of [390, 1280]) {
     const link = await context.newPage();
     await mockApi(link, routes);
     await link.goto("/signin#login_token=" + "t".repeat(40));
+    await link
+      .getByRole("button", { name: "Yes, sign in that screen too" })
+      .click();
     await arrived(link, path.to);
     await arrived(page, path.to);
     await page.reload();
@@ -262,8 +280,9 @@ for (const width of [390, 1280]) {
                 state: "confirm",
                 confirm: "c".repeat(40),
                 started: {
-                  from: "Fixture browser",
                   at: "2026-10-07T20:00:00Z",
+                  client: "Chrome on Mac",
+                  country: "US",
                 },
               },
             },
@@ -275,7 +294,22 @@ for (const width of [390, 1280]) {
         },
       });
       await link.goto("/signin#login_token=" + "t".repeat(40));
-      await link.getByRole("button", { name: "Yes, that was me" }).click();
+      // The question, as a person meets it: what is asked, what is known
+      // of the waiting screen, and No as the main button.
+      await expect(
+        link.getByRole("heading", { name: "Sign in the other screen too?" }),
+      ).toBeVisible();
+      await expect(link.getByText("Looks like Chrome on Mac")).toBeVisible();
+      await expect(link.getByText("Connected from US")).toBeVisible();
+      await expect(
+        link.getByRole("button", { name: "No, just this device" }),
+      ).toHaveClass(/btn--primary/);
+      // The waiting screen is still waiting until Allow.
+      await page.waitForTimeout(4500);
+      await expect(page.getByLabel("6-digit code")).toBeVisible();
+      await link
+        .getByRole("button", { name: "Yes, sign in that screen too" })
+        .click();
       await arrived(page, paths[0]!.to);
       await page.reload();
       await arrived(page, paths[0]!.to);

@@ -80,6 +80,7 @@ import {
   TURNSTILE_ORIGIN,
   TURNSTILE_REFUSED_MESSAGE,
   TURNSTILE_SITE_KEY,
+  foreignRequest,
 } from "@elixir-mcp/auth";
 import {
   OAUTH_SCOPE,
@@ -181,6 +182,16 @@ const json = (statusCode, body, headers = {}) => ({
   },
   body: JSON.stringify(body),
 });
+/** The refusal for a consent form another website sent. It names no
+ *  client and no account: the request is not trusted to have either. */
+const crossSitePage = () =>
+  page(
+    "Elixir",
+    `<h1>Start again from the app</h1>
+     <p>This request came from another website, so Elixir didn&rsquo;t act on it. Nothing was connected or shared.</p>
+     <p>To connect an app to Elixir, go back to the app you were connecting and start again from there.</p>`,
+  );
+
 const html = (statusCode, body) => ({
   statusCode,
   headers: HTML_HEADERS,
@@ -522,6 +533,10 @@ export function makeOauthRoutes({
   /** The site session secret. Unset = consent knows nothing of sessions. */
   sessionSecret = null,
 }) {
+  /** Elixir's own origin: the consent pages are served from it, so a
+   *  consent POST comes from it or from nowhere a browser will name. */
+  const ownOrigin = new URL(issuer).origin;
+
   /** The three legal audiences: the personal door and one per principal. */
   const targetFor = (value) => {
     const canonical = canonicalResource(value);
@@ -873,7 +888,13 @@ export function makeOauthRoutes({
       const me = q.switch ? null : await signedIn(db, event);
       if (me && !(v.scope.includes(OAUTH_SCOPE.ACCOUNT_EMAIL) && !me.email)) {
         // A family app signs a signed-in person straight back in: no page.
-        if (signsInOnly(v)) {
+        // Not when the browser says another site sent it here: Drop is
+        // the same site (poapkings.com), so only a stranger's page is
+        // cross-site, and that person is shown the page to tap instead
+        // of being signed in to an app they never opened (2026-11-23).
+        const crossSite =
+          String(event.headers?.["sec-fetch-site"] ?? "") === "cross-site";
+        if (signsInOnly(v) && !crossSite) {
           authLog("oauth_family_signin", {
             email: emailRef(me.email_hash),
             request: requestRef(v.codeChallenge),
@@ -902,6 +923,15 @@ export function makeOauthRoutes({
     },
 
     async authorizePost(db, event) {
+      // Only Elixir's own consent pages post here (2026-11-23). SameSite
+      // keeps the cookie off another site's form, but not off another
+      // poapkings.com subdomain's, so the browser's own word on where the
+      // form came from decides. Nothing is granted, mailed or read.
+      const foreign = foreignRequest(event, ownOrigin);
+      if (foreign) {
+        authLog("oauth_cross_site_refused", { reason: foreign });
+        return html(403, crossSitePage());
+      }
       const form = parseForm(event);
       const v = await validatedAuthRequest(db, form, targetFor);
       if (v.error)
@@ -915,8 +945,9 @@ export function makeOauthRoutes({
       const ip = viewerIp(event) ?? "unknown";
 
       if (form.step === "session") {
-        // SameSite=Lax means a cross-site POST arrives without the cookie,
-        // so a session here is a same-site consent from our own page.
+        // SameSite=Lax keeps the cookie off a cross-site POST, and the
+        // origin check above refuses a same-site one from another
+        // subdomain, so a session here is a consent from our own page.
         const me = await signedIn(db, event);
         if (!me)
           return emailStepHtml(

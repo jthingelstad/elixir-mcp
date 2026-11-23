@@ -88,10 +88,16 @@ still arrive; reports have separate controls. See [Privacy](/docs/privacy) and
 Sign in at [/signin](/signin) with your email. Elixir
 sends a link and a six-digit code; either one signs you in, each can be
 used once, and both expire after 15 minutes. A code allows five tries.
-The link signs in the device you open it on, and the page that asked
-for it signs in too: at once when the link is opened from the same
-network, and only after you say yes on the link's page when it is
-opened from somewhere else.
+The link signs in the device you open it on. Open it in the same
+browser you asked from and the page that asked signs in too, on its own.
+If the email was asked for on another device or in another browser, and
+that page may still be waiting, the link's page asks you first:
+**Sign in the other screen too?** It shows what little Elixir knows
+about that screen (when it asked, the browser it looked like and the
+country it connected from). Tap **Yes, sign in that screen too** and the
+waiting page signs in as well. Tap **No, just this device** and only the
+device you opened the link on is signed in. If you didn't ask for the
+email yourself, or you're not sure, tap No.
 
 If a player or clan record, or an email's feedback link, brought you to
 sign-in, that screen returns to what you opened after your code or approved
@@ -236,8 +242,10 @@ phone the bar at the top stays put while you scroll, as the tabs do.
 
 The installed app opens on your Timeline. It keeps a sign-in of its own, apart
 from the browser's, so sign in once inside it: type the code from the
-email, or open its link, and the app's sign-in page signs in too, as
-[above](#signing-in). On Android, a long press on the icon offers
+email, or open its link and tap **Yes, sign in that screen too**, and the
+app's sign-in page signs in too, as [above](#signing-in). The link usually
+opens in your browser, not the app, so that question is how the app
+gets signed in. On Android, a long press on the icon offers
 **Find**, **Stats** and **Clan**. It needs a connection, as the
 site does.
 

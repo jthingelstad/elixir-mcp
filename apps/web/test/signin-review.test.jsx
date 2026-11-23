@@ -197,7 +197,7 @@ test("the sixth email in an hour says so, on the code step, without saying wheth
   expect(screen.queryByText(/one is on its way/)).toBeNull();
 });
 
-test("a link opened from elsewhere asks before signing in the screen that started", async () => {
+test("a link always asks before signing in the screen that started, and Yes allows it", async () => {
   vi.resetModules();
   const { SignIn: Fresh } = await import("../src/views/SignIn.jsx");
   window.history.pushState({}, "", "/signin#login_token=" + "t".repeat(40));
@@ -225,30 +225,52 @@ test("a link opened from elsewhere asks before signing in the screen that starte
   });
   const onAuthed = vi.fn();
   render(<Fresh onAuthed={onAuthed} />);
-  expect(
-    await screen.findByText("Also sign in where you started?"),
-  ).toBeTruthy();
-  expect(screen.getByText(/Chrome on Mac, US/)).toBeTruthy();
+  expect(await screen.findByText("Sign in the other screen too?")).toBeTruthy();
+  expect(screen.getByText("Looks like Chrome on Mac")).toBeTruthy();
+  expect(screen.getByText("Connected from US")).toBeTruthy();
+  expect(screen.getByText(/tap No\./)).toBeTruthy();
+  // No is the first button and the main one.
+  const buttons = screen.getAllByRole("button");
+  expect(buttons[0].textContent).toBe("No, just this device");
+  expect(buttons[0].className).toMatch(/btn--primary/);
   expect(onAuthed).not.toHaveBeenCalled();
-  fireEvent.click(screen.getByRole("button", { name: "Yes, that was me" }));
+  fireEvent.click(
+    screen.getByRole("button", { name: "Yes, sign in that screen too" }),
+  );
   await waitFor(() => expect(onAuthed).toHaveBeenCalled());
   expect(confirmed).toEqual([{ confirm: "c".repeat(40) }]);
 });
 
-test("a link opened from the same address just signs in", async () => {
+test("No signs in only this device and allows nothing", async () => {
   vi.resetModules();
   const { SignIn: Fresh } = await import("../src/views/SignIn.jsx");
   window.history.pushState({}, "", "/signin#login_token=" + "u".repeat(40));
+  const confirmed = [];
   global.fetch = mockFetch({
     "POST /api/auth/redeem": [
       200,
-      { authenticated: true, handoff: { state: "done" } },
+      {
+        authenticated: true,
+        handoff: {
+          state: "confirm",
+          confirm: "d".repeat(40),
+          started: { at: null, country: null, client: null },
+        },
+      },
     ],
+    "POST /api/auth/handoff": (init) => {
+      confirmed.push(JSON.parse(init.body));
+      return [200, { ok: true }];
+    },
   });
   const onAuthed = vi.fn();
   render(<Fresh onAuthed={onAuthed} />);
+  expect(await screen.findByText("Sign in the other screen too?")).toBeTruthy();
+  // Nothing known about the waiting screen: no list, no guess.
+  expect(screen.queryByText(/What Elixir knows/)).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "No, just this device" }));
   await waitFor(() => expect(onAuthed).toHaveBeenCalled());
-  expect(screen.queryByText("Also sign in where you started?")).toBeNull();
+  expect(confirmed).toEqual([]);
 });
 
 test("Sign-ins & devices lists every device, marks this one, and signs the others out", async () => {
@@ -348,6 +370,71 @@ test("a refused sign-out says so and leaves the device listed", async () => {
   // Nothing changed, so nothing is refetched over the refusal.
   expect(reads).toBe(before);
 });
+
+test("the browser that asked sends its poll id with the link, and is not asked about itself", async () => {
+  // The id was kept when this browser asked for the email (SignIn's
+  // rememberAskedPoll); a link opened in another tab reads it back.
+  window.localStorage.setItem(
+    "elixir:signin-asked",
+    JSON.stringify({ id: "p".repeat(40), at: Date.now() }),
+  );
+  vi.resetModules();
+  const { App: FreshApp } = await import("../src/App.jsx");
+  window.history.pushState({}, "", "/signin#login_token=" + "s".repeat(40));
+  let authed = false;
+  let sent = null;
+  global.fetch = mockFetch({
+    "POST /api/auth/redeem": (init) => {
+      sent = JSON.parse(init.body);
+      authed = true;
+      return [200, { authenticated: true, handoff: { state: "done" } }];
+    },
+    "GET /api/me": () => [
+      200,
+      authed
+        ? { authenticated: true, claims: [], recordings: [], entitlements: {} }
+        : { authenticated: false },
+    ],
+    "GET /api/me/first-answer": [200, {}],
+    "GET /api/me/clans": [200, { clans: [] }],
+  });
+  render(<FreshApp />);
+  await waitFor(() => expect(window.location.pathname).toBe("/timeline"));
+  expect(sent).toEqual({ token: "s".repeat(40), poll_id: "p".repeat(40) });
+  expect(screen.queryByText("Sign in the other screen too?")).toBeNull();
+  // Signed in, the kept id is gone.
+  expect(window.localStorage.getItem("elixir:signin-asked")).toBeNull();
+}, 20_000);
+
+test("an id kept longer than the link lives is not sent", async () => {
+  window.localStorage.setItem(
+    "elixir:signin-asked",
+    JSON.stringify({ id: "p".repeat(40), at: Date.now() - 16 * 60 * 1000 }),
+  );
+  vi.resetModules();
+  const { App: FreshApp } = await import("../src/App.jsx");
+  window.history.pushState({}, "", "/signin#login_token=" + "o".repeat(40));
+  let authed = false;
+  let sent = null;
+  global.fetch = mockFetch({
+    "POST /api/auth/redeem": (init) => {
+      sent = JSON.parse(init.body);
+      authed = true;
+      return [200, { authenticated: true }];
+    },
+    "GET /api/me": () => [
+      200,
+      authed
+        ? { authenticated: true, claims: [], recordings: [], entitlements: {} }
+        : { authenticated: false },
+    ],
+    "GET /api/me/first-answer": [200, {}],
+    "GET /api/me/clans": [200, { clans: [] }],
+  });
+  render(<FreshApp />);
+  await waitFor(() => expect(window.location.pathname).toBe("/timeline"));
+  expect(sent).toEqual({ token: "o".repeat(40) });
+}, 20_000);
 
 test("a magic link is redeemed ONCE, however many times the page re-renders while the session settles", async () => {
   // Live, 2026-09-13: four POST /api/auth/redeem in 600 ms - one 200 and
