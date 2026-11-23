@@ -229,7 +229,7 @@ export function Seen({ me }) {
                 Only you, and anyone you give it to: whoever holds the link
                 reads your timeline in a feed reader, by game names, with no
                 nicknames, email or account business. Turning it off or
-                resetting it stops it at once.
+                resetting it stops it within an hour.
               </>,
             ],
             [

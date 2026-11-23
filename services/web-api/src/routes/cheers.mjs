@@ -213,6 +213,8 @@ export function cheersRoutes({ resolveAccount, posts = false, wake = null }) {
     "GET /api/rss/*": async (db, event) => {
       const owner = await accountForToken(db, event.pathParam);
       if (!owner) return text(404, "No feed at this address.");
+      // The hour's cap counts the reads that reach Elixir: the edge's
+      // misses and its hourly revalidations, never a read it answers.
       if (
         !(await checkRateLimit(db, {
           bucket: `rss#${owner.account_id}`,
@@ -251,9 +253,13 @@ export function cheersRoutes({ resolveAccount, posts = false, wake = null }) {
       const body = renderRss(items);
       const etag = feedEtag(body);
       const headers = {
-        // The link is private: no shared cache keeps it, so a reset
-        // stops it at once.
-        "cache-control": "private, max-age=300",
+        // CloudFront keeps the feed for up to an hour under the link's
+        // path (RssFeedCachePolicy, 2026-11-23): the path is the token,
+        // so one copy serves one link. A reset, a turned-off link, a
+        // closed account, a removed post or a block reaches the reader
+        // within that hour, and the 404 and 429 stay no-store. The
+        // reader's own copy is good for five minutes.
+        "cache-control": "public, max-age=300, s-maxage=3600",
         etag,
         "x-robots-tag": "noindex",
       };

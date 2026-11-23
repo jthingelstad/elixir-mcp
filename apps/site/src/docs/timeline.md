@@ -544,8 +544,8 @@ seven days and at most 50 items, newest first.
 - **The link is its own key.** Anyone holding it reads your timeline with
   no sign-in, so keep it like a password. Elixir keeps only a fingerprint of
   it, so it is shown once, when you make it: copy it then.
-- **Reset** makes a new link and stops the old one at once; **Turn off**
-  ends it. Closing your account ends it too.
+- **Reset** makes a new link, and **Turn off** ends yours. Closing your
+  account ends it too. Each one stops the old link within an hour.
 - **What it carries:** each item's words with players by their game names,
   a link to the session, battle, player or post, and when. Items have no
   title, because each line already names its player: your reader shows
@@ -555,14 +555,17 @@ seven days and at most 50 items, newest first.
 - **Posts and questions:** from the players and accounts you follow, with
   their deck or card names. A post opens in Elixir after sign-in, where
   access is checked again.
-- Blocks, reports, removed posts and hidden posts are checked on each read.
-  An edit updates the same entry. Your reader may keep copies it already
-  downloaded.
-- **How fresh it is:** each check reads the week Elixir keeps for your
-  Timeline and asks for a new one when that is more than 15 minutes old, so
-  a battle can show up one check after it lands. Posts are always current.
-  When nothing has changed, your reader is told so and downloads nothing.
-- A feed reader may read it up to 60 times an hour.
+- New posts, edits, removed and hidden posts, reports and blocks reach
+  your feed within an hour. An edit updates the same entry. Your reader may
+  keep copies it already downloaded.
+- **How fresh it is:** Elixir keeps a copy of your feed for up to an hour
+  and answers your reader from it. When the copy is renewed, Elixir reads
+  the week it keeps for your Timeline and asks for a new one when that is
+  more than 15 minutes old. So a battle shows up as it did before, plus up
+  to an hour. When nothing has changed, your reader is told so and
+  downloads nothing.
+- Elixir itself answers your link up to 60 times an hour. Reads answered
+  from the copy don't count.
 
 ## Posts about battles
 

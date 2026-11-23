@@ -1412,11 +1412,15 @@ test("every behaviour compresses; only identical-for-everyone reads are cached (
     assert.doesNotMatch(block, /OriginRequestPolicyId/, path);
     assert.match(block, /AllowedMethods: \[GET, HEAD\]\n/, path);
   }
+  // The one other cached behaviour is the private RSS link, keyed by its
+  // own path (the token) and pinned in its own test below.
   for (const [path, block] of behaviours)
     if (!cached.some(([p]) => p === path))
       assert.match(
         block,
-        /CachePolicyId: !Ref WebPrivateCachePolicy\n/,
+        path === "/api/rss/*"
+          ? /CachePolicyId: !Ref RssFeedCachePolicy\n/
+          : /CachePolicyId: !Ref WebPrivateCachePolicy\n/,
         `${path} is private`,
       );
   const [, metadata] = cached.find(([path]) => path === "/.well-known/*");
@@ -1832,7 +1836,7 @@ test("the RSS link's behaviour forwards no cookie, so a reader's If-None-Match r
   const [, block] = first;
   assert.match(block, /TargetOriginId: api\n/);
   assert.match(block, /AllowedMethods: \[GET, HEAD\]\n/);
-  assert.match(block, /CachePolicyId: !Ref WebPrivateCachePolicy\n/);
+  assert.match(block, /CachePolicyId: !Ref RssFeedCachePolicy\n/);
   assert.match(block, /OriginRequestPolicyId: !Ref McpOriginRequestPolicy\n/);
   const forwarded = resource(
     template,
@@ -1846,6 +1850,50 @@ test("the RSS link's behaviour forwards no cookie, so a reader's If-None-Match r
     behaviours.find(([p]) => takes(p, "/api/me/rss"))?.[0],
     "/api/*",
   );
+});
+
+test("the edge keeps each RSS link's feed for at most an hour, keyed by its path alone (2026-11-23)", async () => {
+  // The owner asked for the feed to be cached per user; one hour bounds
+  // how long a reset, a turned-off link, a closed account, a removed post
+  // or a block can linger at the edge, with no invalidation and no IAM.
+  const template = await readFile(templateUrl, "utf8");
+  const policy = resource(template, "RssFeedCachePolicy", "WebApiLogGroup");
+  assert.match(policy, /Type: AWS::CloudFront::CachePolicy\n/);
+  assert.match(policy, /Name: elixir-mcp-rss-feed\n/);
+  assert.match(policy, /\n\s+MinTTL: 0\n/);
+  assert.match(policy, /\n\s+DefaultTTL: 0\n/);
+  assert.match(policy, /\n\s+MaxTTL: 3600\n/);
+  // The token is the path, so the path is the whole key: one copy per
+  // link, never one shared across links, and nothing a reader sends
+  // splits it.
+  assert.match(policy, /HeadersConfig: \{ HeaderBehavior: none \}/);
+  assert.match(policy, /CookiesConfig: \{ CookieBehavior: none \}/);
+  assert.match(policy, /QueryStringsConfig: \{ QueryStringBehavior: none \}/);
+  assert.match(policy, /EnableAcceptEncodingGzip: true\n/);
+  assert.match(policy, /EnableAcceptEncodingBrotli: true\n/);
+  assert.doesNotMatch(policy, /Authorization/);
+
+  const behaviours = cacheBehaviours(template);
+  const rss = behaviours.find(([p]) => p === "/api/rss/*")?.[1];
+  assert.match(rss, /CachePolicyId: !Ref RssFeedCachePolicy\n/);
+  // The policy is the feed's alone.
+  assert.deepEqual(
+    behaviours
+      .filter(([, block]) => block.includes("!Ref RssFeedCachePolicy"))
+      .map(([p]) => p),
+    ["/api/rss/*"],
+  );
+  // Every other site API is unchanged: private, with the session.
+  const api = behaviours.find(([p]) => p === "/api/*")?.[1];
+  assert.match(api, /CachePolicyId: !Ref WebPrivateCachePolicy\n/);
+  assert.match(api, /OriginRequestPolicyId: !Ref SiteApiOriginRequestPolicy\n/);
+  const priv = resource(
+    template,
+    "WebPrivateCachePolicy",
+    "RssFeedCachePolicy",
+  );
+  assert.match(priv, /\n\s+MaxTTL: 1\n/);
+  assert.match(priv, /Headers: \[Authorization\]/);
 });
 
 test("every behaviour that reaches a Web Function normalizes the query before signing", async () => {
