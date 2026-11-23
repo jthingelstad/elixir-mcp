@@ -30,7 +30,21 @@ async function noSideways(page: Page) {
   expect(over).toBeLessThanOrEqual(0);
 }
 
+/** Past every open dialog's entrance. axe reads colour through opacity, so
+ *  a sheet still fading in (kit-bell-in) fails every line's contrast: the
+ *  check passed alone and failed on a busy machine (2026-11-22). */
+async function entered(page: Page) {
+  await page.evaluate(() =>
+    Promise.all(
+      [...document.querySelectorAll("dialog[open]")].flatMap((el) =>
+        el.getAnimations().map((a) => a.finished),
+      ),
+    ).then(() => {}),
+  );
+}
+
 async function accessible(page: Page, name: string) {
+  await entered(page);
   const results = await new AxeBuilder({ page })
     .withTags(["wcag2a", "wcag2aa"])
     .analyze();
