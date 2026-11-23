@@ -18,8 +18,8 @@ import {
   noteTokens,
   notesNameFields,
   deepKeys,
-  principalKind,
-  argsForKind,
+  withClanDefault,
+  clanDefaultDoor,
   CLAN_DEFAULT_TOOLS,
   CLAN,
   JAMIE,
@@ -1117,7 +1117,7 @@ test("milestone locator docs are conditional only for elixir_timeline, without i
   });
   const run = (id) => cases.find((c) => c.id === id).run(ctx);
   await run("elixir_timeline#0");
-  // A clan-agent window cannot carry person-only plain posts. Their actual
+  // The test person follows no player, so its window carries no plain posts. Their actual
   // milestone shape/audience is proved by the real MCP invocation in
   // services/web-api/test/milestone-posts.test.mjs, never by a fake live bite.
   await run("elixir_timeline#docs");
@@ -1131,48 +1131,51 @@ test("milestone locator docs are conditional only for elixir_timeline, without i
   await assert.rejects(() => run("example_tool#docs"), /documents item_ref/);
 });
 
-test("the live acceptance catalogue only replays reads its identity can discover, as a person or as the agent it replaced", () => {
-  for (const kind of ["person", "agent"]) {
-    const names = new Set(
-      makeRegistry()
-        .declarations(kind)
-        .map((t) => t.name),
-    );
-    for (const name of Object.keys(loadCatalogue().tools))
-      assert.ok(names.has(name), `${kind}: ${name}`);
-  }
+test("the live acceptance catalogue only replays reads a person can discover", () => {
+  const names = new Set(
+    makeRegistry()
+      .declarations("person")
+      .map((t) => t.name),
+  );
+  for (const name of Object.keys(loadCatalogue().tools))
+    assert.ok(names.has(name), name);
 });
 
-test("principalKind reads the kind from tools/list, and only a person's omitted clan is filled", () => {
-  const registry = makeRegistry();
-  const names = (kind) => registry.declarations(kind).map((t) => t.name);
-  assert.equal(principalKind(names("person")), "person");
-  assert.equal(principalKind(names("agent")), "agent");
-  assert.equal(principalKind(registry.declarations().map((t) => t.name)), null);
-
-  assert.deepEqual(argsForKind("person", "war_current", {}), {
-    clan_tag: CLAN,
-  });
-  assert.deepEqual(argsForKind("person", "clans_participation", { weeks: 2 }), {
+test("withClanDefault fills only an omitted clan on a clan-default read, and only the live door applies it", async () => {
+  assert.deepEqual(withClanDefault("war_current", {}), { clan_tag: CLAN });
+  assert.deepEqual(withClanDefault("clans_participation", { weeks: 2 }), {
     weeks: 2,
     clan_tag: CLAN,
   });
   const named = { clan_tag: "#0GRJCUV" };
-  assert.equal(argsForKind("person", "war_current", named), named);
+  assert.equal(withClanDefault("war_current", named), named);
   const player = { player_tag: JAMIE };
-  assert.equal(argsForKind("person", "war_history", player), player);
+  assert.equal(withClanDefault("war_history", player), player);
   const args = {};
-  assert.equal(argsForKind("agent", "war_current", args), args);
-  assert.equal(argsForKind(null, "war_current", args), args);
-  assert.equal(argsForKind("person", "players_profile", args), args);
-  assert.equal(argsForKind("person", "clans_my_view", args), args);
-  // Every tool filled takes a clan_tag, on either surface.
+  assert.equal(withClanDefault("players_profile", args), args);
+  assert.equal(withClanDefault("clans_my_view", args), args);
+  // Every tool filled takes a clan_tag.
+  const declarations = makeRegistry().declarations("person");
   for (const tool of CLAN_DEFAULT_TOOLS)
-    for (const kind of ["person", "agent"])
-      assert.ok(
-        "clan_tag" in
-          (registry.declarations(kind).find((t) => t.name === tool)?.inputSchema
-            ?.properties ?? {}),
-        `${kind}: ${tool} takes clan_tag`,
-      );
+    assert.ok(
+      "clan_tag" in
+        (declarations.find((t) => t.name === tool)?.inputSchema?.properties ??
+          {}),
+      `${tool} takes clan_tag`,
+    );
+
+  const sent = [];
+  const door = clanDefaultDoor({
+    toolsList: async () => [],
+    call: async (name, a) => {
+      sent.push([name, a]);
+      return {};
+    },
+  });
+  await door.call("war_current", {});
+  await door.call("players_profile", {});
+  assert.deepEqual(sent, [
+    ["war_current", { clan_tag: CLAN }],
+    ["players_profile", {}],
+  ]);
 });

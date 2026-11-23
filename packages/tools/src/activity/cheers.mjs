@@ -4,11 +4,10 @@
  * all celebrate (DECISIONS "Reactions, not comments"). Every reader of an item
  * sees how many of each cheer it has, and their own; nobody sees who cheered.
  *
- * Writing a cheer is the web's alone (services/web-api/src/cheers.mjs). Agents
- * read cheers and never give them (DECISIONS "Agents read the social layer
- * and never write it"): MCP's elixir_cheers reads
- * the counts on items about the reader's own player, never who, and never an
- * agent's own cheer, since an agent has none.
+ * Writing a cheer is the web's alone (services/web-api/src/cheers.mjs). MCP
+ * reads cheers and never gives them: elixir_cheers reads the counts on items
+ * about the reader's own player, never who, and never the reader's own
+ * cheer.
  */
 
 import { visibleClanInteractionSql } from "@elixir-mcp/record/clan-lifecycle";

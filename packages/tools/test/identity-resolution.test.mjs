@@ -3,8 +3,7 @@
  *
  * The behaviour these pin is a cost property as much as a correctness one:
  * every session used to spend a round trip — sometimes three — discovering
- * facts the server knew before the first message. An agent serving a whole
- * Discord has the harder version, because "me" is a different person each time.
+ * facts the server knew before the first message.
  */
 
 import { test, before, after } from "node:test";
@@ -25,7 +24,6 @@ const OTHER = "#20JJJ2CCRU";
 
 let db;
 let person;
-let agent;
 
 before(async () => {
   await createScratch(NAME);
@@ -51,21 +49,11 @@ before(async () => {
       [CLAN, tag, tag === OTHER ? "leader" : "member"],
     );
   }
-  const mk = async (email, kind, owner = null) => {
-    const { rows } = await db.query(
-      `insert into account (email_hash, status, role, kind, owned_by_account_id, public_id)
-       values ($1, 'approved', 'leader', $2, $3, $4) returning account_id`,
-      [
-        kind === "person" ? email : null,
-        kind,
-        owner,
-        kind === "person" ? null : "pubagent01",
-      ],
-    );
-    return { accountId: rows[0].account_id, kind };
-  };
-  person = await mk("identity-person", "person");
-  agent = await mk(null, "agent", person.accountId);
+  const { rows } = await db.query(
+    `insert into account (email_hash, status, role, kind)
+     values ('identity-person', 'approved', 'leader', 'person') returning account_id`,
+  );
+  person = { accountId: rows[0].account_id, kind: "person" };
 
   await db.query(
     `insert into claim (account_id, player_tag, status, is_primary, relationship)
@@ -74,8 +62,8 @@ before(async () => {
   );
   await db.query(
     `insert into account_clan (account_id, clan_tag, scope, is_primary)
-     values ($1, $2, 'comprehensive', true), ($3, $2, 'comprehensive', true)`,
-    [person.accountId, CLAN, agent.accountId],
+     values ($1, $2, 'comprehensive', true)`,
+    [person.accountId, CLAN],
   );
   // recording.requested_by is NOT NULL, so this needs an account and has to
   // come after one exists. It used to sit above, before any account, under a
@@ -100,120 +88,13 @@ test("a person omitting the tag means themselves — no lookup, no argument", as
   assert.equal(s.tag, ME);
 });
 
-test("an agent omitting the tag is told what would fix it, not guessed at", async () => {
-  // Guessing a clan member here would be confidently wrong every time.
-  await assert.rejects(
-    () => resolveSubject(db, agent, undefined),
-    (e) =>
-      e.code === "no_subject" &&
-      /pass player_tag/.test(e.hint) &&
-      /discord:<their user id>/.test(e.hint) &&
-      !/elixir_identify/.test(e.hint),
-  );
-});
-
-test("3.18.0: an unmapped on_behalf_of with a display_name carries the whole-name candidates; a partial name carries none", async () => {
-  // Exactly one member's whole name matches, case and spacing ignored:
-  // the refusal names them and the hint is the one player_tag to pass.
-  await assert.rejects(
-    () =>
-      resolveSubject(db, agent, undefined, "full", {
-        onBehalfOf: "discord:77",
-        displayName: "rapid clear",
-      }),
-    (e) =>
-      e.code === "no_subject" &&
-      e.data.candidates.length === 1 &&
-      e.data.candidates[0].player_tag === ALT &&
-      e.data.candidates[0].name === "Rapid Clear" &&
-      e.data.candidates[0].clan_tag === CLAN &&
-      /pass player_tag "#/.test(e.hint),
-  );
-  // "King" alone is half of two names: nothing is a candidate, and the
-  // hint says to ask.
-  await assert.rejects(
-    () =>
-      resolveSubject(db, agent, undefined, "full", {
-        onBehalfOf: "discord:77",
-        displayName: "King",
-      }),
-    (e) =>
-      e.code === "no_subject" &&
-      e.data.candidates.length === 0 &&
-      /No clan member's whole name is 'King'/.test(e.hint),
-  );
-  // No display name: the refusal still says what to pass next time.
-  await assert.rejects(
-    () =>
-      resolveSubject(db, agent, undefined, "full", {
-        onBehalfOf: "discord:77",
-      }),
-    (e) =>
-      e.code === "no_subject" &&
-      e.data.candidates.length === 0 &&
-      /display_name/.test(e.hint),
-  );
-});
-
-test("on_behalf_of resolves once the agent has been told who someone is", async () => {
-  await assert.rejects(
-    () =>
-      resolveSubject(db, agent, undefined, "full", { onBehalfOf: "discord:1" }),
-    (e) => /No player is mapped to discord:1/.test(e.message),
-  );
-
-  await db.query(
-    `insert into agent_identity (account_id, external_id, player_tag) values ($1, 'discord:1', $2)`,
-    [agent.accountId, ME],
-  );
-  const s = await resolveSubject(db, agent, undefined, "full", {
-    onBehalfOf: "discord:1",
-  });
-  assert.equal(s.tag, ME);
-});
-
-test("an explicit tag always wins over who is asking", async () => {
-  const s = await resolveSubject(db, agent, OTHER, "full", {
-    onBehalfOf: "discord:1",
-  });
+test("an explicit tag always wins over the caller's own player", async () => {
+  const s = await resolveSubject(db, person, OTHER);
   assert.equal(
     s.tag,
     OTHER,
     "naming a player means that player, whoever asked",
   );
-});
-
-test("one agent's mappings are invisible to another", async () => {
-  const { rows } = await db.query(
-    `insert into account (email_hash, status, role, kind, owned_by_account_id, public_id)
-     values (null, 'approved', 'leader', 'agent', $1, 'pubother123') returning account_id`,
-    [person.accountId],
-  );
-  const other = { accountId: rows[0].account_id, kind: "agent" };
-  await assert.rejects(
-    () =>
-      resolveSubject(db, other, undefined, "full", { onBehalfOf: "discord:1" }),
-    (e) => e.code === "no_subject",
-  );
-});
-
-test("the id is opaque: any surface's namespace works", async () => {
-  for (const id of [
-    "signal:+15551234",
-    "telegram:998877",
-    "web-session-abc",
-    "🙂",
-  ]) {
-    await db.query(
-      `insert into agent_identity (account_id, external_id, player_tag) values ($1, $2, $3)
-       on conflict (account_id, external_id) do update set player_tag = excluded.player_tag`,
-      [agent.accountId, id, ALT],
-    );
-    const s = await resolveSubject(db, agent, undefined, "full", {
-      onBehalfOf: id,
-    });
-    assert.equal(s.tag, ALT, id);
-  }
 });
 
 test("a person's block names them, their alt, and their clan", async () => {
@@ -243,51 +124,12 @@ test("#556: a person with players but no primary is told so, not that they have 
   );
 });
 
-test("an agent's block names its clan and its leadership, not its roster", async () => {
-  const text = identitySentences(await describeIdentity(db, agent));
-  assert.match(text, /YOU ACT FOR POAP KINGS #J2RGCRVG \(3 members\)/);
-  assert.match(text, /King Thing \(leader\)/);
-  assert.ok(!text.includes(ALT), "members are not enumerated here");
-  assert.match(text, /You already know \d+ of them/);
-});
-
-/**
- * The clan half of "me".
- *
- * resolveSubject answers WHO; these answer WHICH CLAN, and the two used to
- * disagree with each other and with initialize. Observed in production on
- * 2026-09-08: a connection whose principal block reported
- * `agent acting for clan POAP KINGS #J2RGCRVG, 48 members` got
- * `not_entitled: No recorded clan membership on this account` from
- * `clans_roster {}` seconds later, because clan defaults were derived from
- * claims and an agent has none. Found by elixir-mcp-discord, whose prompts had
- * been passing an explicit tag and so had hidden it since agents shipped.
- */
-test("an agent omitting clan_tag means the clan it acts for", async () => {
-  assert.equal(await resolveEntitledClan(db, agent, undefined), CLAN);
-});
-
-test("a person's clan default still comes from their claims", async () => {
+test("a person's clan default comes from their claims", async () => {
   assert.equal(await resolveEntitledClan(db, person, undefined), CLAN);
 });
 
-test("an explicit tag still wins for an agent", async () => {
-  assert.equal(await resolveEntitledClan(db, agent, CLAN), CLAN);
-});
-
-test("an agent with no clan is told what would fix it, in terms it can act on", async () => {
-  // "be an open member of a recorded clan" is advice an agent can never take:
-  // it has no player and cannot join anything.
-  const { rows } = await db.query(
-    `insert into account (email_hash, status, role, kind, owned_by_account_id, public_id)
-     values (null, 'approved', 'leader', 'agent', $1, $2) returning account_id`,
-    [person.accountId, "pubagent02"],
-  );
-  const orphan = { accountId: rows[0].account_id, kind: "agent" };
-  await assert.rejects(
-    () => resolveEntitledClan(db, orphan, undefined),
-    (e) => e.code === "no_subject" && /Account -> Agents/.test(e.hint),
-  );
+test("an explicit clan tag wins", async () => {
+  assert.equal(await resolveEntitledClan(db, person, CLAN), CLAN);
 });
 
 /**
@@ -414,131 +256,4 @@ test("3.18.0: when the primary player's clan is not recorded, an omitted clan_ta
     [PRIMARY_CLAN],
   );
   assert.equal(await resolveEntitledClan(db, account, undefined), PRIMARY_CLAN);
-});
-
-test("7.1.0: an agent tracks a rival in its owner's slots, and keeps the clan it acts for", async () => {
-  // Jamie, 2026-09-23: "a clan agent may be asked to track a competitive
-  // clan". Its owner is a leader: one activity slot, one comprehensive,
-  // and the clan they share fills the comprehensive one.
-  const { elixir_follow_clan } =
-    await import("../src/tools/elixir/follow-clan.mjs");
-  const ctx = { db, account: agent };
-  const RIVAL = "#0J0RVYRR";
-  const RIVAL2 = "#0JVRYLGG";
-  const added = await elixir_follow_clan.handler(ctx, {
-    clan_tag: RIVAL,
-    scope: "activity",
-  });
-  assert.equal(added.added, true);
-  await assert.rejects(
-    () =>
-      elixir_follow_clan.handler(ctx, { clan_tag: RIVAL2, scope: "activity" }),
-    (err) =>
-      err.code === "quota_exceeded" &&
-      /shared with its owner/.test(err.message),
-  );
-  // The clan it acts for stays, and so the default is unchanged.
-  await assert.rejects(
-    () => elixir_follow_clan.handler(ctx, { clan_tag: CLAN, action: "remove" }),
-    (err) => err.code === "not_entitled",
-  );
-  assert.equal(await resolveEntitledClan(db, agent, undefined), CLAN);
-  const removed = await elixir_follow_clan.handler(ctx, {
-    clan_tag: RIVAL,
-    action: "remove",
-  });
-  assert.equal(removed.removed, true);
-});
-
-// ------------------------------------------- a linked Discord (#531)
-
-const DISCORD = "112233445566778899";
-
-test("a linked Discord resolves to the person's player in the agent's clan", async () => {
-  const { askerFor } = await import("../src/entitlements.mjs");
-  await db.query(
-    `insert into account_discord (account_id, discord_user_id, username)
-     values ($1, $2, 'raq')`,
-    [person.accountId, DISCORD],
-  );
-  try {
-    assert.deepEqual(
-      await askerFor(db, agent.accountId, `discord:${DISCORD}`),
-      {
-        tag: ME,
-        via: "discord_link",
-        verified: true,
-      },
-    );
-    const s = await resolveSubject(db, agent, undefined, "full", {
-      onBehalfOf: `discord:${DISCORD}`,
-    });
-    assert.equal(s.tag, ME);
-
-    // The primary left the clan: the alt still in it answers, flagged as
-    // an unproven claim (call 3).
-    await db.query(
-      `update clan_membership set left_observed_at = now() where player_tag = $1`,
-      [ME],
-    );
-    assert.deepEqual(
-      await askerFor(db, agent.accountId, `discord:${DISCORD}`),
-      {
-        tag: ALT,
-        via: "discord_link",
-        verified: false,
-      },
-    );
-
-    // Neither in a clan this agent acts for: the link reaches nothing
-    // (call 1), and the agent's own mapping is what stands.
-    await db.query(
-      `update clan_membership set left_observed_at = now() where player_tag = $1`,
-      [ALT],
-    );
-    assert.equal(
-      await askerFor(db, agent.accountId, `discord:${DISCORD}`),
-      null,
-    );
-    await db.query(
-      `insert into agent_identity (account_id, external_id, player_tag)
-       values ($1, $2, $3)`,
-      [agent.accountId, `discord:${DISCORD}`, OTHER],
-    );
-    assert.deepEqual(
-      await askerFor(db, agent.accountId, `discord:${DISCORD}`),
-      {
-        tag: OTHER,
-        via: "agent_mapping",
-        verified: false,
-      },
-    );
-  } finally {
-    await db.query(`delete from agent_identity where external_id = $1`, [
-      `discord:${DISCORD}`,
-    ]);
-    await db.query(
-      `update clan_membership set left_observed_at = null where player_tag = any($1::text[])`,
-      [[ME, ALT]],
-    );
-    await db.query(`delete from account_discord where discord_user_id = $1`, [
-      DISCORD,
-    ]);
-  }
-});
-
-test("an unlinked Discord id is told the person can link it", async () => {
-  await assert.rejects(
-    resolveSubject(db, agent, undefined, "full", {
-      onBehalfOf: "discord:998877665544332211",
-    }),
-    (err) =>
-      err.code === "no_subject" &&
-      /\/settings\/connections\/discord/.test(err.hint),
-  );
-  // Another surface's id says nothing about Discord.
-  await assert.rejects(
-    resolveSubject(db, agent, undefined, "full", { onBehalfOf: "telegram:9" }),
-    (err) => err.code === "no_subject" && !/Discord/.test(err.hint),
-  );
 });

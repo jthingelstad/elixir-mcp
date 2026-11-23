@@ -9,8 +9,7 @@
  * the live data shape at the live scale - `finished_early` was computed
  * as fame === 10000 and passed its fixture test for a fortnight while no
  * live-polled week ever equalled it. This suite reads the deployed door
- * with a read-only test person's token (a person at /mcp since
- * 2026-11-23; the agent before it at its own door) and asserts INVARIANTS, never values
+ * with a read-only test person's token at /mcp and asserts INVARIANTS, never values
  * that change daily:
  *
  *   contracts  - every field a notes[] sentence names exists on the
@@ -49,7 +48,7 @@ import { catalogue } from "./checks/catalogue.mjs";
 import { ground } from "./checks/ground.mjs";
 import { loadCatalogue } from "./catalogue.mjs";
 import { writeShape, loadShape } from "./shapes.mjs";
-import { principalKind, argsForKind } from "./lib.mjs";
+import { clanDefaultDoor } from "./lib.mjs";
 import {
   redact,
   reportSubjects,
@@ -162,22 +161,10 @@ export async function runSuite(
   } = {},
 ) {
   const tools = given ?? (await door.toolsList());
-  const kind = principalKind(tools.map((t) => t.name));
-  // A person's omitted clan is sent as CLAN (argsForKind); the cache keys
-  // and the report keep the args as the case wrote them.
-  if (kind === "person") {
-    const plain = door;
-    door = {
-      ...plain,
-      call: (name, args) => plain.call(name, argsForKind(kind, name, args)),
-    };
-  }
   door = pacedDoor(door, { pace, sleep, now });
   const ctx = {
     // Bite replays already supply the named fixture; live runs never set this.
     recordedFixtures,
-    // "person", "agent", or null when the declarations cannot tell.
-    kind,
     call: door.call,
     tools: new Map(tools.map((t) => [t.name, t])),
     cache: new Map(),
@@ -391,10 +378,14 @@ if (isMain) {
   const { only, family, json, updateShapes, reason } = parsed;
   const gymPass = parsed.gym;
   const pace = parsed.noPace ? null : PACE;
-  const door = makeDoor({
-    url: env.ELIXIR_MCP_URL,
-    token: env.ELIXIR_MCP_TOKEN,
-  });
+  // The test person's omitted clan is sent as CLAN (withClanDefault); the
+  // cache keys and the report keep the args as the case wrote them.
+  const door = clanDefaultDoor(
+    makeDoor({
+      url: env.ELIXIR_MCP_URL,
+      token: env.ELIXIR_MCP_TOKEN,
+    }),
+  );
   if (!json)
     console.log(
       pace

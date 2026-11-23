@@ -23,7 +23,6 @@ import {
   accountRoleOp,
   accountEnrollOp,
   accountFollowOp,
-  principalOp,
   integrationOp,
   serviceTokenLimitsOp,
 } from "./ops-accounts.mjs";
@@ -335,11 +334,6 @@ async function dispatch(event, context) {
     console.log(JSON.stringify(result));
     return result;
   }
-  if (event?.principal) {
-    const result = await principalOp(process.env.DATABASE_URL, event.principal);
-    console.log(JSON.stringify(result));
-    return result;
-  }
   if (event?.collector_release) {
     const result = await collectorReleaseOp(
       process.env.DATABASE_URL,
@@ -447,15 +441,6 @@ async function dispatch(event, context) {
     const result = await linkedFollowConvertOp(
       process.env.DATABASE_URL,
       event.linked_follow_convert,
-    );
-    console.log(JSON.stringify(result));
-    return result;
-  }
-  if (event?.agent_recordings) {
-    const { agentRecordingsOp } = await import("./ops-agent-recordings.mjs");
-    const result = await agentRecordingsOp(
-      process.env.DATABASE_URL,
-      event.agent_recordings,
     );
     console.log(JSON.stringify(result));
     return result;

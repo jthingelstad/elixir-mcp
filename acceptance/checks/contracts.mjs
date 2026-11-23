@@ -1,6 +1,6 @@
 /** contracts: every field a notes[] sentence names exists on the
  *  response it rides. The check is generic (lib.notesNameFields) and the
- *  cases are the surfaces the Gym and the daily agents lean on, each
+ *  cases are the surfaces the Gym and consuming agents lean on, each
  *  with the few tokens its notes use as prose. Each case also pins the
  *  fields the docs promise per row, since a note can be right and the
  *  row still empty. */
@@ -100,9 +100,9 @@ export const contracts = [
   {
     // clans_my_view is a person's own view (Jamie, 2026-10-12, #535).
     // A person's own Clan view reads their verified player's clan. The
-    // acceptance identity has no player (a test person since 2026-11-23;
-    // an agent before, refused outright), so either way it is refused and
-    // given no view: a view served to it would be another person's.
+    // acceptance identity is a test person with no player, so it is
+    // refused and given no view: a view served to it would be another
+    // person's.
     id: "clans-my-view-refused-without-a-verified-player",
     tools: ["clans_my_view"],
     run: async (ctx) => {
@@ -115,37 +115,22 @@ export const contracts = [
     },
   },
   {
-    // Cheers are a person's: hidden from an agent's catalogue and listed
-    // for a person. The test person has no player and has written no post,
-    // so the tool refuses it no_subject and gives no counts.
-    id: "personal-cheers-by-kind",
+    // Cheers are a person's. The test person has no player and has
+    // written no post, so the tool refuses it no_subject and gives no
+    // counts.
+    id: "personal-cheers-refused-without-a-player",
     tools: ["elixir_cheers"],
     run: async (ctx) => {
-      if (ctx.kind === null)
-        return { skip: "the declarations do not say which kind is calling" };
       const result = await ctx.read("elixir_cheers", { days: 7 });
-      if (ctx.kind === "agent") {
-        ok(
-          !ctx.tools.has("elixir_cheers"),
-          "The agent catalogue excludes personal cheers.",
-        );
-        ok(
-          result.isError &&
-            result.body?.error?.rpc_code === -32601 &&
-            !result.body.items,
-          "The agent receives method not found and no reaction counts.",
-        );
-      } else {
-        ok(
-          ctx.tools.has("elixir_cheers"),
-          "A person's catalogue lists personal cheers.",
-        );
-        ok(
-          result.isError === true && !result.body?.items,
-          "A person with no player and no posts is refused and given no counts.",
-        );
-        eq(result.body?.error?.code, "no_subject", "elixir_cheers refusal");
-      }
+      ok(
+        ctx.tools.has("elixir_cheers"),
+        "A person's catalogue lists personal cheers.",
+      );
+      ok(
+        result.isError === true && !result.body?.items,
+        "A person with no player and no posts is refused and given no counts.",
+      );
+      eq(result.body?.error?.code, "no_subject", "elixir_cheers refusal");
       return { ms: result.ms };
     },
   },
@@ -245,7 +230,7 @@ export const contracts = [
     // tracked clan's entry threw (nowMs is not defined): the war deck
     // tally runs only while the window ends inside the war day in
     // progress, and no acceptance run had read a timeline then. The
-    // agents' own poll shape must answer on any day; on a war day still
+    // compact poll shape agents use must answer on any day; on a war day still
     // being played, the clan's war line carries the tally and it adds
     // up. Read-only (mark_read: false, the acceptance principal's own
     // pointer untouched); invariants only; any other day says so.
@@ -258,7 +243,7 @@ export const contracts = [
         mark_read: false,
         verbosity: "compact",
       });
-      answered(poll, "elixir_timeline, the agents' compact poll");
+      answered(poll, "elixir_timeline, the compact poll");
       const fullRead = await ctx.read("elixir_timeline", {
         days: 2,
         mark_read: false,
@@ -530,7 +515,7 @@ export const contracts = [
     run: async (ctx) => {
       const r = await ctx.read("clans_participation", { weeks: 2 });
       answered(r, "clans_participation");
-      // The notes name what the agent was sent: the table (#124), whose
+      // The notes name what the caller was sent: the table (#124), whose
       // rows are arrays named by columns and decode to the objects.
       const raw = r.raw ?? r.body;
       notesNameFields(ctx, "clans_participation", raw);

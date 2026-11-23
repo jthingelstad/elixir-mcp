@@ -1,8 +1,4 @@
-import {
-  normalizeTag,
-  responseMeta,
-  toolsHiddenFrom,
-} from "@elixir-mcp/contracts";
+import { normalizeTag, responseMeta } from "@elixir-mcp/contracts";
 import {
   ITEM_KINDS,
   buildTimeline,
@@ -10,7 +6,7 @@ import {
   timelineNews,
   readTimelineEvidence,
 } from "../../activity/entries.mjs";
-import { followFor, forCaller } from "../../activity/follow.mjs";
+import { followFor } from "../../activity/follow.mjs";
 import {
   TIMELINE_LOOKBACK_DAYS,
   TIMELINE_LOOKBACK_MS,
@@ -191,25 +187,7 @@ export const elixir_timeline = {
       );
     let homeClan = null;
     if (args.scope === "home_clan") {
-      // Match the clan named in discovery even if its recording stopped.
-      // The next active clan could be a rival.
-      let bound;
-      if (ctx.account.kind === "agent") {
-        const {
-          rows: [clan],
-        } = await ctx.db.query(
-          "select clan_tag from account_clan where account_id=$1 order by is_primary desc, clan_tag limit 1",
-          [ctx.account.accountId],
-        );
-        if (!clan)
-          throw new ToolFailure(
-            "no_subject",
-            "This agent has no home clan.",
-            "Set its clan in Account → Agents.",
-          );
-        bound = clan.clan_tag;
-      }
-      homeClan = await entitledClan(ctx.db, ctx.account, bound);
+      homeClan = await entitledClan(ctx.db, ctx.account, null);
     }
     const { rows: acct } = homeClan
       ? await ctx.db.query(
@@ -502,19 +480,15 @@ export const elixir_timeline = {
       ? (it) => Date.parse(it.sort_at ?? it.at)
       : observedMs;
     // Where each item leads (11.9.0): the reads that expand it into its
-    // story, limited to the tools this caller may call. A full read only;
-    // it is counted against the page budget below like any other field.
-    const hidden = toolsHiddenFrom(ctx.account.kind ?? "person");
+    // story. A full read only; it is counted against the page budget
+    // below like any other field.
     const followWindow = { ...built.window, basis };
     const withFollow = (it) =>
       compact
         ? it
         : {
             ...it,
-            follow: forCaller(
-              followFor(it, followWindow),
-              (tool) => !hidden.has(tool),
-            ),
+            follow: followFor(it, followWindow),
           };
     const all = built.timeline.filter(shown).map(withFollow);
     // A response also fits the result cap (6.34.2): items are taken from

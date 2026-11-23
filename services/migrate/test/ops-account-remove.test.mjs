@@ -483,7 +483,15 @@ test("a dry run is the default: it reports what would go and writes nothing", as
       .email,
     ADDRESS,
   );
-  assert.ok(await validateServiceToken(db, agentKey));
+  // The agent's key is never accepted (agents were removed 2026-11-23),
+  // but the dry run left its row where it was.
+  assert.equal(
+    await count(
+      `select count(*)::int as n from service_token where account_id = $1`,
+      [ids.agent],
+    ),
+    1,
+  );
 });
 
 test("refusals: the owner, an agent, an unknown address, an integration's owner", async () => {

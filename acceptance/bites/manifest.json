@@ -254,14 +254,6 @@
   {
     "feedback": 123,
     "contract": "6.23.0",
-    "why": "the Gym's block 123.1: no notes, so the one-size sentence never rode",
-    "case": "gym/123.1",
-    "captures": ["123-elixir_my_identities.json"],
-    "expect": "has notes"
-  },
-  {
-    "feedback": 123,
-    "contract": "6.23.0",
     "why": "the Gym's block 123.2: a docs section read with no notes",
     "case": "gym/123.2",
     "captures": ["123-elixir_docs-section.json"],
@@ -1486,14 +1478,14 @@
   },
   {
     "contract": "11.12.0",
-    "why": "constructed: clans_my_view answering the acceptance identity with a view; a person's own Clan view must refuse every agent (Jamie, 2026-10-12, #535) and every caller with no verified player in the clan, the test person included (2026-11-23)",
+    "why": "constructed: clans_my_view answering the acceptance identity with a view; a person's own Clan view must refuse every caller with no verified player in the clan (Jamie, 2026-10-12, #535), the test person included",
     "case": "contracts/clans-my-view-refused-without-a-verified-player",
     "captures": ["clans_my_view-agent-served.json"],
     "expect": "is refused its own Clan view"
   },
   {
     "contract": "11.13.0",
-    "why": "the agents' compact poll on war day 1 (2026-10-15), when buildClanEntry read an undeclared nowMs: every timeline with a tracked clan's entry threw until 11.13.1",
+    "why": "the compact timeline poll on war day 1 (2026-10-15), when buildClanEntry read an undeclared nowMs: every timeline with a tracked clan's entry threw until 11.13.1",
     "case": "contracts/timeline-war-day-in-progress",
     "captures": ["nowms-elixir_timeline-war-day.json"],
     "expect": "failed unexpectedly"

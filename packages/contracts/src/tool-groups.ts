@@ -178,11 +178,6 @@ export const TOOL_GROUPS: Record<string, ToolClass> = {
     readOnly: false,
     oauthScope: OAUTH_SCOPE.ACCOUNT_WRITE,
   },
-  elixir_my_identities: {
-    group: "Account",
-    title: "People you know",
-    readOnly: true,
-  },
 
   // Players — profile-shaped views of one tag (docs: players.md).
   players_profile: {

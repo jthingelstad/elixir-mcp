@@ -196,22 +196,22 @@ test("access tokens validate to account context; the gate applies here too", asy
   );
 });
 
-test("a withdrawn owner's agents are refused at both doors (#129)", async () => {
-  // A person with one agent, the agent holding an OAuth grant and a
-  // service token. Withdrawing the PERSON used to stop only the person's
-  // own grants: both doors read the token's account alone.
+test("an agent-kind account's credentials are refused at both doors", async () => {
+  // Agent accounts stay as rows until they are deleted. Their OAuth grants
+  // and keys validate to nothing, so the door answers 401 like any unknown
+  // credential, and the refusal is named rather than read as a wrong door.
   const {
     rows: [person],
   } = await db.query(
     `insert into account (email_hash, status, role) values ($1, 'approved', 'member')
      returning account_id`,
-    [emailHash("withdrawn-owner@example.com")],
+    [emailHash("old-agent-owner@example.com")],
   );
   const {
     rows: [agent],
   } = await db.query(
     `insert into account (status, role, kind, owned_by_account_id, public_id)
-     values ('approved', 'member', 'agent', $1, 'wdrawnagent1')
+     values ('approved', 'member', 'agent', $1, 'oldagentacct')
      returning account_id`,
     [person.account_id],
   );
@@ -227,39 +227,18 @@ test("a withdrawn owner's agents are refused at both doors (#129)", async () => 
   });
   const key = await issueServiceToken(db, {
     accountId: agent.account_id,
-    name: "withdrawn-owner-agent",
+    name: "old-agent-key",
   });
-  const oauthOk = () =>
-    validateAccessToken(db, tokens.accessToken, { resource: RESOURCE });
-  const keyOk = () => validateServiceToken(db, key);
-  const byName = () => serviceTokenAccountByName(db, "withdrawn-owner-agent");
-
-  assert.equal((await oauthOk())?.accountId, agent.account_id);
-  assert.equal((await keyOk())?.accountId, agent.account_id);
-  assert.equal((await byName())?.accountId, agent.account_id);
-
-  for (const status of ["disabled", "denied", "requested"]) {
-    await db.query(`update account set status = $2 where account_id = $1`, [
-      person.account_id,
-      status,
-    ]);
-    assert.equal(await oauthOk(), null, `OAuth refused, owner ${status}`);
-    assert.equal(await keyOk(), null, `service token refused, owner ${status}`);
-    assert.equal(await byName(), null, `profile refused, owner ${status}`);
-  }
-  // The refusal is named for the agent's page, not read as a wrong door.
+  assert.equal(
+    await validateAccessToken(db, tokens.accessToken, { resource: RESOURCE }),
+    null,
+  );
+  assert.equal(await validateServiceToken(db, key), null);
+  assert.equal(await serviceTokenAccountByName(db, "old-agent-key"), null);
   assert.equal(
     (await describeRefusedCredential(db, key)).reason,
     "principal_suspended",
   );
-
-  // Access restored: the same keys work again, as a suspended agent's do.
-  await db.query(
-    `update account set status = 'approved' where account_id = $1`,
-    [person.account_id],
-  );
-  assert.equal((await oauthOk())?.accountId, agent.account_id);
-  assert.equal((await keyOk())?.accountId, agent.account_id);
 });
 
 test("refresh rotation preserves scope/resource and replaying the old token revokes the family", async () => {
@@ -506,9 +485,9 @@ test("service keys retain write-only permissions while the retired scope is filt
   assert.deepEqual(account.scopes, ["feedback:write"]);
 });
 
-test("a test account's key acts as a person at /mcp and wins its name over an older agent's (0316)", async () => {
-  // The agent the acceptance suite used to be, holding a key named
-  // `acceptance-0316` as it would before the cut-over.
+test("a test account's key acts as a person at /mcp, and an agent's key of the same name is not it (0316)", async () => {
+  // An agent-kind account left from before, holding a key named
+  // `acceptance-0316`.
   const {
     rows: [agent],
   } = await db.query(
@@ -522,7 +501,7 @@ test("a test account's key acts as a person at /mcp and wins its name over an ol
     name: "acceptance-0316",
   });
   const byName = () => serviceTokenAccountByName(db, "acceptance-0316");
-  assert.equal((await byName())?.accountId, agent.account_id);
+  assert.equal(await byName(), null, "an agent's key acts as nobody");
 
   // The test account the {test_account} op makes: a person with no address.
   const {

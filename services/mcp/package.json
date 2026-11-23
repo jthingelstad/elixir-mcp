@@ -17,7 +17,6 @@
     "@elixir-mcp/http": "0.1.0"
   },
   "devDependencies": {
-    "@elixir-mcp/claims": "0.1.0",
     "pg": "^8.23.1"
   }
 }

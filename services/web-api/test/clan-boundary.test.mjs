@@ -67,22 +67,15 @@ test("MCP and public tool code cannot import private Clan state", async () => {
 
 // The import rules above pin the importer, not the surface: a third tool in
 // the approved file would pass them silently. Two tools read through the
-// seam (12.0.0): the clan directory, the policy's public part, for a person
-// and their agents; and a person's own view of their clan (#535).
-// clans_context, an agent's private policy context, retired in 12.0.0.
-test("the approved reader serves exactly two tools, each to its own principals", async () => {
+// seam (12.0.0): the clan directory, the policy's public part, and a
+// person's own view of their clan (#535).
+test("the approved reader serves exactly two tools", async () => {
   const { clanContextTools } =
     await import("../../../packages/tools/src/tools/clan-context.mjs");
-  const { PERSON_ONLY_TOOLS, NOT_FOR_PERSONS } =
-    await import("@elixir-mcp/contracts");
   assert.deepEqual(Object.keys(clanContextTools).sort(), [
     "clans_directory",
     "clans_my_view",
   ]);
-  assert.ok(PERSON_ONLY_TOOLS.includes("clans_my_view"));
-  // A person and their agents.
-  assert.ok(!PERSON_ONLY_TOOLS.includes("clans_directory"));
-  assert.ok(!NOT_FOR_PERSONS.includes("clans_directory"));
 });
 
 // The clan directory (#768) reads through the same seam: Clan's web wiring

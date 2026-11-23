@@ -46,14 +46,6 @@ export interface RoleQuotas {
   mcp_calls_per_day: number;
   /** live_fetch calls per UTC day — these spend the global CR budget. */
   live_fetches_per_day: number;
-  /**
-   * Agents the account may create. Agents are not a tier feature - any role
-   * may create one for a clan it has added - but each agent is a credential
-   * that spends its owner's call and live-fetch budgets, and an unbounded
-   * count is an unbounded number of keys to rotate and audit. The cap is
-   * generous relative to the clan slots it is bounded by.
-   */
-  agents: number;
 }
 
 export const ROLE_ORDER: Role[] = [
@@ -72,7 +64,6 @@ export const ROLES: Record<Role, RoleQuotas> = {
     comprehensive_clans: 0,
     mcp_calls_per_day: 500,
     live_fetches_per_day: 20,
-    agents: 3,
   },
   leader: {
     player_slots: 50,
@@ -80,7 +71,6 @@ export const ROLES: Record<Role, RoleQuotas> = {
     comprehensive_clans: 1,
     mcp_calls_per_day: 2000,
     live_fetches_per_day: 100,
-    agents: 5,
   },
   family: {
     player_slots: 50,
@@ -88,7 +78,6 @@ export const ROLES: Record<Role, RoleQuotas> = {
     comprehensive_clans: 3,
     mcp_calls_per_day: 5000,
     live_fetches_per_day: 250,
-    agents: 10,
   },
   partner: {
     player_slots: 50,
@@ -96,7 +85,6 @@ export const ROLES: Record<Role, RoleQuotas> = {
     comprehensive_clans: 5,
     mcp_calls_per_day: 15000,
     live_fetches_per_day: 1000,
-    agents: 25,
   },
   admin: {
     player_slots: Infinity,
@@ -104,7 +92,6 @@ export const ROLES: Record<Role, RoleQuotas> = {
     comprehensive_clans: Infinity,
     mcp_calls_per_day: Infinity,
     live_fetches_per_day: Infinity,
-    agents: Infinity,
   },
   owner: {
     player_slots: Infinity,
@@ -112,7 +99,6 @@ export const ROLES: Record<Role, RoleQuotas> = {
     comprehensive_clans: Infinity,
     mcp_calls_per_day: Infinity,
     live_fetches_per_day: Infinity,
-    agents: Infinity,
   },
 };
 
@@ -218,18 +204,11 @@ function personTierSql(a: string): string {
 /**
  * The tier of the account row aliased `a`, as a SQL expression to select
  * in place of `a.role`. An integration keeps its stored role (Partner
- * access is admin-provisioned). An agent is capped at its owner's tier
- * and never above leader (DECISIONS: principals), so it follows its
- * owner's earned tier rather than the snapshot taken at its creation.
+ * access is admin-provisioned).
  */
 export function tierSql(a: string = "a"): string {
   alias(a);
   return `(case
     when ${a}.kind = 'integration' then ${a}.role
-    when ${a}.kind = 'agent' then coalesce(
-      (select case when (${personTierSql("tier_o")}) = 'member'
-                   then 'member' else 'leader' end
-         from account tier_o where tier_o.account_id = ${a}.owned_by_account_id),
-      'member')
     else ${personTierSql(a)} end)`;
 }

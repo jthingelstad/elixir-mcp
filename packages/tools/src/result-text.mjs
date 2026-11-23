@@ -12,14 +12,14 @@ export const MCP_RESULT_MAX_CHARS = 48_000;
  *  MCP door and the web explorer so the cap is one number. The code is
  *  result_too_large (1.0.0): the request was fine, and an agent branches
  *  on the code. */
-export function renderToolResultText(registry, name, invoked, kind = null) {
+export function renderToolResultText(registry, name, invoked) {
   // Compact JSON: MCP clients pay tokens per byte, and battle results are
   // deck-dense — indent-1 doubled their size past the cap for no benefit.
   let text = JSON.stringify(invoked ?? null);
   const truncated = text.length > MCP_RESULT_MAX_CHARS;
   let body = invoked;
   if (truncated) {
-    const spec = registry.declarations(kind).find((d) => d.name === name);
+    const spec = registry.declarations().find((d) => d.name === name);
     // A one-size tool publishes verbosity so clients may send it, but it
     // narrows nothing there (Gym #151: battles_decks was told compact is
     // usually enough, and a compact retry still read "verbosity full").

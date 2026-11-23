@@ -7,8 +7,8 @@
  * 1.0.0: resources and prompts beside tools (resources.mjs), every tool
  * result also as structuredContent, an oversized result answered with
  * result_too_large rather than bad_request, and the opening instructions
- * carrying the canonical explanation of player_tag / on_behalf_of /
- * windows once, so the per-argument descriptions can be one line.
+ * carrying the canonical explanation of player_tag and windows once, so
+ * the per-argument descriptions can be one line.
  */
 
 import {
@@ -134,7 +134,7 @@ function rpcError(id, code, message, data) {
 export const INSTRUCTIONS_BUDGET = 2048;
 
 /**
- * The opening brief, written for the principal actually connecting,
+ * The opening brief, written for the person actually connecting,
  * ordered by value so that a client which cuts it keeps the most:
  * identity (capped, identity.mjs), the one-line rules that change an
  * answer, START, the feedback line, then one pointer to the manual,
@@ -143,7 +143,7 @@ export const INSTRUCTIONS_BUDGET = 2048;
  * 50-player, 10-clan identity and holds the whole brief under
  * INSTRUCTIONS_BUDGET.
  */
-function instructionsFor(kind, identity) {
+function instructionsFor(identity) {
   const rules = [
     "Every read names a player or a clan. No corpus statistics.",
     "Windows: from/to, days/weeks or season ('current', 'previous', 2026-08,",
@@ -154,20 +154,11 @@ function instructionsFor(kind, identity) {
     "notes[]. Read tools/list for available tools; elixir_updates says",
     "what changed.",
   ];
-  const start = {
-    person: [
-      "START: elixir_timeline for friends' posts and play; posts_pending signals new or edited posts.",
-      "elixir_cheers for reactions, players_summary for progress, battles_performance for results,",
-      "battles_decks for decks; elixir_follow_player and elixir_follow_clan follow on request.",
-    ],
-    agent: [
-      "START: war_current (decks_today: who still has decks), elixir_timeline",
-      "with scope home_clan and your reader name; elixir_my_feedback when",
-      "meta.feedback_responses_pending says so.",
-      "display_name beside an unmapped on_behalf_of makes no_subject carry",
-      "candidates[]. battles_decks reads a named player's recorded decks.",
-    ],
-  };
+  const start = [
+    "START: elixir_timeline for friends' posts and play; posts_pending signals new or edited posts.",
+    "elixir_cheers for reactions, players_summary for progress, battles_performance for results,",
+    "battles_decks for decks; elixir_follow_player and elixir_follow_clan follow on request.",
+  ];
   const feedback = [
     "Hit friction (a missing capability, a confusing result, too many",
     "calls)? File elixir_send_feedback on your own judgment; every item is",
@@ -177,12 +168,11 @@ function instructionsFor(kind, identity) {
     "Manual: elixir_docs (choosing-a-tool, glossary; windows, verbosity and",
     "response fields: protocol#argument-conventions).",
   ];
-  const k = kind === "agent" ? kind : "person";
   const render = (who) =>
     [
       ...(who ? [who] : []),
       ...rules,
-      ...start[k],
+      ...start,
       ...feedback,
       ...manual,
       DISCLAIMER,
@@ -198,12 +188,7 @@ function instructionsFor(kind, identity) {
     : render(identitySentences(identity, { compact: true }));
 }
 
-function initializeResult(
-  registry,
-  requestedVersion,
-  kind = null,
-  identity = null,
-) {
+function initializeResult(registry, requestedVersion, identity = null) {
   const requested = String(requestedVersion ?? "");
   return {
     protocolVersion: LEGACY_VERSIONS.includes(requested)
@@ -217,18 +202,17 @@ function initializeResult(
     serverInfo: {
       name: "elixir-mcp",
       title: "Elixir",
-      // The fingerprint of the whole catalogue and every kind's surface
-      // (TOOLS_VERSION for the real registry): one string for every kind,
-      // the same as every response's meta.contract_version.
+      // The fingerprint of the catalogue (TOOLS_VERSION for the real
+      // registry), the same as every response's meta.contract_version.
       version: toolsVersion(registry),
       websiteUrl: "https://elixir.poapkings.com/",
     },
-    instructions: instructionsFor(kind, identity),
+    instructions: instructionsFor(identity),
     // The same facts the instructions state in prose, as data a CLIENT can
     // branch on at boot without regexing English. See principalBlock.
     _meta: {
       [PRINCIPAL_META_KEY]: principalBlock(
-        kind,
+        "person",
         identity,
         identity?.primaryClan ?? null,
       ),
@@ -291,12 +275,7 @@ export async function handleMcpMessage(message, context) {
           payload: rpcResult(
             id,
             discover(
-              initializeResult(
-                context.registry,
-                null,
-                context.kind,
-                context.identity,
-              ),
+              initializeResult(context.registry, null, context.identity),
             ),
           ),
         },
@@ -336,7 +315,6 @@ async function dispatchMethod(record, context) {
         initializeResult(
           context.registry,
           params.protocolVersion,
-          context.kind,
           context.identity,
         ),
       ),
@@ -347,7 +325,7 @@ async function dispatchMethod(record, context) {
     return {
       statusCode: 200,
       payload: rpcResult(id, {
-        tools: context.registry.declarations(context.kind),
+        tools: context.registry.declarations(),
       }),
     };
   }
@@ -412,28 +390,6 @@ async function dispatchMethod(record, context) {
         }),
       };
     }
-    // Omitting a tool from tools/list is presentation, not enforcement --
-    // clients cache that list for a long time, and this server publishes a
-    // fingerprint precisely because they do. A principal that should not see
-    // a tool must also be unable to call one it remembers.
-    if (
-      context.registry.availableTo &&
-      !context.registry.availableTo(name, context.kind)
-    ) {
-      await context.auditRefusal?.(-32601, name, params.arguments);
-      return {
-        statusCode: 200,
-        payload: rpcError(
-          id,
-          -32601,
-          `${name} is not available to this connection.`,
-          {
-            kind: context.kind ?? "person",
-            hint: "This tool answers for a person. An agent acts for a clan.",
-          },
-        ),
-      };
-    }
     const quota = await context.spendQuota();
     if (!quota.allowed) {
       await context.auditRefusal?.(
@@ -482,7 +438,6 @@ async function dispatchMethod(record, context) {
       context.registry,
       name,
       invoked.body,
-      context.kind,
     );
     const isError = invoked.isError === true || truncated;
     return {

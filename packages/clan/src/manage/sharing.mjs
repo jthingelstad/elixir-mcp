@@ -4,14 +4,13 @@
  * person (`writeClanFactInClan`). Elixir keeps them apart from the
  * game record, labelled as this person's word through Clan, and
  * shows each only to the readers its type allows: a departure (kick or
- * leave) to the clan and its agent since Elixir 9.3.0 (Jamie, 2026-09-25:
+ * leave) to the clan since Elixir 9.3.0 (Jamie, 2026-09-25:
  * the game already shows the clan a kick, and leaders say why in clan
- * chat); an away only to the clan's leaders, never an agent.
+ * chat); an away only to the clan's leaders.
  *
  * Always shared, never switched (Jamie, 2026-09-25: "I don't think this is
  * something that should be able to be turned off"). It shipped as one
- * switch per type, all off to start, and nothing crossed: the one
- * integration it exists for (a clan's Discord agent) saw nothing, and
+ * switch per type, all off to start, and nothing crossed, and
  * nothing said so. Every type is something the clan already sees in the
  * game or here, and Elixir shows each only to its audience, so Elixir's
  * per-type visibility is the one control. A fact is shared when the action
@@ -31,7 +30,7 @@ const SHARE_TYPES = {
   departure_classified: {
     label: "Kicks and leaves",
     why: "When a leader answers a departure (kicked or left), or completes a removal.",
-    sees: "Everyone verified in the clan, and the clan's agent: the game already shows the clan who was kicked.",
+    sees: "Everyone verified in the clan: the game already shows the clan who was kicked.",
   },
   role_change_made: {
     label: "Promotions and demotions",
@@ -56,7 +55,7 @@ const SHARE_TYPES = {
   award_standing: {
     label: "Where the award races stand",
     why: "Each morning, Elixir's own reading of the running season's awards: who is on each podium, who is on track for attendance. Said by the app, not a person; written only when a place changes.",
-    sees: "Everyone verified in the clan, and the clan's agent.",
+    sees: "Everyone verified in the clan.",
   },
 };
 

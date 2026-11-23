@@ -101,7 +101,7 @@ export function cleanRefs(list) {
 }
 
 /** A call, an email or a related item is shown to the maintainer as the
- *  filer's, so it must be: a call by the filer or an agent they own, an
+ *  filer's, so it must be: a call by the filer, an
  *  email sent to the filer, a feedback item the filer filed (11.10.0).
  *  Anything else is dropped as not_yours. */
 async function ownedRefs(db, accountId, refs) {
@@ -113,8 +113,7 @@ async function ownedRefs(db, accountId, refs) {
     const { rows } = await db.query(
       `select distinct request_id::text as id from mcp_call_audit
         where request_id = any($1::uuid[])
-          and (account_id = $2 or account_id in
-               (select account_id from account where owned_by_account_id = $2))`,
+          and account_id = $2`,
       [calls, accountId],
     );
     for (const r of rows) ok.add(`call\u0000${r.id}`);
@@ -168,18 +167,12 @@ export function cleanContext(input) {
   return Object.keys(out).length ? out : null;
 }
 
-/** Who filed it through what: principal kind, client, the filing call's
- *  own request id, and an agent's on_behalf_of. Small strings only. */
+/** Who filed it through what: principal kind, client and the filing
+ *  call's own request id. Small strings only. */
 function cleanVia(via) {
   if (!via) return null;
   const out = {};
-  for (const key of [
-    "principal_kind",
-    "client_name",
-    "request_id",
-    "on_behalf_of",
-    "player_tag",
-  ]) {
+  for (const key of ["principal_kind", "client_name", "request_id"]) {
     const v = via[key];
     if (v !== null && v !== undefined && v !== "")
       out[key] = String(v).slice(0, 200);
@@ -877,8 +870,7 @@ export async function rateDiscordPost(
       ? await db.query(
           `select post_id, action, outcome from discord_post
             where post_id = $1 and feature = 'timeline' and ${REACHED}
-              and (account_id = $2 or account_id in
-                   (select account_id from account where owned_by_account_id = $2))`,
+              and account_id = $2`,
           [id, account.accountId],
         )
       : await db.query(

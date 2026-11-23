@@ -107,7 +107,7 @@ export const STAMPS = Object.freeze(
       shape: "round",
       ink: "violet",
       rule: "Connect Discord to Elixir.",
-      action: "Connections & agents",
+      action: "Connections",
       destination: "discord",
       thresholds: [1],
       unit: "connection",

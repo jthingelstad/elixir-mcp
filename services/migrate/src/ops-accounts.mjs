@@ -1,5 +1,5 @@
 import pg from "pg";
-import { createPrincipal, addPlayer } from "@elixir-mcp/claims";
+import { addPlayer } from "@elixir-mcp/claims";
 
 /**
  * One-time production seeding, run by explicit invoke payload only
@@ -139,64 +139,12 @@ export async function accountRoleOp(databaseUrl, spec) {
   }
 }
 
-/**
- * Register an agent or integration whose key was generated OUTSIDE the cloud.
- *
- * {principal: {kind, name, clan_tag?, token_hash, scope?, owner_service?}}
- *
- * Same shape as collectorTokenOp and for the same reason: the operator mints
- * the raw value locally, writes it straight into the consumer's .env, and sends
- * only its sha256 here. The plaintext never exists in a Lambda, a log, a
- * CloudTrail entry, or an agent's context.
- *
- * The creation itself is @elixir-mcp/claims' createPrincipal, shared with the
- * console route, so the rules that matter -- your clan, your tier, your name --
- * cannot drift between the two ways in.
- */
-export async function principalOp(databaseUrl, spec) {
-  const db = new pg.Client({ connectionString: databaseUrl });
-  await db.connect();
-  try {
-    const { rows: owners } = spec?.owner_service
-      ? await db.query(
-          `select a.account_id, a.role, a.kind from account a
-           join service_token t on t.account_id = a.account_id
-           where t.name = $1 and t.revoked_at is null`,
-          [spec.owner_service],
-        )
-      : await db.query(
-          `select account_id, role, kind from account where role = 'owner'`,
-        );
-    const owner = owners[0];
-    if (!owner) return { error: "owner_not_found" };
-
-    const result = await createPrincipal(
-      db,
-      { accountId: owner.account_id, role: owner.role, kind: owner.kind },
-      {
-        kind: spec?.kind,
-        name: spec?.name,
-        clanTag: spec?.clan_tag ?? null,
-        tokenHash: spec?.token_hash,
-        scope: spec?.scope ?? null,
-      },
-    );
-    // Deliberately returns the public id and nothing secret: there is nothing
-    // secret here to return.
-    return result.ok
-      ? { ok: true, principal: result.principal }
-      : { error: result.error, ...result };
-  } finally {
-    await db.end();
-  }
-}
-
 /** {service_token_limits: {name, hourly_rate_limit?, daily_quota?}}: a
  *  key's own ceilings. A key with its own hourly ceiling spends from its
- *  own bucket (services/mcp/src/handler.mjs), so the acceptance suite's
- *  run does not count against its owner's hour or the Discord agent's.
- *  Null clears an override back to the owner's. By token NAME, the
- *  live (unrevoked) row; never the value or the hash. */
+ *  own bucket (services/mcp/src/handler.mjs), so a test account's run
+ *  never shares an hour with anything else. Null clears an override back
+ *  to the account's. By token NAME, the live (unrevoked) row; never the
+ *  value or the hash. */
 export async function serviceTokenLimitsOp(databaseUrl, spec) {
   const name = String(spec?.name ?? "").trim();
   if (!name) return { error: "name_required" };

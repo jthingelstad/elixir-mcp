@@ -163,49 +163,20 @@ export function canonicalResource(value) {
 /**
  * The one place a request path becomes a protected-resource identity.
  *
- * Three shapes, and only three: the personal door, an agent's door and the
- * JSON API. This pattern is the code half of the CHECK constraint in
- * migrations 0054, 0160 and 0257, and a test holds every audience it names
- * inside that constraint. The constraint names the same three; 0257 took
- * out the integration door, which no credential ever opened. The host is a hard-coded
- * literal on both sides: nothing a caller sends can steer the audience off
- * this origin.
- *
- * Returns { resource, kind, publicId } or null. `kind` is what the URL CLAIMS;
- * proving it is the credential's job, and the mismatch between the two is the
- * whole reason distinct URLs are worth having.
+ * Two doors: MCP at `/mcp`, and the JSON API at `/api/v1` (a person's grant
+ * for Sign in with Elixir's `GET /api/v1/me`; the MCP handler refuses it, so
+ * a token for one door is never accepted at the other). The host is a
+ * hard-coded literal: nothing a caller sends can steer the audience off this
+ * origin. Returns { resource, kind } or null.
  */
-const RESOURCE_PATH_RE = /^\/(?:mcp|(api\/v1)|a\/([a-z0-9]{8,16})\/mcp)$/;
+const RESOURCE_PATH_RE = /^\/(?:mcp|(api\/v1))$/;
 
-/**
- * `/api/v1` is a different DOOR: a person's grant for Sign in with
- * Elixir's `GET /api/v1/me`. Its kind is `api`, and the MCP handler refuses
- * it, so a token for one door is never accepted at the other.
- */
 export function resourceForPath(path, issuer) {
   const match = RESOURCE_PATH_RE.exec(String(path ?? ""));
   if (!match) return null;
   const resource = canonicalResource(new URL(path, issuer).toString());
   if (!resource) return null;
-  if (match[1]) return { resource, kind: "api", publicId: null };
-  if (!match[2]) return { resource, kind: "person", publicId: null };
-  return { resource, kind: "agent", publicId: match[2] };
-}
-
-/**
- * Does the credential presented actually belong at the door it was presented
- * at? A person's token at an agent URL, or one agent's token at another
- * agent's URL, is the failure this whole scheme exists to convert from a
- * silently wrong answer into a refusal.
- */
-export function principalMatchesResource(account, target) {
-  if (!account || !target) return false;
-  const kind = account.kind ?? "person";
-  // The JSON API's grant is a person's (/api/v1 is a person door).
-  if (target.kind === "api") return kind === "person";
-  if (kind !== target.kind) return false;
-  if (target.kind === "person") return true;
-  return Boolean(account.publicId) && account.publicId === target.publicId;
+  return { resource, kind: match[1] ? "api" : "person" };
 }
 
 export function verifyPkce(codeVerifier, codeChallenge) {
@@ -488,28 +459,10 @@ export async function redeemRefreshToken(
 }
 
 /**
- * Bearer -> account context for the MCP door. Enforces token liveness,
- * family revocation/absolute lifetime, AND the access gate — a token for
- * a no-longer-approved account validates to nothing, on every request.
- */
-/**
- * Whose daily budget a call spends, and which role sets its ceiling.
- *
- * An AGENT spends its OWNER's budget — that is the deal that lets every clan
- * leader have one without a tier gate. Its own role still caps what it may
- * COLLECT (slots, comprehensive vs activity), which is the axis that keeps a
- * demo honest; calls are the axis that costs the service money, and those come
- * out of the parent's allowance.
+ * The daily budget a call spends, and the role that sets its ceiling: the
+ * account's own.
  */
 function budgetFor(row) {
-  if (row.kind === "agent" && row.owned_by_account_id) {
-    return {
-      accountId: row.owned_by_account_id,
-      role: row.owner_role ?? row.role,
-      override: row.owner_mcp_daily_quota ?? null,
-      liveOverride: row.owner_live_daily_quota ?? null,
-    };
-  }
   return {
     accountId: row.account_id,
     role: row.role,
@@ -518,17 +471,17 @@ function budgetFor(row) {
   };
 }
 
-/**
- * An owned principal (an agent) acts only while its
- * owner may (#129). Withdrawing a person (status leaves 'approved') used
- * to stop their own grants and leave every agent they own working, since
- * both doors read the token's account alone and joined the owner only for
- * its quota. Both doors now read the owner's status too, so a withdrawal
- * is the same ordinary not-found as a suspended agent; resuming the owner
- * restores the same keys. A person has no owner, so this is true for them.
- */
-const OWNER_APPROVED = `(a.owned_by_account_id is null or o.status = 'approved')`;
+/** Only a person's credential validates, at either door; an account of
+ *  any other kind is refused like an unknown token. */
+const PERSON_ONLY = `a.kind = 'person'`;
 
+/**
+ * Bearer -> account context for the MCP door. Enforces token liveness,
+ * family revocation/absolute lifetime, AND the access gate: a token for
+ * a no-longer-approved account validates to nothing, on every request.
+ * Only a person's token validates (PERSON_ONLY): an account of any other
+ * kind is refused like an unknown token.
+ */
 export async function validateAccessToken(db, token, { resource } = {}) {
   const raw = validOpaque(token, ACCESS_TOKEN_PREFIX);
   const audience = canonicalResource(resource);
@@ -536,16 +489,13 @@ export async function validateAccessToken(db, token, { resource } = {}) {
   const { rows } = await db.query(
     `select f.client_id, f.scope, f.resource, f.family_id, c.client_name, c.redirect_uris,
             a.account_id, a.email_hash, a.is_owner, a.timezone, a.mcp_daily_quota,
-            ${tierSql("a")} as role, a.live_daily_quota, a.kind, a.owned_by_account_id, a.public_id,
-            ${tierSql("o")} as owner_role, o.mcp_daily_quota as owner_mcp_daily_quota,
-            o.live_daily_quota as owner_live_daily_quota,
+            ${tierSql("a")} as role, a.live_daily_quota, a.kind,
             fc.client_id is not null as provisioned
      from oauth_token t
      join oauth_family f on f.family_id = t.family_id
      join oauth_client c on c.client_id = f.client_id
      left join family_oauth_client fc on fc.client_id = f.client_id
      join account a on a.account_id = f.account_id
-     left join account o on o.account_id = a.owned_by_account_id
      where t.token_hash = $1 and t.kind = 'access'
        and t.expires_at > now() and t.revoked_at is null
        and f.revoked_at is null and f.absolute_expires_at > now()
@@ -553,7 +503,7 @@ export async function validateAccessToken(db, token, { resource } = {}) {
        and f.resource = $2
        and not exists (select 1 from integration i where i.account_id = a.account_id)
        and a.status = 'approved'
-       and ${OWNER_APPROVED}`,
+       and ${PERSON_ONLY}`,
     [sha256hex(raw), audience],
   );
   const row = rows[0];
@@ -581,8 +531,6 @@ export async function validateAccessToken(db, token, { resource } = {}) {
         scopes: normalizeScope(row.scope).split(" "),
         resource: row.resource,
         kind: row.kind,
-        ownedByAccountId: row.owned_by_account_id,
-        publicId: row.public_id,
         budget: budgetFor(row),
         credentialType: "oauth",
       }
@@ -702,12 +650,9 @@ const SERVICE_ACCOUNT_SELECT = `select t.token_id, t.name, t.scope as token_scop
             t.daily_quota as token_daily_quota,
             t.hourly_rate_limit as token_rate_limit,
             a.account_id, a.email_hash, a.is_owner, a.timezone, a.mcp_daily_quota,
-            ${tierSql("a")} as role, a.live_daily_quota, a.kind, a.owned_by_account_id, a.public_id,
-            ${tierSql("o")} as owner_role, o.mcp_daily_quota as owner_mcp_daily_quota,
-            o.live_daily_quota as owner_live_daily_quota
+            ${tierSql("a")} as role, a.live_daily_quota, a.kind
      from service_token t
-     join account a on a.account_id = t.account_id
-     left join account o on o.account_id = a.owned_by_account_id`;
+     join account a on a.account_id = t.account_id`;
 
 /** Validate a service token; returns the account shape the MCP handler
  *  expects, plus serviceName for per-token audit surfaces. */
@@ -717,7 +662,7 @@ export async function validateServiceToken(db, token) {
   const { rows } = await db.query(
     `${SERVICE_ACCOUNT_SELECT}
      where t.token_hash = $1 and t.revoked_at is null and a.status = 'approved'
-       and ${OWNER_APPROVED}
+       and ${PERSON_ONLY}
        and t.audience = 'mcp'
        and not exists (select 1 from integration i where i.account_id = a.account_id)`,
     [sha256hex(raw)],
@@ -739,13 +684,12 @@ export async function validateServiceToken(db, token) {
  *  shape as validateServiceToken, so a profile sees exactly what that
  *  principal's call would; it never touches last_used_at. A name is
  *  unique per account only: a test account's key (0316) wins over an
- *  older key of the same name, so `acceptance` means the test account
- *  while the agent it replaces still exists. */
+ *  older key of the same name. */
 export async function serviceTokenAccountByName(db, name) {
   const { rows } = await db.query(
     `${SERVICE_ACCOUNT_SELECT}
      where t.name = $1 and t.revoked_at is null and a.status = 'approved'
-       and ${OWNER_APPROVED}
+       and ${PERSON_ONLY}
        and t.audience = 'mcp'
        and not exists (select 1 from integration i where i.account_id = a.account_id)
      order by (a.test_name is not null) desc, t.token_id limit 1`,
@@ -779,8 +723,6 @@ function serviceAccount(row) {
     scope: currentScopeNames(row.token_scope ?? FULL_OAUTH_SCOPE).join(" "),
     scopes: currentScopeNames(row.token_scope ?? FULL_OAUTH_SCOPE),
     kind: row.kind,
-    ownedByAccountId: row.owned_by_account_id,
-    publicId: row.public_id,
     hourlyRateLimit: row.token_rate_limit ?? null,
     budget: budgetFor(row),
     credentialType: "service",
@@ -794,8 +736,8 @@ function serviceAccount(row) {
  * already knows about, still being presented by something they forgot to
  * update. That case is identifiable — the hash is in the table, the row simply
  * says revoked, or its account is suspended, or it belongs at another door —
- * and identifying it is what turns "an agent went quiet" into "your revoked
- * key `poap-kings` was presented 288 times today from one address".
+ * and identifying it is what turns "a client went quiet" into "your revoked
+ * key `acceptance` was presented 288 times today from one address".
  *
  * Returns { kind, tokenId, accountId, label, reason } with everything but kind
  * possibly null. Recognising a credential grants nothing: this runs only after
@@ -808,10 +750,8 @@ export async function describeRefusedCredential(db, presented) {
 
   if (value.startsWith("svt_")) {
     const { rows } = await db.query(
-      `select t.token_id, t.name, t.revoked_at, a.account_id, a.status, a.kind,
-              o.status as owner_status
+      `select t.token_id, t.name, t.revoked_at, a.account_id, a.status, a.kind
        from service_token t join account a on a.account_id = t.account_id
-       left join account o on o.account_id = a.owned_by_account_id
        where t.token_hash = $1`,
       [digest],
     );
@@ -824,8 +764,7 @@ export async function describeRefusedCredential(db, presented) {
       label: row.name,
       reason: row.revoked_at
         ? "revoked_key"
-        : row.status !== "approved" ||
-            (row.owner_status && row.owner_status !== "approved")
+        : row.status !== "approved" || row.kind !== "person"
           ? "principal_suspended"
           : "wrong_door",
     };

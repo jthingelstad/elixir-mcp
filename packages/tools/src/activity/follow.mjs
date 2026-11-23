@@ -9,8 +9,7 @@
  * Every argument comes from the item itself (its facts, subjects, id and
  * the window that served it), never from game data kept by hand. These
  * are addresses, not advice: they say where more of the record is, not
- * what to make of it. A read the caller may not make is left out
- * (`forCaller`), and each address is held to its tool's input schema by
+ * what to make of it. Each address is held to its tool's input schema by
  * a test (timeline-follow.test.mjs).
  */
 
@@ -239,8 +238,3 @@ export function followFor(it, window) {
       return it.section === "attested" ? summary(tag) : [];
   }
 }
-
-/** Only the reads this caller may make: a tool hidden from its principal
- *  is no address for it. */
-export const forCaller = (follow, mayCall) =>
-  follow.filter((x) => mayCall(x.tool));

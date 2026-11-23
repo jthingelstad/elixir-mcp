@@ -17,7 +17,7 @@ const COLUMNS = `a.audit_id, a.account_id, a.token_id, a.request_id, a.surface, 
   a.args, a.duration_ms, a.result_bytes, a.truncated, a.error_code,
   a.viewer_country, a.client_name, a.oauth_family_id, a.created_at,
   a.captured, a.db_ms, a.db_queries, a.live_wait_ms, a.serialize_ms,
-  a.cold_start, a.principal_kind, a.on_behalf_of, a.rpc_error_code,
+  a.cold_start, a.principal_kind, a.rpc_error_code,
   t.name as token_name`;
 
 /**

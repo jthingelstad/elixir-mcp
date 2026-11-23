@@ -9,14 +9,14 @@ before(async () => {
 });
 after(async () => scratch?.drop());
 const TAGS = ["#0JQ0JQ8", "#0QJ29VYL", "#0VY8RUJ2"];
-async function account(name, kind = "person", owner = null) {
+async function account(name) {
   const {
     rows: [row],
   } = await scratch.db.query(
-    "insert into account (email_hash,status,kind,owned_by_account_id,role) values ($1,'approved',$2,$3,'owner') returning account_id",
-    [name, kind, owner],
+    "insert into account (email_hash,status,kind,role) values ($1,'approved','person','owner') returning account_id",
+    [name],
   );
-  return { accountId: row.account_id, kind };
+  return { accountId: row.account_id, kind: "person" };
 }
 
 test("a later unnamed player is a friend, with the same recording and explicit notification choice", async () => {
@@ -40,40 +40,6 @@ test("a later unnamed player is a friend, with the same recording and explicit n
   );
   await addPlayer(scratch.db, person, { tag: TAGS[1] });
   assert.deepEqual(await read(), { relationship: "friend", notify: false });
-});
-
-test("an agent follows as a friend while remaining unable to claim a player as itself", async () => {
-  const owner = await account("friend-agent-owner");
-  const agent = await account("friend-agent", "agent", owner.accountId);
-  const added = await addPlayer(scratch.db, agent, {
-    tag: TAGS[2],
-    relationship: "friend",
-  });
-  assert.equal(added.ok, true);
-  assert.equal(added.isPrimary, false);
-  assert.equal(
-    (await addPlayer(scratch.db, agent, { tag: TAGS[2], follow: true })).ok,
-    true,
-  );
-  assert.equal(
-    (
-      await setRelationship(scratch.db, agent, {
-        tag: TAGS[2],
-        relationship: "alt",
-      })
-    ).error,
-    "not_entitled",
-  );
-  assert.equal(
-    (await addPlayer(scratch.db, agent, { tag: TAGS[0], relationship: "alt" }))
-      .error,
-    "not_entitled",
-  );
-  assert.equal(
-    (await addPlayer(scratch.db, agent, { tag: TAGS[0], makePrimary: true }))
-      .error,
-    "not_entitled",
-  );
 });
 
 test("retired relationships are refused by the source writers", async () => {

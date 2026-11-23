@@ -5,7 +5,7 @@ import { RECORDING_DOCS } from "./common.mjs";
 
 export const elixir_follow_clan = {
   description:
-    "Follow a clan on your account: starts recording in one act (followed means recorded), within your clan slots (an agent spends its owner's). scope activity records roster and war; comprehensive also records every member's battles and profile. An agent can follow a rival or a family clan; the clan it acts for stays. action remove takes it off your account (recording stops when no account has it); notify_on / notify_off control whether it feeds your elixir_timeline.",
+    "Follow a clan on your account: starts recording in one act (followed means recorded), within your clan slots. scope activity records roster and war; comprehensive also records every member's battles and profile. action remove takes it off your account (recording stops when no account has it); notify_on / notify_off control whether it feeds your elixir_timeline.",
   inputSchema: {
     type: "object",
     properties: {
@@ -59,14 +59,6 @@ export const elixir_follow_clan = {
     }
     if (action === "remove") {
       const r = await removeClan(ctx.db, ctx.account, { tag, via: "mcp" });
-      if (!r.ok)
-        throw new ToolFailure(
-          "not_entitled",
-          r.error === "last_clan"
-            ? "This is the only clan this agent acts for."
-            : "This is the clan this agent acts for.",
-          "An agent keeps the clan it acts for. Its owner can make another of its clans the one it acts for from the agent's page in Settings, and then remove this one.",
-        );
       return {
         clan_tag: tag,
         removed: r.removed,
@@ -79,8 +71,8 @@ export const elixir_follow_clan = {
         meta: responseMeta({ as_of: new Date().toISOString() }),
       };
     }
-    // action 'add': within the pool's clan slots (the person's, shared with
-    // their agents); the console runs the same function (2026-09-23).
+    // action 'add': within the person's clan slots; the web runs the same
+    // function (2026-09-23).
     const r = await addClan(ctx.db, ctx.account, {
       tag,
       scope: args.scope,
@@ -91,7 +83,7 @@ export const elixir_follow_clan = {
         "quota_exceeded",
         r.limit === 0
           ? `The ${r.role} role has no ${r.scope}-scope clan slots.`
-          : `Your ${r.scope}-scope clan slots are full (${r.limit} for the ${r.role} role${ctx.account.kind === "agent" ? ", shared with its owner and their agents" : ""}).`,
+          : `Your ${r.scope}-scope clan slots are full (${r.limit} for the ${r.role} role).`,
         r.scope === "comprehensive"
           ? "Comprehensive capture records every member's battles; the leader role and above include it. Leader is earned while a verified player of yours leads or co-leads a clan you follow; or follow at scope 'activity'."
           : "Tiers are earned: leading a clan you follow gives Leader, running an active collector gives Family; elixir_docs({ page: 'roles' }) has the ladder.",

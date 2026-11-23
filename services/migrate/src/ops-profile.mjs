@@ -155,8 +155,6 @@ export async function profileTool(databaseUrl, spec = {}) {
       await db.query("select set_config('work_mem', $1, false)", [workMem]);
     const account = await serviceTokenAccountByName(db, principal);
     if (!account) return { error: "principal_not_found", principal };
-    if (!registry.availableTo(tool, account.kind))
-      return { error: "not_available_to_principal", tool, kind: account.kind };
     const log = [];
     const ctx = {
       db: recordingDb(db, { explain, log }),

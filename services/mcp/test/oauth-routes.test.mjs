@@ -109,7 +109,7 @@ test("discovery documents are well-formed and cacheable", async () => {
   for (const [path, doc] of [
     ["/.well-known/oauth-authorization-server", as],
     ["/.well-known/oauth-protected-resource", pr],
-    ["/.well-known/oauth-protected-resource/a/abcdefgh/mcp", null],
+    ["/.well-known/oauth-protected-resource/mcp", null],
   ]) {
     const plain = doc ?? (await handler(event({ method: "GET", path })));
     assert.equal(plain.statusCode, 200, path);
@@ -661,8 +661,8 @@ test("native form bodies preserve encoded email and consent fields", async () =>
  *
  * A rejected key never reaches mcp_call_audit — the invoker writes after
  * authentication — so a runtime presenting a revoked key produced silence, and
- * its owner saw an agent that merely looked idle. With five agents and three
- * AI tools on one account, "something went quiet" is not a diagnosis.
+ * its owner saw a client that merely looked idle. With several AI tools on
+ * one account, "something went quiet" is not a diagnosis.
  */
 test("a revoked key being presented is recorded, named, and counted", async () => {
   const { rows: acct } = await db.query(
@@ -799,6 +799,70 @@ test("an expired OAuth access token is refused with 401 and attributed to its fa
   assert.equal(rows[0].kind, "access_token");
   assert.equal(rows[0].reason, "expired", "the actionable part");
   assert.equal(rows[0].account_id, accountId, "attributed through the family");
+});
+
+test("an agent-kind account left from before is refused at /mcp, and /a/... is gone (2026-11-23)", async () => {
+  // Agents were removed from Elixir on 2026-11-23 with no migration: the
+  // rows stay until deleted, and neither their keys nor their tokens open
+  // the one MCP door.
+  const { rows: owner } = await db.query(
+    `insert into account (email_hash, status) values ($1, 'approved')
+     returning account_id`,
+    [emailHash("leftover-owner@example.com")],
+  );
+  const { rows: acct } = await db.query(
+    `insert into account (kind, status, public_id, owned_by_account_id)
+     values ('agent', 'approved', 'leftoverbot01', $1) returning account_id`,
+    [owner[0].account_id],
+  );
+  const accountId = acct[0].account_id;
+  const key = "svt_" + "l".repeat(43);
+  await db.query(
+    `insert into service_token (account_id, name, token_hash)
+     values ($1, 'leftover-bot', $2)`,
+    [accountId, crypto.createHash("sha256").update(key).digest("hex")],
+  );
+  await db.query(
+    `insert into oauth_client (client_id, client_name, redirect_uris, expires_at)
+     values ('leftover-client', 'Leftover', '{}', now() + interval '1 day')`,
+  );
+  const minted = await mintTokens(db, {
+    clientId: "leftover-client",
+    accountId,
+    scope: "cr:read",
+    resource: RESOURCE,
+  });
+  for (const bearer of [key, minted.accessToken]) {
+    const res = await handler({
+      path: "/mcp",
+      method: "POST",
+      headers: { authorization: `Bearer ${bearer}` },
+      body: JSON.stringify({
+        jsonrpc: "2.0",
+        id: 1,
+        method: "tools/call",
+        params: { name: "game_clock", arguments: {} },
+      }),
+    });
+    assert.equal(res.statusCode, 401, `${bearer.slice(0, 4)}: ${res.body}`);
+  }
+  const gone = await handler(
+    event({
+      method: "GET",
+      path: "/.well-known/oauth-protected-resource/a/leftoverbot01/mcp",
+    }),
+  );
+  assert.equal(gone.statusCode, 404, "no metadata for the old agent door");
+  const post = await handler({
+    path: "/a/leftoverbot01/mcp",
+    method: "POST",
+    headers: { authorization: `Bearer ${key}` },
+    body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "initialize" }),
+  });
+  assert.ok(
+    post.statusCode >= 400 && post.statusCode < 500 && post.statusCode !== 401,
+    `the old agent door serves nothing: ${post.statusCode}`,
+  );
 });
 
 // The application origin check also refuses a forged cloudfront-viewer-address to protect

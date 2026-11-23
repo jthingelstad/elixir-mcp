@@ -19,7 +19,6 @@ import {
   OAUTH_SCOPE,
   OAUTH_SCOPE_DETAILS,
   requiredOAuthScope,
-  toolsHiddenFrom,
   MODE_GROUPS,
   typesForModeGroup,
 } from "@elixir-mcp/contracts";
@@ -117,11 +116,9 @@ export default function tools() {
       .filter((d) => d.inputSchema.properties?.live)
       .map((d) => "`" + d.name + "`")
       .join(", "),
-    // What an AGENT's tools/list holds: the person-only tools are hidden
-    // from it. Generated, because a hand-typed count was 41 while the
-    // door served 44.
-    personCount: all.length - toolsHiddenFrom("person").size,
-    agentCount: all.length - toolsHiddenFrom("agent").size,
+    // What a connection's tools/list holds: every tool. Generated, because
+    // a hand-typed count was 41 while the door served 44.
+    personCount: all.length,
     writeCount: all.filter((t) => !t.readOnly).length,
     outputSchemaCount: all.filter((t) => t.outputSchema).length,
     scopes: OAUTH_SCOPE_DETAILS,

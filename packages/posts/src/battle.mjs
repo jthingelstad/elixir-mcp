@@ -52,8 +52,7 @@ export async function battlePostRows(
             p.body as words, ts.share_id, p.created_at,
             coalesce(p.updated_at, p.created_at) as updated_at, p.revision,
             pl.name,
-            (p.account_id = (select coalesce(a.owned_by_account_id, a.account_id)
-                               from account a where a.account_id = $1::uuid)) as yours,
+            (p.account_id = $1::uuid) as yours,
             b.battle_time, b.type, b.event_tag, b.game_mode_name,
             me.side, me.crowns, me.outcome, me.trophy_change,
             (select coalesce(jsonb_agg(jsonb_build_object(

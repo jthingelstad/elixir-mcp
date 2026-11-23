@@ -13,7 +13,6 @@ import {
   TOOL_GROUPS,
   GROUP_ORDER,
   requiredOAuthScope,
-  toolsHiddenFrom,
 } from "@elixir-mcp/contracts";
 import { elixirTools } from "./tools/elixir.mjs";
 import { battlesTools } from "./tools/battles.mjs";
@@ -75,47 +74,6 @@ function publishedInputSchema(schema) {
   };
 }
 
-/** The arguments only an agent connection uses: a personal connection
- *  ignores them (DECISIONS, "The identity map is an agent's"), so its
- *  published schemas leave them out (review 2026-09-27 §6.1: about 6 KB
- *  of every person's tools/list said nothing to them). */
-const AGENT_ARGS = ["on_behalf_of", "display_name"];
-
-/** A connection that is a person's: no kind, "person", or anything the
- *  principals module does not know (toolsHiddenFrom's rule). */
-const isPerson = (kind) => kind !== "agent";
-
-function withoutAgentArgs(schema) {
-  const props = schema.properties ?? {};
-  if (!AGENT_ARGS.some((a) => Object.hasOwn(props, a))) return schema;
-  const properties = Object.fromEntries(
-    Object.entries(props).filter(([k]) => !AGENT_ARGS.includes(k)),
-  );
-  return { ...schema, properties };
-}
-
-/** What a connection of this kind is shown and validated against. */
-function schemaFor(schema, kind) {
-  const published = publishedInputSchema(schema);
-  return isPerson(kind) ? withoutAgentArgs(published) : published;
-}
-
-/** A cached client (or a habit) may still send an agent argument on a
- *  personal connection: it is dropped, silently, before validation, as
- *  the one-size verbosity is, so nothing that used to be accepted is
- *  refused. It never reached a person's answer anyway. */
-function dropAgentArgs(args) {
-  return Object.fromEntries(
-    Object.entries(args).filter(([k]) => !AGENT_ARGS.includes(k)),
-  );
-}
-
-/**
- * `kind` shapes what a connection can see and call. It is threaded in rather
- * than read from a module global because one Lambda serves every principal,
- * and a cached registry that remembered the last caller's kind would be the
- * worst possible bug in this file.
- */
 export function makeRegistry() {
   return {
     has: (name) => Object.hasOwn(TOOLS, name),
@@ -124,18 +82,10 @@ export function makeRegistry() {
     accepts: (name, arg) =>
       Object.hasOwn(TOOLS[name]?.inputSchema?.properties ?? {}, arg),
     requiredScope: (name) => requiredOAuthScope(name),
-    /** Omitted from the list AND refused on call: clients cache tools/list
-     *  forever, so a tool that merely disappears is still callable. */
-    availableTo: (name, kind) => !toolsHiddenFrom(kind).has(name),
-    // No argument is the whole catalogue (the site's tool reference,
-    // tools.json, tests); a caller's kind - null or undefined meaning a
-    // person - filters to what that principal may see and call.
-    declarations: (...kindArg) =>
+    // One catalogue for every connection: the site's tool reference,
+    // tools.json, tools/list and the tests all read this.
+    declarations: () =>
       Object.entries(TOOLS)
-        .filter(
-          ([name]) =>
-            kindArg.length === 0 || !toolsHiddenFrom(kindArg[0]).has(name),
-        )
         .map(([name, t]) => {
           // Classification is mandatory: an unclassified tool is a build
           // error, not a silent "Other tools" entry (Jamie, 2026-09-04).
@@ -144,12 +94,7 @@ export function makeRegistry() {
           return {
             name,
             description: t.description,
-            // The whole catalogue (no kind) keeps every argument: it is
-            // the reference for every kind of connection.
-            inputSchema:
-              kindArg.length === 0
-                ? publishedInputSchema(t.inputSchema)
-                : schemaFor(t.inputSchema, kindArg[0]),
+            inputSchema: publishedInputSchema(t.inputSchema),
             // The response contract (output-schemas.mjs; every tool has
             // one since 6.14.0): rendered on the docs, validated below.
             ...(OUTPUT_SCHEMAS[name]
@@ -184,9 +129,7 @@ export function makeRegistry() {
       // it, drops it before validation, echoes applied.verbosity as full
       // and says in a note that compact had nothing to drop. Additive:
       // the eleven tools that declare it are unchanged.
-      const kind = ctx?.account?.kind ?? null;
       let args = rawArgs ?? {};
-      if (isPerson(kind)) args = dropAgentArgs(args);
       let oneSize = null;
       if (
         Object.hasOwn(args, "verbosity") &&
@@ -208,7 +151,7 @@ export function makeRegistry() {
       // refusal's "Known:" list names verbosity on a one-size tool too
       // (Gym #151); verbosity itself was taken off args above.
       const problem = validateArgs(
-        schemaFor(TOOLS[name].inputSchema, kind),
+        publishedInputSchema(TOOLS[name].inputSchema),
         args,
       );
       if (problem) {
@@ -281,30 +224,19 @@ export function makeRegistry() {
 
 /**
  * The tool fingerprint: `tools.<12 hex>`, the first 12 hex of a sha256 of
- * the whole catalogue's declarations and the names each kind of connection
- * is shown. It is serverInfo.version for every kind and every response's
- * meta.contract_version (docs/ENGINEERING.md, "The tool contract"): a
- * client that cached tools/list compares it and re-reads the list when it
- * differs. Any change to a name, a description, a schema, an annotation or
- * what a kind sees changes it; nothing else does.
+ * the catalogue's declarations. It is serverInfo.version and every
+ * response's meta.contract_version (docs/ENGINEERING.md, "The tool
+ * contract"): a client that cached tools/list compares it and re-reads the
+ * list when it differs. Any change to a name, a description, a schema or an
+ * annotation changes it; nothing else does.
  */
 export function toolsVersion(registry) {
-  const surface = {
-    declarations: registry.declarations(),
-    kinds: Object.fromEntries(
-      ["person", "agent"].map((kind) => [
-        kind,
-        registry.declarations(kind).map((d) => d.name),
-      ]),
-    ),
-  };
   const fingerprint = createHash("sha256")
-    .update(JSON.stringify(surface))
+    .update(JSON.stringify(registry.declarations()))
     .digest("hex")
     .slice(0, 12);
   return `tools.${fingerprint}`;
 }
 
-/** This server's fingerprint: one string for every connection and every
- *  response. */
+/** This server's fingerprint: one string for every response. */
 export const TOOLS_VERSION = toolsVersion(makeRegistry());

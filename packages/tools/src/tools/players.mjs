@@ -39,8 +39,6 @@ import {
   livePendingNote,
   notRecordedOrPending,
   TAG_SCHEMA,
-  ON_BEHALF_OF_SCHEMA,
-  DISPLAY_NAME_SCHEMA,
   subject,
   buildMeta,
   zoneFor,
@@ -86,21 +84,12 @@ export const playersTools = {
       type: "object",
       properties: {
         player_tag: TAG_SCHEMA,
-        on_behalf_of: ON_BEHALF_OF_SCHEMA,
-        display_name: DISPLAY_NAME_SCHEMA,
       },
       additionalProperties: false,
     },
     async handler(ctx, args) {
       const tag = (
-        await subject(
-          ctx.db,
-          ctx.account,
-          args.player_tag,
-          "summary",
-          args.on_behalf_of,
-          args.display_name,
-        )
+        await subject(ctx.db, ctx.account, args.player_tag, "summary")
       ).tag;
       const asOf = new Date();
       const snap = await ctx.db.query(
@@ -430,8 +419,6 @@ export const playersTools = {
       type: "object",
       properties: {
         player_tag: TAG_SCHEMA,
-        on_behalf_of: ON_BEHALF_OF_SCHEMA,
-        display_name: DISPLAY_NAME_SCHEMA,
         live: {
           type: "boolean",
           description:
@@ -442,14 +429,7 @@ export const playersTools = {
     },
     async handler(ctx, args) {
       const tag = (
-        await subject(
-          ctx.db,
-          ctx.account,
-          args.player_tag,
-          "summary",
-          args.on_behalf_of,
-          args.display_name,
-        )
+        await subject(ctx.db, ctx.account, args.player_tag, "summary")
       ).tag;
       // live: true (1.7.0, asynchronous): a fresh read is served from the
       // record it just updated; otherwise one is queued and the record as
@@ -585,8 +565,6 @@ export const playersTools = {
       type: "object",
       properties: {
         player_tag: TAG_SCHEMA,
-        on_behalf_of: ON_BEHALF_OF_SCHEMA,
-        display_name: DISPLAY_NAME_SCHEMA,
         // The shared contract's season (Gym #134): refused before.
         season: SEASON_ARG_SCHEMA,
         metrics: {
@@ -611,13 +589,7 @@ export const playersTools = {
     },
     async handler(ctx, rawArgs) {
       const tag = (
-        await subject(
-          ctx.db,
-          ctx.account,
-          rawArgs.player_tag,
-          "summary",
-          rawArgs.on_behalf_of,
-        )
+        await subject(ctx.db, ctx.account, rawArgs.player_tag, "summary")
       ).tag;
       const tz = zoneFor(ctx, rawArgs);
       const win = await seriesWindow(ctx, rawArgs);
@@ -793,8 +765,6 @@ export const playersTools = {
       type: "object",
       properties: {
         player_tag: TAG_SCHEMA,
-        on_behalf_of: ON_BEHALF_OF_SCHEMA,
-        display_name: DISPLAY_NAME_SCHEMA,
         verbosity: VERBOSITY(
           "each card as id, name, level, forms_unlocked only; support_cards likewise.",
         ),
@@ -803,14 +773,7 @@ export const playersTools = {
     },
     async handler(ctx, args) {
       const tag = (
-        await subject(
-          ctx.db,
-          ctx.account,
-          args.player_tag,
-          "summary",
-          args.on_behalf_of,
-          args.display_name,
-        )
+        await subject(ctx.db, ctx.account, args.player_tag, "summary")
       ).tag;
       // The collection is a table (0076), joined to the catalog for the
       // static facts; levels are already on the 1-16 scale.
@@ -1037,8 +1000,7 @@ export const playersTools = {
              join clan_membership cm2 on cm2.clan_tag = cm.clan_tag
                and cm2.left_observed_at is null
             where c.account_id = $1
-           -- The account's own clans too: an agent claims no player, so
-           -- its clan came only through here (Gym #129).
+           -- The clans the account follows too (Gym #129).
            union
            select cm3.player_tag from account_clan ac
              join clan_membership cm3 on cm3.clan_tag = ac.clan_tag
@@ -1098,7 +1060,7 @@ export const playersTools = {
             : null,
           rows.length === 0
             ? "No recorded player matches that name; names change, tags are permanent, and only players the service has observed are findable."
-            : "Your own players and clanmates rank first (source: nickname | claim | clanmate | corpus; an agent's clanmates are its own clan's members), a whole-name match before a partial one; names are as last observed.",
+            : "Your own players and clanmates rank first (source: nickname | claim | clanmate | corpus), a whole-name match before a partial one; names are as last observed.",
         ),
         docs: docsRef("protocol", "argument-conventions"),
         meta: responseMeta({ as_of: new Date().toISOString() }),

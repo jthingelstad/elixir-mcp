@@ -133,101 +133,14 @@ test("a key with its own ceiling spends from its own bucket, not its owner's (20
   );
 });
 
-test("each agent has its own hour; the owner's and its siblings' are untouched (2026-10-08)", async () => {
-  // Jamie, 2026-10-08: "yes, seperate limits". One replay emptied the
-  // owner's 300 and the owner's three Discord agents were refused for 52
-  // minutes. An agent still spends its owner's DAILY quota (makeQuota keys
-  // on account.budget); only the hour moved to the principal.
-  const { rows: owner } = await db.query(
-    `insert into account (email_hash, status) values ($1, 'approved')
-     returning account_id`,
-    [emailHash("agent-owner@example.com")],
-  );
-  const ownerId = owner[0].account_id;
-  const agents = [];
-  for (const pub of ["ratebota0001", "ratebotb0002"]) {
-    const { rows } = await db.query(
-      `insert into account (kind, status, public_id, owned_by_account_id)
-       values ('agent', 'approved', $1, $2) returning account_id`,
-      [pub, ownerId],
-    );
-    const key = `svt_${pub.padEnd(43, "x")}`;
-    await db.query(
-      `insert into service_token (account_id, name, token_hash)
-       values ($1, $2, $3)`,
-      [
-        rows[0].account_id,
-        pub,
-        crypto.createHash("sha256").update(key).digest("hex"),
-      ],
-    );
-    agents.push({ id: rows[0].account_id, pub, key });
-  }
-  const agentCall = (a) =>
-    handler({
-      path: `/a/${a.pub}/mcp`,
-      method: "POST",
-      headers: { authorization: `Bearer ${a.key}` },
-      body: JSON.stringify(COUNTED),
-    });
-  for (const a of agents) {
-    const res = await agentCall(a);
-    assert.equal(res.statusCode, 200, String(res.body).slice(0, 200));
-  }
-  // Agent A has spent its hour; agent B and the owner have not been charged.
-  await db.query(`update rate_limit set count = $2 where bucket = $1`, [
-    `mcp#${agents[0].id}`,
-    HOURLY_RATE_LIMIT,
-  ]);
-  const refused = await agentCall(agents[0]);
-  assert.equal(refused.statusCode, 429, "agent A's own hour is spent");
-  assert.match(
-    JSON.parse(refused.body).error.message,
-    new RegExp(`\\b${HOURLY_RATE_LIMIT} requests per hour\\b`),
-    "at the tier rate",
-  );
+test("hourlyBucketFor: a key's own ceiling, else the account", () => {
   assert.equal(
-    (await agentCall(agents[1])).statusCode,
-    200,
-    "agent B still has its hour",
-  );
-  const { rows } = await db.query(
-    `select bucket, count from rate_limit where bucket = any($1::text[])`,
-    [[`mcp#${ownerId}`, `mcp#${agents[1].id}`]],
-  );
-  const counts = Object.fromEntries(
-    rows.map((r) => [r.bucket, Number(r.count)]),
-  );
-  assert.equal(
-    counts[`mcp#${ownerId}`],
-    undefined,
-    "the owner's hour was never charged",
-  );
-  assert.equal(
-    counts[`mcp#${agents[1].id}`],
-    2,
-    "agent B spent from its own bucket",
-  );
-});
-
-test("hourlyBucketFor: a key's own ceiling, else the principal, never the payer", () => {
-  assert.equal(
-    hourlyBucketFor({
-      accountId: "agent",
-      tokenId: 7,
-      hourlyRateLimit: 50,
-      budget: { accountId: "owner" },
-    }),
+    hourlyBucketFor({ accountId: "person", tokenId: 7, hourlyRateLimit: 50 }),
     "mcp#token#7",
   );
   assert.equal(
-    hourlyBucketFor({
-      accountId: "agent",
-      tokenId: 7,
-      hourlyRateLimit: null,
-      budget: { accountId: "owner" },
-    }),
-    "mcp#agent",
+    hourlyBucketFor({ accountId: "person", tokenId: 7, hourlyRateLimit: null }),
+    "mcp#person",
   );
   assert.equal(hourlyBucketFor({ accountId: "person" }), "mcp#person");
 });
@@ -235,7 +148,7 @@ test("hourlyBucketFor: a key's own ceiling, else the principal, never the payer"
 test("the handshake is authenticated but never counted; a call is (review 2026-10-21 §2)", async () => {
   // About 900 handshake messages a week each took an upsert and a slot of
   // the hour. They read no record; the hour is for calls. Which bucket a
-  // counted call spends from is unchanged ("The hour is the principal's").
+  // counted call spends from is unchanged ("The hour is the account's").
   const { rows: acct } = await db.query(
     `insert into account (email_hash, status) values ($1, 'approved')
      returning account_id`,

@@ -13,7 +13,7 @@
  *     pointer to the page carrying the formulas (notes / docsRef);
  *   - `verbosity: full | compact` as the only size control (VERBOSITY);
  *   - short argument descriptions; the canonical explanation of
- *     player_tag / on_behalf_of / windows lives ONCE in the initialize
+ *     player_tag / windows lives ONCE in the initialize
  *     instructions (protocol.mjs), not fifteen times in tools/list.
  *
  * Handlers live in the per-group modules beside this file; tools.mjs
@@ -48,9 +48,8 @@ import {
  *  defaulted by role (contracts roles.ts), beaten by the per-account
  *  live_daily_quota override. */
 /** WHOSE live lane a call spends: the same budget as the daily call
- *  quota (auth budgetFor) - an agent spends its OWNER's allowance, so N
- *  agents on one account share one daily live budget. The fallback keeps hand-built accounts (and
- *  every pre-0053 shape) on their own bucket exactly as before. */
+ *  quota (auth budgetFor), the account's own. The fallback keeps
+ *  hand-built accounts on their own bucket. */
 export function liveBudgetFor(account) {
   const budget = account.budget ?? {
     accountId: account.accountId,
@@ -89,11 +88,7 @@ async function spendLiveQuota(ctx) {
   if (rows[0].count > budget.cap) {
     throw new ToolFailure(
       "quota_exceeded",
-      `Live-fetch quota reached (${budget.cap}/day for the ${budget.role} tier${
-        ctx.account.kind === "agent"
-          ? ", shared with your owner's other agents"
-          : ""
-      }).`,
+      `Live-fetch quota reached (${budget.cap}/day for the ${budget.role} tier).`,
       "Recorded-data tools are unlimited within the normal quota. Higher tiers get more: elixir_docs({ page: 'roles' }), or ask via elixir_send_feedback.",
     );
   }
@@ -113,32 +108,13 @@ export class ToolFailure extends Error {
 
 // --- argument schemas ------------------------------------------------------
 
-/** One line each. The long form - what omitting means on a personal vs an
- *  agent connection, how on_behalf_of is mapped, how date-only bounds
- *  resolve - is said ONCE in the initialize instructions. Fifteen copies
- *  of a 240-character paragraph were a fifth of tools/list. */
+/** One line each. The long form - what omitting means, how date-only
+ *  bounds resolve - is said ONCE in the initialize instructions. Fifteen
+ *  copies of a 240-character paragraph were a fifth of tools/list. */
 export const TAG_SCHEMA = {
   type: "string",
   description:
-    "Player tag like #20JJJ2CCRU. Omit to mean the caller (your primary player, or whoever on_behalf_of maps to).",
-};
-
-export const ON_BEHALF_OF_SCHEMA = {
-  type: "string",
-  maxLength: 200,
-  description:
-    "Agent connections: the end user's id on your surface, discord:<user id>; it resolves once they link Discord in their Elixir Settings. Ignored on a personal connection.",
-};
-
-/** Beside on_behalf_of (3.18.0): the asker's name as the surface shows
- *  it, so an unmapped id's no_subject refusal can carry candidates[]
- *  (clan members whose whole name matches) instead of leaving the
- *  agent to pull the roster and compare names itself. */
-export const DISPLAY_NAME_SCHEMA = {
-  type: "string",
-  maxLength: 60,
-  description:
-    "Agent connections, beside on_behalf_of: the asker's display name on your surface. When on_behalf_of is not mapped yet, no_subject carries candidates[]: the clan members whose whole name matches it (case and spacing ignored), so you can pass that player_tag; nothing is guessed from a partial match.",
+    "Player tag like #20JJJ2CCRU. Omit to mean the caller (your primary player).",
 };
 
 export const TAG_RULE_HINT =
@@ -167,7 +143,7 @@ export const TIMEZONE_SCHEMA = {
   type: "string",
   maxLength: 64,
   description:
-    "IANA zone (e.g. Europe/Paris) for this call's date-only bounds and local labels. Default: the account's timezone. Agents serving people in several zones pass the asker's.",
+    "IANA zone (e.g. Europe/Paris) for this call's date-only bounds and local labels. Default: the account's timezone.",
 };
 
 /** `from`/`to` plus the optional per-call timezone, spread into a
@@ -678,25 +654,10 @@ export function docsRef(page, section) {
 
 /** Entitlement resolution with plain-object errors converted to the
  *  closed taxonomy. `need`: 'full' | 'summary' | 'battles' (§4.2). */
-/**
- * `onBehalfOf` is the end-user id the connecting agent supplies. Threaded here
- * rather than read off a global because one Lambda serves every caller, and a
- * remembered "last user" would be the worst bug this file could have.
- */
-export async function subject(
-  db,
-  account,
-  inputTag,
-  need,
-  onBehalfOf = null,
-  displayName = null,
-) {
+export async function subject(db, account, inputTag, need) {
   let resolved;
   try {
-    resolved = await resolveSubject(db, account, inputTag, need, {
-      onBehalfOf,
-      displayName,
-    });
+    resolved = await resolveSubject(db, account, inputTag, need);
   } catch (err) {
     if (err?.code === "invalid_tag")
       throw new ToolFailure(err.code, err.message, TAG_RULE_HINT);

@@ -27,10 +27,7 @@ function quotaResetsAt(now = new Date()) {
 }
 
 export function makeQuota({ db, account }) {
-  // WHOSE budget this call spends. An agent spends its owner's — that is the
-  // deal that lets every clan leader have one without a tier gate — so the
-  // counter and the ceiling both key on the owner. A person is both.
-  // The fallback keeps pre-0053 shapes (and every test that builds an account
+  // WHOSE budget this call spends: the account's own. The fallback keeps pre-0053 shapes (and every test that builds an account
   // by hand) behaving exactly as before.
   const budget = account.budget ?? {
     accountId: account.accountId,
@@ -44,7 +41,7 @@ export function makeQuota({ db, account }) {
   const unlimited =
     budget.role === "owner" || budget.role === "admin" || base === Infinity;
   // The live lane's ceiling and bucket are spendLiveQuota's exactly (one
-  // definition, tools/shared.mjs): the OWNER's budget for an agent.
+  // definition, tools/shared.mjs).
   const live = liveBudgetFor(account);
   const liveMax = live.cap;
   const day = () => new Date().toISOString().slice(0, 10);

@@ -1,13 +1,9 @@
 /**
- * A connection's tool surface describes the job it is for (0.30.0).
+ * A connection's tool surface (0.30.0; one surface since 2026-11-23).
  *
- * The failure this prevents is quiet rather than loud. A clan leader may hold a
- * personal connector AND an agent connector in one Claude session; if both
- * publish identical tool lists, the model chooses between them arbitrarily and
- * the two answer from different subjects without saying so. elixir_my_players
- * is the sharpest case — on an agent connection its honest answer would be its
- * OWNER's claimed players, which is how a clan bot came to be able to recite
- * personal tags into a public channel.
+ * Every connection is a person's, at `/mcp`, and is served one catalogue:
+ * the same tools/list, the same fingerprint, and a brief that names who
+ * the person is so nothing has to be looked up.
  */
 
 import { test } from "node:test";
@@ -16,16 +12,15 @@ import { makeRegistry } from "../../../packages/tools/src/tools.mjs";
 import { handleMcpMessage } from "../src/protocol.mjs";
 
 const registry = makeRegistry();
-const names = (kind) => registry.declarations(kind).map((d) => d.name);
+const names = () => registry.declarations().map((d) => d.name);
 
-const context = (kind) => ({
+const context = () => ({
   registry,
-  kind,
   spendQuota: async () => ({ allowed: true, count: 1, max: 100 }),
   invokeTool: async () => ({ body: { ok: true }, isError: false }),
 });
 
-const call = (kind, name) =>
+const call = (name) =>
   handleMcpMessage(
     {
       jsonrpc: "2.0",
@@ -33,155 +28,58 @@ const call = (kind, name) =>
       method: "tools/call",
       params: { name, arguments: {} },
     },
-    context(kind),
+    context(),
   );
 
-test("a person sees everything but the agent's identity map (42 of 43)", () => {
-  assert.equal(registry.declarations().length, 43);
-  assert.equal(names("person").length, 42);
-  assert.ok(!names("person").includes("elixir_my_identities"));
-  // The social reads are a person's own (DECISIONS "Agents read the
-  // social layer and never write it").
-  for (const social of [
+test("a person sees the whole catalogue (42), and no identity map", () => {
+  assert.equal(names().length, 42);
+  assert.ok(!names().includes("elixir_my_identities"));
+  for (const tool of [
     "players_follows",
     "players_highlights",
     "clans_directory",
     "elixir_cheers",
+    "elixir_my_players",
+    "clans_my_view",
   ])
-    assert.ok(names("person").includes(social), social);
-  assert.ok(names("person").includes("elixir_my_players"));
-  assert.ok(names("person").includes("clans_my_view"));
-  assert.ok(
-    names(null).includes("elixir_my_players"),
-    "unknown kind is a person",
-  );
+    assert.ok(names().includes(tool), tool);
 });
 
-test("an agent has no personal identity tools, and follows for its clan (40 of 43)", () => {
-  const agent = names("agent");
-  assert.equal(agent.length, 40);
-  assert.ok(!agent.includes("elixir_my_players"));
-  // A person's own Clan view is never an agent's, its owner's agent
-  // included (Jamie's ruling on #535, 2026-10-12).
-  assert.ok(!agent.includes("clans_my_view"));
-  // 7.1.0 (Jamie, 2026-09-23): a clan agent may be asked to follow a rival;
-  // it follows with an agent's meaning (watched players, its owner's slots).
-  assert.ok(agent.includes("elixir_follow_player"));
-  assert.ok(agent.includes("elixir_follow_clan"));
-  // But it keeps the things a clan agent actually needs.
-  assert.ok(agent.includes("elixir_timeline"), "its own feed");
-  assert.ok(agent.includes("elixir_send_feedback"), "and its own voice");
-  assert.ok(agent.includes("war_current"));
-  assert.ok(agent.includes("game_clock"));
-  // It reads the social layer as its owner, and never writes it.
-  assert.ok(!agent.includes("elixir_cheers"));
-  for (const social of [
-    "players_follows",
-    "players_highlights",
-    "clans_directory",
-  ])
-    assert.ok(agent.includes(social), social);
+test("a tool no longer in the catalogue is refused, not served", async () => {
+  // Clients cache tools/list for a long time; one holding a list from
+  // before 2026-11-23 must not reach a removed tool.
+  const refused = await call("elixir_my_identities");
+  assert.equal(refused.payload.error.code, -32602);
+  assert.match(refused.payload.error.message, /Unknown tool/);
 });
 
-test("hiding is not enforcement: a remembered tool is refused, not served", async () => {
-  // Clients cache tools/list for a long time -- this server publishes a
-  // fingerprint precisely because they do. An agent holding yesterday's list
-  // must not be able to call off it.
-  const refused = await call("agent", "elixir_my_players");
-  assert.ok(refused.payload.error, "an agent calling a person tool is refused");
-  assert.equal(refused.payload.error.code, -32601);
-  assert.equal(refused.payload.error.data.kind, "agent");
-
-  const allowed = await call("agent", "war_current");
-  assert.ok(allowed.payload.result, "and its own tools still work");
-});
-
-test("a remembered clans_my_view call by an agent never invokes or spends quota", async () => {
-  for (const name of ["clans_my_view", "elixir_cheers"]) {
-    const kind = "agent";
-    let invoked = 0;
-    let spent = 0;
-    const result = await handleMcpMessage(
-      {
-        jsonrpc: "2.0",
-        id: 1,
-        method: "tools/call",
-        params: { name, arguments: {} },
-      },
-      {
-        ...context(kind),
-        invokeTool: async () => {
-          invoked++;
-          return { body: {}, isError: false };
-        },
-        spendQuota: async () => {
-          spent++;
-          return { allowed: true };
-        },
-      },
-    );
-    assert.equal(result.payload.error.code, -32601);
-    assert.equal(result.payload.error.data.kind, kind);
-    assert.equal(invoked, 0);
-    assert.equal(spent, 0);
-  }
-});
-
-test("a person calling the same tool is served", async () => {
-  const res = await call("person", "elixir_my_players");
+test("a person calling a listed tool is served", async () => {
+  const res = await call("elixir_my_players");
   assert.ok(res.payload.result);
 });
 
-test("initialize advertises one fingerprint that covers every kind's surface", async () => {
-  const forAgent = await handleMcpMessage(
+test("initialize advertises the catalogue's fingerprint", async () => {
+  const init = await handleMcpMessage(
     { jsonrpc: "2.0", id: 1, method: "initialize", params: {} },
-    context("agent"),
+    context(),
   );
-  const forPerson = await handleMcpMessage(
-    { jsonrpc: "2.0", id: 1, method: "initialize", params: {} },
-    context("person"),
-  );
-  // serverInfo.version is the only cache-buster clients honour. It is one
-  // fingerprint over the catalogue and the names each kind is shown, so a
-  // change to either surface moves it (mcp.test.mjs proves that).
-  assert.equal(
-    forAgent.payload.result.serverInfo.version,
-    forPerson.payload.result.serverInfo.version,
-  );
-  assert.match(
-    forAgent.payload.result.serverInfo.version,
-    /^tools\.[0-9a-f]{12}$/,
-  );
+  // serverInfo.version is the only cache-buster clients honour.
+  assert.match(init.payload.result.serverInfo.version, /^tools\.[0-9a-f]{12}$/);
 });
 
 test("the opening brief no longer sends anyone to look themselves up", async () => {
-  const brief = async (kind, identity = null) =>
-    (
-      await handleMcpMessage(
-        { jsonrpc: "2.0", id: 1, method: "initialize", params: {} },
-        { ...context(kind), identity },
-      )
-    ).payload.result.instructions;
-
-  const person = await brief("person");
-  const agent = await brief("agent");
-
+  const text = (
+    await handleMcpMessage(
+      { jsonrpc: "2.0", id: 1, method: "initialize", params: {} },
+      { ...context(), identity: null },
+    )
+  ).payload.result.instructions;
   // The regression this replaces: every brief opened with "Start with
-  // elixir_my_players", a holdover from before universal reads that cost a
-  // round trip -- sometimes three -- at the start of every session.
-  for (const [name, text] of [
-    ["person", person],
-    ["agent", agent],
-  ])
-    assert.ok(
-      !/Start with elixir_my_players/.test(text),
-      `${name} still enumerates first`,
-    );
-
-  // Everyone is still invited to file friction; that is the point of the
-  // exercise, not a person-only courtesy.
-  for (const text of [person, agent])
-    assert.ok(text.includes("elixir_send_feedback"));
+  // elixir_my_players", a round trip at the start of every session.
+  assert.ok(!/Start with elixir_my_players/.test(text));
+  // Everyone is invited to file friction.
+  assert.ok(text.includes("elixir_send_feedback"));
+  assert.doesNotMatch(text, /on_behalf_of|YOU ACT FOR/);
 });
 
 test("a person is told who they are, and told not to look it up", async () => {
@@ -201,7 +99,7 @@ test("a person is told who they are, and told not to look it up", async () => {
   const result = (
     await handleMcpMessage(
       { jsonrpc: "2.0", id: 1, method: "initialize", params: {} },
-      { ...context("person"), identity },
+      { ...context(), identity },
     )
   ).payload.result;
   assert.equal(
@@ -217,42 +115,12 @@ test("a person is told who they are, and told not to look it up", async () => {
   assert.match(text, /OMIT player_tag and clan_tag/);
 });
 
-test("an agent is told its clan and how to learn who is asking", async () => {
-  const identity = {
-    kind: "agent",
-    clans: [{ clan_tag: "#J2RGCRVG", name: "POAP KINGS", members: 48 }],
-    leaders: [
-      { player_tag: "#20JJJ2CCRU", name: "King Thing", role: "leader" },
-      { player_tag: "#0GVUURQ0", name: "Dove Sunny", role: "coLeader" },
-    ],
-    identityCount: 3,
-  };
-  const text = (
-    await handleMcpMessage(
-      { jsonrpc: "2.0", id: 1, method: "initialize", params: {} },
-      { ...context("agent"), identity },
-    )
-  ).payload.result.instructions;
-
-  assert.match(text, /YOU ACT FOR POAP KINGS #J2RGCRVG \(48 members\)/);
-  assert.match(text, /King Thing \(leader\)/);
-  assert.match(text, /on_behalf_of/);
-  assert.match(text, /pass player_tag/);
-  assert.doesNotMatch(text, /elixir_identify/);
-  assert.match(text, /You already know 3 of them/);
-
-  // The roster is deliberately NOT here: it changes daily and this text is
-  // held until the agent reconnects.
-  assert.ok(!text.includes("#09YY2UU9"), "no roster in the block");
-  assert.match(text, /clans_roster ONCE/);
-});
-
 test("a person with no player is told how to get one, not left to fail", async () => {
   const text = (
     await handleMcpMessage(
       { jsonrpc: "2.0", id: 1, method: "initialize", params: {} },
       {
-        ...context("person"),
+        ...context(),
         identity: { kind: "person", grouped: {}, clans: [] },
       },
     )
@@ -261,8 +129,8 @@ test("a person with no player is told how to get one, not left to fail", async (
   assert.match(text, /elixir_follow_player/);
 });
 
-test("modern discovery and the installed catalogue use the same authenticated principal", async () => {
-  const run = (kind, method, params = {}, overrides = {}) =>
+test("modern discovery and the installed catalogue are the same surface", async () => {
+  const run = (method, params = {}, overrides = {}) =>
     handleMcpMessage(
       {
         jsonrpc: "2.0",
@@ -277,31 +145,23 @@ test("modern discovery and the installed catalogue use the same authenticated pr
         },
       },
       {
-        ...context(kind),
+        ...context(),
         protocolVersionHeader: "2026-07-28",
         methodHeader: method,
         nameHeader: params.name,
         ...overrides,
       },
     );
-  for (const kind of ["person", "agent"]) {
-    const discovery = (await run(kind, "server/discover")).payload.result;
-    assert.ok(discovery.supportedVersions.includes("2026-07-28"));
-    assert.equal(discovery.capabilities.tools.listChanged, false);
-    assert.equal(discovery.cacheScope, "private");
-    const list = (await run(kind, "tools/list")).payload.result;
-    assert.equal(list.resultType, "complete");
-    assert.equal(list.cacheScope, "private");
-    assert.ok(list.ttlMs >= 0);
-    assert.deepEqual(list.tools, registry.declarations(kind));
-  }
-  const refused = await run("agent", "tools/call", {
-    name: "elixir_cheers",
-    arguments: {},
-  });
-  assert.equal(refused.payload.error.code, -32601);
+  const discovery = (await run("server/discover")).payload.result;
+  assert.ok(discovery.supportedVersions.includes("2026-07-28"));
+  assert.equal(discovery.capabilities.tools.listChanged, false);
+  assert.equal(discovery.cacheScope, "private");
+  const list = (await run("tools/list")).payload.result;
+  assert.equal(list.resultType, "complete");
+  assert.equal(list.cacheScope, "private");
+  assert.ok(list.ttlMs >= 0);
+  assert.deepEqual(list.tools, registry.declarations());
   const mismatch = await run(
-    "person",
     "tools/call",
     { name: "elixir_cheers" },
     { nameHeader: "war_current" },

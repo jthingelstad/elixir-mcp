@@ -2,9 +2,9 @@
  * One line per auth decision, on stdout, as JSON.
  *
  * Written because an authentication failure used to leave NO trace anywhere.
- * Two incidents on 2026-09-09 made the case: a rotated key took a Discord bot
- * offline and the console showed an agent that looked merely quiet, because a
- * 401 is refused before anything is audited; and an OAuth sign-in code was
+ * Two incidents on 2026-09-09 made the case: a rotated key took a client
+ * offline and it looked merely quiet, because a 401 is refused before
+ * anything is audited; and an OAuth sign-in code was
  * rejected repeatedly with a message that merged seven causes, so diagnosing
  * it meant reading a screen recording frame by frame.
  *

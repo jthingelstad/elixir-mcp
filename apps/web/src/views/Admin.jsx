@@ -1374,9 +1374,8 @@ function AdminCollectors() {
   );
 }
 
-/** The person-bound service keys issued before 2026-09-27, to watch and
- *  revoke. None is issued any more: a headless caller is an
- *  agent with its own key. */
+/** The service keys, to watch and revoke: test accounts' keys and the
+ *  person-bound ones issued by hand before 2026-09-27. */
 function AdminServiceTokens() {
   const { day } = useClock();
   const svcTokens = useAdminServiceTokens().data?.tokens ?? [];
@@ -1390,10 +1389,9 @@ function AdminServiceTokens() {
         <p className="page__crumb">Admin · owner only</p>
         <h1 className="page__title">Service tokens</h1>
         <p className="page__lede">
-          Headless keys issued by hand before 2026-09-27, each acting as the
-          account it is bound to. No new ones are issued: a bot or service gets
-          its own identity as an agent (Account &rarr; Agents). Revoke any still
-          listed here once its caller has moved. Calls audit as{" "}
+          Headless keys, each acting as the account it is bound to: a test
+          account&rsquo;s key, or one issued by hand before 2026-09-27. Revoke
+          any whose caller has gone. Calls audit as{" "}
           <code>svc:&lt;name&gt;</code>.
         </p>
       </div>
@@ -1402,8 +1400,7 @@ function AdminServiceTokens() {
         <div className="empty">
           <div className="empty__title">No service tokens</div>
           <p className="empty__body" style={{ marginBottom: 0 }}>
-            Every headless caller has its own identity, as an agent. Nothing
-            here to revoke.
+            Nothing here to revoke.
           </p>
         </div>
       ) : (

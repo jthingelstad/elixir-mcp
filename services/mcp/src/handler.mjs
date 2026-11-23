@@ -21,7 +21,6 @@ import {
   WINDOW_SECONDS as RATE_WINDOW_SECONDS,
   normalizeScope,
   resourceForPath,
-  principalMatchesResource,
   originAllowed,
   forbiddenOrigin,
 } from "@elixir-mcp/auth";
@@ -36,7 +35,7 @@ import {
   unsupportedProtocolVersion,
 } from "./protocol.mjs";
 import { makeRegistry, TOOLS_VERSION } from "@elixir-mcp/tools";
-import { makeInvoker, auditRow, onBehalfOfOf } from "@elixir-mcp/tools/invoker";
+import { makeInvoker, auditRow } from "@elixir-mcp/tools/invoker";
 import { makeQuota } from "@elixir-mcp/tools/quota";
 import { makeOauthRoutes, rawBody } from "./oauth-routes.mjs";
 import { describeIdentity } from "@elixir-mcp/tools/identity";
@@ -46,8 +45,7 @@ import { HOURLY_RATE_LIMIT } from "@elixir-mcp/tools/quota";
 export { HOURLY_RATE_LIMIT };
 
 /** The hourly bucket a call spends from: a key with its own ceiling has its
- *  own; otherwise the principal that made the call (an agent its own, a
- *  person their account), never the account that pays. */
+ *  own; otherwise the account that made the call. */
 export function hourlyBucketFor(account) {
   if ((account.hourlyRateLimit ?? null) !== null && account.tokenId) {
     return `mcp#token#${account.tokenId}`;
@@ -130,17 +128,14 @@ export function makeHandler({
     sendWelcomeEmail,
     sessionSecret,
   });
-  // The personal resource's metadata document. Agent doors
-  // point at their own path-suffixed one, built per request below, so a client
-  // 401'd at an agent URL discovers THAT resource rather than this one.
+  // The /mcp resource's metadata document, named in every challenge.
   const resourceMetadata = `${issuer}/.well-known/oauth-protected-resource`;
 
   // One line per HTTP request, the same shape as the site API's
   // (web-api handler.mjs). The call log covers tool CALLS; until this
   // line, initialize, tools/list, the OAuth routes and
   // every 401/403 refusal left nothing at all, so a run of 4xx on the
-  // door was a count with no story. The door key never carries a
-  // per-principal id (/a/<id> logs as /a/*).
+  // door was a count with no story.
   async function dispatch(event, context) {
     // Through CloudFront, or not at all: the viewer headers this door
     // records are only trustworthy when the distribution set them.
@@ -155,10 +150,8 @@ export function makeHandler({
     if (read && path === "/.well-known/oauth-authorization-server") {
       return oauth.authorizationServerMetadata();
     }
-    // RFC 9728 path-suffixed form: each protected resource publishes its own
-    // metadata, so a client 401'd at an agent URL discovers THAT resource
-    // rather than the canonical one and asks for a token with the wrong
-    // audience.
+    // RFC 9728: the bare document and its path-suffixed form for each
+    // protected resource (/mcp, /api/v1); any other suffix is not one.
     if (read && path.startsWith("/.well-known/oauth-protected-resource")) {
       const suffix = path.slice("/.well-known/oauth-protected-resource".length);
       const target = resourceForPath(suffix || "/mcp", issuer);
@@ -203,11 +196,6 @@ export function makeHandler({
     if (!target || target.kind === "api") {
       return { statusCode: 405, headers: { allow: "POST" }, body: "" };
     }
-    // The challenge must name the resource actually being addressed.
-    const resourceMetadataForTarget =
-      target.kind === "person"
-        ? resourceMetadata
-        : `${issuer}/.well-known/oauth-protected-resource${path}`;
     // WHERE the caller is. A socket peer is a CloudFront edge
     // node, not the client — the viewer's own address arrives in a header, and
     // only because the origin request policy forwards it. Both are optional:
@@ -228,7 +216,7 @@ export function makeHandler({
       statusCode: 401,
       headers: {
         "content-type": "application/json",
-        "www-authenticate": `Bearer resource_metadata="${resourceMetadataForTarget}", scope="${FULL_OAUTH_SCOPE}"`,
+        "www-authenticate": `Bearer resource_metadata="${resourceMetadata}", scope="${FULL_OAUTH_SCOPE}"`,
       },
       body: JSON.stringify({ error: "invalid_token" }),
     });
@@ -247,9 +235,10 @@ export function makeHandler({
     if (!db) return unavailable();
     try {
       const presented = auth.slice(7).trim();
-      // Two credentials open this door: OAuth access tokens (agents via
-      // the browser flow) and Admin-issued service tokens (long-lived
-      // API-token users like elixir-bot; audit surface svc:<name>).
+      // Two credentials open this door: OAuth access tokens (a person's
+      // client through the browser flow) and service tokens (a test
+      // account's key; audit surface svc:<name>). Both validate a person
+      // only: an account of any other kind is refused here as unknown.
       const account = presented.startsWith("svt_")
         ? await validateServiceToken(db, presented)
         : await validateAccessToken(db, presented, {
@@ -259,9 +248,8 @@ export function makeHandler({
         // THE HOLE THIS CLOSES: a refused credential was recorded nowhere.
         // mcp_call_audit is written by the invoker, i.e. after auth, so a
         // runtime presenting a rotated or revoked key produced no errors at
-        // all -- it simply went quiet, and the console showed an agent that
-        // looked idle. Observed 2026-09-09 when rotating a key took the
-        // Discord bot offline for six minutes before anyone noticed.
+        // all -- it simply went quiet, and nothing showed the client had
+        // been refused.
         //
         // The credential itself never appears; a short digest is enough to
         // tell "one dead client retrying" from "many different bad keys".
@@ -309,41 +297,6 @@ export function makeHandler({
         return unauthorizedHere();
       }
 
-      // The URL declares what this connection is for; the credential proves
-      // it. Without this check, distinct URLs would be decoration: a personal
-      // token at an agent URL would answer from the wrong subject and nothing
-      // would say so. 403 rather than 404 -- the resource exists, this
-      // credential simply does not belong at it, and pretending otherwise
-      // would make the door a probe for which agents exist.
-      if (!principalMatchesResource(account, target)) {
-        await recordCredentialRefusal(db, {
-          presented,
-          kind: presented.startsWith("svt_") ? "service_token" : "access_token",
-          accountId: account.accountId,
-          reason: "wrong_resource",
-          resource: target.resource,
-          viewerIp,
-          viewerCountry,
-        });
-        authLog("mcp_wrong_resource", {
-          reason: "principal_mismatch",
-          resource: target.resource,
-          kind: account.kind ?? "person",
-          country: viewerCountry,
-        });
-        return {
-          statusCode: 403,
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({
-            error: "wrong_resource",
-            message: `This credential is not for ${target.resource}.`,
-            hint:
-              target.kind === "person"
-                ? "An agent key belongs at its own URL, not the personal one."
-                : "Use the key issued for this agent, or connect at the personal /mcp resource.",
-          }),
-        };
-      }
       let message;
       try {
         message = JSON.parse(rawBody(event));
@@ -393,7 +346,6 @@ export function makeHandler({
           clientName,
           oauthFamilyId: account.oauthFamilyId ?? null,
           principalKind: account.kind ?? "person",
-          onBehalfOf: onBehalfOfOf(args),
           rpcErrorCode: rpcCode,
         });
       // A resources/read or prompts/get is one audit row under the
@@ -443,7 +395,7 @@ export function makeHandler({
                     // A refusal that does not say how to fix it is a wall
                     // (feedback #16): the first connection is read-only by
                     // design, and the step-up is a reconnect, not a setting.
-                    hint: `Reconnect this client and tick '${requiredScope}' on the consent page (every capability the client did not ask for is offered there), or edit the connection's capabilities under Settings, Connections & agents, which takes effect on the next call. Owner-issued service tokens carry every capability. Read tools, including elixir_timeline, need only cr:read.`,
+                    hint: `Reconnect this client and tick '${requiredScope}' on the consent page (every capability the client did not ask for is offered there), or edit the connection's capabilities under Settings, Connections, which takes effect on the next call. Read tools, including elixir_timeline, need only cr:read.`,
                   },
                 },
               }),
@@ -454,18 +406,8 @@ export function makeHandler({
       // Same principle as the daily quota: the bucket belongs to whoever is
       // paying. A key that carries its OWN hourly ceiling (the acceptance
       // suite's, whose traffic is a function of its catalogue) spends from its own bucket - a ceiling on a shared
-      // counter would let that key starve its owner's other doors (found
-      // 2026-09-21: one acceptance run took 40% of the owner's hour, and
-      // the Discord agent shares it).
-      //
-      // The hour is the PRINCIPAL's, not the budget account's (Jamie,
-      // 2026-10-08: "yes, seperate limits"). An agent spends its owner's
-      // DAILY quota and live lane, but gets an hourly bucket of its own at
-      // the tier rate: on 10-08 one replay emptied the owner's shared 300
-      // and the owner's three Discord agents were refused for 52 minutes.
-      // A person's principal IS their budget account, so for them nothing
-      // moves. The tier rate is the same for every tier
-      // today, so "capped at the owner's tier" is the same 300.
+      // counter would let that key starve its account's other connections
+      // (found 2026-09-21: one acceptance run took 40% of the hour).
       //
       // Only calls spend from it (DECISIONS, "Only calls count against the
       // MCP hour"): a notification, initialize, ping and the */list methods
@@ -523,9 +465,6 @@ export function makeHandler({
         // resources/read for the card catalog; everything else in the
         // resource corpus is built in.
         db,
-        // What this connection is FOR. A person sees the full surface; an
-        // agent's is shaped around a clan.
-        kind: account.kind ?? "person",
         spendQuota: makeQuota({ db, account }),
         // protocol.mjs calls this at its own refusal sites (unknown tool,
         // hidden tool, daily quota): auditRefusal(rpcCode, toolName, args).
@@ -537,9 +476,7 @@ export function makeHandler({
           registry,
           live,
           surface,
-          // Five agents on one account used to be five identical audit rows of
-          // "something called war_current". These say which credential, from
-          // where, calling itself what.
+          // Which credential, from where, calling itself what.
           viewerIp,
           viewerCountry,
           clientName,
@@ -580,7 +517,7 @@ export function makeHandler({
       const requestId = context?.requestId ?? null;
       console.info({
         at: new Date().toISOString(),
-        http: `${method} ${doorKey(path)}`,
+        http: `${method} ${path}`,
         ...rpc,
         status,
         ms: Date.now() - started,
@@ -590,12 +527,6 @@ export function makeHandler({
   }
   handler.close = database.close;
   return handler;
-}
-
-// The door a request came in at, with an agent's public id masked:
-// `/a/<id>/mcp` logs as `/a/*/mcp`.
-function doorKey(path) {
-  return path.replace(/\/a\/[^/]+/g, "/a/*");
 }
 
 // The JSON-RPC method and, for tools/call, the tool name - read

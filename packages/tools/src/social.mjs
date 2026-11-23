@@ -20,8 +20,7 @@ export const FOLLOW_LIST_CAP = 100;
 
 /** The account that verified the player as itself: one at most, since
  *  verifying ends every other account's claim to be them (#556). People
- *  only; an agent never claims a player as itself. `{ account_id, discord }`
- *  or null. */
+ *  only. `{ account_id, discord }` or null. */
 export async function verifiedAccount(db, tag) {
   const { rows } = await db.query(
     `select c.account_id,
@@ -49,7 +48,6 @@ export async function verifiedAvatars(db, tags) {
 }
 
 /** Who the account follows: its friends (Home's Follow), by game name and
- *  tag. Its agents' follows belong to those agents, not to this account.
  *  A block with a player's verified owner hides that social association. */
 export async function followsOf(db, accountId) {
   const { rows } = await db.query(
@@ -128,33 +126,20 @@ export async function socialOf(db, tag) {
 }
 
 /**
- * The person a social read is for (DECISIONS "Agents read the social layer
- * and never write it"): a person's own connection reads as that person; an
- * agent reads as its owner, when both are approved and the owner is a
- * person. Any other kind, and anything unapproved, reads as nobody: null.
- * Read from the database each time, never from a remembered account.
+ * The person a social read is for: an approved person reads as
+ * themselves. Any other kind, and anything unapproved, reads as nobody:
+ * null. Read from the database each time, never from a remembered account.
  */
 export async function socialReader(db, account) {
-  const kind = account?.kind ?? "person";
-  if ((kind !== "person" && kind !== "agent") || !account?.accountId)
+  if ((account?.kind ?? "person") !== "person" || !account?.accountId)
     return null;
   const { rows } = await db.query(
-    `select case when a.kind = 'agent' then o.account_id else a.account_id end
-              as account_id,
-            a.kind
-       from account a
-       left join account o on o.account_id = a.owned_by_account_id
-      where a.account_id = $1 and a.status = 'approved'
-        and (coalesce(a.kind, 'person') = 'person'
-             or (a.kind = 'agent' and o.kind = 'person'
-                 and o.status = 'approved'))`,
+    `select account_id from account
+      where account_id = $1 and status = 'approved'
+        and coalesce(kind, 'person') = 'person'`,
     [account.accountId],
   );
-  if (!rows[0]) return null;
-  return {
-    accountId: rows[0].account_id,
-    asOwner: rows[0].kind === "agent",
-  };
+  return rows[0] ? { accountId: rows[0].account_id } : null;
 }
 
 /** The reader's primary player, or null. */

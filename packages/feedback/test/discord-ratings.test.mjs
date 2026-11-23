@@ -107,7 +107,7 @@ test("a door's own refs never carry a Discord post: only a page that checked it 
   assert.equal(out.dropped[0].reason, "unknown_kind");
 });
 
-test("a timeline line is the filer's or their agent's to rate; another's is not found", async () => {
+test("a timeline line is the filer's to rate; another's, or an agent-kind account's, is not found", async () => {
   const told = [];
   const notifyOwner = async (spec) => told.push(spec);
   const up = await rateDiscordPost(db, {
@@ -125,19 +125,29 @@ test("a timeline line is the filer's or their agent's to rate; another's is not 
   assert.equal(item.category, "praise");
   assert.equal(item.context.rating, "up");
 
-  const agents = await rateDiscordPost(db, {
+  const down = await rateDiscordPost(db, {
     account: person,
     feature: "timeline",
-    postId: POST.agents,
+    postId: POST.mine,
     rating: "down",
     note: "  It named the wrong deck. ",
     notifyOwner,
   });
   assert.equal(told.length, 1, "a thumbs down is");
-  const down = await feedbackItem(db, agents.feedback_id);
-  assert.match(down.message, /: It named the wrong deck\.$/);
-  assert.equal(down.context.noted, true);
+  const downItem = await feedbackItem(db, down.feedback_id);
+  assert.match(downItem.message, /: It named the wrong deck\.$/);
+  assert.equal(downItem.context.noted, true);
 
+  // An agent-kind account left from before 2026-11-23 is not the person's.
+  await refused(
+    rateDiscordPost(db, {
+      account: person,
+      feature: "timeline",
+      postId: POST.agents,
+      rating: "up",
+    }),
+    "not_found",
+  );
   await refused(
     rateDiscordPost(db, {
       account: person,

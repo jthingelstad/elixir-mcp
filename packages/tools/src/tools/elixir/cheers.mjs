@@ -33,8 +33,7 @@ export function cheerableItems(built) {
 
 /**
  * The cheers other people gave the items about your primary player
- * (DECISIONS "Agents read the social layer and never write it"): counts
- * only, never who, and never the reader's own cheer. The items are rebuilt
+ * (MCP reads the social layer and never writes it): counts only, never who, and never the reader's own cheer. The items are rebuilt
  * for the one player as anyone's feed shows them (Home's weekly count,
  * services/web-api/src/cheers.mjs cheersReceived, reads the same way).
  */

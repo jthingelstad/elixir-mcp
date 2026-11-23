@@ -100,7 +100,7 @@ test("every request leaves one timing line: door, rpc method, tool, status, requ
   try {
     await handler(
       event({
-        path: "/a/0123456789ab/mcp",
+        path: "/mcp",
         headers: { authorization: "Bearer svt_whatever" },
         body: JSON.stringify({
           jsonrpc: "2.0",
@@ -125,7 +125,7 @@ test("every request leaves one timing line: door, rpc method, tool, status, requ
   }
   const timing = lines.filter((l) => l.http);
   assert.equal(timing.length, 2);
-  assert.equal(timing[0].http, "POST /a/*/mcp", "never the per-principal id");
+  assert.equal(timing[0].http, "POST /mcp");
   assert.equal(timing[0].rpc, "tools/call");
   assert.equal(timing[0].tool, "game_clock");
   assert.equal(timing[0].status, 503);

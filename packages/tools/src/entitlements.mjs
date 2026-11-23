@@ -68,45 +68,11 @@ async function resolveEntitlements(db, account) {
     }
   }
 
-  // AN AGENT'S CLAN IS NOT A CLAIM.
-  //
-  // A person's clans come from the players they claimed. An agent holds no
-  // claims at all — a claim asserts "this player is me" and an agent has no
-  // self — so the query above returns nothing for every agent, and the promise
-  // `initialize` makes in writing ("OMIT clan_tag to mean it") answered
-  // "No recorded clan membership on this account" instead. The subject was
-  // there the whole time, in account_clan: the same row describeIdentity reads
-  // to say YOU ACT FOR. This resolver was the one agent-aware path that never
-  // learned about it (0053 added the kind; this is the reader it missed).
-  //
-  // is_primary first, so the clan a tool defaults to is the clan the
-  // connection was told at initialize that it acts for. A clan family must not
-  // disagree with its own opening instructions.
-  //
-  // `roles` is deliberately NOT extended: leadership analytics still need an
-  // elder-or-higher CLAIMED tag, and whether a clan's agent inherits that is a
-  // product decision, not a side effect of fixing a default.
-  const agentClans =
-    (account.kind ?? "person") === "agent"
-      ? (
-          await db.query(
-            `select ac.clan_tag from account_clan ac
-             join recording r
-               on r.subject_type = 'clan'
-              and r.subject_tag = ac.clan_tag
-              and r.status = 'active'
-             where ac.account_id = $1
-             order by ac.is_primary desc, ac.clan_tag`,
-            [account.accountId],
-          )
-        ).rows.map((r) => r.clan_tag)
-      : [];
-
   // The instance owner administers every recorded clan (Jamie, 2026-09-03:
   // owner-enrolled clans the owner may not be a member of). Rule 2 for
   // everyone else still requires open membership; member battle-level
   // consent applies to the owner at the tool layer like anyone else.
-  let clans = [...new Set([...agentClans, ...recordedClans])];
+  let clans = recordedClans;
   if (account.isOwner) {
     const { rows } = await db.query(
       `select subject_tag from recording where subject_type = 'clan' and status = 'active'`,
@@ -145,118 +111,11 @@ async function resolveEntitlements(db, account) {
 /**
  * Resolve a subject tag. Universal reads: any valid tag resolves; the
  * 'need' parameter is retained for call-site compatibility but no longer
- * gates. Returns { tag, scope: 'own'|'public' }.
+ * gates. An explicit tag always wins; an omitted one is the caller's
+ * primary player. Returns { tag, scope: 'own'|'public' }.
  * Throws {code} objects matching the closed error taxonomy.
  */
-/**
- * Who "me" is for this caller, without a round trip.
- *
- * Three ways a subject gets chosen, in strict precedence:
- *
- *   1. an explicit tag             — always wins, nothing else is consulted
- *   2. on_behalf_of                — the agent naming WHICH human is asking
- *   3. the caller's primary claim  — a person's own default
- *
- * (2) exists because an agent serves many humans through one connection and
- * MCP carries no per-request end-user identity. The id is whatever the
- * connecting surface has and is opaque to us; the mapping is per account and
- * confers nothing, since recorded reads are universal either way.
- *
- * An agent has no primary claim, so for an agent (2) is the only route to a
- * default — and its absence is a question to ask the human, not an error to
- * paper over.
- */
-export async function identityFor(db, accountId, externalId) {
-  return (await askerFor(db, accountId, externalId))?.tag ?? null;
-}
-
-const DISCORD_ASKER = /^discord:([0-9]{17,20})$/;
-
-/**
- * Who on_behalf_of names, and how we know (#531).
- *
- * `discord:<user id>` first goes through the Discord link a person made
- * from their own Settings (Discord's sign-in proved it): their primary or
- * an alt, but only one that is a current member of a clan this agent acts
- * for (Jamie, 2026-10-24, call 1), so a link never reaches past the
- * agent's clans. A claim still unverified resolves, flagged (call 3).
- * Otherwise a mapping the agent made with elixir_identify before that tool
- * retired in 12.0.0 (still read, never written now), which only the agent
- * vouches for.
- *
- * Returns { tag, via: 'discord_link' | 'agent_mapping', verified } or null.
- */
-export async function askerFor(db, accountId, externalId) {
-  if (typeof externalId !== "string" || !externalId.trim()) return null;
-  const id = externalId.trim();
-  const discord = DISCORD_ASKER.exec(id);
-  if (discord) {
-    const { rows } = await db.query(
-      `select c.player_tag, c.status = 'verified' as verified
-         from account_discord d
-         join account p on p.account_id = d.account_id
-                       and p.kind = 'person' and p.status = 'approved'
-         join claim c on c.account_id = d.account_id
-                     and c.relationship in ('primary', 'alt')
-         join clan_membership cm on cm.player_tag = c.player_tag
-                                and cm.left_observed_at is null
-         join account_clan ac on ac.clan_tag = cm.clan_tag
-                             and ac.account_id = $1
-        where d.discord_user_id = $2
-        order by c.is_primary desc, (c.status = 'verified') desc, c.player_tag
-        limit 1`,
-      [accountId, discord[1]],
-    );
-    if (rows[0])
-      return {
-        tag: rows[0].player_tag,
-        via: "discord_link",
-        verified: rows[0].verified === true,
-      };
-  }
-  const { rows } = await db.query(
-    `select player_tag from agent_identity
-     where account_id = $1 and external_id = $2`,
-    [accountId, id],
-  );
-  return rows[0]
-    ? { tag: rows[0].player_tag, via: "agent_mapping", verified: false }
-    : null;
-}
-
-/** The clan members whose WHOLE name matches the asker's display name
- *  (case and spacing ignored), across the agent's entitled clans
- *  (3.18.0): what an unmapped on_behalf_of's refusal carries so the
- *  agent's next call names the player_tag, not clans_roster. A partial
- *  match is not a candidate. */
-async function nameCandidates(db, clans, displayName) {
-  if (typeof displayName !== "string" || clans.length === 0) return [];
-  const wanted = displayName.replace(/\s+/g, "").toLowerCase();
-  if (!wanted) return [];
-  const { rows } = await db.query(
-    `select cm.player_tag, p.name, cm.clan_tag, cm.role
-       from clan_membership cm
-       join player p on p.player_tag = cm.player_tag
-      where cm.clan_tag = any($1::text[]) and cm.left_observed_at is null
-        and lower(regexp_replace(coalesce(p.name, ''), '\\s', '', 'g')) = $2
-      order by cm.clan_tag, p.name`,
-    [clans, wanted],
-  );
-  return rows.map((r) => ({
-    player_tag: r.player_tag,
-    name: r.name,
-    clan_tag: r.clan_tag,
-    role: r.role,
-  }));
-}
-
-export async function resolveSubject(
-  db,
-  account,
-  inputTag,
-  _need = "full",
-  { onBehalfOf = null, displayName = null } = {},
-) {
+export async function resolveSubject(db, account, inputTag, _need = "full") {
   const ent = await resolveEntitlements(db, account);
   let tag;
   // Empty string is a CALLER BUG (an unset variable), not "use my
@@ -270,64 +129,23 @@ export async function resolveSubject(
     };
   }
   if (inputTag === undefined || inputTag === null) {
-    // on_behalf_of is an agent's (it serves several humans); a person's
-    // connection ignores it, as the docs promise (2026-09-25).
-    const mapped =
-      (account.kind ?? "person") === "person"
-        ? null
-        : await identityFor(db, account.accountId, onBehalfOf);
-    if (mapped) {
-      tag = mapped;
-    } else if ((account.kind ?? "person") !== "person") {
-      // An agent has no self to fall back on. Say what would fix it rather
-      // than guessing a member of the clan, which would be confidently
-      // wrong. With the asker's display name (3.18.0) the refusal carries
-      // the members whose whole name matches, so exactly one candidate is
-      // one player_tag away and zero or several is a question. Being known
-      // from then on is the person's Discord link (12.0.0: elixir_identify
-      // retired), never a mapping the agent writes.
-      const candidates = onBehalfOf
-        ? await nameCandidates(db, ent.clans, displayName)
-        : [];
+    // Still is_primary, not relationship: 0055 is the EXPAND half, and
+    // forty-odd readers plus every test fixture still write the boolean.
+    // relationship carries the new information (alt / friend);
+    // a contract migration switches the reads and drops the column once
+    // nothing sets it. Writers set both, so they cannot disagree.
+    const { rows } = await db.query(
+      `select player_tag from claim where account_id = $1 and is_primary`,
+      [account.accountId],
+    );
+    if (!rows[0]) {
       throw {
         code: "no_subject",
-        message: onBehalfOf
-          ? `No player is mapped to ${onBehalfOf} yet.`
-          : "This connection acts for a clan, so there is no default player.",
-        hint:
-          (candidates.length === 1
-            ? `candidates[] holds the one clan member whose whole name is '${displayName}': pass player_tag ${JSON.stringify(candidates[0].player_tag)}, say so in a line, and answer. `
-            : candidates.length > 1
-              ? `candidates[] holds ${candidates.length} clan members named '${displayName}': ask which one they are, then pass that player_tag. `
-              : onBehalfOf && displayName
-                ? `No clan member's whole name is '${displayName}': ask who they are in the clan, then pass player_tag. `
-                : "Ask who they are in the clan (pass display_name beside on_behalf_of and the refusal names the matching members), then pass player_tag. ") +
-          // Another surface's id is not a Discord one: the link says
-          // nothing to it.
-          (onBehalfOf && !DISCORD_ASKER.test(onBehalfOf.trim())
-            ? ""
-            : 'To be known without asking, they connect Discord under Connections & agents in their Elixir Settings (/settings/connections/discord); on_behalf_of: "discord:<their user id>" then resolves to them.'),
-        ...(onBehalfOf ? { data: { candidates } } : {}),
+        message: "No primary player on this account.",
+        hint: "elixir_follow_player({ player_tag }) follows one; your first becomes your primary.",
       };
-    } else {
-      // Still is_primary, not relationship: 0055 is the EXPAND half, and
-      // forty-odd readers plus every test fixture still write the boolean.
-      // relationship carries the new information (alt / friend);
-      // a contract migration switches the reads and drops the column once
-      // nothing sets it. Writers set both, so they cannot disagree.
-      const { rows } = await db.query(
-        `select player_tag from claim where account_id = $1 and is_primary`,
-        [account.accountId],
-      );
-      if (!rows[0]) {
-        throw {
-          code: "no_subject",
-          message: "No primary player on this account.",
-          hint: "elixir_follow_player({ player_tag }) follows one; your first becomes your primary.",
-        };
-      }
-      tag = rows[0].player_tag;
     }
+    tag = rows[0].player_tag;
   } else {
     try {
       tag = normalizeTag(String(inputTag));
@@ -390,43 +208,24 @@ export async function resolveEntitledClan(db, account, inputTag) {
     }
     return tag;
   }
-  // A person's default is the PRIMARY player's clan and nothing else
-  // (3.18.0; DECISIONS "refuse rather than choose", 2026-09-25): never an
-  // alt's or a friend's clan, for the owner too.
-  if ((account.kind ?? "person") === "person") {
-    const alts = ent.altClans.length
-      ? ` (your alts' recorded clans: ${ent.altClans.join(", ")})`
-      : "";
-    if (!ent.primaryClan)
-      throw {
-        code: "no_subject",
-        message:
-          "Your primary player is not in a clan (or you have none), so nothing defaults to a clan.",
-        hint: `Pass clan_tag explicitly${alts}; any recorded clan works.`,
-      };
-    if (!ent.clans.includes(ent.primaryClan))
-      throw {
-        code: "not_recorded",
-        message: `Your primary player's clan ${ent.primaryClan} is not recorded, so nothing defaults to it.`,
-        hint: `elixir_follow_clan({ clan_tag: "${ent.primaryClan}" }) records it; or pass clan_tag explicitly${alts}.`,
-      };
-    return ent.primaryClan;
-  }
-  if (ent.clans.length === 0) {
-    // Two ways to have no default, and they need different next steps: a
-    // person joins or claims a tag, an agent needs a recorded clan on the
-    // agent itself. Telling an agent to be "an open member" of something is
-    // advice it can never act on.
-    const isAgent = (account.kind ?? "person") === "agent";
+  // The default is the PRIMARY player's clan and nothing else (3.18.0;
+  // DECISIONS "refuse rather than choose", 2026-09-25): never an alt's or
+  // a friend's clan, for the owner too.
+  const alts = ent.altClans.length
+    ? ` (your alts' recorded clans: ${ent.altClans.join(", ")})`
+    : "";
+  if (!ent.primaryClan)
     throw {
       code: "no_subject",
-      message: isAgent
-        ? "This agent has no recorded clan."
-        : "No recorded clan on this account to default to.",
-      hint: isAgent
-        ? "An agent's clan is set on the agent (Account -> Agents) and must be actively recorded. Or pass clan_tag explicitly."
-        : "Pass clan_tag explicitly (any recorded clan works), or elixir_follow_clan({ clan_tag }) to record yours.",
+      message:
+        "Your primary player is not in a clan (or you have none), so nothing defaults to a clan.",
+      hint: `Pass clan_tag explicitly${alts}; any recorded clan works.`,
     };
-  }
-  return ent.clans[0];
+  if (!ent.clans.includes(ent.primaryClan))
+    throw {
+      code: "not_recorded",
+      message: `Your primary player's clan ${ent.primaryClan} is not recorded, so nothing defaults to it.`,
+      hint: `elixir_follow_clan({ clan_tag: "${ent.primaryClan}" }) records it; or pass clan_tag explicitly${alts}.`,
+    };
+  return ent.primaryClan;
 }

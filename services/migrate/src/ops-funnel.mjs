@@ -3,10 +3,10 @@
  *
  * Of the people who made an account in the last `days` (default 90, at
  * most 3650), how many signed in, added their player, got a first read,
- * verified, connected an agent and came back. Person accounts only:
- * agents and integrations are principals, not people. Overall and by the
- * UTC week (Monday) the account was made, newest first. Every figure is
- * read from what Elixir already keeps; nothing is stored for it.
+ * verified, connected an AI client and came back. Person accounts only:
+ * integrations, agent-kind rows and test accounts are not people. Overall
+ * and by the UTC week (Monday) the account was made, newest first. Every
+ * figure is read from what Elixir already keeps; nothing is stored for it.
  *
  *   accounts          person accounts made in the window, any status
  *   by_status         of those, by account.status
@@ -23,10 +23,10 @@
  *                     snapshot or battle evidence for the tag
  *                     (`hasBattleEvidence`, @elixir-mcp/record/capture-state)
  *   verified          a verified claim now, or a `claim_verified` event
- *   agent_connected   a live agent connection now: an unrevoked,
+ *   agent_connected   a live AI client connection now: an unrevoked,
  *                     unexpired OAuth family that is not a family app's
  *                     sign-in (Drop, Clan), or a live MCP service token,
- *                     on the person or on an agent they own
+ *                     on the person
  *   came_back_7d / _30d  own activity on a later UTC day than the one
  *                     the account was made, within 7 or 30 days: a
  *                     sign-in (event, session minted or OAuth family
@@ -105,11 +105,6 @@ export async function funnelOp(databaseUrl, spec = {}) {
            from account a
           where a.kind = 'person' and a.test_name is null
             and a.created_at >= now() - make_interval(days => $1)),
-       agents as (
-         select o.account_id as agent_id, o.owned_by_account_id as person_id
-           from account o
-          where o.kind = 'agent' and o.removed_at is null
-            and o.owned_by_account_id in (select account_id from people)),
        own as (
          select account_id, created_at as at from account_event
           where kind = 'signed_in'
@@ -148,16 +143,12 @@ export async function funnelOp(databaseUrl, spec = {}) {
                             where e.account_id = p.account_id
                               and e.kind = 'claim_verified')) as verified,
               (exists (select 1 from oauth_family f
-                        where (f.account_id = p.account_id
-                               or f.account_id in (select agent_id from agents g
-                                                    where g.person_id = p.account_id))
+                        where f.account_id = p.account_id
                           and f.revoked_at is null and f.absolute_expires_at > now()
                           and not exists (select 1 from family_oauth_client fc
                                            where fc.client_id = f.client_id))
                 or exists (select 1 from service_token t
-                            where (t.account_id = p.account_id
-                                   or t.account_id in (select agent_id from agents g
-                                                        where g.person_id = p.account_id))
+                            where t.account_id = p.account_id
                               and t.revoked_at is null and t.audience = 'mcp'))
                 as agent_connected,
               exists (select 1 from activity v
