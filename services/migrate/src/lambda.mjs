@@ -391,6 +391,16 @@ async function dispatch(event, context) {
     console.log(JSON.stringify(result));
     return result;
   }
+  if (event?.agent_accounts_remove) {
+    const { agentAccountsRemoveOp } =
+      await import("./ops-agent-accounts-remove.mjs");
+    const result = await agentAccountsRemoveOp(
+      process.env.DATABASE_URL,
+      event.agent_accounts_remove,
+    );
+    console.log(JSON.stringify(result));
+    return result;
+  }
   if (event?.avatar_import) {
     const { avatarImportOp } = await import("./ops-avatar-import.mjs");
     const result = await avatarImportOp(
