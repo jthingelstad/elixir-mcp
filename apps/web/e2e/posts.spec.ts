@@ -9,8 +9,10 @@ import { homeApi, TIMELINE } from "./home-fixture.ts";
  * question with a pasted deck link, the card picker, a refusal, posted
  * items (a question with its deck, a post with loose cards) and Admin ›
  * Comments' reported posts, at 320, 390 and 1280 with axe and nothing
- * scrolling sideways; and no composer while posts are off. Invented
- * players only.
+ * scrolling sideways; and no composer while posts are off. While a post
+ * or an edit is checked (2026-11-23) the box is read-only under a status
+ * line, and an unavailable check, a pause and the app giving up each say
+ * so and keep the words. Invented players only.
  *
  * POSTS_SHOTS=<dir> also saves a capture of each state.
  */
@@ -217,8 +219,9 @@ for (const width of [320, 390, 1280]) {
       await words.fill("where is everyone from");
       await box.getByRole("button", { name: "Ask", exact: true }).click();
       await expect(box.getByRole("alert")).toHaveText(
-        "Keep personal details out of posts.",
+        "Your question didn't go up. Keep personal details out of posts.",
       );
+      await expect(words).toBeFocused();
       await expect(words).toHaveValue("where is everyone from");
       await noSideways(page);
       await accessible(page, "refusal");
@@ -378,4 +381,157 @@ test("retrying a player's posts restores the list, then blocking a post author r
     0,
   );
   await expect(posts).toHaveCount(0);
+});
+
+/** Answer `pattern`'s `method` only when the returned function is called. */
+async function hold(
+  page: Page,
+  pattern: string,
+  method: string,
+  answer: [number, unknown],
+) {
+  let release = () => {};
+  const held = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  await page.route(pattern, async (route) => {
+    if (route.request().method() !== method) return route.fallback();
+    await held;
+    await route.fulfill({
+      status: answer[0],
+      contentType: "application/json",
+      body: JSON.stringify(answer[1]),
+    });
+  });
+  return () => release();
+}
+
+test.describe("while a post is checked", () => {
+  test.beforeEach(async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+  });
+
+  test("a status line says why it takes a moment, the box is read-only, and an unavailable check keeps the words", async ({
+    page,
+  }) => {
+    await mockApi(page, postsOn());
+    const release = await hold(page, "**/api/me/posts", "POST", [
+      503,
+      {
+        error: "unavailable",
+        message: "We couldn't check it just now. Try again.",
+      },
+    ]);
+    await page.goto("/home");
+    const form = await openComposer(page, 390);
+    const words = form.getByRole("textbox", { name: "Your post" });
+    await words.fill("ladder is so sweaty today");
+    await form.getByRole("button", { name: "Post", exact: true }).click();
+    await expect(form.getByRole("status")).toHaveText(
+      "Elixir checks every post before it goes up, so this takes a few seconds.",
+    );
+    await expect(words).not.toBeEditable();
+    await expect(form.getByRole("button", { name: "Checking" })).toBeDisabled();
+    await accessible(page, "checking");
+    await capture(page, "checking", 390);
+    release();
+    await expect(form.getByRole("alert")).toHaveText(
+      "Your post didn't go up. We couldn't check it just now. Try again.",
+    );
+    await expect(form.getByRole("status")).toHaveText("");
+    await expect(words).toBeEditable();
+    await expect(words).toHaveValue("ladder is so sweaty today");
+  });
+
+  test("a pause says so and keeps the words", async ({ page }) => {
+    await mockApi(
+      page,
+      postsOn({
+        "POST /api/me/posts": [
+          503,
+          {
+            error: "paused",
+            message: "Posts are paused for now. Try again later.",
+          },
+        ],
+      }),
+    );
+    await page.goto("/home");
+    const form = await openComposer(page, 390);
+    const words = form.getByRole("textbox", { name: "Your post" });
+    await words.fill("who wants a friendly");
+    await form.getByRole("button", { name: "Post", exact: true }).click();
+    await expect(form.getByRole("alert")).toHaveText(
+      "Your post didn't go up. Posts are paused for now. Try again later.",
+    );
+    await expect(words).toHaveValue("who wants a friendly");
+  });
+
+  test("when the app gives up waiting it says the post didn't go up and keeps the words", async ({
+    page,
+  }) => {
+    // The app's 20 s wait, cut short: the answer never comes.
+    await page.addInitScript(() => {
+      const timeout = AbortSignal.timeout.bind(AbortSignal);
+      AbortSignal.timeout = (ms: number) => timeout(Math.min(ms, 500));
+    });
+    await mockApi(page, postsOn());
+    await hold(page, "**/api/me/posts", "POST", [201, {}]);
+    await page.goto("/home");
+    const form = await openComposer(page, 390);
+    const words = form.getByRole("textbox", { name: "Your post" });
+    await words.fill("our clan needs two more for war");
+    await form.getByRole("button", { name: "Post", exact: true }).click();
+    await expect(form.getByRole("alert")).toHaveText(
+      "Your post didn't go up. That took too long. Try again.",
+    );
+    await expect(words).toHaveValue("our clan needs two more for war");
+  });
+
+  test("an edit is checked the same way, and a refusal keeps the new words", async ({
+    page,
+  }) => {
+    const base = post("9", "Who else levels these first?", 5);
+    const MINE = {
+      ...base,
+      post: { ...base.post, mine: true, can_edit: true, can_delete: true },
+    };
+    await mockApi(
+      page,
+      postsOn({
+        "GET /api/me/timeline": [
+          200,
+          { ...TIMELINE, timeline: [MINE, ...TIMELINE.timeline] },
+        ],
+      }),
+    );
+    const release = await hold(page, "**/api/me/posts/*", "PUT", [
+      422,
+      {
+        error: "refused",
+        category: "link",
+        message:
+          "Links can't go in posts. A deck link copied from the game becomes the deck; take any other web address out.",
+      },
+    ]);
+    await page.goto("/home");
+    const card = page.locator("article", {
+      hasText: "Who else levels these first?",
+    });
+    await card.getByRole("button", { name: "Edit", exact: true }).click();
+    const form = card.locator(".kit-post-edit");
+    const words = form.getByRole("textbox", { name: "Your words" });
+    await words.fill("see my site dot com");
+    await form.getByRole("button", { name: "Save", exact: true }).click();
+    await expect(form.getByRole("status")).toHaveText(
+      "Elixir checks your new words before they show, so this takes a few seconds.",
+    );
+    await expect(words).not.toBeEditable();
+    release();
+    await expect(form.getByRole("alert")).toHaveText(
+      "Your changes weren't saved. Links can't go in posts. A deck link copied from the game becomes the deck; take any other web address out.",
+    );
+    await expect(words).toHaveValue("see my site dot com");
+    await expect(words).toBeFocused();
+  });
 });

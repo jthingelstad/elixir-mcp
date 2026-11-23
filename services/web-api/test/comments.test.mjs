@@ -14,6 +14,9 @@
  * - two reports from different accounts hide a comment; the reporter
  *   stops seeing it at once; its author still does; an admin decides;
  * - rate limits and the cooldown after refusals;
+ * - a stock comment ("gg") posts without the model; the wait for the
+ *   model is 12 s, inside the request's deadline, and nothing is stored
+ *   on a refusal, an error, a pause or a pass that lands too late;
  * - with comments off every person route answers 404 comments_off.
  *
  * Made-up tags: this repository is public.
@@ -26,7 +29,17 @@ import { ensurePassport } from "@elixir-mcp/stamps";
 import { buildTimeline, subjectsFor } from "@elixir-mcp/tools/activity/entries";
 import { makeHandler } from "../src/handler.mjs";
 import { withComments } from "../src/comments.mjs";
-import { UNKNOWN_CHECK_USD } from "../src/comment-check.mjs";
+import { readFile } from "node:fs/promises";
+import {
+  createModelBridge,
+  modelRequestKey,
+} from "@elixir-mcp/clan/model-bridge.mjs";
+import { createBox } from "@elixir-mcp/clan/sealed.mjs";
+import {
+  MODERATION_WAIT_MS,
+  REFUSAL_WORDS,
+  UNKNOWN_CHECK_USD,
+} from "../src/comment-check.mjs";
 
 const V = "#0YRL2GQP"; // OWNER's primary, verified
 const R = "#0LCVJ8YR"; // READER's primary, verified
@@ -299,7 +312,7 @@ test("a filter refusal never reaches the model and keeps the words for the queue
   const r = await post(FAN, "check my site dot com");
   assert.equal(r.statusCode, 422, r.body);
   assert.equal(data(r).category, "link");
-  assert.equal(data(r).message, "Links can't go in comments.");
+  assert.equal(data(r).message, REFUSAL_WORDS.link);
   assert.equal(asked.length, before, "the model was not asked");
   const [row] = await checks(FAN);
   assert.deepEqual(
@@ -314,7 +327,7 @@ test("a model refusal names one plain reason and posts nothing", async () => {
   const r = await post(FAN, "you are trash at this game uninstall");
   assert.equal(r.statusCode, 422, r.body);
   assert.equal(data(r).category, "harassment");
-  assert.match(data(r).message, /Keep it friendly/);
+  assert.equal(data(r).message, REFUSAL_WORDS.harassment);
   assert.deepEqual(await texts(OWNER), ["that Hog cycle was clean gg"]);
 });
 
@@ -721,4 +734,150 @@ test("a player page says whether you blocked its verified owner (Codex on #1081)
     `delete from account_block where account_id = $1 and blocked_account_id = $2`,
     [UNVERIFIED, OWNER],
   );
+});
+
+/** A new verified commenter who follows V. */
+async function commenter(hash, tag) {
+  const id = await person(hash);
+  await scratch.db.query("insert into player(player_tag,name) values ($1,$2)", [
+    tag,
+    `Name ${tag}`,
+  ]);
+  await claim(id, tag, "primary", true);
+  await follow(id, V);
+  return id;
+}
+const stored = async (accountId) =>
+  Number(
+    (
+      await scratch.db.query(
+        "select count(*) from timeline_comment where account_id = $1",
+        [accountId],
+      )
+    ).rows[0].count,
+  );
+
+test("a stock comment posts without the model; a repeat of it is still refused", async () => {
+  const QUICK = await commenter("cm-quick", "#0PLUG2V9");
+  next = () => ({ allow: true, category: "none" });
+  const before = asked.length;
+  const r = await post(QUICK, "GG  wp!!");
+  assert.equal(r.statusCode, 201, r.body);
+  assert.equal(data(r).comment.text, "GG wp!!");
+  assert.equal(asked.length, before, "the model was not asked");
+  const [row] = await checks(QUICK);
+  assert.deepEqual(
+    { verdict: row.verdict, stage: row.stage, category: row.category },
+    { verdict: "allow", stage: "filter", category: "stock" },
+  );
+  assert.equal(Number(row.cost), 0);
+  // The repeat rule runs before the list: the same words today are refused.
+  const again = await post(QUICK, "gg wp!!");
+  assert.equal(again.statusCode, 422, again.body);
+  assert.equal(data(again).message, REFUSAL_WORDS.repeated);
+  // Emoji alone are read by the model.
+  assert.equal((await post(QUICK, "🔥🔥")).statusCode, 201);
+  assert.equal(asked.length, before + 1);
+});
+
+test("the model's wait is 12 s, inside the request's deadline, and silence answers unavailable", async () => {
+  // index.mjs builds the comment bridge with this wait and nothing else.
+  const index = await readFile(new URL("../src/index.mjs", import.meta.url));
+  assert.match(String(index), /timeoutMs: MODERATION_WAIT_MS,/);
+  // The soft deadline is 18.5 s (deadline.mjs) and a write keeps 3 s back;
+  // the app gives up at 20 s (apps/web client).
+  assert.ok(MODERATION_WAIT_MS + 3000 + 2000 <= 18_500);
+  const WAIT = await commenter("cm-wait", "#0GRJCUV");
+  const objects = new Map();
+  let clock = 1_000_000;
+  const bridge = createModelBridge({
+    secret: "test-bridge",
+    storage: {
+      async get(k) {
+        return objects.get(k) ?? null;
+      },
+      async put(k, text) {
+        objects.set(k, text);
+        return true;
+      },
+    },
+    now: () => clock,
+    // The relay never answers: time passes as the bridge polls.
+    pause: async (ms) => {
+      clock += ms;
+    },
+    timeoutMs: MODERATION_WAIT_MS,
+  });
+  const quiet = makeHandler({
+    databaseUrl: scratch.url,
+    secret: "test",
+    comments: { enabled: true, capUsd: 10, moderate: bridge.moderate },
+  });
+  const r = await callWith(quiet)(WAIT, "POST", "/api/me/comments", {
+    item_id: ITEM,
+    subjects: [V],
+    text: "that Hog cycle was clean",
+  });
+  assert.equal(r.statusCode, 503, r.body);
+  assert.equal(data(r).error, "unavailable");
+  assert.equal(data(r).message, REFUSAL_WORDS.unavailable);
+  assert.ok(clock - 1_000_000 >= MODERATION_WAIT_MS);
+  assert.ok(clock - 1_000_000 < MODERATION_WAIT_MS + 500);
+  // The relay was told the same wait.
+  const [key] = [...objects.keys()];
+  const id = key.slice("clan-model/request/".length, -".json".length);
+  assert.equal(key, modelRequestKey(id));
+  const box = createBox("test-bridge", "clan model bridge v1");
+  const sealed = JSON.parse(objects.get(key)).box;
+  assert.equal(
+    JSON.parse(box.open(sealed, `request:${id}`)).timeout_ms,
+    MODERATION_WAIT_MS,
+  );
+  assert.equal(await stored(WAIT), 0);
+  await quiet.close();
+});
+
+test("nothing is stored on a refusal, an error, a pause or a pass that lands too late", async () => {
+  const SLOW = await commenter("cm-slow", "#0Q2L8");
+  next = () => ({ allow: false, category: "spam" });
+  assert.equal((await post(SLOW, "free gems here")).statusCode, 422);
+  next = () => ({ ok: false, code: "outcome_unknown" });
+  assert.equal((await post(SLOW, "rematch me")).statusCode, 503);
+  next = () => ({ allow: true, category: "none" });
+  const paused = await callWith(cappedHandler)(
+    SLOW,
+    "POST",
+    "/api/me/comments",
+    { item_id: ITEM, subjects: [V], text: "paused words" },
+  );
+  assert.equal(paused.statusCode, 503, paused.body);
+  assert.equal(data(paused).error, "paused");
+  // A pass after the write margin: the request's soft deadline is 3.1 s
+  // away, the write must begin 3 s before it, and the model takes 0.2 s.
+  next = async () => {
+    await new Promise((r) => setTimeout(r, 200));
+    return { allow: true, category: "none" };
+  };
+  const late = await handler(
+    {
+      path: "/api/me/comments",
+      method: "POST",
+      queryStringParameters: {},
+      headers: {
+        cookie: `__Host-elixir_session=${sessions.get(SLOW)}`,
+        "x-elixir-client": "web",
+        "cloudfront-viewer-address": "8.8.4.4:443",
+      },
+      body: JSON.stringify({ item_id: ITEM, subjects: [V], text: "late one" }),
+    },
+    { requestId: "late-test", remainingMs: () => 4600 },
+  );
+  next = () => ({ allow: true, category: "none" });
+  assert.equal(late.statusCode, 503, late.body);
+  assert.equal(data(late).error, "unavailable");
+  assert.deepEqual(
+    (await checks(SLOW)).map((c) => `${c.verdict}:${c.category ?? ""}`),
+    ["refuse:spam", "error:outcome_unknown", "paused:", "error:late"],
+  );
+  assert.equal(await stored(SLOW), 0);
 });

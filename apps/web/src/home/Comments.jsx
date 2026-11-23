@@ -16,6 +16,7 @@ import {
 import { playerHref } from "../lib/player.js";
 import { useScope } from "../lib/scope.js";
 import { commentIsAfter } from "./comment-read.js";
+import { CheckingLine, notPostedWords } from "./check-words.jsx";
 import {
   COMMENT_MAX,
   REPORT_REASONS,
@@ -270,8 +271,10 @@ function Thread({ id, it, focus, entry }) {
   );
 }
 
-/** Write one: 280 characters, checked before it posts. A no says why in
- *  one plain line and keeps the words, so they can be changed. */
+/** Write one: 280 characters, checked before it posts. While the check
+ *  runs the box is read-only and a status line says why it takes a
+ *  moment; a no says why in one plain line and keeps the words, so they
+ *  can be changed (check-words.jsx). */
 export function Composer({ it, autoFocus = false, onPosted = null }) {
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
@@ -280,6 +283,7 @@ export function Composer({ it, autoFocus = false, onPosted = null }) {
   const changed = useCommentsChanged();
   const fieldId = useId();
   const left = COMMENT_MAX - [...text].length;
+  const kind = isQuestion(it) ? "answer" : "comment";
   useEffect(() => {
     if (autoFocus) box.current?.focus();
   }, [autoFocus]);
@@ -301,7 +305,7 @@ export function Composer({ it, autoFocus = false, onPosted = null }) {
       onPosted?.();
       return;
     }
-    setError(res.data?.message ?? "Your comment wasn't posted. Try again.");
+    setError(notPostedWords(res, kind));
     box.current?.focus();
   };
   return (
@@ -315,10 +319,12 @@ export function Composer({ it, autoFocus = false, onPosted = null }) {
         maxLength={COMMENT_MAX * 2}
         placeholder={isQuestion(it) ? "Your answer" : "Say something nice"}
         value={text}
+        readOnly={busy}
         aria-invalid={error ? true : undefined}
         aria-describedby={`${fieldId}-help`}
         onChange={(e) => setText(e.target.value)}
       />
+      <CheckingLine busy={busy} kind={kind} />
       <div className="kit-comments__send">
         <span
           id={`${fieldId}-help`}

@@ -599,7 +599,11 @@ async function postChecked(db, readerId, item, raw, comments, target) {
     return { ...slow, message: "That's a lot of comments. Try again soon." };
   const body = tidyComment(raw);
   if (body && (await repeated(db, readerId, body))) {
-    return { error: "refused", category: "spam", message: REFUSAL_WORDS.spam };
+    return {
+      error: "refused",
+      category: "spam",
+      message: REFUSAL_WORDS.repeated,
+    };
   }
   const verdict = await checkComment(db, {
     moderate: comments.moderate,
@@ -609,6 +613,7 @@ async function postChecked(db, readerId, item, raw, comments, target) {
     body,
     about: String(item.text ?? ""),
     own: target.owner === readerId,
+    writeBy: comments.writeBy ?? null,
   });
   if (verdict.verdict === "paused")
     return { error: "paused", message: REFUSAL_WORDS.paused };

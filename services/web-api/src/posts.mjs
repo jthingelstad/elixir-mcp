@@ -414,7 +414,7 @@ async function checkWords(db, accountId, itemId, body, input, cfg) {
     return {
       error: "refused",
       category: "spam",
-      message: POST_REFUSAL_WORDS.spam,
+      message: POST_REFUSAL_WORDS.repeated,
     };
   const verdict = await checkComment(db, {
     moderate: cfg?.check?.moderate ?? null,
@@ -423,6 +423,7 @@ async function checkWords(db, accountId, itemId, body, input, cfg) {
     itemId,
     body,
     post: { question: input.question, carries: carriesOf(input), battle },
+    writeBy: cfg?.writeBy ?? null,
   });
   // With comments off there is no model to ask: a post about a battle
   // keeps its words after the plain filter, as a highlight did.
