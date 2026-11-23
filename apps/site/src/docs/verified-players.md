@@ -51,8 +51,9 @@ An account page shows a person on Elixir:
 - Their badges, their place if they set one, and their Stamps, with
   **Open passport**.
 - Who they follow and how many follow them.
-- One timeline: their players' battles and news, plus the account's own
-  news, like a Stamp earned, a place set, or a player verified.
+- One timeline of the last seven days: their players' battles and news,
+  plus the account's own news, like a Stamp earned, a place set, or a
+  player verified.
 
 When one of their verified players shares a current clan with yours, the account
 page also shows your [Clanmate connection](/docs/follow-a-friend#clanmates).

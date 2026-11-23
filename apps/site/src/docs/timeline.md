@@ -24,10 +24,13 @@ An agent reads it with `elixir_timeline`. Its arguments, windows, items and
 entries are on [The timeline tool](/docs/timeline-tool).
 
 It is **synthesized when you read it**, from the record and what Elixir
-keeps for each player and clan. Nothing is queued, fanned out or pruned. An
-agent that comes back after a month gets a month's timeline (capped at 30 days,
-and at the newest 150 items). Your Timeline shows the last seven days, with
-the same cap on items, thirty at a time, and reading it moves no pointer.
+keeps for each player and clan. Nothing is queued, fanned out or pruned. A
+timeline reaches back one week, everywhere: your Timeline, a player's page,
+an account page and an agent's read all show the last seven days. An agent
+that comes back after a month gets the last week (at most the newest 150
+items), and a note says where older history is: the data tools read it.
+Your Timeline shows the same cap on items, thirty at a time, and reading it
+moves no pointer.
 Your Timeline's week is the one exception to reading on demand: it is built
 ahead and kept, so your Timeline opens at once (below).
 

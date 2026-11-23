@@ -15,15 +15,16 @@ lede: "elixir_timeline for an agent: subjects, items, entries, routines and poll
 
 | Argument | Type | Default | Notes |
 |---|---|---|---|
-| `from` | string | your read pointer, else 24 hours ago | EXCLUSIVE: items after it, by the window's `basis`; an ISO instant, or `YYYY-MM-DD` at local midnight in your timezone; capped at 30 days before `to` |
-| `to` | string | now | INCLUSIVE, compared at the millisecond served; an ISO instant, or a date covering that whole local day |
+| `from` | string | your read pointer, else 24 hours ago | EXCLUSIVE: items after it, by the window's `basis`; an ISO instant, or `YYYY-MM-DD` at local midnight in your timezone; at most a week back: an older one reads from a week ago ([One week back](#one-week-back)) |
+| `to` | string | now | INCLUSIVE, compared at the millisecond served; an ISO instant, or a date covering that whole local day; a `to` a week ago or earlier is refused |
 | `basis` | `occurred` \| `observed` | `observed` for a poller, else `occurred` | what the window bounds ([Two kinds of window](#two-kinds-of-window)): `occurred` is what HAPPENED in it, `observed` what the record LEARNED in it. A poller is a read with a `reader`, a read from the stored pointer (no `from`), or one passing `mark_read: true` |
 | `days`, `weeks` | integer | none | the last N days or weeks ending now: sugar for `from` |
-| `season` | string or number | none | one season's span (`current`, `previous`, `2026-08` or `135`), to now while it runs, as on every windowed tool; still capped at 30 days, and `from`/`to`/`days`/`weeks` given win over it |
+| `season` | string or number | none | one season's span (`current`, `previous`, `2026-08` or `135`), to now while it runs, as on every windowed tool; held to the week like any window, so a season that ended more than a week ago is refused, and `from`/`to`/`days`/`weeks` given win over it |
 | `mark_read` | boolean | `true` on an `observed` read | move the read pointer (the reader's, or the account's) to this window's end. An occurred read never moves a pointer, and asking it to (`mark_read: true` with `basis: occurred`) is refused |
 | `reader` | string | none | this consumer's own pointer, by a short name (`^[a-z0-9][a-z0-9-]{0,31}$`): an omitted `from` reads since it, `mark_read` moves it, `read_to` reports it; the account's unnamed pointer and every other reader's are untouched |
 | `sections` | string[] | all | keep only items and entry sections in these sections |
 | `kinds` | string[] | all | keep only items of these kinds (the table below, or `account_*`); entries are untouched. A consumer that wakes on a few kinds reads only those |
+| `limit` | integer | none | 1 to 500: the newest N items, after the filters; never moves a pointer ([One week back](#one-week-back)) |
 | `player_tag` | string | none | keep only items about this player: their moments and sessions, and on a clan's timeline their member moments and sessions; applied before the cap; never moves the read pointer |
 | `evidence_item_id` | string | none | one visible item's `id` (`tl_` and 20 hex characters): read that item's recorded games instead of the feed ([Recorded evidence](#recorded-evidence)); pass the original `from` and `to`. Never moves any read pointer |
 | `evidence_offset` | integer | 0 | 0 to 10,000: where the page of games starts |
@@ -383,6 +384,8 @@ carries `item_id`, the item's evidence fields, `offset`, `limit`, and
 `outcome`, `crowns`, `trophy_change`, `opponents` (`{ player_tag, name, crowns,
 clan_tag, clan_name }`, by in-game name), `url`, `short_id` and
 `relation` (`constituent` or `proved_crossing`), plus `next_offset` or null.
+An evidence read keeps to the week like any read: a `from` older than a week
+is held to it, and a window that ended before it is refused.
 A read that cannot be served is refused as `bad_request`, and the message
 names why: `evidence_changed` (refresh the item before continuing),
 `version_required` (a later page without `expected_evidence_version`),
@@ -467,7 +470,26 @@ entry: a clan's silence is the clan's activity.
 
 On first run the window is the last 24 hours; an agent that posts a month
 of backlog into a channel is the most common mistake with a feed like this,
-and the cap and the default exist to prevent it.
+and the week, the cap and the default exist to prevent it.
+
+## One week back
+
+A timeline read reaches back one week, the week Home, a player's page and
+an account page show. An older `from` or read pointer is held to the week,
+with a note. A window that ends a week ago or earlier is refused as
+`bad_request`, and the hint names the data tools for older history
+(`battles_query`, `battles_performance`, `players_series`, `clans_series`,
+`war_history`). Exactly a week (`days: 7`) reads whole.
+
+Count or time: `limit` asks for the newest N items, after `kinds`,
+`sections` and `player_tag`. A cut reads as a busy window's: `has_more`,
+`timeline_more` and `timeline_more_to`. A read with `limit` never moves a
+read pointer, so nothing it left out is skipped; with `mark_read: true` it
+is refused.
+
+A link to one item or one session is not a timeline read: an item's link
+opens for up to a year and a session's page for 30 days
+([Your Timeline](/docs/timeline#your-timeline)).
 
 ## Polling cheaply
 

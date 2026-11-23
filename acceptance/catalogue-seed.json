@@ -44,6 +44,15 @@
         "skip_empty": true
       },
       "reason": "skip_empty (11.7.0): a poll's shape; entries_skipped and the empty answer when the day held no roster move, the full read when it did"
+    },
+    {
+      "args": {
+        "days": 7,
+        "limit": 5,
+        "mark_read": false,
+        "verbosity": "compact"
+      },
+      "reason": "limit: the newest five items of the week; a cut says so with has_more and timeline_more_to, and the read keeps the pointer"
     }
   ],
   "players_collection": [

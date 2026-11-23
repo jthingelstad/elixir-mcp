@@ -32,6 +32,7 @@ import {
   shownAt,
 } from "@elixir-mcp/tools/activity/entries";
 import { compareStories } from "@elixir-mcp/tools/activity/story-store";
+import { TIMELINE_LOOKBACK_DAYS } from "@elixir-mcp/tools/activity/lookback";
 
 import { battleLinks } from "@elixir-mcp/record/battle-links";
 import { proofOf, scoresOf, sparkOf } from "../feed.mjs";
@@ -59,8 +60,13 @@ import { withTimelineSocial } from "../timeline-social.mjs";
  * account with no player at all is counted, never named.
  */
 
-/** The page's timeline window, as Home's Timeline reads a week. */
-const PAGE_DAYS = 30;
+/** The page's timeline window: the Timeline's one look-back, the week
+ *  Home and `elixir_timeline` read too (lookback.mjs). */
+export const PAGE_DAYS = TIMELINE_LOOKBACK_DAYS;
+/** How old a session a session's link still opens (its page, signed in or
+ *  out): a permalink's own reach, not the list's look-back, so a link
+ *  shared last week keeps working (DECISIONS "A session's public page"). */
+export const SESSION_REACH_DAYS = 30;
 /** One confirmed follow takes at most a clan's worth of players. */
 export const FOLLOW_ALL_MAX = 50;
 const MOMENT_KINDS = new Set(NEWS_SOURCES.player_moments);
@@ -200,11 +206,11 @@ const pageTimeline = (
 /** The window a session's page reads, from the start its card names: an
  *  hour before it to a day after, so one sitting is read whole and never
  *  falls past the timeline's cap. A start the page cannot read, or one
- *  older than the page's 30 days, reads the page's own window. */
+ *  older than SESSION_REACH_DAYS, reads the page's own window. */
 export function sessionWindow(at, now) {
   const start = Date.parse(String(at ?? ""));
   if (!Number.isFinite(start)) return null;
-  if (start > now || start < now - PAGE_DAYS * 86_400_000) return null;
+  if (start > now || start < now - SESSION_REACH_DAYS * 86_400_000) return null;
   return {
     fromMs: start - 3_600_000,
     toMs: Math.min(now, start + 86_400_000),
@@ -262,7 +268,7 @@ export async function readSitting(
   if (!rows[0]) return null;
   const window = sessionWindow(at, now);
   // Signed out, the start must be one the page can read: never the
-  // fallback of the whole 30 days.
+  // fallback of the page's whole window.
   if (publicOnly && !window) return null;
   const built = await pageTimeline(db, tag, timezone, now, window, {
     publicOnly,

@@ -101,7 +101,7 @@ const PAGE = (following = false) => ({
     count: 1,
     marks: [{ stamp_id: "on_the_map", level: 1 }],
   },
-  window_days: 30,
+  window_days: 7,
   timeline: [
     {
       id: "tl_00000000000000000001",

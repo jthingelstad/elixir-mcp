@@ -67,7 +67,7 @@ const PAGE = {
     no_player: 2,
     unnamed: 2,
   },
-  window_days: 30,
+  window_days: 7,
   timeline: [
     {
       id: "t1",

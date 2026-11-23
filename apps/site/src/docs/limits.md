@@ -95,7 +95,7 @@ if the quota store is unreachable, active accounts keep working.
 | Raw API payloads | archived to S3 at admission and deleted there a year later; the latest per subject stays in the database until a year after it was last fetched |
 | Call log rows (the tool, when, which credential and client, the country it came from, its address and arguments, and how the call went) | 28 days |
 | Credential refusal counts | 30 days |
-| Timeline game-moment ledger | one year; a timeline read covers at most 30 days |
+| Timeline game-moment ledger | one year; a timeline read reaches back one week |
 | Your account's history (account events, the list of mail sent to you, answered feedback, cheers, finished claim checks) | one year |
 | Saved request and response bodies of tool calls | 28 days (S3 lifecycle expiry, the same clock as the call log row the website finds them through) |
 | OAuth tokens | 90 days past expiry (grant life is 90 days) |

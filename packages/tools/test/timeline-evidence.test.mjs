@@ -9,7 +9,12 @@ import {
   readTimelineEvidence,
 } from "../src/activity/entries.mjs";
 import { elixir_timeline } from "../src/tools/elixir/timeline.mjs";
+import { atWindowClock } from "./timeline-clock.mjs";
 import { accountRoutes } from "../../../services/web-api/src/routes/account.mjs";
+
+// Each read is made the week its window opens (timeline-clock.mjs).
+const timelineAt = (ctx, args) =>
+  atWindowClock(args, () => elixir_timeline.handler(ctx, args));
 const TAG = "#0GQ0LU0";
 const FROM = Date.parse("2026-10-03T12:00:00Z");
 const at = (n) => new Date(FROM + n * 60000).toISOString();
@@ -264,6 +269,28 @@ test("late arena proof freezes the legacy duplicate origin and records a new evi
     "clan past window never sees later proof",
   );
 });
+test("an evidence read keeps to the timeline's week: its window read today is refused, the week it opened it is served", async () => {
+  const built = await feed();
+  const item = built.timeline.find((x) => x.kind === "battle_session");
+  const args = {
+    from: at(0),
+    to: at(60),
+    evidence_item_id: item.id,
+    expected_evidence_version: item.evidence.version,
+  };
+  const ctx = { db, account: { accountId: owner, timezone: "UTC" } };
+  // Read at the real now, these October games are past the week.
+  await assert.rejects(
+    () => elixir_timeline.handler(ctx, args),
+    (err) =>
+      err.code === "bad_request" &&
+      /reaches back one week/.test(err.message) &&
+      /battles_query/.test(err.hint),
+  );
+  const served = await timelineAt(ctx, args);
+  assert.equal(served.evidence.item_id, item.id);
+});
+
 test("authorized tool and browser reads preserve pointers, refuse forged IDs, and pin evidence pages", async () => {
   const built = await feed();
   const item = built.timeline.find((x) => x.kind === "battle_session");
@@ -277,7 +304,7 @@ test("authorized tool and browser reads preserve pointers, refuse forged IDs, an
     evidence_item_id: item.id,
     expected_evidence_version: item.evidence.version,
   };
-  const answer = await elixir_timeline.handler(
+  const answer = await timelineAt(
     { db, account: { accountId: owner, timezone: "UTC", isOwner: true } },
     args,
   );
@@ -294,10 +321,7 @@ test("authorized tool and browser reads preserve pointers, refuse forged IDs, an
   );
   await assert.rejects(
     () =>
-      elixir_timeline.handler(
-        { db, account: { accountId: other, timezone: "UTC" } },
-        args,
-      ),
+      timelineAt({ db, account: { accountId: other, timezone: "UTC" } }, args),
     /evidence_unavailable/,
   );
   const routes = accountRoutes({

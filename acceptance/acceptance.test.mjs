@@ -615,6 +615,9 @@ test("a timed-out read fails its gym case as a timeout, never as an assertion", 
   // "no note says it" (2026-11-12, three times in one morning).
   const filed = blocks.find((b) => b.id === "215.2");
   assert.ok(filed, "gym.json still files 215.2");
+  // The reads below are stubbed, as a bite's are: 215.2 reads a window
+  // past the Timeline's week, which a live run skips.
+  const stub = (read) => ({ read, recordedFixtures: true });
   const [single] = gymCases([filed, { ...filed, id: "215.9", control: true }]);
   const multi = gymCases([
     {
@@ -636,9 +639,11 @@ test("a timed-out read fails its gym case as a timeout, never as an assertion", 
     },
   ];
   for (const error of timeouts) {
-    const ctx = {
-      read: async () => ({ isError: true, body: { error }, ms: null }),
-    };
+    const ctx = stub(async () => ({
+      isError: true,
+      body: { error },
+      ms: null,
+    }));
     for (const c of [single, multi])
       await assert.rejects(
         c.run(ctx),
@@ -650,31 +655,79 @@ test("a timed-out read fails its gym case as a timeout, never as an assertion", 
   }
   // A refusal still reaches the notes verbs, which read its words on
   // purpose (Gym 93.3-93.5 asserted refused-and-right).
-  const refusal = (message) => ({
-    read: async () => ({
+  const refusal = (message) =>
+    stub(async () => ({
       isError: true,
       body: { error: { code: "bad_request", message } },
-    }),
-  });
+    }));
   await single.run(refusal("war moments begin with the ledger"));
   await assert.rejects(
     single.run(refusal("from must be before to")),
     /no note says it/,
   );
   // And the answer itself passes.
-  const answer = {
-    read: async () => ({
-      isError: false,
-      ms: 5,
-      body: {
-        entries: [{ kind: "clan_activity", war: { resolved: [] } }],
-        notes: [
-          "War moments (bracket_observed, race_finished, week_resolved) and a clan entry's war.resolved are recorded from 2026-09-08T09:52:18.000Z.",
-        ],
-      },
-    }),
-  };
+  const answer = stub(async () => ({
+    isError: false,
+    ms: 5,
+    body: {
+      entries: [{ kind: "clan_activity", war: { resolved: [] } }],
+      notes: [
+        "War moments (bracket_observed, race_finished, week_resolved) and a clan entry's war.resolved are recorded from 2026-09-08T09:52:18.000Z.",
+      ],
+    },
+  }));
   assert.deepEqual(await single.run(answer), { ms: 5 });
+});
+
+test("a live run skips a gym case whose timeline read starts before the week, aloud; a bite runs it", async () => {
+  const { gymCases, pastTheWeek } = await import("./gym-interp.mjs");
+  const now = Date.now();
+  const iso = (ms) => new Date(ms).toISOString();
+  const DAY = 86_400_000;
+  const read = (args) => ({ tool: "elixir_timeline", args });
+  assert.equal(
+    pastTheWeek(read({ from: "2026-09-01", to: "2026-09-07" }), now),
+    "2026-09-07",
+  );
+  assert.equal(
+    pastTheWeek(read({ from: iso(now - 20 * DAY), to: iso(now) }), now),
+    iso(now - 20 * DAY),
+  );
+  assert.equal(
+    pastTheWeek(read({ from: iso(now - 6 * DAY), to: iso(now) }), now),
+    null,
+  );
+  assert.equal(pastTheWeek(read({ days: 7 }), now), null);
+  assert.equal(pastTheWeek(read({}), now), null);
+  assert.equal(
+    pastTheWeek({ tool: "battles_query", args: { from: "2026-01-01" } }, now),
+    null,
+  );
+  assert.equal(
+    pastTheWeek(
+      { calls: { t: read({ from: "2026-09-01", to: "2026-09-07" }) } },
+      now,
+    ),
+    "2026-09-07",
+  );
+  const [c] = gymCases([
+    {
+      id: "999.1",
+      control: true,
+      ...read({ from: "2026-09-01T00:00:00Z", to: "2026-09-07T00:00:00Z" }),
+      assert: [{ has: "entries" }],
+    },
+  ]);
+  let reads = 0;
+  const body = { isError: false, ms: 1, body: { entries: [{ kind: "post" }] } };
+  const live = await c.run({ read: async () => (reads++, body) });
+  assert.match(live.skip, /^PAST THE WEEK/);
+  assert.equal(reads, 0, "a skipped case reads nothing");
+  assert.deepEqual(
+    await c.run({ read: async () => (reads++, body), recordedFixtures: true }),
+    { ms: 1 },
+  );
+  assert.equal(reads, 1);
 });
 
 test("the door bounds a stalled response body", async () => {

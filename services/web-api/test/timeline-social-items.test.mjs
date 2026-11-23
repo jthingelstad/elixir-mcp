@@ -438,15 +438,28 @@ test("cheer and comment transport accepts the canonical item locator", async () 
 });
 
 test("all normal signed-in Timeline surfaces carry canonical social identity and shared counts", async () => {
+  // The pages list the Timeline's week; a badge from 12 days ago is past it
+  // and keeps its permalink (the cheer test above reached it).
   const old = items.find(
     (it) => it.kind === "badge_earned" && Date.parse(it.at) < now - 7 * DAY,
   );
+  const recent = items.find(
+    (it) => it.kind === "badge_earned" && Date.parse(it.at) > now - 7 * DAY,
+  );
+  const cheered = await call(stranger, "PUT", "/api/me/cheers", {
+    item_id: recent.id,
+    cheer: "well_played",
+    item: refOf(recent),
+  });
+  assert.equal(cheered.statusCode, 200, cheered.body);
   const player = await call(stranger, "GET", "/api/player", undefined, {
     tag: PLAYER,
   });
   assert.equal(player.statusCode, 200, player.body);
-  const shown = player.data.timeline.find((it) => it.id === old.id);
-  assert.equal(shown.item_ref.item_id, old.id);
+  assert.equal(player.data.window_days, 7);
+  assert.ok(!player.data.timeline.some((it) => it.id === old.id));
+  const shown = player.data.timeline.find((it) => it.id === recent.id);
+  assert.equal(shown.item_ref.item_id, recent.id);
   assert.equal(shown.cheers.well_played, 1);
   const cheers = await call(stranger, "GET", "/api/me/cheers", undefined, {
     player: PLAYER,
@@ -461,9 +474,10 @@ test("all normal signed-in Timeline surfaces carry canonical social identity and
     `/api/accounts/${person.facts.account_id}`,
   );
   assert.equal(account.statusCode, 200, account.body);
+  assert.ok(!account.data.timeline.some((it) => it.id === old.id));
   assert.equal(
-    account.data.timeline.find((it) => it.id === old.id)?.item_ref.item_id,
-    old.id,
+    account.data.timeline.find((it) => it.id === recent.id)?.item_ref.item_id,
+    recent.id,
   );
   const clan = await readClanFeed(
     ctx.db,

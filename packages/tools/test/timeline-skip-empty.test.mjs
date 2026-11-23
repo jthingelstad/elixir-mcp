@@ -11,6 +11,7 @@ import { emitEvent } from "../../ingest/src/events.mjs";
 import { scratchDb } from "../../ingest/test/helpers.mjs";
 import { makeRegistry } from "../src/tools.mjs";
 import { makeInvoker } from "../src/invoker.mjs";
+import { atWindowClock } from "./timeline-clock.mjs";
 import {
   ITEM_KINDS,
   NEWS_SOURCES,
@@ -252,7 +253,7 @@ before(async () => {
       return db.query(...a);
     },
   };
-  invoke = makeInvoker({
+  const raw = makeInvoker({
     db: countingDb,
     account: {
       accountId: owner,
@@ -262,6 +263,11 @@ before(async () => {
     },
     registry: makeRegistry(),
   });
+  // Each read is made the week its window opens (timeline-clock.mjs).
+  invoke = (name, args = {}) =>
+    atWindowClock(name === "elixir_timeline" ? args : {}, () =>
+      raw(name, args),
+    );
 });
 
 after(async () => ctx.drop());
@@ -538,11 +544,13 @@ test("the editor reads home promotions and summary before pagination, with its o
       [clan, at(time - MIN), at(time), tag],
     );
   }
-  const call = makeInvoker({
+  const rawCall = makeInvoker({
     db,
     account: { accountId: id, kind: "agent", timezone: "UTC" },
     registry: makeRegistry(),
   });
+  const call = (name, args = {}) =>
+    atWindowClock(args, () => rawCall(name, args));
   const args = {
     from: at(time - 2 * MIN),
     to: at(time + MIN),

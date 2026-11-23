@@ -19,6 +19,7 @@ import {
 import { makeRegistry } from "../src/tools.mjs";
 import { makeInvoker } from "../src/invoker.mjs";
 import { storyId } from "../src/activity/entries.mjs";
+import { atWindowClock } from "./timeline-clock.mjs";
 
 /** A crossing battle as ROWS (0124: an event names its battle by id and
  *  the timeline describes it from the record): the observer on side 0
@@ -86,8 +87,12 @@ let ctx;
 let owner;
 let invoke;
 
+/** A read made in the week its window opens (timeline-clock.mjs). */
 async function call(name, args = {}) {
-  const { body, isError } = await invoke(name, args);
+  const { body, isError } = await atWindowClock(
+    name === "elixir_timeline" ? args : {},
+    () => invoke(name, args),
+  );
   return { body, isError };
 }
 
@@ -268,7 +273,7 @@ test("mark_read moves the bookmark to the window end; the next read resumes ther
 
   const to = new Date().toISOString();
   const read = await call("elixir_timeline", {
-    from: "2026-09-03",
+    from: new Date(Date.now() - 6 * 86_400_000).toISOString(),
     to,
     basis: "observed",
   });
@@ -313,7 +318,7 @@ test("3.18.0: a named reader keeps its own pointer; the account's is untouched; 
   const to = new Date().toISOString();
   const marked = await call("elixir_timeline", {
     reader: "editor",
-    from: "2026-09-03",
+    from: new Date(Date.now() - 6 * 86_400_000).toISOString(),
     to,
   });
   assert.equal(marked.body.read_to, marked.body.window.to);
@@ -386,28 +391,92 @@ test("3.18.0: a named reader keeps its own pointer; the account's is untouched; 
   assert.equal(bad.body.error.code, "bad_request");
 });
 
-test("a window longer than 30 days is capped and says so; from after to is refused", async () => {
-  const capped = await call("elixir_timeline", {
-    from: "2026-01-01",
-    mark_read: false,
-  });
-  assert.equal(capped.isError, false);
+test("the timeline reaches back one week: an older from is held to it and says so, a window before it is refused, exactly a week reads whole; from after to is refused", async () => {
+  // Read at the real now: invoke, not call (no window clock).
+  const read = async (args) => {
+    const { body, isError } = await invoke("elixir_timeline", args);
+    return { body, isError };
+  };
+  const WEEK = 7 * 86_400_000;
+  const capped = await read({ from: "2026-01-01", mark_read: false });
+  assert.equal(capped.isError, false, JSON.stringify(capped.body));
   const span =
     Date.parse(capped.body.window.to) - Date.parse(capped.body.window.from);
-  assert.ok(Math.abs(span - 30 * 86_400_000) < 5_000);
-  assert.match(capped.body.notes.join(" "), /capped at 30 days/);
+  assert.ok(Math.abs(span - WEEK) < 5_000, "held to the week");
+  assert.equal(capped.body.applied.window.from, capped.body.window.from);
+  const said = capped.body.notes.join(" ");
+  assert.match(said, /reaches back one week/);
+  assert.match(said, /battles_query/, "names where older history is read");
 
-  const bad = await call("elixir_timeline", {
+  // A pointer older than the week is held to it the same way.
+  await ctx.db.query(
+    `insert into timeline_reader (account_id, reader, read_to)
+     values ($1, 'stale-week', now() - interval '20 days')`,
+    [owner],
+  );
+  const stale = await read({ reader: "stale-week", mark_read: false });
+  assert.equal(stale.isError, false, JSON.stringify(stale.body));
+  assert.equal(stale.body.applied.window.source, "pointer");
+  assert.ok(
+    Date.now() - Date.parse(stale.body.window.from) <= WEEK + 5_000,
+    "the pointer's read starts at the week",
+  );
+  assert.match(stale.body.notes.join(" "), /reaches back one week/);
+
+  // A window that ends before the week is refused, saying where to read.
+  const old = await read({
     from: "2026-09-10T00:00:00Z",
-    to: "2026-09-09T00:00:00Z",
+    to: "2026-09-12T00:00:00Z",
+    mark_read: false,
+  });
+  assert.equal(old.isError, true);
+  assert.equal(old.body.error.code, "bad_request");
+  assert.match(old.body.error.message, /reaches back one week/);
+  assert.match(old.body.error.hint, /battles_query/);
+  assert.match(old.body.error.hint, /war_history/);
+  // So is one whose to is just past the week's start.
+  const edge = await read({
+    to: new Date(Date.now() - WEEK - 60_000).toISOString(),
+    mark_read: false,
+  });
+  assert.equal(edge.isError, true);
+  assert.equal(edge.body.error.code, "bad_request");
+
+  // Exactly a week, by days or by from and to on the caller's clock, reads
+  // whole and says nothing of a cut.
+  for (const args of [
+    { days: 7, mark_read: false },
+    {
+      from: new Date(Date.now() - WEEK).toISOString(),
+      to: new Date().toISOString(),
+      mark_read: false,
+    },
+  ]) {
+    const week = await read(args);
+    assert.equal(week.isError, false, JSON.stringify(week.body));
+    assert.doesNotMatch(
+      week.body.notes.join(" "),
+      /reaches back one week/,
+      `${JSON.stringify(args)} is the week, not past it`,
+    );
+  }
+
+  // A season that ended before the week is a window before it.
+  const season = await read({ season: "2026-08", mark_read: false });
+  assert.equal(season.isError, true, JSON.stringify(season.body));
+  assert.equal(season.body.error.code, "bad_request");
+
+  const bad = await read({
+    from: new Date(Date.now() - 86_400_000).toISOString(),
+    to: new Date(Date.now() - 2 * 86_400_000).toISOString(),
   });
   assert.equal(bad.isError, true);
   assert.equal(bad.body.error.code, "bad_request");
 });
 
 test("the timeline: battle sessions break on a 30-minute gap, items are newest first with text, sections filter items", async () => {
-  // A closed window: an open one ends now, and the 30-day cap moved its
-  // start past the 09-01 pair on 2026-10-01 (the fixture ends 09-20).
+  // A closed window, read the week it opens (timeline-clock.mjs): the
+  // fixture's games are from 2026-09, long past the week now.
   const { body, isError } = await call("elixir_timeline", {
     from: "2026-09-01",
     to: "2026-09-30",
@@ -453,6 +522,85 @@ test("the timeline: battle sessions break on a 30-minute gap, items are newest f
   assert.ok(
     !rosterOnly.body.timeline.some((it) => it.kind === "battle_session"),
   );
+});
+
+test("limit reads the newest N, says it cut, pages the rest without a gap, and never moves a pointer", async () => {
+  const window = { from: "2026-09-01", to: "2026-09-30", mark_read: false };
+  const full = await call("elixir_timeline", window);
+  assert.equal(full.isError, false, JSON.stringify(full.body));
+  assert.equal(full.body.has_more, false, "the whole window fits a page");
+  const ids = full.body.timeline.map((it) => it.id);
+  assert.ok(ids.length > 3, `enough items to cut (${ids.length})`);
+
+  const first = await call("elixir_timeline", { ...window, limit: 3 });
+  assert.equal(first.isError, false, JSON.stringify(first.body));
+  assert.ok(first.body.timeline.length <= 3);
+  assert.ok(first.body.timeline.length > 0);
+  assert.deepEqual(
+    first.body.timeline.map((it) => it.id),
+    ids.slice(0, first.body.timeline.length),
+    "the newest items, in the full read's order",
+  );
+  assert.equal(first.body.applied.limit, 3);
+  assert.equal(first.body.has_more, true);
+  assert.equal(
+    first.body.timeline_more,
+    ids.length - first.body.timeline.length,
+  );
+  assert.equal(typeof first.body.timeline_more_to, "string");
+  assert.match(first.body.notes.join(" "), /limit 3 cut this window/);
+
+  // Paged by timeline_more_to, as a busy window is: every item once.
+  const seen = [...first.body.timeline.map((it) => it.id)];
+  let page = first.body;
+  for (let i = 0; page.has_more && i < ids.length; i++) {
+    page = (
+      await call("elixir_timeline", {
+        ...window,
+        to: page.timeline_more_to,
+        limit: 3,
+      })
+    ).body;
+    assert.ok(page.timeline, JSON.stringify(page));
+    seen.push(...page.timeline.map((it) => it.id));
+  }
+  assert.equal(page.has_more, false);
+  assert.deepEqual(seen, ids, "no item skipped, none twice");
+
+  // A limit at or over the window's count is no cut.
+  const all = await call("elixir_timeline", { ...window, limit: ids.length });
+  assert.equal(all.body.has_more, false);
+  assert.deepEqual(
+    all.body.timeline.map((it) => it.id),
+    ids,
+  );
+
+  // A poller's read with limit keeps its pointer; asking it to move is
+  // refused.
+  const polled = await call("elixir_timeline", {
+    reader: "limited",
+    from: "2026-09-01",
+    to: "2026-09-30",
+    limit: 2,
+  });
+  assert.equal(polled.isError, false, JSON.stringify(polled.body));
+  assert.equal(polled.body.applied.mark_read, false);
+  assert.match(polled.body.notes.join(" "), /keeps the read pointer/);
+  const { rows } = await ctx.db.query(
+    "select 1 from timeline_reader where account_id = $1 and reader = 'limited'",
+    [owner],
+  );
+  assert.equal(rows.length, 0, "no pointer written");
+  const refused = await call("elixir_timeline", {
+    ...window,
+    limit: 2,
+    mark_read: true,
+  });
+  assert.equal(refused.isError, true);
+  assert.equal(refused.body.error.code, "bad_request");
+  assert.match(refused.body.error.message, /never moves a read pointer/);
+  const zero = await call("elixir_timeline", { ...window, limit: 0 });
+  assert.equal(zero.isError, true);
 });
 
 test("an arena move names the win that carried the player over the floor, at that battle's instant", async () => {

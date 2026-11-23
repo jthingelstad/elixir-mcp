@@ -1,4 +1,5 @@
 import { buildTimeline, shownAt } from "@elixir-mcp/tools/activity/entries";
+import { TIMELINE_LOOKBACK_DAYS } from "@elixir-mcp/tools/activity/lookback";
 import { feedOrder } from "@elixir-mcp/tools/activity/home-feed";
 import { withTimelineSocial } from "./timeline-social.mjs";
 import { clanMemories } from "./clan-memories.mjs";
@@ -23,7 +24,7 @@ import { ATTESTED_FACT_TYPES } from "@elixir-mcp/contracts";
  * Each item goes out as the Timeline draws it (2026-11-17, feedItem): the
  * same component draws both, so they cannot drift.
  */
-export const FEED_DAYS = 7;
+export const FEED_DAYS = TIMELINE_LOOKBACK_DAYS;
 const DAY_MS = 86_400_000;
 
 const CLAN_NEWS = new Set([

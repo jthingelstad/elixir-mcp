@@ -36,14 +36,37 @@
  * Gym's case stays as filed, SKIPPED with the reason, 148.1); `retired`
  * (a case that read one particular player this public repo may not
  * name, with no invariant left to check live: SKIPPED with the reason
- * and the case that covers it).
+ * and the case that covers it). A case whose elixir_timeline read starts
+ * before the Timeline's week (`pastTheWeek`) is SKIPPED live, said aloud:
+ * the server holds that read to the week or refuses it, so the filed
+ * answer is not a live read's; a bite still runs it.
  *
  * Subjects: a block names the players and clans it reads by placeholder
  * (subjects.mjs), never by tag; they are resolved before the reads.
  */
 
+import { TIMELINE_LOOKBACK_MS } from "../packages/tools/src/activity/lookback.mjs";
 import { answered, ok, fail, timedOut } from "./lib.mjs";
 import { resolveAll, substitute } from "./subjects.mjs";
+
+/** The first elixir_timeline read of a block whose window ends before the
+ *  Timeline's week (its `to`, or its `from` when it names no `to`), at
+ *  `nowMs`: the server clamps or refuses it now, so the filed answer is not
+ *  what a live read gets. `null` when every timeline read is in the week. */
+export function pastTheWeek(filed, nowMs = Date.now()) {
+  const reads = filed.calls
+    ? Object.values(filed.calls)
+    : [{ tool: filed.tool, args: filed.args }];
+  const weekFrom = nowMs - TIMELINE_LOOKBACK_MS;
+  for (const { tool, args = {} } of reads) {
+    if (tool !== "elixir_timeline") continue;
+    const end = Date.parse(String(args.to ?? args.from ?? ""));
+    const start = Date.parse(String(args.from ?? ""));
+    if (Number.isFinite(end) && end <= weekFrom) return args.to ?? args.from;
+    if (Number.isFinite(start) && start < weekFrom) return args.from;
+  }
+  return null;
+}
 
 /** The verbs whose argument is a pattern: a resolved name is escaped. */
 const PATTERN_VERBS = new Set([
@@ -519,6 +542,11 @@ export function gymCases(blocks) {
           };
         if (filed.open_question)
           return { skip: `UNSPEC (an open question): ${filed.open_question}` };
+        const past = ctx.recordedFixtures ? null : pastTheWeek(filed);
+        if (past !== null)
+          return {
+            skip: `PAST THE WEEK (the timeline reaches back one week; this case reads from ${past}; a bite still runs it)`,
+          };
         if (filed.refuted)
           return { skip: `REFUTED (answered with evidence): ${filed.refuted}` };
         const resolved = await withSubjects(ctx, filed);

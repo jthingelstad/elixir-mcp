@@ -32,6 +32,7 @@ import {
   buildTimeline,
   itemVisibility,
 } from "@elixir-mcp/tools/activity/entries";
+import { TIMELINE_LOOKBACK_DAYS } from "@elixir-mcp/tools/activity/lookback";
 import { verifiedAvatars, withAvatar } from "./avatars.mjs";
 import { accountConnections, withPlayerConnections } from "./connections.mjs";
 import { HANDLE, normalizeHandle } from "./handle.mjs";
@@ -39,8 +40,9 @@ import { withTimelineSocial } from "./timeline-social.mjs";
 
 /** Page ids are twelve letters and digits with no look-alikes (0269). */
 export const PAGE_ID = /^[a-km-np-z2-9]{12}$/;
-/** The page's timeline window, as the player page reads it. */
-export const ACCOUNT_PAGE_DAYS = 30;
+/** The page's timeline window: the Timeline's one look-back, as the
+ *  player page reads it (lookback.mjs). */
+export const ACCOUNT_PAGE_DAYS = TIMELINE_LOOKBACK_DAYS;
 export { ACCOUNT_FOLLOW_MAX } from "@elixir-mcp/claims";
 
 /** The approved person account a page id, or an `@handle`, names, or
