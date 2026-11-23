@@ -10,6 +10,9 @@
  * drift from the pages within a week; a corpus built from the pages
  * cannot.
  *
+ * It also writes dist/timeline-updates.json, the What's new entries
+ * marked for everyone's Timeline, which the web API reads (src/timeline.mjs).
+ *
  * Generated, never committed: dist/ is ignored, and the root build runs
  * this before anything bundles or tests.
  */
@@ -22,6 +25,7 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const site = path.resolve(here, "../../apps/site/src");
 const SITE_URL = "https://elixir.poapkings.com";
 const OUT = path.join(here, "dist/corpus.json");
+const TIMELINE_OUT = path.join(here, "dist/timeline-updates.json");
 
 // Rendering a doc loads the site's `_data/tools.js`, which loads the MCP
 // registry, which imports this package: that import reads nothing, and
@@ -183,8 +187,28 @@ const corpus = {
   })),
 };
 
+// The What's new entries marked for everyone's Timeline (2026-11-23,
+// docs/notes/2026-11-23-product-updates-in-the-timeline.md): only those,
+// and only what the Timeline shows, in a file of their own so the web
+// API reads a few hundred bytes rather than the corpus. The site's reader
+// parsed and checked them; its address function names their pages.
+const { updateSlug } = await import(path.join(site, "_lib/updates.mjs"));
+const timeline = updates
+  .filter((u) => u.timeline)
+  .map((u) => {
+    const slug = updateSlug(u.date, u.title);
+    return {
+      id: `product_update:${slug}`,
+      at: u.timeline.at,
+      title: u.title,
+      lede: u.timeline.lede,
+      path: `/updates/${slug}`,
+    };
+  });
+
 mkdirSync(path.dirname(OUT), { recursive: true });
 writeFileSync(OUT, JSON.stringify(corpus, null, 2));
+writeFileSync(TIMELINE_OUT, JSON.stringify(timeline, null, 2));
 console.log(
-  `docs corpus: ${corpus.docs.length} pages, ${corpus.examples.length} examples, ${corpus.updates.length} updates`,
+  `docs corpus: ${corpus.docs.length} pages, ${corpus.examples.length} examples, ${corpus.updates.length} updates (${timeline.length} for the Timeline)`,
 );

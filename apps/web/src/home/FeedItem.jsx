@@ -7,6 +7,7 @@ import {
   Icon,
   Link,
   PlayerName,
+  SHELL_LOGO,
   TagText,
   useClock,
 } from "@elixir-mcp/ui";
@@ -233,7 +234,53 @@ function When({ it }) {
   );
 }
 
-export function FeedItem({
+/** A product update (2026-11-23): a What's new entry marked for everyone,
+ *  from Elixir itself. Its title, its first paragraph whole, and its page on
+ *  the site, a document outside the app, so a plain link. No cheers, no
+ *  comments, no share: none are offered. */
+function ProductUpdate({ it }) {
+  const u = it.product_update ?? {};
+  return (
+    <article className="kit-feed__item">
+      <header className="kit-feed__head">
+        {/* Elixir's own mark, whole inside the round: not a person's
+            initials, and not a card's crop. */}
+        <span
+          className="kit-av kit-av--image"
+          style={{ "--avatar-scale": 0.74, "--avatar-y": "50%" }}
+          aria-hidden="true"
+        >
+          <img src={SHELL_LOGO} alt="" />
+        </span>
+        <div className="kit-feed__who">
+          <span className="kit-feed__name">Elixir</span>
+          <When it={it} />
+        </div>
+      </header>
+      <p className="kit-feed__text">
+        <b>{u.title ?? it.text}</b>
+      </p>
+      {u.lede ? <p className="kit-feed__text">{u.lede}</p> : null}
+      {u.path ? (
+        <div className="kit-feed__links">
+          <a href={u.path} className="btn btn--sm">
+            Read more
+          </a>
+        </div>
+      ) : null}
+    </article>
+  );
+}
+
+export function FeedItem(props) {
+  return props.it?.kind === "product_update" ? (
+    <ProductUpdate it={props.it} />
+  ) : (
+    <StoryItem {...props} />
+  );
+}
+
+function StoryItem({
   it,
   open = false,
   onToggle = null,

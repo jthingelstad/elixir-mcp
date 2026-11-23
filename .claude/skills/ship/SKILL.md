@@ -95,7 +95,12 @@ the current UTC date and time and this change's slug, without reserving a
 daily number. Same-second entries sort by file name; legacy numbered
 entries keep their relative order. Never rename an existing entry. A
 `# Title` line, then the body written for a person. No versions line:
-entries before 2026-11-23 end with one, and new ones do not.
+entries before 2026-11-23 end with one, and new ones do not. Mark it
+`<!-- timeline -->` (first line, `apps/site/AGENTS.md`, "Updates") only
+when a person using the app would notice the change and want to know:
+never for a change only agents or operators see, and rarely more than one
+or two a week. A marked entry is in every signed-in person's Timeline for
+a week, and its first paragraph (400 characters at most) is all it shows.
 
 **Site docs** in `apps/site/src/docs/`, same commit. The tool reference is
 generated from the registry: fix the declaration, never the page.

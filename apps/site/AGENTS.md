@@ -32,13 +32,23 @@ the same corpus. Write what is true now, plainly:
 
 Every user-visible change adds its own file to `src/_data/updates/` in the
 same commit: `<YYYY-MM-DD>-t<HHMMSS>-<slug>.md`, a `# Title` line, a blank
-line, then the body: what a person notices, in their words, ending with
-the MCP and JSON API versions. Use the current UTC date and time, with a
+line, then the body: what a person notices, in their words (no versions
+line since 2026-11-23). Use the current UTC date and time, with a
 slug for this change; no daily number is reserved or coordinated. Entries
 at the same second sort by file name. Legacy numbered entries stay as
 they are, below timed entries on the same day; never rename another entry
 to make room. Public addresses and feed IDs use the date and title, not
 the file's time or number. `src/_data/updates.js` reads them.
+
+**Everyone's Timeline.** `<!-- timeline -->` alone on a timed entry's
+first line, above the title, makes it a story from Elixir in every
+signed-in person's Timeline for a week from the entry's time
+(`src/_lib/updates.mjs` reads and strips it; nothing renders it). Its first
+paragraph is shown whole, so it must be 400 characters or fewer as plain
+text, and say the news on its own. Mark an entry only when a person using
+the app would notice the change and want to know; never for a change only
+agents or operators see; rarely more than one or two a week. Unmarked is
+the default.
 
 ## Building and testing
 

@@ -266,6 +266,10 @@ export function makeHandler({
    *  Timeline, 2026-11-23; routes/player.mjs shadowStories): the stack's
    *  TimelineStoryShadow. False = no shadow read. */
   storyShadow = false,
+  /** ({ fromMs, toMs }) => the What's new entries marked for everyone's
+   *  Timeline inside a window, as Home's feed items (product-updates.mjs
+   *  readProductUpdates, 2026-11-23); null = none. */
+  productUpdates = null,
 }) {
   database ??= makeDatabase({
     connectionString: databaseUrl,
@@ -490,6 +494,7 @@ export function makeHandler({
       wake: homeWake,
       comments: comments?.enabled === true,
       posts: postsOn,
+      productUpdates,
     }),
     ...playerRoutes({
       resolveAccount,
