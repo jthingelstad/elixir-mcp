@@ -914,6 +914,89 @@ test("?tab=record opens the Record tab", { timeout: 20000 }, async () => {
 });
 
 test(
+  "?tab=together opens your games with a player you do not follow, its tab counting them",
+  { timeout: 20000 },
+  async () => {
+    page = {
+      ...PAGE,
+      you: { ...PAGE.you, pair: true, pair_games: 3 },
+    };
+    const real = global.fetch;
+    global.fetch = vi.fn(async (path, init) => {
+      if (String(path).startsWith("/api/me/player-pair?"))
+        return reply(
+          new URL(String(path), "https://elixir.test").searchParams.has("side")
+            ? { battles: [], next_before: null }
+            : {
+                state: "ready",
+                selected_player: "#0GVJ9V",
+                own_players: [{ tag: "#0GVJ9V", name: "Birch Lantern" }],
+                modes: [
+                  {
+                    key: "ladder",
+                    teamed: 0,
+                    against: 3,
+                    against_record: { wins: 2, losses: 1 },
+                  },
+                ],
+              },
+        );
+      return real(path, init);
+    });
+    window.history.pushState({}, "", "/home/player/0VJ2QV?tab=together");
+    render(<App />);
+    const tab = await screen.findByRole("tab", { name: /Together/ });
+    expect(tab.getAttribute("aria-selected")).toBe("true");
+    expect(tab.textContent).toBe("Together 3 games");
+    const panel = (await screen.findByText("Your games together")).closest(
+      ".kit-panel",
+    );
+    expect(panel.textContent).toContain("You played each other 3 times");
+    expect(panel.textContent).not.toMatch(/friend|follow/i);
+    // Not followed: Follow is still offered beside it.
+    expect(
+      within(
+        screen.getByRole("navigation", { name: "More about this player" }),
+      ).getByRole("button", { name: /Follow/ }),
+    ).toBeTruthy();
+  },
+);
+
+test(
+  "no games and no follow: no Together tab, and ?tab=together opens the Timeline",
+  { timeout: 20000 },
+  async () => {
+    page = { ...PAGE, you: { ...PAGE.you, pair: false, pair_games: 0 } };
+    window.history.pushState({}, "", "/home/player/0VJ2QV?tab=together");
+    render(<App />);
+    const timeline = await screen.findByRole("tab", { name: /Timeline/ });
+    expect(timeline.getAttribute("aria-selected")).toBe("true");
+    expect(screen.queryByRole("tab", { name: /Together/ })).toBeNull();
+  },
+);
+
+test(
+  "a followed friend with no games yet keeps a Together tab, with no count",
+  { timeout: 20000 },
+  async () => {
+    page = {
+      ...PAGE,
+      you: {
+        ...PAGE.you,
+        following: true,
+        relationship: "friend",
+        pair: true,
+        pair_games: 0,
+      },
+    };
+    window.history.pushState({}, "", "/home/player/0VJ2QV");
+    render(<App />);
+    const tab = await screen.findByRole("tab", { name: /Together/ });
+    expect(tab.textContent).toBe("Together");
+  },
+);
+
+test(
   "the Record tab: not recorded is an absent half, a failed read is an error with a retry",
   { timeout: 20000 },
   async () => {

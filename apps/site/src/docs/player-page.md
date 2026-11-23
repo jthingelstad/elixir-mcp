@@ -7,7 +7,7 @@ order: 7
 navTitle: "A player's page"
 icon: user-round
 lede: "Every player's name on Elixir opens one page: what the player has done lately, and who follows whom. Stats and Clan are a link away from it."
-reviewed: "2026-11-12 against contract 11.21.0"
+reviewed: "2026-11-23 Together on any player you played; 2026-11-12 against contract 11.21.0"
 ---
 
 # A player's page
@@ -29,7 +29,7 @@ their follows and followers. Under it:
 | Moments | the timeline's moments: a new arena, a promotion in Ranked, a badge, a clan joined or left. A moment Elixir saw happen in a battle, like a promotion won on a 3-0, has **Open the battle** |
 | Follows | who the player's account follows, and who follows it |
 | Record | the recorded profile: the last 30 days in battles, wins, losses, trophies and the deck played most, and the profile's trophies, best and lifetime counts as of its last capture |
-| Together | on a followed friend's page, your verified player's recorded games with them: **Teamed up** and **Played against**, one mode at a time |
+| Together | your verified player's recorded games with this player: **Teamed up** and **Played against**, one mode at a time. It's there whenever you've played them in the last 30 days, followed or not, with how many games on the tab, and always on a player you follow |
 
 Every item on the Timeline and Moments tabs looks just as it does on your
 Timeline: a moment shows its card's or its badge's art, a deck change shows
@@ -48,24 +48,33 @@ players opens its own page from there. Your players' pages offer **Your stats**,
 
 ## Your games together
 
-Open **Together** on a player you follow. It reads the last 30 days for
-your verified player and that friend. If you have more than one verified
-player, choose **Your player**. Choose **Mode** to keep different games
-apart.
+Open **Together** on the page of anyone you've played. You don't need to
+follow them: it reads only your own verified player's battles from the
+last 30 days. The tab shows how many games you played together. On a
+player you follow it's always there, even before your first game.
+
+Tap a player you met in battle on **People to follow** or **Find**, and
+their page opens on Together. A page's address can open it too:
+`/home/player/<tag>?tab=together`.
+
+If you have more than one verified player, choose **Your player**. Choose
+**Mode** to keep different games apart.
 
 - **Teamed up** means both players were on the same side of the recorded
   battle.
 - **Played against** means they were on opposite sides.
 
 Each row opens that battle. **Older team battles** and **Older opponent
-battles** read further back in the same mode and window. Boat defenses
-aren't live games between the two players, so they aren't here.
+battles** read further back in the same mode and window. Boat battles
+aren't games between the two players (one attacked the other's clan boat),
+so they aren't here and aren't counted.
 
 Only actual shared battle records count. Elixir does not infer a meeting
 from being clanmates or playing around the same time. If none are on
 record, the page says so. A battle Elixir did not read is not here.
-The same block rules apply, and this view lists no games your friend
-played with anyone else.
+Together isn't there on your own players' pages, or while either of you
+has blocked the other. It lists no games the other player played with
+anyone else.
 
 ## Check for new battles
 

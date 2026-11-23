@@ -14,7 +14,9 @@ import {
 import { usePairBattles, usePlayerPair } from "../lib/queries.js";
 import { SETTINGS } from "../lib/settings.js";
 
-/** A private record of two named players, never an inferred connection. */
+/** A private record of two named players, never an inferred connection:
+ *  your own verified players' games with any player you are not blocked
+ *  with, followed or not (2026-11-23). */
 export function PairGames({ tag, initialAs = null }) {
   const [as, setAs] = useState(initialAs);
   const [pick, setPick] = useState(null);
@@ -34,7 +36,7 @@ export function PairGames({ tag, initialAs = null }) {
   if (query.data.status !== 200)
     return (
       <Empty title="These games are not available">
-        You can read your shared games while you follow this player.
+        Your games with this player can&rsquo;t be shown here.
       </Empty>
     );
   const data = query.data.data;

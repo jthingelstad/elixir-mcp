@@ -197,7 +197,17 @@ export function PlayerView({
         ...t,
         count: t.key === "moments" ? page.moments.length : null,
       },
-      ...(t.key === "timeline" && you.pair ? [PAIR_TAB] : []),
+      // Together (2026-11-23): any player you have games with, not only
+      // a followed friend; its count is those games, boats never.
+      ...(t.key === "timeline" && you.pair
+        ? [
+            {
+              ...PAIR_TAB,
+              count: you.pair_games ?? null,
+              countLabel: you.pair_games === 1 ? "game" : "games",
+            },
+          ]
+        : []),
     ]),
     ...(inClan.clan ? [CLAN_TAB] : []),
   ];

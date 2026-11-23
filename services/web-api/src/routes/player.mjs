@@ -13,6 +13,7 @@ import {
   poolOwner,
   pooledFollows,
   pooledUsage,
+  ownerBlockedSql,
   visibleFriendSql,
 } from "@elixir-mcp/claims";
 import { normalizeTag, InvalidTagError } from "@elixir-mcp/contracts";
@@ -34,6 +35,7 @@ import {
 import { compareStories } from "@elixir-mcp/tools/activity/story-store";
 import { TIMELINE_LOOKBACK_DAYS } from "@elixir-mcp/tools/activity/lookback";
 
+import { PAIR_DAYS, playerPairCount } from "@elixir-mcp/record/player-pair";
 import { annotateFeed, proofOf, scoresOf, sparkOf } from "../feed.mjs";
 import { claimantsOf } from "../account-page.mjs";
 import { json } from "../http.mjs";
@@ -108,10 +110,18 @@ async function latestTrophies(db, tag) {
 
 /** The reader and this player: theirs, followed, or a member of the reader's
  *  home clan (which door Stats and Clan are on the page). */
-async function readerSide(db, accountId, tag) {
+async function readerSide(
+  db,
+  account,
+  tag,
+  { now = Date.now(), recorded = true } = {},
+) {
+  const { accountId } = account;
   const { rows } = await db.query(
-    // One statement: the reader's claim on the tag, if any, and whether
-    // the reader blocked the account that verified it (Codex on #1081).
+    // One statement: the reader's claim on the tag, if any, whether the
+    // reader blocked the account that verified it (Codex on #1081), and
+    // whether a block stands either way (the Together tab's gate), with
+    // the reader's verified players for the tab's count.
     `select c.is_primary, c.relationship, c.close, ${visibleFriendSql("c")} as visible_friend,
             exists (
               select 1 from account_block b
@@ -119,7 +129,12 @@ async function readerSide(db, accountId, tag) {
                where b.account_id = $1 and v.player_tag = $2
                  and v.status = 'verified'
                  and (v.is_primary or v.relationship in ('primary', 'alt'))
-            ) as blocked
+            ) as blocked,
+            ${ownerBlockedSql("$1::uuid", "$2")} as blocked_either,
+            array(select o.player_tag from claim o
+                   where o.account_id = $1 and o.status = 'verified'
+                     and (o.is_primary or o.relationship in ('primary', 'alt'))
+                   order by o.player_tag) as verified_own
        from (select 1) one
        left join claim c on c.account_id = $1 and c.player_tag = $2`,
     [accountId, tag],
@@ -130,11 +145,30 @@ async function readerSide(db, accountId, tag) {
     (claim.is_primary || ["primary", "alt"].includes(claim.relationship)),
   );
   const connection = (await playerConnections(db, accountId, [tag])).get(tag);
+  // Together (2026-11-23): your games with any player but your own, for a
+  // person, while no block stands either way with its verified owner. It
+  // is drawn for a followed friend always (it says how to verify, or that
+  // you have no games yet), and for anyone else when your verified
+  // players have a recorded game with them in its window.
+  const open =
+    account.kind === "person" && !own && rows[0]?.blocked_either !== true;
+  const pairGames = open
+    ? await playerPairCount(db, {
+        playerTags: rows[0]?.verified_own ?? [],
+        friendTag: tag,
+        fromMs: now - PAIR_DAYS * 86_400_000,
+        toMs: now,
+        // An opponent Elixir does not record has few rows: start there.
+        fromFriend: !recorded,
+      })
+    : 0;
   return {
     own,
     // Following is the reader's own Follow, a friend claim.
     following: !own && claim?.relationship === "friend",
-    pair: !own && claim?.visible_friend === true,
+    pair: open && (claim?.visible_friend === true || pairGames > 0),
+    // The Together tab's count: recorded games with them, boats never.
+    pair_games: pairGames,
     // A close friend (0281): the reader's own private mark, in the reader's
     // own block, never anywhere another member reads.
     close: !own && claim?.relationship === "friend" && claim?.close === true,
@@ -592,7 +626,10 @@ async function readPlayerPage(
       tag,
       avatars,
     ),
-    you: await readerSide(db, account.accountId, tag),
+    you: await readerSide(db, account, tag, {
+      now,
+      recorded: p.recorded === true,
+    }),
     // Who says they are this player (Jamie, 2026-11-15): the account that
     // verified it, else every account claiming it, each by its page id.
     // Empty: Imported, or not followed at all.
