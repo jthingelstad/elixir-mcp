@@ -598,19 +598,23 @@ test("the raise page says a raise is a request, never that it is approved", asyn
   expect(screen.queryByText(/Approved/)).toBeNull();
 });
 
-test("the owner's controls on a pending collector are Approve and Turn down", async () => {
+test("the owner's controls on a member's pending collector are Approve and Turn down", async () => {
+  // Somebody else's request: it is not the owner's own collector and,
+  // waiting for approval, not on the public list either (PAYLOAD has no
+  // Golem). The admin fleet row alone draws the page.
   const row = {
     gateway_id: "g9",
     name: "attic-mini",
     card_name: "Golem",
     status: "pending",
+    owner_player_name: "King Thing",
   };
   const fetchMock = vi.fn(async (path) => {
     const p = String(path);
     const body = p.includes("admin/gateways")
       ? { gateways: [row] }
       : p.includes("me/gateways")
-        ? { gateways: [row] }
+        ? { gateways: [] }
         : p.includes("gateway-detail")
           ? { gateway: {}, daily: [], endpoints_7d: [] }
           : PAYLOAD;
@@ -630,4 +634,7 @@ test("the owner's controls on a pending collector are Approve and Turn down", as
   );
   expect(screen.getByRole("button", { name: "Turn down" })).toBeTruthy();
   expect(screen.queryByRole("button", { name: /probation/ })).toBeNull();
+  expect(screen.getByText(/Waiting for approval/)).toBeTruthy();
+  expect(screen.getByText(/Run by King Thing/)).toBeTruthy();
+  expect(screen.queryByText("No collector by that name")).toBeNull();
 });
