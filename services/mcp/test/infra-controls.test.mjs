@@ -2020,3 +2020,18 @@ test("the migrate role reads the archive and writes nothing to S3", async () => 
   const prefixes = [...role.matchAll(/\$\{Arn\}\/([^\s]+)/g)].map((m) => m[1]);
   assert.deepEqual(prefixes.sort(), ["calls/*", "payloads/*"]);
 });
+
+test("the web-api deletes only sent-mail bodies from the archive", async () => {
+  // 2026-11-23: deleting an account deletes its sent mail's bodies
+  // (services/web-api/src/account-removal.mjs). Nothing else in the
+  // archive is the web-api's to delete.
+  const template = await readFile(templateUrl, "utf8");
+  const role = resource(template, "WebApiRole", "CollectorRole");
+  const deletes = [
+    ...role.matchAll(
+      /Action: s3:DeleteObject\n\s+Resource: !Sub\n\s+- \$\{Arn\}\/([^\s]+)\n\s+- Arn: !GetAtt (\w+)\.Arn/g,
+    ),
+  ].map((m) => `${m[2]}:${m[1]}`);
+  assert.deepEqual(deletes, ["ArchiveBucket:mail/sent/*"]);
+  assert.equal(role.match(/s3:DeleteObject/g)?.length, 1);
+});

@@ -464,21 +464,28 @@ primary player.
 
 ## Removing the account
 
-There is no delete button. Write to admin@poapkings.com, or send it as
-feedback from the website, and the removal is carried out in one
-reviewed step. Removing the account deletes the account:
+Delete it yourself in **Settings › Profile › Delete your account**.
+Tap **Delete account**, type DELETE, and it's done right away. It
+can't be undone. You can also write to admin@poapkings.com, or send it
+as feedback.
+
+Deleting the account deletes the account:
 
 - **your address**, and every way to sign in as you, a connected
-  Discord account included;
+  Discord account included. Your address comes off the mailing list
+  too;
 - **your claims**: the players and clans you follow;
 - **your nicknames** for players;
 - **your posts**, those about battles included: their words, and their
   share links, which stop opening;
+- **your comments and cheers**, and your spot in the conversations you
+  joined;
+- **your passport**, its Stamps and your place;
 - **your connections**: sessions, apps you allowed, a timeline
   cross-post's Discord webhook, and the clan Clan remembers you
   working in;
-- **your mail**: what was sent to you, your email switches, and what the
-  cross-post told and posted;
+- **your mail**: what was sent to you, the copies of it we kept, your
+  email switches, and what the cross-post told and posted;
 - **your usage**: call history, refusals and rate counters;
 - your feedback.
 
@@ -489,5 +496,6 @@ as any player's history does that nobody follows, under the
 Removing your players stops their recording where nobody else follows
 them, and stopping deletes nothing recorded.
 
-A collector you run has to be revoked first. The
-[privacy page](/docs/privacy) has the rest.
+A collector you run has to be revoked first, in Settings ›
+Collectors. An account that runs an integration is deleted by writing
+to admin@poapkings.com. The [privacy page](/docs/privacy) has the rest.

@@ -188,14 +188,124 @@ export function Profile({ me, refresh, hash = null }) {
           ]}
         />
       </Panel>
-      <Panel title="Closing your account" titleAs="h2">
-        <p className="st-inset m-0">
-          There is no delete button. Write to admin@poapkings.com, or{" "}
-          <Link to={`${SETTINGS}/feedback?send=1`}>send it as feedback</Link>,
-          and it is carried out in one reviewed step.
-        </p>
-      </Panel>
+      <DeleteAccount />
     </div>
+  );
+}
+
+/**
+ * Delete your account (2026-11-23): right away, for good. What goes and
+ * what stays matches the docs' "Removing the account"
+ * (apps/site/src/docs/your-account.md). The button opens a confirm that
+ * asks for DELETE typed out; the server asks for it again. A refusal (a
+ * live collector, an integration) says why; success loads the front door
+ * fresh, signed out.
+ */
+function DeleteAccount() {
+  const [open, setOpen] = useState(false);
+  const [typed, setTyped] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState(null);
+  const ready = typed.trim() === "DELETE";
+  const run = async () => {
+    setBusy(true);
+    setError(null);
+    const r = await api.deleteMyAccount();
+    if (r?.ok) {
+      window.location.assign("/");
+      return;
+    }
+    setBusy(false);
+    setError(
+      r?.data?.message ?? "Your account couldn't be deleted. Try again.",
+    );
+  };
+  return (
+    <Panel title="Delete your account" titleAs="h2">
+      <div className="st-inset">
+        <p className="m-0">
+          It happens right away, and it can&rsquo;t be undone. This goes:
+        </p>
+        <ul>
+          <li>your email address, and every way to sign in, Discord too</li>
+          <li>the players and clans you follow, and your nicknames</li>
+          <li>your posts, comments, cheers and share links</li>
+          <li>your agents, their keys, and the apps you allowed</li>
+          <li>your mail history, and your spot on the mailing list</li>
+          <li>your passport, its Stamps and your place</li>
+          <li>your feedback and your usage</li>
+        </ul>
+        <p className="m-0">
+          Battles, profiles and clans stay. They&rsquo;re game data, kept like
+          any player&rsquo;s.{" "}
+          <a className="link" href="/docs/your-account#removing-the-account">
+            Read the details
+          </a>
+        </p>
+        <p className="kit-tiny m-0">
+          Run a collector? Revoke it first in{" "}
+          <Link className="link" to={`${SETTINGS}/collectors`}>
+            Settings › Collectors
+          </Link>
+          .
+        </p>
+        {!open ? (
+          <button
+            type="button"
+            className="btn btn--danger"
+            onClick={() => setOpen(true)}
+          >
+            Delete account
+          </button>
+        ) : (
+          <form
+            className="kit-form"
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (ready && !busy) run();
+            }}
+          >
+            <label htmlFor="st-delete-confirm">Type DELETE to confirm</label>
+            <div className="kit-form__row">
+              <input
+                id="st-delete-confirm"
+                className="input"
+                value={typed}
+                onChange={(e) => setTyped(e.target.value)}
+                autoComplete="off"
+                autoCapitalize="characters"
+                spellCheck="false"
+                autoFocus
+              />
+              <button
+                type="submit"
+                className="btn btn--danger"
+                disabled={!ready || busy}
+              >
+                {busy ? "Deleting…" : "Delete my account"}
+              </button>
+              <button
+                type="button"
+                className="btn btn--quiet"
+                disabled={busy}
+                onClick={() => {
+                  setOpen(false);
+                  setTyped("");
+                  setError(null);
+                }}
+              >
+                Cancel
+              </button>
+            </div>
+            {error ? (
+              <p className="kit-form__err" role="alert">
+                {error}
+              </p>
+            ) : null}
+          </form>
+        )}
+      </div>
+    </Panel>
   );
 }
 

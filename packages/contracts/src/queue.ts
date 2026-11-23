@@ -394,6 +394,12 @@ export type OutboxLane = (typeof OUTBOX_LANES)[number];
  *  by the jobs Lambda's {newsletter_sync}. */
 export const NEWSLETTER_ENROLL = "newsletter_enroll";
 
+/** Its opposite (2026-11-23): `{kind: "newsletter_remove", to}` asks the
+ *  relay to delete one address from the mailing list, written by the
+ *  web-api when a person or staff delete an account that had an
+ *  address. Best-effort, never retried, and no mail is sent. */
+export const NEWSLETTER_REMOVE = "newsletter_remove";
+
 export function outboxKey(lane: OutboxLane, id: string): string {
   return `${lane}/${id}.json`;
 }

@@ -5,50 +5,27 @@
  *   {account_remove: {account_id: "<uuid>"}}      dry run, by id
  *   {account_remove: {..., dry_run: false}}       remove it
  *
- * The privacy page promises that an account and its address can be
- * removed on request (admin@poapkings.com). This is the one way to do it,
- * so a removal is never hand-written SQL.
- *
- * What goes, for the person and every agent they own: the address, the
- * claims and watches (claim, account_clan, and the recordings only they
- * kept alive, stopped through the claims package's own reconcile), the
- * sessions, OAuth grants and codes and tokens,
- * service tokens, the call
- * log and its refusal log and the rate counters, feedback, account
- * events, mail sent and its switches, nicknames, battle
- * highlights (their words and share links), timeline read pointers, the timeline's Discord cross-post (its sealed webhook,
- * what it told, and its posts in the quality ledger), Clan's remembered
- * clan, agent identities, and pending sign-in links. Removing an account
- * deletes the account, not the record (DECISIONS).
- *
- * What stays: canonical game data (lossless by policy; stopping a
- * recording deletes nothing it recorded); a recording's `requested_by`,
- * attested clan facts (a clan's record, labelled with the attesting
- * player's tag; this module never reads them) and a revoked
- * collector's history, all of which point at the account row. That row
- * therefore stays as an anonymous tombstone: no address, a hash that is
- * no one's (`removed:<account_id>`), status disabled, nothing personal.
- * The same address can ask for access again and gets a new account.
- *
- * Refused, before anything is written (and reported by a dry run):
- * not a person (an agent goes with its owner), the owner account, an
- * owner of an integration (admin-provisioned: retire it first), a live
- * collector (revoke it first through the collector door's own revoke),
- * and already removed accounts. Inert historical Collection grants do not block removal.
+ * Since 2026-11-23 a person deletes their own account in Settings and
+ * staff delete one from Admin; this op stays the ops path (a request by
+ * mail to admin@poapkings.com). All three run `removeAccount`
+ * (@elixir-mcp/auth/account-remove), which says what goes, what stays
+ * and what is refused; this wrapper only holds the connection and the
+ * transaction.
  *
  * Not reachable from here, so listed in `manual`: the newsletter address
- * at Buttondown, sent-mail bodies under mail/sent/ in the archive bucket
- * (the keys are returned; this function holds no DeleteObject), call
- * captures under calls/, which expire on their own 28-day rule, and the
- * relay's timeline-discord-state/<account>/ records in the outbox bucket,
- * which expire with the bucket's 14-day rule.
+ * at Buttondown and the sent-mail bodies under mail/sent/ in the archive
+ * bucket (the keys are returned; this function holds no DeleteObject),
+ * both of which the web-api path does itself; call captures under
+ * calls/, which expire on their own 28-day rule; and the relay's
+ * timeline-discord-state/<account>/ records in the outbox bucket, which
+ * expire with the bucket's 14-day rule.
  *
  * Dry run by default: `dry_run` must be false to write. One transaction.
  * The address in the payload is never returned or logged.
  */
 
 import pg from "pg";
-import { reconcileRecording } from "@elixir-mcp/claims";
+import { removeAccount } from "@elixir-mcp/auth/account-remove";
 import { sentMailKey } from "@elixir-mcp/mail/archive";
 
 export async function accountRemoveOp(databaseUrl, spec = {}) {
@@ -66,9 +43,16 @@ export async function accountRemoveOp(databaseUrl, spec = {}) {
   try {
     await db.query("begin");
     try {
-      const result = await removeAccount(db, { hash, accountId, dryRun });
-      await db.query(dryRun || result.refused ? "rollback" : "commit");
-      return result;
+      const result = await removeAccount(db, {
+        hash,
+        accountId,
+        dryRun,
+        via: "ops",
+      });
+      await db.query(
+        dryRun || result.refused || result.error ? "rollback" : "commit",
+      );
+      return withManual(result, dryRun);
     } catch (err) {
       await db.query("rollback").catch(() => {});
       throw err;
@@ -78,331 +62,22 @@ export async function accountRemoveOp(databaseUrl, spec = {}) {
   }
 }
 
-async function removeAccount(db, { hash, accountId, dryRun }) {
-  const { rows: found } = await db.query(
-    `select account_id, email_hash, kind, status, role, is_owner
-       from account
-      where ($1::text is not null and email_hash = $1)
-         or ($2::text is not null and account_id::text = $2)
-      for update`,
-    [hash, accountId],
-  );
-  if (found.length !== 1) return { error: "not_found" };
-  const person = found[0];
-  const out = {
-    dry_run: dryRun,
-    account_id: person.account_id,
-    account_ref: String(person.email_hash ?? "").slice(0, 10),
-    status: person.status,
-  };
-  const refuse = (refused, extra = {}) => ({ ...out, refused, ...extra });
-
-  if (person.kind !== "person") return refuse("not_a_person");
-  if (person.is_owner || person.role === "owner")
-    return refuse("owner_account");
-  if (String(person.email_hash).startsWith("removed:"))
-    return refuse("already_removed");
-
-  const { rows: owned } = await db.query(
-    `select account_id, kind from account
-      where owned_by_account_id = $1 order by account_id for update`,
-    [person.account_id],
-  );
-  const integrations = owned.filter((r) => r.kind === "integration").length;
-  if (integrations > 0) return refuse("owns_integration", { integrations });
-  const ids = [person.account_id, ...owned.map((r) => r.account_id)];
-  out.agents = owned.length;
-
-  const { rows: gw } = await db.query(
-    `select count(*) filter (where status <> 'revoked')::int as live,
-            count(*) filter (where status = 'revoked')::int as revoked
-       from gateway where owner_account_id = any($1::uuid[])`,
-    [ids],
-  );
-  if (gw[0].live > 0)
-    return refuse("collectors_live", { collectors: gw[0].live });
-
-  // Identifiers the credential tables hang off.
-  const { rows: tokens } = await db.query(
-    `select token_id from service_token where account_id = any($1::uuid[])`,
-    [ids],
-  );
-  const tokenIds = tokens.map((r) => r.token_id);
-  const { rows: families } = await db.query(
-    `select family_id from oauth_family where account_id = any($1::uuid[])`,
-    [ids],
-  );
-  const familyIds = families.map((r) => r.family_id);
-  // Rate counters are text-keyed (packages/tools quota and live, the MCP
-  // and REST doors, Verify, sign-in mail): most end in the account id; a
-  // key with its own ceiling counts under mcp#token#<id>; sign-in mail
-  // under the address hash.
-  const counterKeys = [
-    `auth#${person.email_hash}`,
-    ...tokenIds.map((t) => `mcp#token#${t}`),
-  ];
-
-  // What the removal would stop being a reason to record, taken before
-  // the rows go, in one sorted order (the claims package's subject lock).
-  const { rows: subjects } = await db.query(
-    `select 'player' as kind, player_tag as tag from claim
-      where account_id = any($1::uuid[])
-     union
-     select 'clan', clan_tag from account_clan
-      where account_id = any($1::uuid[])
-     order by 2, 1`,
-    [ids],
-  );
-
-  const { rows: mail } = await db.query(
-    `select send_id, enqueued_at from email_send
-      where account_id = any($1::uuid[]) and archived
-      order by enqueued_at`,
-    [ids],
-  );
-
-  // The subject locks, in the claims package's order (account rows
-  // first, above; then each subject, sorted), before any reason goes.
-  if (!dryRun)
-    for (const { tag } of subjects)
-      await db.query(`select pg_advisory_xact_lock(hashtext($1))`, [tag]);
-
-  // Comment ownership follows the current verified player, not a former
-  // owner's historical stamp. Capture this before the claim deletion.
-  const { rows: verified } = await db.query(
-    `select c.player_tag from claim c join account a on a.account_id=c.account_id
-      where c.account_id=any($1::uuid[]) and c.status='verified'
-        and (c.is_primary or c.relationship in ('primary','alt'))
-        and a.kind='person' and a.status='approved'`,
-    [ids],
-  );
-  const verifiedTags = verified.map((r) => r.player_tag);
-
-  // Every personal row, deleted in an order the foreign keys accept:
-  // the call and refusal logs before the tokens and grants they name,
-  // tokens before their families, claim challenges with their claims.
-  const steps = [
-    [
-      "mcp_call_audit",
-      `mcp_call_audit where account_id = any($1::uuid[])
-         or token_id = any($2::bigint[]) or oauth_family_id = any($3::uuid[])`,
-      [ids, tokenIds, familyIds],
-    ],
-    [
-      "credential_refusal",
-      `credential_refusal where account_id = any($1::uuid[])
-         or token_id = any($2::bigint[])`,
-      [ids, tokenIds],
-    ],
-    ["service_token", `service_token where account_id = any($1::uuid[])`],
-    [
-      "oauth_token",
-      `oauth_token where family_id = any($1::uuid[])`,
-      [familyIds],
-    ],
-    ["oauth_family", `oauth_family where account_id = any($1::uuid[])`],
-    ["oauth_code", `oauth_code where account_id = any($1::uuid[])`],
-    ["session", `session where account_id = any($1::uuid[])`],
-    ["magic_login", `magic_login where email_hash = $1`, [person.email_hash]],
-    ["claim_challenge", `claim_challenge where account_id = any($1::uuid[])`],
-    ["claim", `claim where account_id = any($1::uuid[])`],
-    ["account_clan", `account_clan where account_id = any($1::uuid[])`],
-    [
-      "account_clan_declined",
-      `account_clan_declined where account_id = any($1::uuid[])`,
-    ],
-    ["player_nickname", `player_nickname where account_id = any($1::uuid[])`],
-    // Their cheers leave the counts with them, and their RSS link stops
-    // (0243, #765).
-    ["timeline_cheer", `timeline_cheer where account_id = any($1::uuid[])`],
-    [
-      "timeline_feed_link",
-      `timeline_feed_link where account_id = any($1::uuid[])`,
-    ],
-    // Comments (0282): their reports, their comments and every comment
-    // on their account-owned/current-player items (their reports go with
-    // the comments), their checks
-    // and the words of their refused ones, their blocks either way and
-    // their comment setting.
-    ["comment_report", `comment_report where account_id = any($1::uuid[])`],
-    [
-      "timeline_comment",
-      `timeline_comment where account_id = any($1::uuid[])
-          or (owner_is_account and owner_account_id = any($1::uuid[]))
-          or (not owner_is_account and subject_tag = any($2::text[]))`,
-      [ids, verifiedTags],
-    ],
-    ["comment_check", `comment_check where account_id = any($1::uuid[])`],
-    // Posts (0285): their reports of posts, then their posts (the reports
-    // on them go with them; the comments on them went above, as comments
-    // on their items).
-    ["post_report", `post_report where account_id = any($1::uuid[])`],
-    ["account_post", `account_post where account_id = any($1::uuid[])`],
-    [
-      "account_block",
-      `account_block where account_id = any($1::uuid[])
-          or blocked_account_id = any($1::uuid[])`,
-    ],
-    ["comment_setting", `comment_setting where account_id = any($1::uuid[])`],
-    // When they last opened the bell (0244).
-    ["bell_seen", `bell_seen where account_id = any($1::uuid[])`],
-    // Their push devices, switches and notices (0283): a device's
-    // endpoint is private account machinery and goes with them.
-    [
-      "push_subscription",
-      `push_subscription where account_id = any($1::uuid[])`,
-    ],
-    [
-      "account_push_pref",
-      `account_push_pref where account_id = any($1::uuid[])`,
-    ],
-    ["push_notice", `push_notice where account_id = any($1::uuid[])`],
-    // Their stored Home week (0245, #649).
-    ["home_feed", `home_feed where account_id = any($1::uuid[])`],
-    // Their stored bell week (0247, #649).
-    ["bell_week", `bell_week where account_id = any($1::uuid[])`],
-    // Their stored Home clan card (0248, #649).
-    ["home_clan_card", `home_clan_card where account_id = any($1::uuid[])`],
-    // Their passport, Stamps, ladder facts and profile list (0269,
-    // #1015). The tombstone fires no cascade, so each goes by name.
-    [
-      "account_stamp_fact",
-      `account_stamp_fact where account_id = any($1::uuid[])`,
-    ],
-    [
-      "account_stamp_earned",
-      `account_stamp_earned where account_id = any($1::uuid[])`,
-    ],
-    [
-      "account_profile_list",
-      `account_profile_list where account_id = any($1::uuid[])`,
-    ],
-    ["account_passport", `account_passport where account_id = any($1::uuid[])`],
-    // Their follows of other accounts, and other people's follows of
-    // them (0277): a removed account has no page to follow.
-    [
-      "account_follow",
-      `account_follow where account_id = any($1::uuid[])
-          or followed_account_id = any($1::uuid[])`,
-    ],
-    ["timeline_reader", `timeline_reader where account_id = any($1::uuid[])`],
-    [
-      "timeline_discord_told",
-      `timeline_discord_told where account_id = any($1::uuid[])`,
-    ],
-    ["timeline_discord", `timeline_discord where account_id = any($1::uuid[])`],
-    // Only the timeline cross-post names an account; Clan's posts name
-    // the clan and stay.
-    ["discord_post", `discord_post where account_id = any($1::uuid[])`],
-    [
-      "clan_state",
-      `clan_state where pk = any($1::text[])`,
-      [ids.map((id) => `account#${id}`)],
-    ],
-    ["agent_identity", `agent_identity where account_id = any($1::uuid[])`],
-    ["account_discord", `account_discord where account_id = any($1::uuid[])`],
-    ["discord_login", `discord_login where account_id = any($1::uuid[])`],
-    ["feedback", `feedback where account_id = any($1::uuid[])`],
-    [
-      "collector_version_event",
-      `collector_version_event where account_id = any($1::uuid[])`,
-    ],
-    ["email_send", `email_send where account_id = any($1::uuid[])`],
-    [
-      "account_email_pref",
-      `account_email_pref where account_id = any($1::uuid[])`,
-    ],
-    ["account_event", `account_event where account_id = any($1::uuid[])`],
-    [
-      "rate_limit",
-      `rate_limit where substring(bucket from '[#:]([^#:]+)$') = any($1::text[])
-         or bucket = any($2::text[])`,
-      [ids, counterKeys],
-    ],
-  ];
-
-  const removed = {};
-  for (const [table, from, params = [ids]] of steps) {
-    const sql = dryRun
-      ? `select count(*)::int as n from ${from}`
-      : `with gone as (delete from ${from} returning 1)
-         select count(*)::int as n from gone`;
-    const { rows } = await db.query(sql, params);
-    removed[table] = rows[0].n;
-  }
-
-  // Keep other people's reassigned game conversations while removing the
-  // former owner's incidental stamp. A dry run reports the same scope.
-  const staleStamps = `not owner_is_account
-    and owner_account_id=any($1::uuid[]) and account_id <> all($1::uuid[])
-    and not coalesce(subject_tag=any($2::text[]),false)`;
-  const { rows: cleared } = await db.query(
-    dryRun
-      ? `select count(*)::int as n from timeline_comment where ${staleStamps}`
-      : `with cleared as (update timeline_comment set owner_account_id=null where ${staleStamps} returning 1)
-       select count(*)::int as n from cleared`,
-    [ids, verifiedTags],
-  );
-
-  const { rows: requested } = await db.query(
-    `select count(*)::int as n from recording
-      where requested_by = any($1::uuid[])`,
-    [ids],
-  );
-
-  let recordingsStopped = 0;
-  if (!dryRun) {
-    for (const { kind, tag } of subjects) {
-      const r = await reconcileRecording(db, kind, tag, null);
-      if (r.stopped) recordingsStopped += 1;
-    }
-    // The tombstone: the rows that stay point here, and nothing here
-    // is anyone's any more.
-    await db.query(
-      `update account
-          set email = null,
-              email_hash = case when kind = 'person'
-                                then 'removed:' || account_id::text end,
-              status = 'disabled', request_note = null,
-              requested_player_tag = null, timezone = null,
-              newsletter_opt_in = false, onboarded_at = null,
-              activity_seen_at = null, console_timeline_seen_at = null,
-              avatar_card_id = null, avatar_set_at = null,
-              handle = null, handle_set_at = null
-        where account_id = any($1::uuid[])`,
-      [ids],
-    );
-    await db.query(
-      `insert into account_event (account_id, kind, detail)
-       values ($1, 'account_removed', $2)`,
-      [person.account_id, JSON.stringify({ via: "ops", agents: owned.length })],
-    );
-  }
-
+/** The steps outside the database, for the operator to do by hand. */
+function withManual(result, dryRun) {
+  if (result.error || result.refused) return result;
+  const { sent_mail: sent, ...rest } = result;
   return {
-    ...out,
-    removed,
-    cleared_comment_owner_stamps: cleared[0].n,
-    // A dry run names how many recordings were someone's reason; which of
-    // them stop depends on who else wants each subject, which only the
-    // run's reconcile can say.
-    subjects: subjects.length,
-    recordings_stopped: dryRun ? null : recordingsStopped,
-    kept: {
-      recordings_requested: requested[0].n,
-      revoked_collectors: gw[0].revoked,
-    },
+    ...rest,
     manual: [
       "Remove the address from the Buttondown newsletter list by hand.",
-      mail.length
-        ? `Delete ${mail.length} sent-mail bodies from the archive bucket (mail_archive_keys).`
+      result.mail_archived
+        ? `Delete ${result.mail_archived} sent-mail bodies from the archive bucket (mail_archive_keys).`
         : "No sent-mail bodies are archived.",
       "Call captures under calls/ expire on their own 28-day rule.",
       "Timeline cross-post records under timeline-discord-state/<account>/ in the outbox bucket expire on its 14-day rule.",
     ],
-    mail_archived: mail.length,
     mail_archive_keys: dryRun
       ? undefined
-      : mail.map((m) => sentMailKey(m.enqueued_at, m.send_id)),
+      : sent.map((m) => sentMailKey(m.enqueued_at, m.send_id)),
   };
 }

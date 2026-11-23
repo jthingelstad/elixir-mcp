@@ -641,6 +641,15 @@ Resources:
                 Resource: !Sub
                   - ${Arn}/mail/sent/*
                   - Arn: !GetAtt ArchiveBucket.Arn
+              # Deleting an account (2026-11-23, account-removal.mjs)
+              # deletes its sent mail's bodies. The bucket is versioned:
+              # the delete writes a marker, and mail-sent-purge-expired
+              # takes the noncurrent body a day later.
+              - Effect: Allow
+                Action: s3:DeleteObject
+                Resource: !Sub
+                  - ${Arn}/mail/sent/*
+                  - Arn: !GetAtt ArchiveBucket.Arn
               - Effect: Allow
                 Action: s3:ListBucket
                 Resource: !GetAtt ArchiveBucket.Arn

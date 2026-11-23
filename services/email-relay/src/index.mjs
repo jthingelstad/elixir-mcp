@@ -109,6 +109,34 @@ export function makeButtondownEnroller({
   };
 }
 
+/** Removing one address from the list (2026-11-23), for a deleted
+ *  account: `DELETE /v1/subscribers/{email}`. Gone already (404) is
+ *  done, as is any 2xx; anything else throws `buttondown <status>` for
+ *  the relay's line, which never names the address. */
+export function makeButtondownRemover({
+  token,
+  newsletterId = null,
+  fetchImpl = fetch,
+}) {
+  if (!token) return null;
+  return async (email) => {
+    const res = await fetchImpl(
+      `https://api.buttondown.com/v1/subscribers/${encodeURIComponent(email)}`,
+      {
+        method: "DELETE",
+        headers: {
+          Authorization: `Token ${token}`,
+          "User-Agent": "elixir-mcp-relay",
+          ...(newsletterId ? { "Buttondown-Context": newsletterId } : {}),
+        },
+        signal: AbortSignal.timeout(3_000),
+      },
+    );
+    if (res.ok || res.status === 404) return;
+    throw new Error(`buttondown ${res.status}`);
+  };
+}
+
 const s3 = new S3Client({});
 const sqs = new SQSClient({});
 
@@ -300,6 +328,10 @@ export const handler = makeHandler({
       : null,
   }),
   enroll: makeButtondownEnroller({
+    token: process.env.BUTTONDOWN_API_TOKEN,
+    newsletterId: process.env.BUTTONDOWN_NEWSLETTER_ID || null,
+  }),
+  unenroll: makeButtondownRemover({
     token: process.env.BUTTONDOWN_API_TOKEN,
     newsletterId: process.env.BUTTONDOWN_NEWSLETTER_ID || null,
   }),

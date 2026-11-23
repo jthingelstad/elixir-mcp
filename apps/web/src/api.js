@@ -92,6 +92,24 @@ export const api = {
     }
     return result;
   },
+  /** Delete your own account (2026-11-23). The typed confirmation is
+   *  the page's; the server asks for it again. On success the session is
+   *  gone, so the browser's per-session state goes with it. */
+  deleteMyAccount: async () => {
+    const result = await request("POST", "/api/me/account/delete", {
+      confirm: "DELETE",
+    });
+    if (result.ok) {
+      liftReconcileGate();
+      try {
+        for (const key of Object.keys(sessionStorage))
+          if (key.startsWith("clan-delivery:")) sessionStorage.removeItem(key);
+      } catch {
+        /* Draft storage is optional. */
+      }
+    }
+    return result;
+  },
   setTimezone: (timezone) => request("POST", "/api/me/timezone", { timezone }),
   /** Your @handle (2026-11-15): set it, or with null remove it. */
   setHandle: (handle) => request("POST", "/api/me/handle", { handle }),
@@ -376,6 +394,10 @@ export const api = {
   adminEfficiency: () => request("GET", "/api/admin/efficiency"),
   adminClearHandle: (account_id) =>
     request("POST", "/api/admin/accounts/handle-clear", { account_id }),
+  /** Delete an account from Admin (2026-11-23): a dry run unless
+   *  dry_run is false. */
+  adminRemoveAccount: (account_id, dry_run = true) =>
+    request("POST", "/api/admin/accounts/remove", { account_id, dry_run }),
   adminSetRole: (account_id, role) =>
     request("POST", "/api/admin/accounts", { account_id, role }),
   myClans: () => request("GET", "/api/me/clans"),

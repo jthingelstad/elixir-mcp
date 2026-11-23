@@ -11,6 +11,7 @@ import {
 
 import { UUID_RE, ID_RE, json } from "../http.mjs";
 import { loadCallRecord } from "../call-record.mjs";
+import { REFUSAL_MESSAGES, runRemoval } from "../account-removal.mjs";
 import { readEfficiency } from "../efficiency.mjs";
 import {
   SENDS_COLS,
@@ -28,7 +29,12 @@ const SETTABLE_BY_OWNER = ROLE_ORDER.filter(
   (r) => r !== "owner" && (r === "member" || !EARNED_ROLES.includes(r)),
 );
 
-export function adminRoutes({ resolveAccount, logEvent, capture = null }) {
+export function adminRoutes({
+  resolveAccount,
+  logEvent,
+  capture = null,
+  removeFromNewsletter = null,
+}) {
   return {
     "GET /api/admin/calls/*": async (db, event) => {
       // The same record as /api/me/activity/calls/<id>, over every
@@ -375,7 +381,20 @@ export function adminRoutes({ resolveAccount, logEvent, capture = null }) {
                  where c.account_id = a.account_id) as players_tracked,
                 (select count(*)::int from account_clan ac
                  where ac.account_id = a.account_id) as clans_tracked,
-                ${familyGroundSql("a")} as operator
+                ${familyGroundSql("a")} as operator,
+                -- A test identity (0316) is labelled by its name; a
+                -- removed account's tombstone (account-remove) is hidden
+                -- behind a toggle (2026-11-23).
+                a.test_name,
+                a.email_hash like 'removed:%' as removed,
+                -- Last active: the latest session seen, or the latest
+                -- use of one of its tokens.
+                greatest(
+                  (select max(s.last_seen_at) from session s
+                    where s.account_id = a.account_id),
+                  (select max(st.last_used_at) from service_token st
+                    where st.account_id = a.account_id)
+                ) as last_active_at
          from account a order by a.created_at`,
       );
       return json(200, {
@@ -404,6 +423,84 @@ export function adminRoutes({ resolveAccount, logEvent, capture = null }) {
       if (!rows[0]) return json(404, { error: "not_found" });
       await logEvent(db, accountId, "handle_cleared", {});
       return json(200, { ok: true, account_id: accountId });
+    },
+
+    // Delete an account (2026-11-23): the same removal a person runs on
+    // their own from Settings › Profile, and ops' {account_remove}. A dry
+    // run by default, which counts and writes nothing. The role hierarchy
+    // is setAccountRole's: only the owner removes an admin; nobody removes
+    // the owner, or themselves here (that is Settings › Profile). Read off
+    // the target's locked row, so a promotion a moment ago counts. The
+    // response is counts only; nothing personal is logged.
+    "POST /api/admin/accounts/remove": async (db, event, body) => {
+      const account = await resolveAccount(db, event, {
+        requireContractHeader: true,
+      });
+      if (!account?.isAdmin) return json(403, { error: "not_entitled" });
+      const accountId = String(body?.account_id ?? "");
+      if (!UUID_RE.test(accountId)) return json(404, { error: "not_found" });
+      if (accountId === account.accountId)
+        return json(409, {
+          error: "refused",
+          code: "self",
+          message: "Delete your own account from Settings › Profile.",
+        });
+      const dryRun = body?.dry_run !== false;
+      const result = await runRemoval(db, {
+        accountId,
+        dryRun,
+        via: "admin",
+        actorAccountId: account.accountId,
+        guard: (row) =>
+          row.is_owner
+            ? "owner_account"
+            : row.role === "admin" && account.role !== "owner"
+              ? "above_grant"
+              : null,
+        removeFromNewsletter,
+        archive: capture,
+      });
+      if (result.error === "unavailable")
+        return json(
+          503,
+          {
+            error: "unavailable",
+            message:
+              "The mailing list could not be reached. Nothing was deleted.",
+          },
+          { "retry-after": "60" },
+        );
+      if (result.error) return json(404, { error: "not_found" });
+      if (result.refused === "above_grant")
+        return json(403, {
+          error: "not_entitled",
+          code: "above_grant",
+          message: "Only the owner can delete an admin's account.",
+        });
+      if (result.refused)
+        return json(409, {
+          error: "refused",
+          code: result.refused,
+          message:
+            REFUSAL_MESSAGES[result.refused] ??
+            "This account can't be deleted here.",
+        });
+      return json(200, {
+        ok: true,
+        account_id: result.account_id,
+        dry_run: result.dry_run,
+        agents: result.agents,
+        removed: result.removed,
+        subjects: result.subjects,
+        kept: result.kept,
+        mail_archived: result.mail_archived,
+        ...(dryRun
+          ? {}
+          : {
+              mail_deleted: result.mail_deleted,
+              mail_failed: result.mail_failed,
+            }),
+      });
     },
 
     "POST /api/admin/accounts": async (db, event, body) => {

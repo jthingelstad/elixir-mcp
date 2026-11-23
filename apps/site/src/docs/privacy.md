@@ -71,9 +71,9 @@ checks that a person is signing in, and sees your browser and its IP
 address to do it. Anthropic checks posts and comments. Discord is
 involved only if you or your clan connect it. Fonts are served from this site.
 
-**Removing your account.** Email
-[admin@poapkings.com](mailto:admin@poapkings.com) or use the feedback
-form. Your address, claims, posts, comments, agents and mail records
+**Removing your account.** Delete it yourself in Settings › Profile,
+or email [admin@poapkings.com](mailto:admin@poapkings.com) or use the
+feedback form. Your address, claims, posts, comments, agents and mail records
 are deleted ([your account](/docs/your-account#removing-the-account)
 lists them). The players' game history is public game data, as it is in
 the game itself, and stays for its year. [Limits](/docs/limits#retention-windows)

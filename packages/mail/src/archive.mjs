@@ -11,7 +11,11 @@
  *  Absent store (local dev, tests) = nothing archived. */
 import { promisify } from "node:util";
 import { gzip, gunzip } from "node:zlib";
-import { PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
+import {
+  PutObjectCommand,
+  GetObjectCommand,
+  DeleteObjectCommand,
+} from "@aws-sdk/client-s3";
 
 const gzipAsync = promisify(gzip);
 const gunzipAsync = promisify(gunzip);
@@ -71,4 +75,29 @@ export async function readSentMail({ store, at, sendId }) {
   );
   const raw = await out.Body.transformToByteArray();
   return JSON.parse((await gunzipAsync(raw)).toString("utf8"));
+}
+
+/** A deleted account's archived mail (2026-11-23): each body removed,
+ *  best-effort, after the removal has committed. Never throws; answers
+ *  how many went and how many did not, so the caller logs counts and
+ *  never a key. Absent store = nothing deleted. */
+export async function deleteSentMail({ store, sends }) {
+  if (!store?.s3 || !store?.bucket || !sends?.length)
+    return { deleted: 0, failed: 0 };
+  let deleted = 0;
+  let failed = 0;
+  for (const { enqueued_at: at, send_id: sendId } of sends) {
+    try {
+      await store.s3.send(
+        new DeleteObjectCommand({
+          Bucket: store.bucket,
+          Key: sentMailKey(at, sendId),
+        }),
+      );
+      deleted += 1;
+    } catch {
+      failed += 1;
+    }
+  }
+  return { deleted, failed };
 }

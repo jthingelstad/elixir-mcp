@@ -26,6 +26,7 @@ import {
   unsubscribeHeaders,
   outboxObjects,
   NEWSLETTER_ENROLL,
+  NEWSLETTER_REMOVE,
 } from "@elixir-mcp/contracts";
 import { renderEmail } from "./templates.mjs";
 
@@ -43,6 +44,9 @@ export function queueUrlOf(arn) {
 export function makeHandler({
   send,
   enroll = null,
+  /** `(email)`: delete one address from the mailing list (2026-11-23,
+   *  makeButtondownRemover); null = a removal is dropped with a line. */
+  unenroll = null,
   readObject = null,
   deleteObject = null,
   modelObject = null,
@@ -112,6 +116,30 @@ export function makeHandler({
         console.log("newsletter_enrolled");
       } catch {
         console.error("newsletter_enroll_drop", "transport_error");
+      }
+      return "sent";
+    }
+    // A deleted account's address leaves the mailing list (2026-11-23):
+    // the web-api hands it over as the account goes. Best-effort and
+    // never retried (the account is already gone, and a retry would only
+    // repeat the same answer); the line never names the address.
+    if (parsed?.kind === NEWSLETTER_REMOVE) {
+      const to = typeof parsed.to === "string" ? parsed.to.trim() : "";
+      if (!to.includes("@")) return "bad_message";
+      if (!unenroll) {
+        console.error("newsletter_remove_drop", "not_configured");
+        return "sent";
+      }
+      try {
+        await unenroll(to);
+        console.log("newsletter_removed");
+      } catch (err) {
+        console.error(
+          "newsletter_remove_drop",
+          /^buttondown \d{3}$/.test(String(err?.message))
+            ? err.message
+            : "transport_error",
+        );
       }
       return "sent";
     }
