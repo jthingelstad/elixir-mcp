@@ -38,8 +38,9 @@ import { isDeepStrictEqual } from "node:util";
  *                            (gsi1sk exception#<tag>#<set_at>#<id>) and
  *                            kept, so a member's history can tell them
  *   hold#<clan>#<tag>        RETIRED 2026-11-23: a member on hold. 0318
- *                            copied each into an exception; a stale item
- *                            is never read, and goes with deleteClan
+ *                            copied each into an exception and 0319
+ *                            deleted the copied ones; one it kept is
+ *                            never read, and goes with deleteClan
  *   note#<clan>#<id>         a note on a member: tier (leader | elder),
  *                            author, text, when
  *   recruit#<clan>           the pointer: { version }
