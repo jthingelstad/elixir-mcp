@@ -649,7 +649,13 @@ export function PolicySection({ e, slug, go }) {
         <SwitchField e={e} s={s} />
         {on ? (
           <>
-            <SectionGroups e={e} s={s} skip={[s.switch]} />
+            {/* The minimum is drawn once, here, after the section's other
+                fields: SectionGroups skips it so it never shows twice. */}
+            <SectionGroups
+              e={e}
+              s={s}
+              skip={[s.switch, minimumField].filter(Boolean)}
+            />
             {minimumField ? <Fields e={e} keys={[minimumField]} /> : null}
             {minimumField && slug !== "trophy-road" ? minimumsLine : null}
           </>
