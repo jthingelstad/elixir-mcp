@@ -22,7 +22,7 @@ import {
   setWeightShare,
   weightShares,
 } from "@elixir-mcp/clan-engine";
-import { useRoster } from "../lib/queries.js";
+import { useExceptions, useRoster } from "../lib/queries.js";
 import { PageHead } from "../components/PageHead.jsx";
 import { ClanTile } from "./Directory.jsx";
 import { CanDo, Preview, VersionRows, presetNote } from "./Policy.jsx";
@@ -430,6 +430,9 @@ function Elder({ e, roster, problems }) {
               {seats.full
                 ? "so the seats are full."
                 : `so ${seats.open} ${noun(seats.open, "seat")} ${seats.open === 1 ? "is" : "are"} open.`}
+              {seats.kept
+                ? ` ${seats.kept} more ${seats.kept === 1 ? "is" : "are"} kept as Elder and ${seats.kept === 1 ? "takes" : "take"} no seat.`
+                : null}
             </p>
           ) : null}
           <Row
@@ -844,8 +847,8 @@ function BeforeSave({ e, jump }) {
             decides.
           </p>
           <p className="m-0">
-            Preview reads the record with no model. It skips holds and waits,
-            and saves nothing.
+            Preview reads the record with no model. It skips exceptions and
+            waits, and saves nothing.
           </p>
         </div>
         {view.versions.length ? (
@@ -869,9 +872,20 @@ function BeforeSave({ e, jump }) {
 export function RunRules({ e, clan }) {
   const { whenDay } = useClock();
   const roster = useRoster(clan.clan_tag).state.data ?? null;
+  const running = useExceptions(clan.clan_tag).state.data?.exceptions ?? [];
   const { view, draft } = e;
+  // A kept Elder takes no earned seat, so the seats count only the rest.
+  const kept = new Set(
+    running
+      .filter((x) => x.kind === "keep_as_elder" && x.role === "elder")
+      .map((x) => x.player_tag),
+  ).size;
   const counts = roster
-    ? { members: roster.member_count, elders: roster.role_counts?.elder ?? 0 }
+    ? {
+        members: roster.member_count,
+        elders: roster.role_counts?.elder ?? 0,
+        kept,
+      }
     : {};
   const found = rulesCheck(draft, counts);
   // Every problem once: the server's refusal, then the draft's own.

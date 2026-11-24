@@ -157,36 +157,42 @@ const seatsAt = (values, members, elders) => {
   return band(rows, facts, members, values);
 };
 
+/** The Elders who sit in earned seats: a kept Elder (Keep as Elder) is
+ *  outside the band and takes none, as evaluate() counts them. */
+const seated = (elders, kept) => {
+  const have = Number.isInteger(elders) && elders > 0 ? elders : 0;
+  const out = Number.isInteger(kept) && kept > 0 ? kept : 0;
+  return Math.max(0, have - out);
+};
+
 /**
  * The Elder seats this draft makes for a roster of `members` (leadership
- * included) holding `elders` Elders: `{ seats, elders, open, full }`, where
- * `seats` is band()'s upper line. `null` when Elders are chosen by hand or
- * the roster is not known.
+ * included) holding `elders` Elders, `kept` of them kept as Elder:
+ * `{ seats, elders, kept, open, full }`, where `seats` is band()'s upper
+ * line and `elders` counts only the Elders in earned seats. `null` when
+ * Elders are chosen by hand or the roster is not known.
  */
-export function elderSeats(values, { members, elders } = {}) {
+export function elderSeats(values, { members, elders, kept } = {}) {
   if (!ranksElder(values)) return null;
   if (!Number.isInteger(members) || members <= 0) return null;
-  const have = Number.isInteger(elders) && elders > 0 ? elders : 0;
-  const b = seatsAt(values, members, have);
+  const b = seatsAt(values, members, seated(elders, kept));
   return {
     seats: b.ceil,
     elders: b.current_elders,
+    kept: Number.isInteger(kept) && kept > 0 ? kept : 0,
     open: Math.max(0, b.ceil - b.current_elders),
     full: b.ceil <= b.current_elders,
   };
 }
 
 /** The smallest whole-percent upper share that opens one seat beyond the
- *  Elders the clan has, or `null` when none up to the whole roster does. */
-export function seatShareFor(values, { members, elders }) {
+ *  Elders in earned seats, or `null` when none up to the whole roster does. */
+export function seatShareFor(values, { members, elders, kept }) {
+  const have = seated(elders, kept);
   const from = Math.round(Number(values.band_ceiling_share) * 100) + 1;
   for (let pct = Math.max(from, 1); pct <= 100; pct += 1) {
     const share = pct / 100;
-    const b = seatsAt(
-      { ...values, band_ceiling_share: share },
-      members,
-      elders,
-    );
+    const b = seatsAt({ ...values, band_ceiling_share: share }, members, have);
     if (b.ceil > b.current_elders) return share;
   }
   return null;
@@ -206,7 +212,8 @@ function countsFor(values, c) {
  * The Rules check: plain warnings about a draft, each at the question it
  * belongs to, with a one-tap `fix` (fields to set) where there is one.
  * The validation errors come first, once each, at their field's question.
- * `roster` is `{ members, elders }` (either may be unknown).
+ * `roster` is `{ members, elders, kept }` (any may be unknown); `kept` is
+ * the Elders kept as Elder, who take no earned seat.
  */
 export function rulesCheck(values, roster = {}) {
   const out = [];

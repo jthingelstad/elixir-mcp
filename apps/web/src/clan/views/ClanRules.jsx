@@ -26,7 +26,7 @@ import { ruleId, seesFor } from "../components/HouseRules.jsx";
  * clan would show it to a friend. Its goals with your own number beside
  * each, how Elder is earned, how to stay in the clan, what the clan does
  * together, and a line to share it. The rules are public in the clan list,
- * so this shows nobody's standing, clock or hold but your own numbers;
+ * so this shows nobody's standing, clock or exceptions but your own;
  * past versions are the leaders' (the server sends a member none). Each
  * part keeps its address (`#rule-<key>`), where Standing's "Read the rule"
  * lands. Changing the rules is Run's.

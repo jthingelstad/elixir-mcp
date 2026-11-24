@@ -18,7 +18,7 @@
  *  - what happened: an Action's own evidence (`actionLines`) or a
  *    timeline item's facts (`itemLines`).
  *
- * What never enters a packet: another leader's note, a hold, a removal's
+ * What never enters a packet: another leader's note, an exception, a removal's
  * rationale or inactivity numbers, what a demotion's review counted, the
  * last battle's bookkeeping, any private Clan state beyond the Action's
  * own evidence, fame per member, corpus statistics. Absence over

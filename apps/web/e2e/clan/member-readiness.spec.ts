@@ -13,7 +13,9 @@ for (const width of [390, 1280]) {
     const business: string[] = [];
     page.on("request", (r) => {
       if (
-        /\/(?:decide|grants|draft|holds)$/.test(new URL(r.url()).pathname) &&
+        /\/(?:decide|grants|draft|exceptions(?:\/[a-z_]+)?)$/.test(
+          new URL(r.url()).pathname,
+        ) &&
         r.method() !== "GET"
       )
         business.push(r.url());

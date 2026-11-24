@@ -11,7 +11,7 @@
  * removal gives only the member's time in the clan and what they gave; a
  * demotion only their time in the clan and the awards they hold, never
  * what its review counted. Nothing gives a note saved on an Action
- * (anyone's), a hold, a removal's rationale, inactivity numbers or fame
+ * (anyone's), an exception, a removal's rationale, inactivity numbers or fame
  * per member.
  *
  * The destination decides the draft's shape: clan chat is lines, each
