@@ -675,6 +675,22 @@ export function createManageService({
   }
 
   /** Ends one exception early, now: `ended_at` and an `ended` event. */
+  /**
+   * An exception changes today's verdicts (Not for Elder and Keep as Elder
+   * end a promotion or demotion at once), so the clan is judged again when
+   * one is set or ended: an Action it answers is withdrawn before anyone
+   * drafts or decides it, rather than after the cached reading's five
+   * minutes. The write has landed either way; a failed reading leaves it
+   * to the next one.
+   */
+  async function judgeAgain(clanTag, who) {
+    try {
+      await evaluateClan({ clanTag, who, force: true });
+    } catch {
+      // The next read judges again.
+    }
+  }
+
   async function endOne(clanTag, ex, who, t) {
     const at = new Date(t).toISOString();
     await ledger.putException(clanTag, {
@@ -2764,6 +2780,7 @@ export function createManageService({
             events: [event],
           };
       await ledger.putException(clanTag, ex);
+      await judgeAgain(clanTag, who);
       return leaderFace({ ...ex, role: row.role });
     },
 
@@ -2778,6 +2795,7 @@ export function createManageService({
       );
       if (!existing) throw new ManageError(404, "no_exception");
       await endOne(clanTag, existing, who, t);
+      await judgeAgain(clanTag, who);
       // A member's own away ended by a leader is taken back in Elixir too,
       // on the leader's grant (a leader may attest an away; 2026-09-26
       // review: Elixir kept showing leaders the member as away).
@@ -2812,7 +2830,9 @@ export function createManageService({
         away: mine
           ? {
               until: mine.until,
-              note: mine.note ?? null,
+              // A leader's Away for them keeps its why to the leaders, as
+              // every member-facing read of an exception does.
+              note: mine.set_by === who.player_tag ? (mine.note ?? null) : null,
               set_at: mine.set_at,
               by_leader: mine.set_by !== who.player_tag,
               set_by_name:

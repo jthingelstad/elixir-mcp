@@ -1555,6 +1555,7 @@ test("away: a member marks themselves away within the policy's cap; the clock pa
   const leaderAway = await api(lead, lc, "PUT", `${exBase}/away`, {
     length: "2w",
     visibility: "leaders",
+    note: "Leaders' reason",
   });
   assert.equal(leaderAway.body.visibility, "clan", "Away is always seen");
   const blocked = await api(
@@ -1568,6 +1569,11 @@ test("away: a member marks themselves away within the policy's cap; the clock pa
   const theirs = await api(member, mc, "GET", "/api/clans/0QC8RCGY/me/away");
   assert.equal(theirs.body.away.by_leader, true);
   assert.equal(theirs.body.away.set_by_name, "Ada");
+  assert.equal(
+    theirs.body.away.note,
+    null,
+    "a leader's why stays with leaders",
+  );
   await api(lead, lc, "DELETE", `${exBase}/away`);
   const cleared = await api(member, mc, "GET", "/api/clans/0QC8RCGY/me/away");
   assert.equal(cleared.body.away, null);
@@ -1723,6 +1729,31 @@ test("a clan with a policy that falls below 10 pauses, keeps its policy, and res
   assert.equal(
     (await api(grown, gc, "GET", "/api/me")).body.policy.active,
     true,
+  );
+});
+
+test("exceptions: Not for Elder withdraws a waiting promotion at once, not after the cached reading", async () => {
+  const h = harness({ part: partClan() });
+  const cookies = await leader(h);
+  const before = await api(h, cookies, "GET", "/api/clans/0QC8RCGY/actions");
+  const promotion = before.body.open.find((a) => a.type === "promotion");
+  assert.ok(promotion, JSON.stringify(before.body.open.map((a) => a.type)));
+  // The fixture's tags are too short for the route, so the leader's
+  // write goes to the service the route calls.
+  await h.manage.setException(
+    "#0QC8RCGY",
+    { player_tag: "#098R2R0PUL", role: "leader", verified: true },
+    promotion.player_tag,
+    "not_for_elder",
+    { length: "1m" },
+  );
+  // An ordinary read, inside the five minutes a reading is reused.
+  const after = await api(h, cookies, "GET", "/api/clans/0QC8RCGY/actions");
+  assert.equal(
+    after.body.open.some(
+      (a) => a.type === "promotion" && a.player_tag === promotion.player_tag,
+    ),
+    false,
   );
 });
 
