@@ -31,8 +31,12 @@ import {
   sessionDeck,
   sessionSpark,
   shownAt,
+  storedTimeline,
 } from "@elixir-mcp/tools/activity/entries";
-import { compareStories } from "@elixir-mcp/tools/activity/story-store";
+import {
+  compareStories,
+  readSubjectStories,
+} from "@elixir-mcp/tools/activity/story-store";
 import { TIMELINE_LOOKBACK_DAYS } from "@elixir-mcp/tools/activity/lookback";
 
 import { PAIR_DAYS, playerPairCount } from "@elixir-mcp/record/player-pair";
@@ -199,25 +203,138 @@ const pageItem = (it, fallbackDeck = null) => {
   };
 };
 
+/** The people items a player's page tells: the player's verification on
+ *  Elixir, never an account's own lines. Never stored: both reads below
+ *  ask for it live. */
+const PAGE_PEOPLE = { accounts: [], players: true };
+
+/** The stored read's statement budget (stage 3 of the stored Timeline,
+ *  2026-11-24): the marker, one news probe and one select. Past it, or on
+ *  any error, the page computes. */
+const STORY_READ_MS = 500;
+
+/** The stored read's settings from a door's switch: off (false or null),
+ *  on (true), or on with a test's own reader and log. */
+export function storyReadOf(storyRead) {
+  if (!storyRead) return null;
+  return {
+    read: readSubjectStories,
+    log: console.info,
+    ...(typeof storyRead === "object" ? storyRead : {}),
+  };
+}
+
+/**
+ * The player's stored stories for one window (readSubjectStories), as the
+ * page's timeline, or why not: `{ built, stories }` or `{ reason }`
+ * (unwritten, stale, news, open, or error). The read runs in its own
+ * transaction under STORY_READ_MS and never fails the page: an error is
+ * `error`, its class beside it, and the caller computes.
+ */
+async function storedPageTimeline(
+  db,
+  tag,
+  { fromMs, toMs, now, visibilities, timezone, pageGameReader, filter, read },
+) {
+  try {
+    await db.query("begin");
+    let stories;
+    try {
+      await db.query("select set_config('statement_timeout', $1, true)", [
+        String(STORY_READ_MS),
+      ]);
+      stories = await read(db, "player", tag, {
+        fromMs,
+        toMs,
+        visibilities,
+        now,
+      });
+      await db.query("commit");
+    } catch (err) {
+      await db.query("rollback").catch(() => {});
+      throw err;
+    }
+    if (!stories.ok) return { reason: stories.reason };
+    const built = await storedTimeline(db, tag, stories.items, {
+      fromMs,
+      toMs,
+      timezone,
+      basis: "occurred",
+      // Read live beside the rows, as the build below reads it.
+      people: PAGE_PEOPLE,
+      pageGameReader,
+      filter,
+    });
+    return { built, stories: stories.items.length };
+  } catch (err) {
+    // The error's class only: its message can carry a value.
+    return { reason: "error", error: err?.code ?? err?.name ?? "error" };
+  }
+}
+
 /** The page's timeline as the record has it now: the player's public items
- *  in the page's window. The page and its games' read build the same one,
- *  so an item's id and evidence version agree between them. */
-const pageTimeline = (
+ *  in the page's window. The page, its games' read and its session read
+ *  (signed in or out) all build it here, so an item's id and evidence
+ *  version agree between them. With the stored read on (`storyRead`, the
+ *  stack's TimelineStoryRead), each first tries the player's stored
+ *  stories and computes only when the store cannot prove them current;
+ *  every attempt logs one `timeline_story_read` line of counts, naming
+ *  its `door`. The answer says which it served (`served`). */
+const pageTimeline = async (
   db,
   tag,
   timezone,
   now,
   window = null,
-  { publicOnly = false, pageGameReader = null } = {},
-) =>
-  buildTimeline(
+  {
+    publicOnly = false,
+    pageGameReader = null,
+    storyRead = null,
+    door = "page",
+  } = {},
+) => {
+  const fromMs = window?.fromMs ?? now - PAGE_DAYS * 86_400_000;
+  const toMs = window?.toMs ?? now;
+  const visibilities = publicOnly ? ["public"] : ["public", "member"];
+  // Signed out (the public session page, 2026-11-17): what anyone with
+  // the link may read, never a member's.
+  const filter = (it) =>
+    (pageGameReader && it.kind === "drop_game") ||
+    visibilities.includes(itemVisibility(it));
+  const read = storyReadOf(storyRead);
+  if (read) {
+    const started = performance.now();
+    const stored = await storedPageTimeline(db, tag, {
+      fromMs,
+      toMs,
+      now,
+      visibilities,
+      timezone,
+      pageGameReader,
+      filter,
+      read: read.read,
+    });
+    read.log(
+      JSON.stringify({
+        at: "timeline_story_read",
+        door,
+        source: stored.built ? "stored" : "computed",
+        reason: stored.reason ?? null,
+        ...(stored.error ? { error: stored.error } : {}),
+        stories: stored.stories ?? 0,
+        ms: Math.round(performance.now() - started),
+      }),
+    );
+    if (stored.built) return { ...stored.built, served: "stored" };
+  }
+  const built = await buildTimeline(
     db,
     // The reader's own nickname for this player never reaches the page, and
     // nobody else's does either: the subject goes in with no nickname.
     [{ kind: "player", tag, relationship: null, nickname: null }],
     {
-      fromMs: window?.fromMs ?? now - PAGE_DAYS * 86_400_000,
-      toMs: window?.toMs ?? now,
+      fromMs,
+      toMs,
       timezone,
       // The page excludes account administration. A signed-in follower
       // also sees this player's completed Drop games.
@@ -225,16 +342,12 @@ const pageTimeline = (
       pageGameReader,
       basis: "occurred",
       // Its verification on Elixir, told on its page too (2026-11-15).
-      people: { accounts: [], players: true },
-      // Signed out (the public session page, 2026-11-17): what anyone
-      // with the link may read, never a member's.
-      filter: (it) =>
-        (pageGameReader && it.kind === "drop_game") ||
-        (publicOnly ? ["public"] : ["public", "member"]).includes(
-          itemVisibility(it),
-        ),
+      people: PAGE_PEOPLE,
+      filter,
     },
   );
+  return { ...built, served: "computed" };
+};
 
 /** The window a session's page reads, from the start its card names: an
  *  hour before it to a day after, so one sitting is read whole and never
@@ -291,6 +404,7 @@ export async function readSitting(
     expectedVersion,
     timezone = "UTC",
     publicOnly = false,
+    storyRead = null,
   } = {},
   now = Date.now(),
 ) {
@@ -305,6 +419,8 @@ export async function readSitting(
   if (publicOnly && !window) return null;
   const built = await pageTimeline(db, tag, timezone, now, window, {
     publicOnly,
+    storyRead,
+    door: "session",
   });
   const timeline = built.timeline ?? [];
   const item = timeline.find((it) => it.id === id && SITTINGS.has(it.kind));
@@ -362,7 +478,7 @@ export async function readSessionPage(
   tag,
   { id, at, offset = 0, expectedVersion } = {},
   now = Date.now(),
-  { comments = false } = {},
+  { comments = false, storyRead = null } = {},
 ) {
   const read = await readSitting(
     db,
@@ -373,6 +489,7 @@ export async function readSessionPage(
       offset,
       expectedVersion,
       timezone: account.timezone ?? "UTC",
+      storyRead,
     },
     now,
   );
@@ -466,7 +583,7 @@ export async function shadowStories(
   tag,
   built,
   window,
-  { compare = compareStories, log = console.info } = {},
+  { compare = compareStories, log = console.info, served = null } = {},
 ) {
   const started = performance.now();
   const ms = () => Math.round(performance.now() - started);
@@ -493,6 +610,7 @@ export async function shadowStories(
         JSON.stringify({
           at: "timeline_story_shadow",
           ...summary,
+          ...(served ? { served } : {}),
           groups: groups.length,
           ms: ms(),
         }),
@@ -521,7 +639,7 @@ async function readPlayerPage(
   account,
   tag,
   now = Date.now(),
-  { comments = false, storyShadow = null } = {},
+  { comments = false, storyShadow = null, storyRead = null } = {},
 ) {
   const { rows } = await db.query(
     `select p.player_tag, p.name, cm.clan_tag, cm.clan_name,
@@ -546,14 +664,25 @@ async function readPlayerPage(
   const timezone = account.timezone ?? "UTC";
   const built = await pageTimeline(db, tag, timezone, now, null, {
     pageGameReader: account.accountId,
+    storyRead,
   });
   // The stored stories beside it, logged (stage 1): the stack's
-  // TimelineStoryShadow switch; bounded, and never fails the page.
+  // TimelineStoryShadow switch; bounded, and never fails the page. When
+  // the page was served from the stored stories (stage 3), the shadow
+  // still compares them with a computed build, made here for it alone,
+  // and says which the page served.
   if (storyShadow)
-    await storyShadow(db, tag, built, {
-      fromMs: now - PAGE_DAYS * 86_400_000,
-      toMs: now,
-    });
+    await storyShadow(
+      db,
+      tag,
+      built.served === "stored"
+        ? await pageTimeline(db, tag, timezone, now, null, {
+            pageGameReader: account.accountId,
+          })
+        : built,
+      { fromMs: now - PAGE_DAYS * 86_400_000, toMs: now },
+      { served: built.served },
+    );
   // A post about a battle (what was a highlight, 0292) is the page's
   // Posts list's, read as the post it is (GET /api/me/posts?player=), so
   // the record's own line for it is left out here: one item, not two.
@@ -856,6 +985,11 @@ export function playerRoutes({
   // The stored-story shadow on the page (stage 1, 2026-11-23): true runs
   // shadowStories, a function runs that instead (tests); false, none.
   storyShadow = false,
+  // The stored read (stage 3, 2026-11-24, the stack's TimelineStoryRead):
+  // true reads the player's stored stories first on the page, its games'
+  // read and its session read; an object is that with a test's own
+  // `read` or `log`; false never reads them.
+  storyRead = false,
 }) {
   const shadow =
     typeof storyShadow === "function"
@@ -882,6 +1016,7 @@ export function playerRoutes({
       const page = await readPlayerPage(db, account, tag, Date.now(), {
         comments,
         storyShadow: shadow,
+        storyRead,
       });
       if (!page)
         return json(404, {
@@ -909,6 +1044,8 @@ export function playerRoutes({
         tag,
         account.timezone ?? "UTC",
         Date.now(),
+        null,
+        { storyRead, door: "evidence" },
       );
       const item = built.timeline.find(
         (it) => it.id === q.evidence_item_id && SITTINGS.has(it.kind),
@@ -956,7 +1093,7 @@ export function playerRoutes({
           expectedVersion: q.expected_evidence_version,
         },
         Date.now(),
-        { comments },
+        { comments, storyRead },
       );
       if (!page)
         return json(404, {

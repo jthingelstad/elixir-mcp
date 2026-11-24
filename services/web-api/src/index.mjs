@@ -184,6 +184,10 @@ const handler = makeHandler({
   // The stored-story shadow on the player page (2026-11-23): the stack's
   // TimelineStoryShadow, on unless switched off.
   storyShadow: process.env.TIMELINE_STORY_SHADOW === "on",
+  // The stored read (2026-11-24): the stack's TimelineStoryRead, on
+  // unless switched off; the player page and its session reads try the
+  // stored stories first.
+  storyRead: process.env.TIMELINE_STORY_READ === "on",
   // Product updates in Home's Timeline (2026-11-23): the What's new
   // entries marked for everyone, carried in this bundle from the build.
   productUpdates: readProductUpdates,

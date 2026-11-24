@@ -106,6 +106,9 @@ export const PRESERVED_PARAMETERS = [
   // The stored Timeline's shadow on the player page (2026-11-23): on by
   // default, switched off only by hand.
   "TimelineStoryShadow",
+  // The stored Timeline's read on the player page and its session reads
+  // (2026-11-24): on by default, switched off only by hand.
+  "TimelineStoryRead",
 ];
 
 /**

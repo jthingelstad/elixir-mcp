@@ -227,6 +227,11 @@ export function makeHandler({
    *  Timeline, 2026-11-23; routes/player.mjs shadowStories): the stack's
    *  TimelineStoryShadow. False = no shadow read. */
   storyShadow = false,
+  /** The stored read (stage 3 of the stored Timeline, 2026-11-24;
+   *  routes/player.mjs pageTimeline): the stack's TimelineStoryRead. The
+   *  player page, its games' read and its session reads, signed in or out,
+   *  try the player's stored stories first. False = always computed. */
+  storyRead = false,
   /** ({ fromMs, toMs }) => the What's new entries marked for everyone's
    *  Timeline inside a window, as Home's feed items (product-updates.mjs
    *  readProductUpdates, 2026-11-23); null = none. */
@@ -443,6 +448,7 @@ export function makeHandler({
       live: liveRead,
       comments: comments?.enabled === true,
       storyShadow,
+      storyRead,
     }),
     // Your own battles read now (2026-11-14): the same live lane, and the
     // stored week's wake once a read lands.
@@ -509,6 +515,7 @@ export function makeHandler({
       posts: postsOn,
       comments: comments?.enabled === true,
       shareImage,
+      storyRead,
     }),
     ...timelineItemRoutes({
       resolveAccount,

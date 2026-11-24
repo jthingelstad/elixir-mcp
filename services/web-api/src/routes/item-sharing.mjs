@@ -26,6 +26,9 @@ export function itemSharingRoutes({
   posts = false,
   comments = false,
   shareImage,
+  // The stored read (routes/player.mjs pageTimeline): a shared sitting is
+  // read as its public session page reads it.
+  storyRead = false,
 }) {
   const person = async (db, event, write = false) => {
     const account = await resolveAccount(db, event, {
@@ -33,7 +36,7 @@ export function itemSharingRoutes({
     });
     return account?.kind === "person" ? account : null;
   };
-  const read = (db, id) => readSharedItem(db, id, { plain: posts });
+  const read = (db, id) => readSharedItem(db, id, { plain: posts, storyRead });
   return {
     "POST /api/me/item-shares": async (db, event, body) => {
       const account = await person(db, event, true);
@@ -51,6 +54,7 @@ export function itemSharingRoutes({
         );
       const shared = await createItemShare(db, account.accountId, body, {
         plain: posts,
+        storyRead,
       });
       return shared ? json(200, shared, PRIVATE) : gone();
     },
