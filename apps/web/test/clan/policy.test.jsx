@@ -75,6 +75,30 @@ const render = async (data = view) => {
 };
 
 describe("policy: separated sections under Run", () => {
+  test("each category's minimum is drawn once", async () => {
+    const { container } = await render({
+      ...view,
+      current: {
+        ...view.current,
+        values: {
+          ...defaults(),
+          war_enabled: true,
+          ranked_enabled: true,
+          donations_enabled: true,
+          trophies_enabled: true,
+        },
+      },
+    });
+    for (const [section, field] of [
+      ["Clan Wars", "war_min_decks"],
+      ["Ranked", "ranked_min_battles"],
+      ["Donations", "donations_min_weekly"],
+      ["Trophy Road", "trophies_min"],
+    ]) {
+      open(section);
+      expect(container.querySelectorAll(`#f-${field}`).length).toBe(1);
+    }
+  });
   test("the draft summary follows explicit intent, and scoring links to the question before presets without saving", async () => {
     const save = vi.spyOn(manageApi, "savePolicy");
     const { container } = await render();
