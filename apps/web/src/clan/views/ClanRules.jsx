@@ -109,7 +109,9 @@ function Weekly({ values, how, mine }) {
             ? "You're doing your part."
             : mine.unknown
               ? "Elixir can't tell yet whether you're doing your part."
-              : "Not yet. Any of these gets you there."}
+              : values.minimums_rule === "all"
+                ? "Not yet. Meet every goal to get there."
+                : "Not yet. Any one of these gets you there."}
         </p>
       ) : null}
     </Part>
