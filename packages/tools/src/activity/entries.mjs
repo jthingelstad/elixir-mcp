@@ -1654,8 +1654,12 @@ const OTHERS_SQL = `cross join lateral (
                   filter (where o.side <> bp.side), '{}') as foes
            from battle_participant o where o.battle_id = bp.battle_id) o`;
 /** The battles statements playerBattles reads, for one player: `tagSql`
- *  names it (`$1`, or a batch's lateral column, `t.tag`). `earlier` is
- *  null for an occurred window. */
+ *  names it (`$1`, or a batch's lateral column, `t.tag`). `wide` is the
+ *  player's battles since a day before `from`: on the observed basis every
+ *  one the record knew by the window's end, learned in the window or not,
+ *  so a sitting that window selects is told whole (Codex on #1223);
+ *  learnedIn says which the window learned. `earlier` is null for an
+ *  occurred window. */
 function playerBattlesSql(tagSql, fromMs, toMs, basis) {
   const occurred = basis === "occurred";
   const learned = `b.created_at >= ${ts(fromMs + 1)} and b.created_at < ${ts(toMs + 1)}`;
@@ -1669,7 +1673,7 @@ function playerBattlesSql(tagSql, fromMs, toMs, basis) {
           occurred
             ? ""
             : `
-        and ${learned}`
+        and b.created_at < ${ts(toMs + 1)}`
         }
         and ${OWN_BATTLE_SQL}
       order by b.battle_time`,
@@ -1693,6 +1697,138 @@ function playerBattlesSql(tagSql, fromMs, toMs, basis) {
  *  late_captures counts. */
 const isLateRow = (b) =>
   b.battle_time.getTime() < b.created_at.getTime() - DAY_MS;
+
+/** Whether an observed window [from, to] learned a battle row: what it
+ *  selects and counts (the statements' `created_at >= from + 1ms and
+ *  created_at < to + 1ms`). */
+const learnedIn = (b, fromMs, toMs) =>
+  b.created_at.getTime() > fromMs && b.created_at.getTime() <= toMs;
+
+/**
+ * The sittings of one player's fetched battles that an observed window
+ * selected (they hold a battle it learned, `selected`) but that the fetch
+ * may hold only part of: those begun within a session gap of the fetch's
+ * lower edge, a day before `from`, which is every sitting of a late
+ * capture played before it. A sitting begun later is whole in the fetch:
+ * any battle within a gap of it is past the edge, and the fetch holds
+ * every battle past the edge the record knew by the window's end. Each
+ * as a {startMs, endMs} span.
+ */
+function edgeSittings(rows, selected, edgeMs) {
+  const sorted = [...rows].sort(
+    (a, b) => a.battle_time.getTime() - b.battle_time.getTime(),
+  );
+  const out = [];
+  let cur = null;
+  for (const b of sorted) {
+    const t = b.battle_time.getTime();
+    if (!cur || t - cur.endMs >= SESSION_GAP_MS) {
+      cur = { startMs: t, endMs: t, selected: false };
+      out.push(cur);
+    }
+    cur.endMs = t;
+    if (selected(b)) cur.selected = true;
+  }
+  return out
+    .filter((c) => c.selected && c.startMs < edgeMs + SESSION_GAP_MS)
+    .map(({ startMs, endMs }) => ({ startMs, endMs }));
+}
+
+/**
+ * The rest of the sittings an observed window selected at its edge
+ * (edgeSittings), so each is told with all its battles: the same facts,
+ * start, count, id and revision as an occurred read of the whole sitting
+ * (Codex on #1223: a sitting begun on time and finished by battles
+ * learned two days later was told as its two late games, under the
+ * evidence version of all three). Each span walks back from its start and
+ * on from its end while the gap stays under the session split, as
+ * sittingAnchors walks, bounded at SITTING_WALK_STEPS each way, then reads
+ * the player's own battles between: one probe a step on the player's own
+ * (player_tag, battle_time) index, for these sittings only. Only battles
+ * the record knew by the window's end, as the fetch it completes. `clan`
+ * reads a clan's member rows (bp.clan_tag = $5) in its own columns.
+ */
+function sittingContextSql({ toMs, fromMs, clan = false }) {
+  const known = `b.created_at < ${ts(toMs + 1)}`;
+  const inClan = clan ? " and bp.clan_tag = $5" : "";
+  const step = (dir) => `
+         cross join lateral (
+           select bp.battle_time
+             from battle_participant bp join battle b on b.battle_id = bp.battle_id
+            where bp.player_tag = w.p
+              and bp.battle_time ${dir === "back" ? "<" : ">"} w.cur
+              and bp.battle_time ${dir === "back" ? ">" : "<"} w.cur ${dir === "back" ? "-" : "+"} interval '${SESSION_GAP_MS / MIN_MS} minutes'
+              and bp.battle_time < ${ts(toMs + 1)}
+              and ${known}${inClan}
+              and ${OWN_BATTLE_SQL}
+            order by bp.battle_time ${dir === "back" ? "desc" : "asc"} limit 1) nxt
+        where w.steps < ${SITTING_WALK_STEPS}`;
+  const rows = clan
+    ? `select ${CLAN_BATTLE_COLUMNS}, false as learned,
+              (bp.battle_time >= ${ts(fromMs)} and bp.battle_time < ${ts(toMs)}) as played
+         from battle_participant bp
+         ${CLAN_BATTLE_JOINS}
+        where bp.player_tag = sp.p${inClan}`
+    : `select ${PLAYER_BATTLE_COLUMNS}
+         from battle_participant bp
+         join battle b on b.battle_id = bp.battle_id
+         ${OTHERS_SQL}
+        where bp.player_tag = sp.p`;
+  return `with recursive s as (
+       select t.i, t.p, to_timestamp(t.st / 1000.0) as st, to_timestamp(t.en / 1000.0) as en
+         from unnest($1::int[], $2::text[], $3::float8[], $4::float8[]) as t(i, p, st, en)
+     ), back as (
+       select s.i, s.p, s.st as cur, 0 as steps from s
+       union all
+       select w.i, w.p, nxt.battle_time, w.steps + 1 from back w${step("back")}
+     ), fwd as (
+       select s.i, s.p, s.en as cur, 0 as steps from s
+       union all
+       select w.i, w.p, nxt.battle_time, w.steps + 1 from fwd w${step("fwd")}
+     ), sp as (
+       select s.i, s.p,
+              (select min(cur) from back where back.i = s.i) as lo,
+              (select max(cur) from fwd where fwd.i = s.i) as hi
+         from s
+     )
+     select sp.p as batch_tag, x.*
+       from sp
+       cross join lateral (${rows}
+          and bp.battle_time >= sp.lo and bp.battle_time <= sp.hi
+          and ${known}
+          and ${OWN_BATTLE_SQL}
+        offset 0) x
+      order by sp.i, x.battle_time`;
+}
+
+/** sittingContextSql's rows for `spans` ({p, startMs, endMs}), each
+ *  under its player's tag (`batch_tag`). */
+async function sittingContext(db, spans, { fromMs, toMs, clanTag = null }) {
+  if (spans.length === 0) return [];
+  const { rows } = await db.query(
+    sittingContextSql({ fromMs, toMs, clan: clanTag !== null }),
+    [
+      spans.map((_, i) => i),
+      spans.map((x) => x.p),
+      spans.map((x) => x.startMs),
+      spans.map((x) => x.endMs),
+      ...(clanTag !== null ? [clanTag] : []),
+    ],
+  );
+  return rows;
+}
+
+/** `rows` with the battles of `more` it does not hold yet (by battle). */
+const withBattles = (rows, more) => {
+  const have = new Set(rows.map((r) => r.battle_id));
+  const add = [];
+  for (const r of more)
+    if (!have.has(r.battle_id)) {
+      have.add(r.battle_id);
+      add.push(r);
+    }
+  return add.length ? [...rows, ...add] : rows;
+};
 
 /** A per-player statement run once for every tag of a batch: each tag's
  *  rows come from the statement its player alone would run, on its
@@ -1720,20 +1856,33 @@ async function playerBattles(
   // occurred read also fetches the day before `from` (`wide`), so a
   // sitting begun before the window is built whole (Codex on #472): its
   // id, totals, decks and evidence are the sitting's, not the window's
-  // slice of it. late_captures counts the told battles the record learned
-  // a day or more after play; null for a read that serves no entry.
-  const occurred = basis === "occurred";
+  // slice of it; an observed read fetches the same day before, and
+  // completes a sitting it selected at that edge (sittingContext), so it
+  // tells a sitting whole too. late_captures counts the told battles the
+  // record learned a day or more after play; null for a read that serves
+  // no entry.
   let wide;
   if (prefetched) wide = prefetched.wide;
   else {
     const sql = playerBattlesSql("$1", fromMs, toMs, basis);
     wide = (await db.query(sql.wide, [tag])).rows;
-    if (sql.earlier)
+    if (sql.earlier) {
       wide = [...(await db.query(sql.earlier, [tag])).rows, ...wide];
+      // The rest of the sittings selected at the fetch's edge.
+      const spans = edgeSittings(
+        wide,
+        (b) => learnedIn(b, fromMs, toMs),
+        fromMs - DAY_MS,
+      ).map((x) => ({ p: tag, ...x }));
+      wide = withBattles(
+        wide,
+        (await sittingContext(db, spans, { fromMs, toMs })).map(
+          ({ batch_tag: _t, ...r }) => r,
+        ),
+      );
+    }
   }
-  const rows = occurred
-    ? wide.filter((r) => r.battle_time.getTime() > fromMs)
-    : wide;
+  const rows = playedOf(wide, fromMs, toMs, basis);
   return {
     rows,
     wide,
@@ -1805,6 +1954,27 @@ async function prefetchPlayers(db, tags, { fromMs, toMs, basis }) {
   for (const { batch_tag: t, ...row } of (await db.query(sql.wide, [tags]))
     .rows)
     battles.get(t)?.wide.push(row);
+  // The rest of the sittings selected at the fetch's edge, every
+  // player's in one statement, as playerBattles reads its own.
+  if (sql.earlier) {
+    const spans = tags.flatMap((t) =>
+      edgeSittings(
+        battles.get(t).wide,
+        (b) => learnedIn(b, fromMs, toMs),
+        fromMs - DAY_MS,
+      ).map((x) => ({ p: t, ...x })),
+    );
+    const more = new Map();
+    for (const { batch_tag: t, ...row } of await sittingContext(db, spans, {
+      fromMs,
+      toMs,
+    }))
+      more.set(t, [...(more.get(t) ?? []), row]);
+    for (const [t, rows] of more) {
+      const b = battles.get(t);
+      if (b) b.wide = withBattles(b.wide, rows);
+    }
+  }
   const snapshots = async (atMs) => {
     const { rows } = await db.query(sql.snapshot(atMs), [tags]);
     return new Map(rows.map(({ batch_tag, ...r }) => [batch_tag, r]));
@@ -1898,7 +2068,7 @@ async function prefetchPlayers(db, tags, { fromMs, toMs, basis }) {
       .rows,
   );
   const played = new Map(
-    tags.map((t) => [t, playedOf(battles.get(t).wide, fromMs, basis)]),
+    tags.map((t) => [t, playedOf(battles.get(t).wide, fromMs, toMs, basis)]),
   );
   // A return is judged from the battles learned on time (timelyOf).
   const presence = await presenceBatch(
@@ -2049,11 +2219,12 @@ async function playerPromotions(db, rows) {
   };
 }
 
-/** The window's battles of the wider fetch (playerBattles' `rows`). */
-const playedOf = (wide, fromMs, basis) =>
+/** The window's battles of the wider fetch (playerBattles' `rows`):
+ *  played in it, or learned in it. */
+const playedOf = (wide, fromMs, toMs, basis) =>
   basis === "occurred"
     ? wide.filter((r) => r.battle_time.getTime() > fromMs)
-    : wide;
+    : wide.filter((r) => learnedIn(r, fromMs, toMs));
 
 /** The battles the record learned within a day of play: what a return is
  *  judged by, though every battle is told. A late batch is a log read
@@ -3207,6 +3378,45 @@ export async function buildClanEntry(
         ),
       )
     : { rows: [] };
+  // The rest of each member's sittings this window selected at the
+  // fetch's edge (a late capture's, mostly), as a player's read completes
+  // its own (edgeSittings), in the clan's member rows.
+  if (!occurred && allBattles.length) {
+    const byMember = new Map();
+    for (const r of allBattles)
+      byMember.set(r.player_tag, [...(byMember.get(r.player_tag) ?? []), r]);
+    const spans = [...byMember].flatMap(([p, rows]) =>
+      edgeSittings(rows, (r) => r.learned, fromMs - DAY_MS).map((x) => ({
+        p,
+        ...x,
+      })),
+    );
+    if (spans.length) {
+      const more = await timed(perf, "clan.sitting_context", () =>
+        sittingContext(db, spans, { fromMs, toMs, clanTag: tag }),
+      );
+      const have = new Set(
+        allBattles.map((r) => `${r.player_tag}|${r.battle_id}`),
+      );
+      // The statement's order kept: members as it gave them, each
+      // member's battles by play time.
+      const rank = new Map();
+      for (const r of allBattles)
+        if (!rank.has(r.player_tag)) rank.set(r.player_tag, rank.size);
+      const before = allBattles.length;
+      for (const r of more.map(({ batch_tag: _t, ...x }) => x))
+        if (!have.has(`${r.player_tag}|${r.battle_id}`)) {
+          have.add(`${r.player_tag}|${r.battle_id}`);
+          allBattles.push(r);
+        }
+      if (allBattles.length > before)
+        allBattles.sort(
+          (x, y) =>
+            rank.get(x.player_tag) - rank.get(y.player_tag) ||
+            x.battle_time.getTime() - y.battle_time.getTime(),
+        );
+    }
+  }
   const memberBattles = allBattles.filter((r) =>
     occurred ? r.played : r.learned,
   );

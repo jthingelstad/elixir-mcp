@@ -317,6 +317,37 @@ test("a sitting learned a day or more after it was played is told on Elixir, nev
   }
 });
 
+test("a posted sitting finished by battles learned two days late is edited whole", async () => {
+  // Codex on #1223: the sitting's first five were learned as played and
+  // posted; its last five, two days later. The edit tells all ten, never
+  // the late five alone.
+  await ctx.db.query(
+    `update battle set created_at = battle_time + interval '2 days'
+      where battle_time > '2026-09-02T18:11Z' and battle_time < '2026-09-02T18:35Z'`,
+  );
+  try {
+    await enable(person, "2026-09-02T17:00Z");
+    const { sent, outbox } = recorder();
+    for (const now of ["2026-09-02T18:15Z", "2026-09-02T20:30Z"])
+      await syncAccount(ctx.db, person, { outbox, now: Date.parse(now) });
+    const closed = sent.at(-1).message.posts[0];
+    assert.match(closed.content, /played 5 battles in one session/);
+    await syncAccount(ctx.db, person, {
+      outbox,
+      now: Date.parse("2026-09-04T20:40Z"),
+    });
+    assert.equal(sent.length, 3, JSON.stringify(sent.map((x) => x.message)));
+    const [edit] = sent[2].message.posts;
+    assert.equal(edit.key, closed.key);
+    assert.ok(edit.revision > closed.revision);
+    assert.match(edit.content, /played 10 battles in one session/);
+  } finally {
+    await ctx.db.query(
+      `update battle set created_at = battle_time + interval '5 minutes'`,
+    );
+  }
+});
+
 test("off, or a webhook Discord says is gone, posts nothing", async () => {
   await enable(person, "2026-09-02T17:00Z");
   const { sent, outbox } = recorder();

@@ -381,9 +381,11 @@ test("the bell stays in its budgets, built and stored, and never counts late cap
       // +2: each own player's battles learned this week but played
       // before it, told at their played time (2026-11-23), one statement
       // a player off battle_created_at; the walk of the week's learned
-      // battles is most of the +300 buffers.
+      // battles is most of the +300 buffers. +50: an observed week's
+      // battles since a day before it, learned in it or not, so a
+      // sitting it selected is told whole (Codex on #1223).
       statements: 40,
-      buffers: 1400,
+      buffers: 1450,
     },
   );
   // The late count read every battle the record learned in the week,

@@ -371,20 +371,24 @@ test("a bounded sitting discloses an incomplete anchor, ties sort by canonical I
   );
   await db.query(
     `insert into battle (battle_id,battle_time,type,type_class,created_at)
-    select lpad(to_hex(1000+n),64,'0'),$1::timestamptz+n*interval '1 minute','PvP','pvp',$1::timestamptz+n*interval '1 minute'+interval '1 second' from generate_series(1,206) n`,
+    select lpad(to_hex(1000+n),64,'0'),$1::timestamptz+n*interval '1 minute','PvP','pvp',$1::timestamptz+n*interval '1 minute'+interval '1 second' from generate_series(1,1900) n`,
     [at(0)],
   );
   await db.query(
     `update battle set battle_time=$1::timestamptz,created_at=$1::timestamptz+interval '1 second' where battle_id=$2`,
-    [at(205), id(1206)],
+    [at(1899), id(2900)],
   );
   await db.query(
     `insert into battle_participant (battle_id,player_tag,battle_time,side,type,type_class,outcome)
     select battle_id,$1,battle_time,0,type,type_class,'win' from battle where battle_id between $2 and $3`,
-    [tag, id(1001), id(1206)],
+    [tag, id(1001), id(2900)],
   );
+  // A sitting of 1,900 one-minute games: an observed window at its end
+  // fetches the day before it, completes the sitting at that edge by at
+  // most SITTING_WALK_STEPS (sittingContext), and the anchor walk goes
+  // at most as far again, which still leaves its first games out.
   const item = (
-    await feed(FROM + 204 * 60000, FROM + 210 * 60000)
+    await feed(FROM + 1898 * 60000, FROM + 1904 * 60000)
   ).timeline.find((x) => x.subject_tag === tag && x.kind === "battle_session");
   assert.equal(item.evidence.open, true);
   assert.equal(item.evidence.completeness, "anchor_bound");
@@ -396,16 +400,16 @@ test("a bounded sitting discloses an incomplete anchor, ties sort by canonical I
   });
   assert.deepEqual(
     last.battles.map((x) => x.battle_id),
-    [id(1205), id(1206)],
+    [id(2899), id(2900)],
   );
   const prior = item.evidence.version;
   // Outcome corrections do not change the exact reference membership.
   await db.query(
     "update battle_participant set outcome='loss' where battle_id=$1 and player_tag=$2",
-    [id(1205), tag],
+    [id(2899), tag],
   );
   assert.equal(
-    (await feed(FROM + 204 * 60000, FROM + 210 * 60000)).timeline.find(
+    (await feed(FROM + 1898 * 60000, FROM + 1904 * 60000)).timeline.find(
       (x) => x.subject_tag === tag && x.kind === "battle_session",
     ).evidence.version,
     prior,
