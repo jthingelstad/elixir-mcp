@@ -162,6 +162,9 @@ for (const width of [390, 1280]) {
   });
 
   test(`another kind from the keyboard, at ${width}`, async ({ page }) => {
+    // Two accessibility scans and three keyboard walks: past 30 s on a
+    // loaded machine (a timeout seen 2026-11-24), never a wrong answer.
+    test.slow();
     const sent: { item_id: string; cheer: string | null }[] = [];
     await page.setViewportSize({ width, height: 900 });
     await page.clock.setFixedTime(new Date(FEED_NOW));
