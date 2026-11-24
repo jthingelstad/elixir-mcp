@@ -412,6 +412,7 @@ test("a clan-owned arrival shares its canonical news without opening the clan hi
     "clan_policy",
     "decision",
     "hold",
+    "exceptions",
     "nickname",
     "leader_note",
   ])

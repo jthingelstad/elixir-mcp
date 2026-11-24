@@ -382,6 +382,191 @@ test("above the ceiling: the lowest-ranked participating elder is demoted as out
   assert.equal(b.demote_reasons.get("#E0"), "outranked");
 });
 
+// ---- exceptions in the band (Jamie 2026-11-23) -------------------------------
+
+const exceptionFor = (tag, kind, setDaysAgo = 60) => ({
+  player_tag: tag,
+  kind,
+  set_at: new Date(NOW.getTime() - setDaysAgo * DAY).toISOString(),
+  until: new Date(NOW.getTime() + 30 * DAY).toISOString(),
+});
+
+test("a gifted Elder takes no earned seat: the band counts earned Elders only, and never demotes them", () => {
+  // 10 roster: floor 2, ceil 3, target 3. Three earned Elders on top,
+  // and a weak fourth Elder the leaders keep as Elder.
+  const earned = Array.from({ length: 3 }, (_, i) =>
+    member(`#E${i}`, {
+      role: "elder",
+      war: [14, 14, 14, 14, 14, 0],
+      donations: [300, 300, 300, 300, 300, 0],
+    }),
+  );
+  const gifted = member("#GIFT", {
+    role: "elder",
+    war: [3, 3, 3, 3, 3, 0],
+    donations: [10, 10, 10, 10, 10, 0],
+  });
+  const members = Array.from({ length: 6 }, (_, i) =>
+    member(`#M${i}`, {
+      war: [6, 6, 6, 6, 6, 0],
+      donations: [100, 100, 100, 100, 100, 0],
+    }),
+  );
+  const p = participation([...earned, gifted, ...members]);
+  const plain = evaluate({ participation: p, policy, now: NOW });
+  const g0 = plain.members.find((m) => m.player_tag === "#GIFT");
+  assert.equal(plain.band.current_elders, 4, "without it, four in the band");
+  assert.equal(g0.demotion.demotable_now, true, "and the weakest is out");
+
+  const kept = evaluate({
+    participation: p,
+    policy,
+    now: NOW,
+    exceptions: [exceptionFor("#GIFT", "keep_as_elder")],
+  });
+  const g = kept.members.find((m) => m.player_tag === "#GIFT");
+  assert.equal(kept.band.current_elders, 3, "earned Elders only");
+  assert.equal(kept.band.kept_elders, 1);
+  assert.equal(g.ranked_for_elder, false);
+  assert.equal(g.standing.rank, null, "scored, not ranked");
+  assert.equal(g.demotion.state, "none");
+  assert.equal(g.demotion.excepted, true);
+  assert.equal(g.judgment.demotion, "not_applicable");
+  assert.equal(g.actionable.demotion, false);
+  assert.deepEqual(g.exceptions, ["keep_as_elder"]);
+  assert.ok(
+    g.trail.every((t) => !t.demotable),
+    "out of every review",
+  );
+});
+
+test("a gifted Elder blocks no promotion: an earned seat stays open for a member", () => {
+  // 10 roster, target 3: two earned Elders, one gifted, one strong Member
+  // just behind them all.
+  const earned = Array.from({ length: 2 }, (_, i) =>
+    member(`#E${i}`, {
+      role: "elder",
+      war: [14, 14, 14, 14, 14, 0],
+      donations: [300, 300, 300, 300, 300, 0],
+    }),
+  );
+  const gifted = member("#GIFT", {
+    role: "elder",
+    war: [15, 15, 15, 15, 15, 0],
+    donations: [350, 350, 350, 350, 350, 0],
+  });
+  const strong = member("#STRONG", {
+    war: [13, 13, 13, 13, 13, 0],
+    donations: [280, 280, 280, 280, 280, 0],
+  });
+  const rest = Array.from({ length: 6 }, (_, i) =>
+    member(`#M${i}`, {
+      war: [4, 4, 4, 4, 4, 0],
+      donations: [60, 60, 60, 60, 60, 0],
+    }),
+  );
+  const p = participation([...earned, gifted, strong, ...rest]);
+  const s = (v) => v.members.find((m) => m.player_tag === "#STRONG");
+  const plain = evaluate({ participation: p, policy, now: NOW });
+  assert.equal(plain.band.current_elders, 3, "the band is full");
+  assert.equal(s(plain).promotion.promotable_now, false);
+  const kept = evaluate({
+    participation: p,
+    policy,
+    now: NOW,
+    exceptions: [exceptionFor("#GIFT", "keep_as_elder")],
+  });
+  assert.equal(kept.band.current_elders, 2);
+  assert.equal(s(kept).promotion.promotable_now, true, "the seat is open");
+  assert.equal(s(kept).actionable.promotion, true);
+});
+
+test("Not for Elder: never suggested for promotion and not ranked, so the next in line moves up", () => {
+  const top = member("#TOP", {
+    war: [16, 16, 16, 16, 16, 0],
+    donations: [800, 800, 800, 800, 800, 0],
+  });
+  const next = member("#NEXT", {
+    war: [12, 12, 12, 12, 12, 0],
+    donations: [400, 400, 400, 400, 400, 0],
+  });
+  const third = member("#THIRD", {
+    war: [10, 10, 10, 10, 10, 0],
+    donations: [300, 300, 300, 300, 300, 0],
+  });
+  const mids = Array.from({ length: 5 }, (_, i) =>
+    member(`#M${i}`, {
+      war: [4, 4, 4, 4, 4, 0],
+      donations: [100, 100, 100, 100, 100, 0],
+    }),
+  );
+  const p = participation([top, next, third, ...mids]);
+  const find = (v, tag) => v.members.find((m) => m.player_tag === tag);
+  const plain = evaluate({ participation: p, policy, now: NOW });
+  assert.equal(plain.band.target, 2);
+  assert.equal(find(plain, "#TOP").actionable.promotion, true);
+  assert.equal(find(plain, "#THIRD").promotion.promotable_now, false);
+
+  const v = evaluate({
+    participation: p,
+    policy,
+    now: NOW,
+    exceptions: [exceptionFor("#TOP", "not_for_elder")],
+  });
+  const t = find(v, "#TOP");
+  assert.equal(t.promotion.state, "none");
+  assert.equal(t.promotion.excepted, true);
+  assert.equal(t.judgment.promotion, "not_applicable");
+  assert.equal(t.actionable.promotion, false);
+  assert.equal(t.ranked_for_elder, false);
+  assert.equal(t.standing.rank, null);
+  assert.ok(find(v, "#NEXT").actionable.promotion);
+  assert.ok(
+    find(v, "#THIRD").promotion.promotable_now,
+    "the line moves up one",
+  );
+  // A kind that does not fit the role says nothing: Keep as Elder on a
+  // Member, Not for Elder on an Elder.
+  const misfit = evaluate({
+    participation: p,
+    policy,
+    now: NOW,
+    exceptions: [exceptionFor("#TOP", "keep_as_elder")],
+  });
+  assert.equal(find(misfit, "#TOP").actionable.promotion, true);
+  assert.equal(find(misfit, "#TOP").ranked_for_elder, true);
+});
+
+test("an exception counts only at the reviews it was running at", () => {
+  const filler = Array.from({ length: 7 }, (_, i) =>
+    member(`#F${i}`, {
+      war: [4, 4, 4, 4, 4, 0],
+      donations: [100, 100, 100, 100, 100, 0],
+    }),
+  );
+  const riser = member("#RISER", {
+    war: [16, 16, 16, 16, 16, 8],
+    donations: [500, 500, 500, 500, 500, 200],
+  });
+  const p = participation([...filler, riser]);
+  // Set two days ago and ended a day ago: it covered no weekly review,
+  // and it is not running now.
+  const brief = {
+    ...exceptionFor("#RISER", "not_for_elder", 2),
+    ended_at: new Date(NOW.getTime() - DAY).toISOString(),
+  };
+  const v = evaluate({
+    participation: p,
+    policy,
+    now: NOW,
+    exceptions: [brief],
+  });
+  const r = v.members.find((m) => m.player_tag === "#RISER");
+  assert.equal(r.promotion.state, "eligible");
+  assert.equal(r.actionable.promotion, true);
+  assert.deepEqual(r.exceptions, []);
+});
+
 // ---- the removal clock -------------------------------------------------------
 
 function clockFor(opts, extra = {}) {
@@ -456,7 +641,7 @@ test("a new membership resets a pre-join idle clock; newcomers get no shield aft
   assert.equal(joinedNineDaysAgo.removal.state, "recommended");
 });
 
-test("elder+ is never recommended for removal; a hold pauses at at_risk and expires by itself", () => {
+test("elder+ is never recommended for removal; an exception pauses at at_risk and ends by itself", () => {
   assert.equal(
     clockFor({ role: "elder", lastBattleDaysAgo: 20, war: [0, 0, 0, 0, 0, 0] })
       .removal.state,
@@ -464,27 +649,38 @@ test("elder+ is never recommended for removal; a hold pauses at at_risk and expi
   );
   const others = Array.from({ length: 10 }, (_, i) => member(`#O${i}`));
   const m = member("#X", { lastBattleDaysAgo: 20, war: [0, 0, 0, 0, 0, 0] });
-  const held = evaluate({
-    participation: participation([...others, m]),
-    policy,
-    now: NOW,
-    holds: [
-      { player_tag: "#X", until: new Date(NOW.getTime() + DAY).toISOString() },
-    ],
-  }).members.find((x) => x.player_tag === "#X");
-  assert.equal(held.removal.state, "at_risk");
-  assert.equal(held.removal.shielded, "hold");
-  assert.equal(held.hold.active, true);
-  const lapsed = evaluate({
-    participation: participation([...others, m]),
-    policy,
-    now: NOW,
-    holds: [
-      { player_tag: "#X", until: new Date(NOW.getTime() - DAY).toISOString() },
-    ],
-  }).members.find((x) => x.player_tag === "#X");
-  assert.equal(lapsed.removal.state, "recommended");
-  assert.equal(lapsed.hold.active, false);
+  const judged = (kind, until, extra = {}) =>
+    evaluate({
+      participation: participation([...others, m]),
+      policy,
+      now: NOW,
+      exceptions: [
+        {
+          player_tag: "#X",
+          kind,
+          set_at: new Date(NOW.getTime() - 3 * DAY).toISOString(),
+          until: new Date(NOW.getTime() + until).toISOString(),
+          ...extra,
+        },
+      ],
+    }).members.find((x) => x.player_tag === "#X");
+  for (const kind of ["keep_in_clan", "away"]) {
+    const kept = judged(kind, DAY);
+    assert.equal(kept.removal.state, "at_risk", kind);
+    assert.equal(kept.removal.shielded, "exception", kind);
+    assert.equal(kept.removal.triage.status, "protected", kind);
+    assert.equal(kept.actionable.removal, false, kind);
+    assert.deepEqual(kept.exceptions, [kind]);
+  }
+  const lapsed = judged("keep_in_clan", -DAY);
+  assert.equal(lapsed.removal.state, "recommended", "judged again at its end");
+  assert.deepEqual(lapsed.exceptions, []);
+  const endedEarly = judged("away", DAY, {
+    ended_at: new Date(NOW.getTime() - DAY).toISOString(),
+  });
+  assert.equal(endedEarly.actionable.removal, true, "ended early");
+  // The other kinds say nothing about the kick clock.
+  assert.equal(judged("not_for_elder", DAY).actionable.removal, true);
 });
 
 test("a member with no battle and no anchor is held, never judged", () => {

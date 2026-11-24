@@ -134,9 +134,14 @@ async function seedClan({ members = 11, evaluatedVersion = null } = {}) {
     status: "done",
     raised_at: "2026-09-13T10:00:00Z",
   });
-  await ledger.putHold(CLAN, {
+  await ledger.putException(CLAN, {
+    exception_id: "x1",
     player_tag: "#0RC",
-    reason: "private-canary-hold",
+    kind: "keep_in_clan",
+    visibility: "leaders",
+    set_at: "2026-09-01T00:00:00.000Z",
+    until: "2027-09-01T00:00:00.000Z",
+    note: "private-canary-exception",
   });
   await ledger.putNote(CLAN, {
     note_id: "n1",

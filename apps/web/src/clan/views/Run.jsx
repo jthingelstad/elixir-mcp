@@ -16,13 +16,14 @@ import { Sharing } from "./Sharing.jsx";
 import { SocialSetting } from "./SocialSetting.jsx";
 import { VoiceSetting } from "./VoiceSetting.jsx";
 import { ActionsNow, Decided, RefreshSuggestions } from "./Waiting.jsx";
+import { RunExceptions } from "./RunExceptions.jsx";
 import { RunMember } from "./RunMember.jsx";
 import { RunMembers } from "./RunMembers.jsx";
 
 /** Run's list, in the order a leader reads it. */
 const SIDE = [
   { head: "Actions", items: ["actions", "decided", "members"] },
-  { head: "How it runs", items: ["rules"] },
+  { head: "How it runs", items: ["rules", "exceptions"] },
   {
     head: "Elsewhere",
     items: ["awards-setup", "discord", "model-voice", "settings"],
@@ -33,6 +34,7 @@ const ELSEWHERE = {
   decided: "Decided",
   members: "Members",
   rules: "Rules",
+  exceptions: "Exceptions",
   "awards-setup": "Awards setup",
   discord: "Discord",
   "model-voice": "Model & voice",
@@ -204,6 +206,9 @@ function Elsewhere({ clan, who, slug, player, navigate }) {
     ) : (
       <RunMembers clan={clan} navigate={navigate} />
     );
+  // Members the rules leave alone (2026-11-23, holds before).
+  if (slug === "exceptions")
+    return <RunExceptions clan={clan} navigate={navigate} />;
   if (slug === "awards-setup")
     return (
       <div className="grid gap-4">

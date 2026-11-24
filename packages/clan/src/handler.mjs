@@ -798,14 +798,31 @@ export function createHandler({
       const comment = /^\/actions\/([A-Za-z0-9_-]+)\/comments$/.exec(rest);
       if (method === "POST" && comment)
         return json(200, await manage.comment(tag, who, comment[1], body.text));
-      const hold = /^\/holds\/([0-9A-Za-z]{3,12})$/.exec(rest);
-      if (hold) {
-        const ptag = normalizeTag(hold[1]);
+      // Member exceptions (2026-11-23): the clan's list, one member's,
+      // and a leader setting, changing or ending one kind on a member.
+      if (method === "GET" && rest === "/exceptions")
+        return json(200, await manage.exceptionsView(tag, who));
+      const memberExceptions =
+        /^\/members\/([0-9A-Za-z]{3,12})\/exceptions$/.exec(rest);
+      if (method === "GET" && memberExceptions) {
+        const ptag = normalizeTag(memberExceptions[1]);
+        if (!ptag) return json(400, { error: "bad_request" });
+        return json(200, await manage.memberExceptions(tag, who, ptag));
+      }
+      const exception =
+        /^\/members\/([0-9A-Za-z]{3,12})\/exceptions\/([a-z_]{1,20})$/.exec(
+          rest,
+        );
+      if (exception) {
+        const ptag = normalizeTag(exception[1]);
         if (!ptag) return json(400, { error: "bad_request" });
         if (method === "PUT")
-          return json(200, await manage.setHold(tag, who, ptag, body));
+          return json(
+            200,
+            await manage.setException(tag, who, ptag, exception[2], body),
+          );
         if (method === "DELETE") {
-          await manage.clearHold(tag, who, ptag);
+          await manage.endException(tag, who, ptag, exception[2]);
           return json(200, { ok: true });
         }
       }
@@ -1010,7 +1027,7 @@ export function mountedPath(path) {
 export function routeKey(method, path) {
   const generic = path
     .replace(/^\/api\/clans\/[0-9A-Za-z]+/, "/api/clans/*")
-    .replace(/\/(actions|notes|holds|members)\/[^/]+/g, "/$1/*")
+    .replace(/\/(actions|notes|members)\/[^/]+/g, "/$1/*")
     .replace(/\/messages\/[0-9]+\/sent$/, "/messages/*/sent")
     .replace(/\/awards\/grants\/.+$/, "/awards/grants/*")
     .replace(/^(\/api\/(?:maintain\/)?feedback)\/[^/]+$/, "$1/*");

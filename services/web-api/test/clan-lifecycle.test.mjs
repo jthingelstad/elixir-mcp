@@ -158,7 +158,7 @@ test("one stay through welcome, promotion, demotion, classified departure and re
   const verdict = async (eligible) =>
     ledger.saveVerdicts(clan, {
       policy_version: (await ledger.currentPolicy(clan)).version,
-      removal_evidence_schema: 5,
+      removal_evidence_schema: 6,
       evaluated_at: new Date(time).toISOString(),
       members: [{ player_tag: tag, actionable: { promotion: eligible } }],
     });

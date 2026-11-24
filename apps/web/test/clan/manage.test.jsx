@@ -95,7 +95,7 @@ describe("standing", () => {
           next: ["War decks count here."],
           inactivity: null,
           days_idle: 0.5,
-          hold: null,
+          exceptions: [],
         },
       },
     });
@@ -223,7 +223,7 @@ describe("standing", () => {
           inactivity: "at_risk",
           at_risk_days: 7,
           days_idle: 8.5,
-          hold: null,
+          exceptions: [],
         },
       },
     });

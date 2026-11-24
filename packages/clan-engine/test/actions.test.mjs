@@ -72,7 +72,7 @@ test("a newcomer is welcomed once per join, only while still here and only for a
   assert.deepEqual(welcomesFrom(events, already, here, NOW), []);
 });
 
-test("a member or elder at risk is asked about away; leadership and held members are not", () => {
+test("a member or elder at risk is asked about away; leadership and members kept in the clan are not", () => {
   const others = Array.from({ length: 8 }, (_, i) => member(`#O${i}`));
   const quiet = (tag, role) =>
     member(tag, { role, lastBattleDaysAgo: 6, war: [0, 0, 0, 0, 0, 0] });
@@ -86,7 +86,14 @@ test("a member or elder at risk is asked about away; leadership and held members
     ]),
     policy: EXAMPLE_POLICY,
     now: NOW,
-    holds: [{ player_tag: "#H1", until: null }],
+    exceptions: [
+      {
+        player_tag: "#H1",
+        kind: "keep_in_clan",
+        set_at: "2026-09-01T00:00:00Z",
+        until: "2027-01-01T00:00:00Z",
+      },
+    ],
   });
   assert.deepEqual(
     awayCandidates(v)

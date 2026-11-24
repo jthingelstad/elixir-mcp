@@ -92,9 +92,11 @@ test("the Clan API's changes go through it, and reads never do", async () => {
   render(<RoleConfirming />);
   let answered = null;
   await act(async () => {
-    manageApi.setHold("#0QC8RCGY", "#0RJL", { until: null }).then((r) => {
-      answered = r;
-    });
+    manageApi
+      .setException("#0QC8RCGY", "#0RJL", "keep_in_clan", { length: "1m" })
+      .then((r) => {
+        answered = r;
+      });
   });
   await vi.waitFor(() => expect(waitingForRole()).not.toBe(null));
   await act(async () =>

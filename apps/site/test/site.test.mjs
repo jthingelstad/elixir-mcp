@@ -87,6 +87,7 @@ const STATIC_PAGES = [
   "/docs/clan-leaders-pages",
   "/docs/clan-settings",
   "/docs/clan-discord",
+  "/docs/clan-exceptions",
   "/docs/clan-your-own-view",
   "/docs/clan-directory",
   "/docs/connections",

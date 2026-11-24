@@ -5,7 +5,10 @@
  * whose leaders have not set one. "In line for promotion on three weekly
  * reviews" is computed by replaying the band at each past weekly boundary
  * from the record. Nothing is stored between runs except decisions and
- * holds, which are inputs.
+ * exceptions, which are inputs. An exception counts at each boundary it
+ * was running at (exceptions.mjs), so a gifted Elder set today frees an
+ * earned seat from today's review on, and one that ends is judged again
+ * from its end.
  *
  * Weekly boundaries follow what the clan counts: when Clan Wars weighs in
  * the Elder order, the instants the record saw each war week finish (the
@@ -19,6 +22,12 @@ import { band, scores, passesMinimums, LEADERSHIP } from "./standing.mjs";
 import { elderWeights, ranksElder } from "./policy.mjs";
 import { removalDay } from "./inactivity.mjs";
 import { LEFT_CLAN_REASON } from "./departures.mjs";
+import {
+  activeKindsAt,
+  outOfBand,
+  shieldsRemoval,
+  EXCEPTION_KINDS,
+} from "./exceptions.mjs";
 
 const DAY_MS = 86400_000;
 
@@ -42,11 +51,18 @@ export function reviewBoundaries(participation, now, limit, policy = null) {
   return finished.slice(-limit).map((t) => new Date(t));
 }
 
-/** Whether a hold (a leader's, or a member's own away) protects now. */
-export function holdActive(hold, nowMs) {
-  if (!hold) return false;
-  if (!hold.until) return true;
-  return Date.parse(hold.until) > nowMs;
+/** The rows the Elder band ranks: every scored row but the members an
+ *  exception takes out of it at that instant. */
+function bandRows(rows, facts, exceptions, ms) {
+  const out = outOfBand(
+    activeKindsAt(exceptions, ms),
+    (tag) => facts.get(tag)?.role ?? null,
+  );
+  if (!out.size) return { rows, out };
+  return {
+    rows: new Map([...rows].filter(([tag]) => !out.has(tag))),
+    out,
+  };
 }
 
 /**
@@ -156,7 +172,8 @@ export function replayMachines(trail, policy) {
  * @param {object} input.policy validated policy values
  * @param {Date}   input.now
  * @param {Array}  [input.decisions] decided cards: { player_tag, type, status, decided_at, expires_at? }
- * @param {Array}  [input.holds] { player_tag, until|null }
+ * @param {Array}  [input.exceptions] the clan's exception records (any
+ *   state; exceptions.mjs): { player_tag, kind, set_at, until, ended_at? }
  * @param {string} [input.policy_version]
  * @param {Map<string, number|null>} [input.trophies] tag -> trophies today,
  *   needed only when the policy counts trophy road
@@ -166,13 +183,13 @@ export function evaluate({
   policy,
   now,
   decisions = [],
-  holds = [],
+  exceptions = [],
   policy_version = null,
   trophies = null,
 }) {
   const nowMs = now.getTime();
   const rosterSize = participation.members.length;
-  const holdByTag = new Map(holds.map((h) => [h.player_tag, h]));
+  const kindsNow = activeKindsAt(exceptions, nowMs);
   const ranking = ranksElder(policy);
   const weights = elderWeights(policy);
   const maxWeeks = Math.max(
@@ -192,7 +209,8 @@ export function evaluate({
     const facts = factsAt(participation, policy, at, extra);
     const byTag = new Map(facts.map((f) => [f.player_tag, f]));
     const rows = scores(facts, policy);
-    const b = band(rows, byTag, rosterSize, policy);
+    const ranked = bandRows(rows, byTag, exceptions, at.getTime());
+    const b = band(ranked.rows, byTag, rosterSize, policy);
     return { at, facts: byTag, rows, band: b };
   });
 
@@ -200,7 +218,10 @@ export function evaluate({
   const factsNow = factsAt(participation, policy, now, extra);
   const byTagNow = new Map(factsNow.map((f) => [f.player_tag, f]));
   const rowsNow = ranking ? scores(factsNow, policy) : new Map();
-  const bandNow = band(rowsNow, byTagNow, rosterSize, policy);
+  // Kept Elders and members not for Elder are scored but not ranked: the
+  // band's seats, line and median are the earned Elders' and the rest.
+  const rankedNow = bandRows(rowsNow, byTagNow, exceptions, nowMs);
+  const bandNow = band(rankedNow.rows, byTagNow, rosterSize, policy);
   // What the record must be able to say for a member to be judged on
   // Elder: every weighted category, and the minimums.
   const evidenceGap = (facts) =>
@@ -213,8 +234,10 @@ export function evaluate({
   const members = factsNow.map((f) => {
     const tag = f.player_tag;
     const row = rowsNow.get(tag) ?? null;
-    const hold = holdByTag.get(tag) ?? null;
-    const onHold = holdActive(hold, nowMs);
+    const kinds = kindsNow.get(tag) ?? new Set();
+    const keptOut = shieldsRemoval(kinds);
+    const notForElder = kinds.has("not_for_elder") && f.role === "member";
+    const keptElder = kinds.has("keep_as_elder") && f.role === "elder";
 
     // ---- promotion / demotion machines, replayed over the boundaries ----
     const trail = reviews.map((r) => ({
@@ -235,26 +258,32 @@ export function evaluate({
       pState = "none";
       pWeeks = 0;
     }
-    if (f.role !== "elder") {
+    if (f.role !== "elder" || keptElder) {
       dState = "none";
       dWeeks = 0;
       dReason = null;
+    }
+    if (notForElder) {
+      pState = "none";
+      pWeeks = 0;
+      pMiss = 0;
     }
 
     // ---- readiness (fail closed) ----
     const latest = reviews.at(-1);
     const latestFacts = latest?.facts.get(tag) ?? f;
-    const promotionJudgment = LEADERSHIP.has(f.role)
-      ? "not_applicable"
-      : !ranking
-        ? "off"
-        : !f.tenure_known && f.role === "member"
-          ? "unknown"
-          : reviews.length === 0 || evidenceGap(latestFacts)
-            ? "held"
-            : "ready";
+    const promotionJudgment =
+      LEADERSHIP.has(f.role) || notForElder
+        ? "not_applicable"
+        : !ranking
+          ? "off"
+          : !f.tenure_known && f.role === "member"
+            ? "unknown"
+            : reviews.length === 0 || evidenceGap(latestFacts)
+              ? "held"
+              : "ready";
     const demotionJudgment =
-      f.role !== "elder"
+      f.role !== "elder" || keptElder
         ? "not_applicable"
         : !ranking
           ? "off"
@@ -281,7 +310,7 @@ export function evaluate({
         (f.role === "elder" && !policy.removal_includes_elders)
       )
         shielded = "role";
-      else if (onHold) shielded = "hold";
+      else if (keptOut) shielded = "exception";
       else if (!policy.removal_enabled) shielded = "policy";
       if (shielded) rState = "at_risk";
     }
@@ -321,16 +350,19 @@ export function evaluate({
 
     const actionable = {
       promotion:
+        !notForElder &&
         promotionJudgment === "ready" &&
         pState === "eligible" &&
         bandNow.promotable.has(tag) &&
         past("promotion"),
       demotion:
+        !keptElder &&
         demotionJudgment === "ready" &&
         dState === "eligible" &&
         bandNow.demotable.has(tag) &&
         past("demotion"),
       removal:
+        !keptOut &&
         removalJudgment === "ready" &&
         rState === "recommended" &&
         past("removal"),
@@ -346,10 +378,15 @@ export function evaluate({
           status: "protected",
           reason: "The policy protects this role from removal.",
         };
-      if (onHold)
+      if (kinds.has("away"))
         return {
           status: "protected",
-          reason: "An active hold shields removal eligibility.",
+          reason: "They are away, so the rules do not suggest a kick.",
+        };
+      if (kinds.has("keep_in_clan"))
+        return {
+          status: "protected",
+          reason: "Kept in the clan, so the rules do not suggest a kick.",
         };
       if (!policy.removal_enabled)
         return {
@@ -427,6 +464,7 @@ export function evaluate({
         weeks: pWeeks,
         misses: pMiss,
         promotable_now: bandNow.promotable.has(tag),
+        excepted: notForElder,
         cooldown_until: cooldown.promotion,
       },
       demotion: {
@@ -434,6 +472,7 @@ export function evaluate({
         weeks: dWeeks,
         reason: dReason ?? bandNow.demote_reasons.get(tag) ?? null,
         demotable_now: bandNow.demotable.has(tag),
+        excepted: keptElder,
         cooldown_until: cooldown.demotion,
       },
       removal: {
@@ -447,7 +486,10 @@ export function evaluate({
         cooldown_until: cooldown.removal,
         activity_evidence: f.activity_evidence,
       },
-      hold: hold ? { ...hold, active: onHold } : null,
+      // The kinds running now, in the order the kit lists them. The
+      // records themselves (who, why, who can see) stay in the ledger.
+      exceptions: Object.keys(EXCEPTION_KINDS).filter((k) => kinds.has(k)),
+      ranked_for_elder: !rankedNow.out.has(tag),
       actionable,
       trail,
     };
@@ -475,6 +517,12 @@ export function evaluate({
           target: bandNow.target,
           ceil: bandNow.ceil,
           current_elders: bandNow.current_elders,
+          // Elders kept as Elder: outside the band, in no earned seat.
+          kept_elders: factsNow.filter(
+            (f) =>
+              f.role === "elder" &&
+              kindsNow.get(f.player_tag)?.has("keep_as_elder"),
+          ).length,
           median: Number(bandNow.median.toFixed(4)),
           open_slots: Math.max(0, policy.roster_cap - rosterSize),
           swaps: bandNow.swaps,
@@ -524,7 +572,10 @@ function withdrawReason(type, m) {
   if (m[type]?.cooldown_until)
     return "A leader already decided this; it waits for the record to show the change.";
   if (type === "removal") {
-    if (m.removal.shielded === "hold") return "The member is on hold.";
+    if (m.removal.shielded === "exception")
+      return m.exceptions?.includes("away")
+        ? "The member is away."
+        : "The member is kept in the clan.";
     if (m.removal.shielded === "role") return "The role changed.";
     if (m.judgment.removal === "off") return "Removal suggestions are off.";
     if (m.judgment.removal !== "ready")
@@ -535,10 +586,12 @@ function withdrawReason(type, m) {
   }
   if (type === "promotion") {
     if (m.role !== "member") return "The role changed.";
+    if (m.promotion.excepted) return "The member is not for Elder.";
     if (m.judgment.promotion !== "ready") return "The evidence is held.";
     return "No longer in line for promotion on sustained reviews.";
   }
   if (m.role !== "elder") return "The role changed.";
+  if (m.demotion.excepted) return "The Elder is kept as Elder.";
   if (m.judgment.demotion !== "ready") return "The evidence is held.";
   return "No longer demotable on sustained reviews.";
 }

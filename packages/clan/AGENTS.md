@@ -2,7 +2,7 @@
 
 `/clan` (API `/api/clan`): running a clan on its own versioned policy
 against Elixir's record. Standing, the Elder band, the removal clock,
-Actions leaders decide, holds, notes, awards, recruiting, scouting.
+Actions leaders decide, member exceptions, notes, awards, recruiting, scouting.
 Product behaviour is on the public pages `apps/site/src/docs/clan-*.md`,
 `standing.md` and `bring-your-clan.md`; what stands is the Clan section
 of `docs/DECISIONS.md`.
@@ -39,7 +39,7 @@ client is a defect to remove.
   (`src/role-freshness.mjs`). `services/web-api/test/clan-record-reads.test.mjs`
   holds the reads to what the audited invoker answered, and
   `clan-record-access.test.mjs` holds who is refused.
-- **Private Clan state** (leader notes, holds, decisions) **reaches only
+- **Private Clan state** (leader notes, exceptions, decisions) **reaches only
   those the clan's policy allows, and never MCP or public tools.** The one
   exception reads through `@elixir-mcp/auth/clan-context`: `clans_my_view`,
   a person's own view

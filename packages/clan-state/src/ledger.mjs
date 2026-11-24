@@ -29,7 +29,17 @@ import { isDeepStrictEqual } from "node:util";
  *                            one entry in an action's log: raised (with
  *                            what raised it), withdrawn, completed,
  *                            declined, outcome, or a person's comment
- *   hold#<clan>#<tag>        a member on hold: until (or null), who, note
+ *   exception#<clan>#<id>    one exception on a member (2026-11-23): a
+ *                            kind (keep_in_clan, keep_as_elder, not_for_elder,
+ *                            away), its end date, why, who can see it
+ *                            (leaders | clan), who set it and when, and
+ *                            each change in `events`; ended early, it
+ *                            keeps `ended_at`. Listed by member
+ *                            (gsi1sk exception#<tag>#<set_at>#<id>) and
+ *                            kept, so a member's history can tell them
+ *   hold#<clan>#<tag>        RETIRED 2026-11-23: a member on hold. 0318
+ *                            copied each into an exception; a stale item
+ *                            is never read, and goes with deleteClan
  *   note#<clan>#<id>         a note on a member: tier (leader | elder),
  *                            author, text, when
  *   recruit#<clan>           the pointer: { version }
@@ -381,21 +391,22 @@ export function ledgerOver(io) {
       await io.put(row);
       return item;
     },
-    // ---- holds ---------------------------------------------------------
-    async holds(clanTag) {
-      return (await io.listByPrefix(clanTag, "hold#")).map(stripKeys);
+    // ---- exceptions ----------------------------------------------------
+    // Every one ever set, running or not: the caller reads which run at an
+    // instant (clan-engine exceptions.mjs). `playerTag` narrows to one
+    // member's.
+    async exceptions(clanTag, playerTag = null) {
+      const prefix = playerTag ? `exception#${playerTag}#` : "exception#";
+      return (await io.listByPrefix(clanTag, prefix)).map(stripKeys);
     },
-    async putHold(clanTag, hold) {
+    async putException(clanTag, ex) {
       await io.put({
-        pk: `hold#${clanTag}#${hold.player_tag}`,
+        pk: `exception#${clanTag}#${ex.exception_id}`,
         gsi1pk: clanKey(clanTag),
-        gsi1sk: `hold#${hold.player_tag}`,
-        ...hold,
+        gsi1sk: `exception#${ex.player_tag}#${ex.set_at}#${ex.exception_id}`,
+        ...ex,
       });
-      return hold;
-    },
-    async removeHold(clanTag, playerTag) {
-      await remove(`hold#${clanTag}#${playerTag}`);
+      return ex;
     },
     // ---- notes ---------------------------------------------------------
     async notes(clanTag, playerTag = null) {

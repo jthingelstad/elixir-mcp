@@ -230,7 +230,7 @@ function roleRoutes(role: "member" | "elder", small = false) {
         policy: { set: true, active: !small },
         open_actions: 0,
         clan: null,
-        hold: null,
+        exceptions: [],
         trophies: [],
         you: {
           player_tag: first.acting_as,

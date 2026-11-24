@@ -1,5 +1,6 @@
 import { Icon, noun, Link } from "@elixir-mcp/ui";
-import { n, date } from "../lib/words.js";
+import { n } from "../lib/words.js";
+import { YourExceptions } from "./Exceptions.jsx";
 
 const STATUS = {
   holding: ["Holding Elder", "chip--ok"],
@@ -85,14 +86,6 @@ export function Minimums({ minimums, ranks }) {
   );
 }
 
-/** A hold, in one sentence, with what it does and does not do. */
-export function holdWords(hold) {
-  const until = hold.until ? ` until ${date(hold.until)}` : "";
-  return hold.kind === "away"
-    ? `You are marked away${until}. Your leaders can see this. Keeps you off the removal list while it's on. The days keep counting.`
-    : `A leader has you on hold${until}. Keeps you off the removal list while it's on. The days keep counting.`;
-}
-
 /** Your own clock, the only clock below co-leader (Q1). */
 function Clock({ inactivity, awayTo, navigate }) {
   if (!inactivity || inactivity.state === "none") return null;
@@ -115,7 +108,7 @@ function Clock({ inactivity, awayTo, navigate }) {
 
 /**
  * How someone is doing in this clan, in their own numbers: the answer on the
- * minimums first, then the clock, a hold, the evidence and tenure. What the
+ * minimums first, then the clock, your exceptions, the evidence and tenure. What the
  * clan counts is in How it works here. Facts and no advice (Q14). Today and their own member page both show it; a
  * clan with no policy says so and shows no chip.
  */
@@ -143,7 +136,7 @@ export function HowYouAreDoing({ d, base, navigate }) {
         <Minimums minimums={c.minimums} ranks={ranks} />
       ) : null}
       <Clock inactivity={c.inactivity} awayTo={away} navigate={navigate} />
-      {d.hold ? <div className="notice">{holdWords(d.hold)}</div> : null}
+      <YourExceptions exceptions={d.exceptions} />
       {!ranks && c.evidence ? <p className="m-0">{c.evidence}</p> : null}
       {c.tenure_min_days != null && y?.time_here?.tenure_known ? (
         <p className="m-0 text-body-sm text-ink-dim">

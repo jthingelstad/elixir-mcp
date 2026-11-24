@@ -8,24 +8,22 @@ import {
   useMemberNotes,
 } from "../lib/queries.js";
 import { trackEvent } from "../../analytics.js";
+import { MemberExceptions } from "./Exceptions.jsx";
 
 /**
  * One member, for an elder or a leader: notes (elders read and write elder
  * notes; leaders write leader notes and read both) and, for leaders, the
- * hold. Context beside the clock: a note is what a leader knows, a hold is
- * protection from removal while active, without resetting the clock.
+ * member's exceptions (2026-11-23, holds before). Context beside the
+ * clock: a note is what a leader knows, an exception is what the rules
+ * skip for them until a date, without resetting the clock.
  */
 export function MemberSheet({ clanTag, member, role, onChange }) {
-  const { whenDay, calendar } = useClock();
+  const { whenDay } = useClock();
   const isLeader = role === "leader" || role === "coLeader";
   const notes = useMemberNotes(clanTag, member.player_tag).data ?? null;
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const [holdUntil, setHoldUntil] = useState(
-    member.hold?.until ? member.hold.until.slice(0, 10) : "",
-  );
-  const [holdNote, setHoldNote] = useState(member.hold?.note ?? "");
 
   const awards = useMemberAwards(clanTag, member.player_tag).data ?? null;
   const invalidate = useInvalidate();
@@ -159,81 +157,11 @@ export function MemberSheet({ clanTag, member, role, onChange }) {
           </form>
         </div>
         {isLeader ? (
-          <div>
-            <div className="label" style={{ marginBottom: "6px" }}>
-              Hold
-            </div>
-            {member.hold ? (
-              <p className="page__lede" style={{ margin: "0 0 8px" }}>
-                On hold{" "}
-                {member.hold.until
-                  ? `until ${calendar(member.hold.until)}`
-                  : "until cleared"}
-                {member.hold.note ? ` · ${member.hold.note}` : ""}. Keeps them
-                off the removal list while it&rsquo;s on. The days keep
-                counting.
-              </p>
-            ) : (
-              <p className="page__lede" style={{ margin: "0 0 8px" }}>
-                Not on hold. A hold keeps a member who told you they will be
-                away off the removal list while it&rsquo;s on; silence is not a
-                hold. The days keep counting.
-              </p>
-            )}
-            <form
-              style={{
-                display: "flex",
-                gap: "8px",
-                flexWrap: "wrap",
-                alignItems: "center",
-              }}
-              onSubmit={async (e) => {
-                e.preventDefault();
-                const r = await run(() =>
-                  manageApi.setHold(clanTag, member.player_tag, {
-                    until: holdUntil ? `${holdUntil}T23:59:59Z` : null,
-                    note: holdNote || null,
-                  }),
-                );
-                if (r.ok) {
-                  trackEvent("clan.hold_set", holdUntil ? "until" : "open");
-                  onChange?.();
-                }
-              }}
-            >
-              <input
-                className="input"
-                type="date"
-                value={holdUntil}
-                onChange={(e) => setHoldUntil(e.target.value)}
-              />
-              <input
-                className="input"
-                placeholder="why (optional)"
-                value={holdNote}
-                onChange={(e) => setHoldNote(e.target.value)}
-                style={{ flex: "1 1 160px" }}
-              />
-              <button type="submit" className="btn" disabled={busy}>
-                {member.hold ? "Update hold" : "Set hold"}
-              </button>
-              {member.hold ? (
-                <button
-                  type="button"
-                  className="btn btn--quiet"
-                  disabled={busy}
-                  onClick={async () => {
-                    const r = await run(() =>
-                      manageApi.clearHold(clanTag, member.player_tag),
-                    );
-                    if (r.ok) onChange?.();
-                  }}
-                >
-                  Clear hold
-                </button>
-              ) : null}
-            </form>
-          </div>
+          <MemberExceptions
+            clanTag={clanTag}
+            member={member}
+            onChange={onChange}
+          />
         ) : null}
         {error ? (
           <div className="callout callout--warn" role="alert">

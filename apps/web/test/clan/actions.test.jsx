@@ -1671,7 +1671,6 @@ describe("you here", () => {
           inactivity: null,
         },
         open_actions: 1,
-        hold: null,
         trophies: [],
       },
     });

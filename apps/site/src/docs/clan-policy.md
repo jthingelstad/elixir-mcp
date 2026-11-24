@@ -66,7 +66,7 @@ Each part ends with a quiet line on who sees what about you under it:
   [Discord](/docs/clan-actions-delivery#actions-in-the-clans-discord), and
   a kick is shared with the clan once it's done.
 
-The tab never shows another member's standing, clock or hold. Elders read
+The tab never shows another member's standing or clock, or a leaders-only exception. Elders read
 the Elders' notes about a member, and the Leader and Co-Leaders read every
 note. Closed Actions and past versions of the rules are for the Leader and
 Co-Leaders.
@@ -147,8 +147,8 @@ draft, beside the saved rules: the Elder band before and after, and each
 member who would read differently. No rules, Action, award or decision is
 saved or raised by a preview, and no model is called. The member-count
 reading and normal recorded-read audit are updated; the preview itself is
-not saved. Holds and decision cooldowns are not applied, so it is not an
-exact forecast of pending Actions. Changing any answer clears it.
+not saved. Exceptions and decision cooldowns are not applied, so it is
+not an exact forecast of pending Actions. Changing any answer clears it.
 
 ## Saving
 
