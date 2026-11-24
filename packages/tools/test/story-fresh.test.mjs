@@ -266,7 +266,6 @@ test("the comparison's groups give kind, bucket, cause and field", async () => {
         timezone: "UTC",
         accountId: null,
         basis: "occurred",
-        lateBattles: true,
         people: { accounts: [], players: true },
       },
     );

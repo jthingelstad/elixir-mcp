@@ -378,12 +378,17 @@ test("the bell stays in its budgets, built and stored, and never counts late cap
     {
       // 35 since #1015: one read of the account's new Stamps.
       // +3: the player's clan role changes and war weeks, one statement each, and a promotion's story id (13.10.0, 2026-11-17).
-      statements: 38,
-      buffers: 1100,
+      // +2: each own player's battles learned this week but played
+      // before it, told at their played time (2026-11-23), one statement
+      // a player off battle_created_at; the walk of the week's learned
+      // battles is most of the +300 buffers.
+      statements: 40,
+      buffers: 1400,
     },
   );
   // The late count read every battle the record learned in the week,
-  // anyone's; the bell serves items, never an entry's late_captures.
+  // anyone's; the bell serves items, never an entry's late_captures. (It
+  // reads the player's own late captures as battles, by the player's key.)
   assert.ok(
     !built.seen.some((s) =>
       /b\.battle_time < b\.created_at - interval '1 day'/.test(s.text),
@@ -802,11 +807,14 @@ const TIMELINE_STATEMENTS = 32;
  *  and 55 shared buffers, where the build it replaced read thousands. */
 const RSS_STORED_STATEMENTS = 11;
 
-/** The statement that counts an observed week's late captures. */
-const LATE_ONCE = /with late as materialized \(/;
+/** The batched walk of an observed week's learned battles for the late
+ *  captures among them (told at their played time since 2026-11-23):
+ *  every player's at once, the one statement that tests a battle's
+ *  lateness. */
+const LATE_ONCE = /with learned as materialized \(/;
 const LATE_ANY = /b\.battle_time < b\.created_at - interval '1 day'/;
 
-test("the timeline page counts the week's late captures once, and the feed never", async () => {
+test("the timeline page walks the week's late captures once, and the feed only when it builds", async () => {
   const { timeline } = await inOrder([
     [
       "timeline",
@@ -818,12 +826,14 @@ test("the timeline page counts the week's late captures once, and the feed never
     ],
   ]);
   const late = timeline.seen.filter((s) => LATE_ANY.test(s.text));
-  assert.equal(late.length, 1, "one late-count statement");
+  assert.equal(late.length, 1, "one walk of the week's late captures");
   assert.match(late[0].text, LATE_ONCE);
   const p = timeline.planned.find((x) => LATE_ONCE.test(x.full));
-  assert.ok(p.buffers <= 600, `late count: ${p.buffers} buffers`);
+  assert.ok(p.buffers <= 600, `late walk: ${p.buffers} buffers`);
 
-  // The RSS feed: items only, so no late count at all.
+  // The RSS feed: items only, so no late count; its build (Home's week)
+  // walks the week's late captures once, as the page does, and a stored
+  // poll never.
   const link = await request(handler, seed.cookie, "/api/me/rss", {
     method: "POST",
   });
@@ -847,15 +857,19 @@ test("the timeline page counts the week's late captures once, and the feed never
       { statements: RSS_STORED_STATEMENTS, buffers: 400 },
     ],
   ]);
-  for (const r of Object.values(feed))
-    assert.ok(
-      !r.seen.some((s) => LATE_ANY.test(s.text)),
-      "the feed read the late-capture count",
-    );
+  assert.equal(
+    feed.rss.seen.filter((s) => LATE_ANY.test(s.text)).length,
+    1,
+    "the feed's build walks the late captures once",
+  );
+  assert.ok(
+    !feed["rss (stored)"].seen.some((s) => LATE_ANY.test(s.text)),
+    "a stored poll walked the late captures",
+  );
   await request(handler, seed.cookie, "/api/me/rss", { method: "DELETE" });
 });
 
-test("Home's week, built, never counts late captures", async () => {
+test("Home's week, built, walks the week's late captures once", async () => {
   await seed.db.query("delete from home_feed");
   const built = await read(
     "/api/me/home/feed (built)",
@@ -865,12 +879,16 @@ test("Home's week, built, never counts late captures", async () => {
     // item/owner query per card. The record and buffer bounds stay fixed.
     // +1: week_form (15.3.0), one primary-key read of player_week_form
     // for the whole batch (0311); the buffer ceiling stays.
-    { statements: TIMELINE_STATEMENTS + 8, buffers: 42000 },
+    // +1: the batched walk of the week's learned battles for the late
+    // captures among them, told at their played time (2026-11-23); the
+    // timeline page already read it (LATE_ONCE).
+    { statements: TIMELINE_STATEMENTS + 9, buffers: 42000 },
   );
-  assert.ok(
-    !built.seen.some((s) => LATE_ANY.test(s.text)),
-    "Home's week read the late-capture count",
-  );
+  // Every followed player's late captures in one statement (2026-11-23),
+  // as the timeline page reads them.
+  const late = built.seen.filter((s) => LATE_ANY.test(s.text));
+  assert.equal(late.length, 1, "one walk of the week's late captures");
+  assert.match(late[0].text, LATE_ONCE);
 });
 
 test("Home's N new pill uses bounded stored-week and live-post counts, and reads no game record table", async () => {

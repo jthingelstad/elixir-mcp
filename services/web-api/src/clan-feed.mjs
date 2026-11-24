@@ -95,10 +95,13 @@ export async function readClanFeed(
             it.kind !== "battle_highlight" &&
             (view !== "news" || isClanNews(it)),
           // The Feed draws items, never a clan entry's activity counts, so it
-          // skips the late-capture count (2026-11-12, "a clan's late counts
-          // are read only when a read says them"): that count walks every
-          // battle the record learned in the week, for every clan, and was
-          // most of the Feed's time (2026-11-13). The items are the same.
+          // skips the battles learned after the window (2026-11-12, "a
+          // clan's late counts are read only when a read says them"). Since
+          // 2026-11-23 the Feed tells battles learned in the week however
+          // long before it they were played, so it walks the week's
+          // learned battles again for those (clanLearnedQuery's `earlier`;
+          // the cost #649 and 2026-11-13 had removed, noted in
+          // docs/notes/2026-11-23-late-battles-everywhere.md).
           lateCounts: false,
           perf,
         },

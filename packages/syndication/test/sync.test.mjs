@@ -26,6 +26,11 @@ import {
   refusalOf,
 } from "../src/index.mjs";
 import { settingView } from "../src/settings.mjs";
+import {
+  buildTimeline,
+  learnedLate,
+  subjectsFor,
+} from "@elixir-mcp/tools/activity/entries";
 import { applyReceipts } from "../src/quality.mjs";
 import { webhookSeal, WEBHOOK_PURPOSE } from "../src/seal.mjs";
 
@@ -277,6 +282,39 @@ test("turning it on never backfills: what was observed before is not posted", as
     [person],
   );
   assert.equal(d.synced_to.toISOString(), "2026-09-02T20:30:00.000Z");
+});
+
+test("a sitting learned a day or more after it was played is told on Elixir, never posted", async () => {
+  // Check for new battles, two days on: the whole log learned at once,
+  // every battle of it two days old (2026-11-23).
+  await ctx.db.query(
+    `update battle set created_at = battle_time + interval '2 days'`,
+  );
+  try {
+    await enable(person, "2026-09-04T12:00Z");
+    const now = Date.parse("2026-09-04T21:00Z");
+    // The timeline tells it, at its played time.
+    const subjects = await subjectsFor(ctx.db, person);
+    const { timeline } = await buildTimeline(ctx.db, subjects, {
+      fromMs: Date.parse("2026-09-04T12:00Z"),
+      toMs: now,
+      timezone: "America/Chicago",
+      accountId: person,
+    });
+    const sittings = timeline.filter((it) => it.kind === "battle_session");
+    assert.ok(sittings.length > 0, JSON.stringify(timeline));
+    assert.ok(sittings.every((it) => learnedLate(it) && it.late));
+    assert.ok(sittings.every((it) => it.at.startsWith("2026-09-02")));
+    // The cross-post sends none of it.
+    const { sent, outbox } = recorder();
+    await syncAccount(ctx.db, person, { outbox, now });
+    assert.equal(sent.length, 0, JSON.stringify(sent));
+    assert.deepEqual(await told(person), []);
+  } finally {
+    await ctx.db.query(
+      `update battle set created_at = battle_time + interval '5 minutes'`,
+    );
+  }
 });
 
 test("off, or a webhook Discord says is gone, posts nothing", async () => {

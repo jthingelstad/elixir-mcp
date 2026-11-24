@@ -71,7 +71,6 @@ const page = (now) =>
       timezone: "America/Chicago",
       accountId: null,
       basis: "occurred",
-      lateBattles: true,
       people: { accounts: [], players: true },
     },
   );

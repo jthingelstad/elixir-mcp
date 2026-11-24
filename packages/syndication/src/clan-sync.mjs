@@ -86,6 +86,7 @@ import {
   classifiedExitLinks,
   storyId,
   isPublishable,
+  learnedLate,
   timelineNews,
 } from "@elixir-mcp/tools/activity/entries";
 import { postRevision, readCapped } from "./sync.mjs";
@@ -608,8 +609,11 @@ async function planRun(
   const fromMs = Math.max(enabledMs, now - REACH_MS, row.synced_to.getTime());
   let toMs = now;
   const subjects = [{ kind: "clan", tag: clanTag, scope: "comprehensive" }];
+  // A member sitting learned a day or more after play is not news for the
+  // channel (it is told on Elixir at its played time). [engineering, 2026-11-23]
   const wanted = (it) =>
     isPublishable(it) &&
+    !learnedLate(it) &&
     (activityShareable(it, categories) ||
       (it.kind === DEPARTURE_CLASSIFIED && categories.members));
   let narrowed = false;
@@ -1456,6 +1460,7 @@ export async function clanEditorPreview(
       clanMember: true,
       filter: (it) =>
         isPublishable(it) &&
+        !learnedLate(it) &&
         it.kind !== DEPARTURE_CLASSIFIED &&
         activityShareable(it, categories),
     },

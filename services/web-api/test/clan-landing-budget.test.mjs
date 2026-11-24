@@ -137,6 +137,7 @@ async function plans(seen) {
       s.values,
     );
     out.push({
+      walk: LEARNED_WALK.test(s.text),
       text: s.text.replace(/\s+/g, " ").slice(0, 100),
       scans: scans(r.rows[0]["QUERY PLAN"][0].Plan),
     });
@@ -144,13 +145,32 @@ async function plans(seen) {
   return out;
 }
 
+/** The walk of the window's learned battles for the late captures among
+ *  them (battles played before the window, told at their played time
+ *  since 2026-11-23): the one read of battle by its created_at range. */
+const LEARNED_WALK = /b\.battle_time < b\.created_at - interval '1 day'/;
+
 /** No large table scanned whole, and none read past a quarter of its
  *  rows: the clan's own rows are far fewer (here about a fifth of
- *  battle_participant, in production a few thousandths). */
+ *  battle_participant, in production a few thousandths). The learned
+ *  walk's battle read is the window's learned battles, not the clan's:
+ *  in this seed half the others' battles were learned this week (a
+ *  backfill's late captures), so the planner reads battle whole for it,
+ *  and its participants by key. That cost is the note
+ *  2026-11-23-late-battles-everywhere's. */
 function assertBounded(path, planned) {
   for (const p of planned)
     for (const s of p.scans) {
       if (!LARGE.includes(s.table)) continue;
+      if (p.walk && s.table === "battle") continue;
+      if (p.walk && s.table === "battle_participant") {
+        assert.notEqual(
+          s.node,
+          "Seq Scan",
+          `${path}: the learned walk scanned battle_participant whole`,
+        );
+        continue;
+      }
       assert.notEqual(
         s.node,
         "Seq Scan",
@@ -201,18 +221,18 @@ test("the Feed page's reads stay in their statement budgets and read the clan by
   }
 });
 
-test("the Feed never walks the week's learned battles for late captures, and its items are the full read's", async (t) => {
+test("the Feed walks the week's learned battles once, for late captures, and its items are the full read's", async (t) => {
   t.mock.method(console, "info", () => {});
   const r = await call(`/api/clan/clans/${bare()}/feed`);
   assert.equal(r.status, 200);
-  // The late count is the only statement that reads battle by its
-  // created_at range: every battle of every clan learned in the window.
-  assert.ok(
-    !r.seen.some((s) =>
-      /b\.battle_time < b\.created_at - interval '1 day'/.test(s.text),
-    ),
-    "the Feed read the late-capture count",
-  );
+  // The only statement that reads battle by its created_at range: every
+  // battle of every clan learned in the window, for the clan's late
+  // captures (2026-11-23: told at their played time). The probe walks it
+  // once and hands the ids it found to the member battles and the
+  // most-active count; before, the Feed never walked it (#649).
+  const walks = r.seen.filter((s) => LEARNED_WALK.test(s.text));
+  assert.equal(walks.length, 1, "one walk of the week's learned battles");
+  assert.match(walks[0].text, /as earlier_ids/);
   const now = Date.now();
   const read = (lateCounts) =>
     buildTimeline(

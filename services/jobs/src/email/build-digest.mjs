@@ -31,6 +31,7 @@
  *  is no mail (never an empty week). */
 import {
   buildTimeline,
+  learnedLate,
   scoresOf,
   sessionDeck,
   sessionSpark,
@@ -341,8 +342,11 @@ export async function buildDigest({
         // With the clan part off, a followed player's role change is told
         // under them, as their joins and departures are (Codex on #919): the
         // clan's item about them, kept only when they are someone followed.
+        // A sitting whose every battle was learned a day or more after play
+        // is history, not news: Home and the player's page tell it at its
+        // played time, the mail does not send it. [engineering, 2026-11-23]
         filter: (it) =>
-          DIGEST_KINDS.has(it.kind) ||
+          (DIGEST_KINDS.has(it.kind) && !learnedLate(it)) ||
           (!fold.clan &&
             it.kind === "member_role_changed" &&
             (it.subjects ?? []).some(

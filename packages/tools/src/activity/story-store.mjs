@@ -95,8 +95,7 @@ export const storySpan = (now = Date.now()) => ({
 
 /** The stories the builder tells about one player over the span, as rows:
  *  the player page's read (occurred, public game record and the player's
- *  verification, battles learned late told as the page tells them), with
- *  no reader and no cap. */
+ *  verification), with no reader and no cap. */
 export async function buildSubjectStories(db, kind, tag, span = storySpan()) {
   if (kind !== "player")
     throw new Error(`timeline_story stores players only, not ${kind}`);
@@ -111,7 +110,6 @@ export async function buildSubjectStories(db, kind, tag, span = storySpan()) {
       basis: "occurred",
       people: { accounts: [], players: true },
       lateCounts: false,
-      lateBattles: true,
       cap: Number.MAX_SAFE_INTEGER,
     },
   );

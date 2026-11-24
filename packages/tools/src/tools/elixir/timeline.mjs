@@ -812,7 +812,7 @@ export const elixir_timeline = {
               e.activity?.played_here_learned_later > 0 ||
               e.activity?.learned_here_played_before > 0,
           )
-          ? `A clan entry's activity counts the battles the record LEARNED in this window, which is not the same as the battles PLAYED in it: activity.learned_here_played_before counts ones played in the day before from and recorded here (counted), activity.played_here_learned_later ones played here and recorded after to (not counted) (${entries
+          ? `A clan entry's activity counts the battles the record LEARNED in this window, which is not the same as the battles PLAYED in it: activity.learned_here_played_before counts ones played before from and recorded here (counted, however long before), activity.played_here_learned_later ones played here and recorded after to (not counted) (${entries
               .filter(
                 (e) =>
                   e.activity?.played_here_learned_later > 0 ||

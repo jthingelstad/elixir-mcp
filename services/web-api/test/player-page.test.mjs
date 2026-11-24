@@ -11,7 +11,7 @@ import assert from "node:assert/strict";
 import { scratchDb } from "../../../packages/ingest/test/helpers.mjs";
 import { emitEvent } from "../../../packages/ingest/src/events.mjs";
 import { createSession } from "@elixir-mcp/auth";
-import { buildTimeline } from "@elixir-mcp/tools/activity/entries";
+import { buildTimeline, learnedLate } from "@elixir-mcp/tools/activity/entries";
 import { makeHandler } from "../src/handler.mjs";
 import { TIMELINE_LOOKBACK_DAYS } from "@elixir-mcp/tools/activity/lookback";
 import {
@@ -752,18 +752,27 @@ test("a page tells a sitting Elixir learned late, and its games, session and che
   assert.equal(sitting.facts.battles, 3);
   assert.equal(sitting.evidence.count, 3);
 
-  // The feeds' read of the same window tells none of it.
-  const feed = await buildTimeline(
-    db,
-    [{ kind: "player", tag: LATE, relationship: null, nickname: null }],
-    {
-      fromMs: now - PAGE_DAYS * 86_400_000,
-      toMs: now,
-      basis: "occurred",
-      accountId: null,
-    },
-  );
-  assert.ok(!feed.timeline.some((it) => it.kind === "battle_session"));
+  // Every feed's read tells it too (2026-11-23), at its played time and
+  // as the same story; a poller's window that opened after the play
+  // marks it late. Learned only late, it is never sent as news.
+  for (const [basis, fromMs] of [
+    ["occurred", now - PAGE_DAYS * 86_400_000],
+    ["observed", now - PAGE_DAYS * 86_400_000],
+    ["observed", now - 3_600_000],
+  ]) {
+    const feed = await buildTimeline(
+      db,
+      [{ kind: "player", tag: LATE, relationship: null, nickname: null }],
+      { fromMs, toMs: now, basis, accountId: null },
+    );
+    const told = feed.timeline.find((it) => it.kind === "battle_session");
+    assert.ok(told, `${basis}: ${JSON.stringify(feed.timeline)}`);
+    assert.equal(told.id, sitting.id, basis);
+    assert.equal(told.evidence.version, sitting.evidence.version, basis);
+    assert.equal(told.facts.started_at, iso(start), basis);
+    assert.equal(told.late, fromMs > start, basis);
+    assert.equal(learnedLate(told), true, basis);
+  }
 
   // View games: the same three, at the version the card carries.
   const games = await call(
@@ -811,69 +820,88 @@ test("a page tells a sitting Elixir learned late, and its games, session and che
   assert.equal(data(found).item.id, sitting.id);
 });
 
-test("a feed's link to a sitting the page reaches back past still opens its session", async () => {
-  // A sitting read part late, part on time: the page's sitting starts at
-  // its first battle, a feed's at its first timely one, so their ids
-  // differ, and a feed's link (Home, the bell, mail) must still open.
+test("a sitting read part late, part on time is one story on the page and in every feed", async () => {
+  // Two sittings: one whose first battles were learned late and its last
+  // on time, one begun on time and finished late (Codex on #1221). Each
+  // is one id, all four games, on the page, in a feed and by its ref.
   const { db } = scratch;
-  const MIXED = "#0LCU2RYG";
   const now = Date.now();
   const iso = (ms) => new Date(ms).toISOString();
   const start = now - 30 * 3_600_000;
-  const learned = start + 24 * 3_600_000 + 7 * 60_000;
-  await db.query("insert into player(player_tag,name) values ($1,'Maple')", [
-    MIXED,
-  ]);
-  for (let i = 0; i < 4; i++) {
-    const id = `player-mixed-${i}`;
-    const t = iso(start + i * 5 * 60_000);
-    await db.query(
-      `insert into battle(battle_id,battle_time,type,type_class,created_at)
-       values ($1,$2,'PvP','pvp',$3)`,
-      [id, t, iso(learned)],
-    );
-    await db.query(
-      `insert into battle_participant(battle_id,player_tag,battle_time,side,type,type_class,crowns,trophy_change,outcome)
-       values ($1,$2,$3,0,'PvP','pvp',3,30,'win')`,
-      [id, MIXED, t],
-    );
-  }
-  const subject = [
-    { kind: "player", tag: MIXED, relationship: null, nickname: null },
+  const cases = [
+    // Learned 24 h 7 min after the first: the first two late, the last
+    // two on time.
+    ["#0LCU2RYG", "Maple", () => start + 24 * 3_600_000 + 7 * 60_000],
+    // The first two learned a minute after play, the last two a day on.
+    ["#0LCU2RYV", "Rowan", (i, t) => (i < 2 ? t + 60_000 : now - 60_000)],
   ];
-  const window = {
-    fromMs: now - PAGE_DAYS * 86_400_000,
-    toMs: now,
-    basis: "occurred",
-    accountId: null,
-  };
-  const sittingIn = async (opts) =>
-    (await buildTimeline(db, subject, { ...window, ...opts })).timeline.find(
-      (it) => it.kind === "battle_session",
+  for (const [tag, name, learnedAt] of cases) {
+    await db.query("insert into player(player_tag,name) values ($1,$2)", [
+      tag,
+      name,
+    ]);
+    for (let i = 0; i < 4; i++) {
+      const id = `player-mixed-${tag.slice(1)}-${i}`;
+      const t = start + i * 5 * 60_000;
+      await db.query(
+        `insert into battle(battle_id,battle_time,type,type_class,created_at)
+         values ($1,$2,'PvP','pvp',$3)`,
+        [id, iso(t), iso(learnedAt(i, t))],
+      );
+      await db.query(
+        `insert into battle_participant(battle_id,player_tag,battle_time,side,type,type_class,crowns,trophy_change,outcome)
+         values ($1,$2,$3,0,'PvP','pvp',3,30,'win')`,
+        [id, tag, iso(t)],
+      );
+    }
+    const page = data(
+      await call(R, "GET", `/api/player?tag=${encodeURIComponent(tag)}`),
     );
-  const fed = await sittingIn({});
-  const paged = await sittingIn({ lateBattles: true });
-  assert.equal(fed.facts.battles, 2, "the feed tells the timely two");
-  assert.equal(paged.facts.battles, 4, "the page tells all four");
-  assert.notEqual(fed.id, paged.id);
-
-  const open = async (it) => {
-    const r = await call(
+    const paged = page.timeline.find((it) => it.kind === "battle_session");
+    assert.ok(paged, `${tag}: ${JSON.stringify(page.timeline)}`);
+    assert.equal(paged.facts.battles, 4, tag);
+    assert.equal(paged.facts.started_at, iso(start), tag);
+    for (const basis of ["occurred", "observed"]) {
+      const { timeline } = await buildTimeline(
+        db,
+        [{ kind: "player", tag, relationship: null, nickname: null }],
+        {
+          fromMs: now - PAGE_DAYS * 86_400_000,
+          toMs: now,
+          basis,
+          accountId: null,
+        },
+      );
+      const fed = timeline.find((it) => it.kind === "battle_session");
+      assert.equal(fed.id, paged.id, `${tag} ${basis}: one id`);
+      assert.equal(fed.facts.battles, 4, `${tag} ${basis}`);
+      assert.equal(fed.evidence.version, paged.evidence.version);
+      assert.equal(learnedLate(fed), false, "some of it came on time");
+    }
+    // Its session page and its ref (a cheer's, a comment's, a share's)
+    // both reach the whole sitting.
+    const own = await call(
       R,
       "GET",
       `/api/player/session?${new URLSearchParams({
-        tag: MIXED,
-        id: it.id,
-        at: it.facts.started_at,
+        tag,
+        id: paged.id,
+        at: paged.facts.started_at,
       })}`,
     );
-    assert.equal(r.statusCode, 200, r.body);
-    return data(r);
-  };
-  const fromFeed = await open(fed);
-  assert.equal(fromFeed.item.evidence.version, fed.evidence.version);
-  assert.equal(fromFeed.games.battles.length, 2);
-  const fromPage = await open(paged);
-  assert.equal(fromPage.item.evidence.version, paged.evidence.version);
-  assert.equal(fromPage.games.battles.length, 4);
+    assert.equal(own.statusCode, 200, own.body);
+    assert.equal(data(own).item.evidence.version, paged.evidence.version);
+    assert.equal(data(own).games.battles.length, 4);
+    const found = await call(
+      R,
+      "GET",
+      `/api/me/timeline-items/${paged.id}?${new URLSearchParams({
+        item_ref: JSON.stringify(paged.item_ref),
+      })}`,
+    );
+    assert.equal(found.statusCode, 200, found.body);
+    assert.equal(data(found).item.id, paged.id);
+    assert.equal(data(found).item.evidence.version, paged.evidence.version);
+    assert.equal(data(found).item.facts.battles, 4);
+  }
 });

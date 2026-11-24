@@ -94,7 +94,7 @@ export async function explainTimeline(databaseUrl, spec = {}) {
       const q = prefetchStatements({ fromMs, toMs });
       for (const [name, text] of [
         ["wide", q.wide],
-        ["late", q.late],
+        ["earlier", q.earlier],
       ]) {
         const { rows } = await db.query(`explain (format text) ${text}`, [
           playerTags,

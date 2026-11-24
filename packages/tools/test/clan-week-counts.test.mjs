@@ -145,15 +145,16 @@ test("why they differed: the learned clock and the ISO week count other battles"
     const db = scratch.db;
     await seed(db);
     // The timeline's default read counts what the record learned in the
-    // window, which is right for a poll and not a week's battles: the late
-    // capture and the lagged battle are not in it.
+    // window, which is right for a poll and not a week's battles: the
+    // lagged battle is not in it. The late capture is, told at its played
+    // time (2026-11-23) and counted late.
     const { entry } = await buildClanEntry(db, {
       tag: CLAN,
       fromMs: FROM,
       toMs: TO,
     });
     assert.equal(entry.activity.basis, "recorded");
-    assert.equal(entry.activity.battles, 3);
+    assert.equal(entry.activity.battles, 4);
     assert.equal(entry.activity.late_captures, 1);
 
     // A read that serves no activity (#649) leaves the two late counts
