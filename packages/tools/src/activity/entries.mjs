@@ -5681,6 +5681,9 @@ const PUBLISHABLE = new Set(["public", "clan", "player"]);
 export const isPublishable = (it) =>
   !it[LIFECYCLE_RECEIPT] &&
   it.kind !== "drop_game" &&
+  // An away is the clan's to see in Elixir (2026-11-24), never posted
+  // out of it, as it was not while it was the leaders' alone.
+  it.kind !== "member_away" &&
   PUBLISHABLE.has(itemVisibility(it));
 
 /** The local reading of an instant in the reader's zone. */

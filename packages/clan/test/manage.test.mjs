@@ -2648,7 +2648,10 @@ test("sharing: always on, nothing to switch; a completed promotion is shared as 
     view.body.types.departure_classified.sees,
     /^Everyone verified in the clan:/,
   );
-  assert.match(view.body.types.member_away.sees, /leaders and co-leaders only/);
+  assert.equal(
+    view.body.types.member_away.sees,
+    "Everyone verified in the clan.",
+  );
   const put = await api(h, cookies, "PUT", "/api/clans/0QC8RCGY/sharing", {
     values: { departure_classified: false },
   });

@@ -45,7 +45,7 @@ const SHARE_TYPES = {
   member_away: {
     label: "Members away",
     why: "When a member marks themselves away, until they come back.",
-    sees: "The clan's leaders and co-leaders only.",
+    sees: "Everyone verified in the clan.",
   },
   clan_message: {
     label: "Messages to the clan",

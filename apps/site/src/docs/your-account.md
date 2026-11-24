@@ -413,7 +413,7 @@ and each other choice it names links to the page that owns it.
   a place, they see it on the player map and in Near you, with your
   verified player's game name and tag. In Clan,
   your clan's verified members see your place on its map if you added
-  one, its leaders see an away you mark, and what you decide as a leader
+  one, they see an away you mark, and what you decide as a leader
   or elder shows under your player's game name.
 - **Someone with a link you send** opens it without an account. A
   battle link shows both sides' game names, clans, trophies and decks,

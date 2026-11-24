@@ -106,7 +106,9 @@ export const ATTESTED_FACT_TYPES: Readonly<Record<string, FactType>> = {
   },
   member_away: {
     subject: "clan",
-    visibility: "leaders",
+    // The clan's since 2026-11-24 (Jamie: "Match"): an Away exception is
+    // always one the whole clan sees, so the fact it shares is too.
+    visibility: "clan",
     attesters: [...LEADERS, "self"],
     member: true,
     detail: {

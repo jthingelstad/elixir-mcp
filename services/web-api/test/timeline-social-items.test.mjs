@@ -2,6 +2,7 @@ import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { scratchDb } from "../../../packages/ingest/test/helpers.mjs";
+import { ATTESTED_FACT_TYPES } from "@elixir-mcp/contracts";
 import { emitEvent } from "../../../packages/ingest/src/events.mjs";
 import { createSession } from "@elixir-mcp/auth";
 import { ensurePassport } from "@elixir-mcp/stamps";
@@ -17,6 +18,19 @@ import { readClanFeed } from "../src/clan-feed.mjs";
 import { recoverMemberItemRef } from "../src/timeline-items.mjs";
 import { readConversations } from "../src/conversations.mjs";
 import { makeHandler as makeGameConsumer } from "../../timeline-sync/src/handler.mjs";
+
+// No fact type is leaders-only since 2026-11-24 (an away became the
+// clan's), but the leaders' audience stays for a later type, and a
+// private Clan thread must still recheck a reader's current role. This
+// file alone lends member_away the leaders' rule so that path stays
+// pinned; each test file runs in its own process.
+const awayVisibility = ATTESTED_FACT_TYPES.member_away.visibility;
+before(() => {
+  ATTESTED_FACT_TYPES.member_away.visibility = "leaders";
+});
+after(() => {
+  ATTESTED_FACT_TYPES.member_away.visibility = awayVisibility;
+});
 
 const PLAYER = "#0PGQ2UYL";
 const MEMBER = "#0RJ29CVY";

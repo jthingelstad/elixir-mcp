@@ -33,9 +33,10 @@ test("attested facts: a closed registry, each with a subject, a visibility and a
     }
   }
   // A departure's kind is the clan's (9.3.0, Jamie 2026-09-25: the game
-  // already shows the clan a kick); an away stays the leaders' only.
+  // already shows the clan a kick); an away is the clan's too since
+  // 2026-11-24 (Jamie: an Away exception is always clan-visible, "Match").
   assert.equal(ATTESTED_FACT_TYPES.departure_classified.visibility, "clan");
-  assert.equal(ATTESTED_FACT_TYPES.member_away.visibility, "leaders");
+  assert.equal(ATTESTED_FACT_TYPES.member_away.visibility, "clan");
   assert.deepEqual(LEADER_MESSAGE_ROLES, ["leader", "coLeader"]);
   // Nothing in the registry names a verdict (the naming test).
   assert.doesNotMatch(

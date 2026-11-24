@@ -395,7 +395,7 @@ test("a player fact Drop wrote on its key before 5.0.0 stays stored and labelled
   assert.equal(r.statusCode, 404, r.body);
 });
 
-test("the timeline shows each fact only to the reader its type allows; a departure reaches the clan, an away only leaders", async () => {
+test("the timeline shows each fact only to the reader its type allows; a departure and an away reach the clan", async () => {
   const clanSubject = [{ kind: "clan", tag: CLAN, scope: "activity" }];
   const leader = as(accounts.leader);
   const awarded = await write(
@@ -430,17 +430,18 @@ test("the timeline shows each fact only to the reader its type allows; a departu
   assert.ok(seen.includes("award_granted"));
   assert.ok(seen.includes("departure_classified:kick"));
   assert.ok(seen.includes("member_away"));
-  // A leaders' fact needs the leader reading in person: a
-  // headless key bound to the leader's account reads what the clan shares.
+  // A headless read bound to the leader's account reads what the clan
+  // shares, an away included (the clan's since 2026-11-24).
   const headless = await kinds(accounts.leader, clanSubject, false);
   assert.ok(headless.includes("departure_classified:kick"));
-  assert.ok(!headless.includes("member_away"));
+  assert.ok(headless.includes("member_away"));
   // A member sees the award and the departure, kick and all (9.3.0: the
-  // game already told the clan), never an away.
+  // game already told the clan), and an away (2026-11-24: an Away is
+  // always one the whole clan sees).
   const memberSees = await kinds(accounts.member);
   assert.ok(memberSees.includes("award_granted"));
   assert.ok(memberSees.includes("departure_classified:kick"));
-  assert.ok(!memberSees.includes("member_away"));
+  assert.ok(memberSees.includes("member_away"));
   // Someone outside the clan sees none of it.
   assert.deepEqual(await kinds(accounts.outsider), []);
   // A departure written under 9.2.0 carries visibility 'leaders' in its
