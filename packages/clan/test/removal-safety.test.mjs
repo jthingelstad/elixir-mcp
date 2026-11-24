@@ -113,9 +113,8 @@ test("a member past the removal day without a battle: the removal shows its word
   }
 });
 
-test("an exception set after the evaluation a view reuses withholds the removal's words at once", async () => {
+test("setting an exception judges the clan again: the waiting removal is withdrawn at once", async () => {
   const h = await harness();
-  // An evaluation a minute old, which a view reuses.
   const saved = await h.ledger.latestVerdicts(clan);
   await h.ledger.saveVerdicts(clan, {
     ...saved,
@@ -123,6 +122,41 @@ test("an exception set after the evaluation a view reuses withholds the removal'
   });
   await h.manage.setException(clan, who, h.subject.player_tag, "keep_in_clan", {
     length: "1w",
+  });
+  const open = (await h.manage.actionsView(clan, who)).open;
+  assert.equal(
+    open.some(
+      (a) => a.type === "removal" && a.player_tag === h.subject.player_tag,
+    ),
+    false,
+  );
+  assert.notEqual(
+    (await h.ledger.card(clan, h.card.card_id)).status,
+    "proposed",
+  );
+});
+
+test("an exception the evaluation a view reuses has not seen withholds the removal's words at once", async () => {
+  const h = await harness();
+  // An evaluation a minute old, which a view reuses, and an exception
+  // written after it without a fresh judgment (the re-judging failed).
+  const saved = await h.ledger.latestVerdicts(clan);
+  await h.ledger.saveVerdicts(clan, {
+    ...saved,
+    evaluated_at: new Date(NOW.getTime() - 60_000).toISOString(),
+  });
+  await h.ledger.putException(clan, {
+    exception_id: "kept",
+    player_tag: h.subject.player_tag,
+    player_name: null,
+    kind: "keep_in_clan",
+    visibility: "leaders",
+    until: new Date(NOW.getTime() + 7 * 86400_000).toISOString(),
+    note: null,
+    set_by: who.player_tag,
+    set_at: NOW.toISOString(),
+    ended_at: null,
+    events: [],
   });
   for (const a of [
     (await h.manage.actionsView(clan, who)).open[0],
