@@ -22,11 +22,12 @@ import { Sharing } from "./Sharing.jsx";
 import { SocialSetting } from "./SocialSetting.jsx";
 import { VoiceSetting } from "./VoiceSetting.jsx";
 import { ActionsNow, Decided, RefreshSuggestions } from "./Waiting.jsx";
-import { Review } from "./Manage.jsx";
+import { RunMember } from "./RunMember.jsx";
+import { RunMembers } from "./RunMembers.jsx";
 
 /** Run's list, in the order a leader reads it. */
 const SIDE = [
-  { head: "Actions", items: ["actions", "decided", "review"] },
+  { head: "Actions", items: ["actions", "decided", "members"] },
   { head: "Policy", items: ["about"] },
   {
     head: "What counts",
@@ -42,7 +43,7 @@ const SIDE = [
 const ELSEWHERE = {
   actions: "Waiting",
   decided: "Decided",
-  review: "Review",
+  members: "Members",
   "awards-setup": "Awards setup",
   discord: "Discord",
   "model-voice": "Model & voice",
@@ -186,7 +187,7 @@ function AwardsSetup({ clan }) {
 }
 
 /** What is not the policy: each saves on its own. */
-function Elsewhere({ clan, who, slug, navigate }) {
+function Elsewhere({ clan, who, slug, player, navigate }) {
   // The leaders' Actions (Today's Waiting and Decided until 2026-11-12).
   if (slug === "actions")
     return (
@@ -206,10 +207,14 @@ function Elsewhere({ clan, who, slug, navigate }) {
         <Decided clan={clan} navigate={navigate} />
       </div>
     );
-  // The leaders' working view of the clan, under Members until G6
-  // (2026-11-12); the API refuses it to everyone else, as before.
-  if (slug === "review")
-    return <Review clan={clan} who={who} navigate={navigate} />;
+  // Every member and where they stand, with one member's page under it
+  // (2026-11-23; Review until then). The API refuses both to everyone else.
+  if (slug === "members")
+    return player ? (
+      <RunMember clan={clan} who={who} player={player} navigate={navigate} />
+    ) : (
+      <RunMembers clan={clan} navigate={navigate} />
+    );
   if (slug === "awards-setup")
     return (
       <div className="grid gap-4">
@@ -359,7 +364,7 @@ export function Run(props) {
  * way back to it. The two are one page, so a draft outlives every move
  * between sections, and CSS alone picks what shows.
  */
-function RunSections({ clan, who, section, navigate }) {
+function RunSections({ clan, who, section, player, navigate }) {
   const e = usePolicyDraft(clan);
   const base = `${clanPath(clan.clan_tag)}/run`;
   const slug = titleOf(section) ? section : "actions";
@@ -367,7 +372,9 @@ function RunSections({ clan, who, section, navigate }) {
   const isPolicy = Boolean(POLICY_SECTIONS[slug]);
   const dirty = Boolean(e.view && e.dirty);
   useEffect(() => {
-    if (section && !titleOf(section)) navigate?.(base, { replace: true });
+    // Review folded into Members on 2026-11-23; its address goes there.
+    if (section === "review") navigate?.(`${base}/members`, { replace: true });
+    else if (section && !titleOf(section)) navigate?.(base, { replace: true });
   }, [section, base, navigate]);
   useOldSettingsAnchor({ slug, base, navigate });
   const failed = e.policy.isError;
@@ -402,7 +409,13 @@ function RunSections({ clan, who, section, navigate }) {
           Run
         </Link>
         {!isPolicy ? (
-          <Elsewhere clan={clan} who={who} slug={slug} navigate={navigate} />
+          <Elsewhere
+            clan={clan}
+            who={who}
+            slug={slug}
+            player={slug === "members" ? player : undefined}
+            navigate={navigate}
+          />
         ) : failed ? (
           <>
             <PageHead title={titleOf(slug)} />

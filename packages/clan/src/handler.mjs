@@ -809,6 +809,17 @@ export function createHandler({
           return json(200, { ok: true });
         }
       }
+      // One member's history in the clan, for the leaders' member page
+      // (Run › Members, 2026-11-23): private Clan state, leaders only.
+      const memberHistory = /^\/members\/([0-9A-Za-z]{3,12})\/history$/.exec(
+        rest,
+      );
+      if (method === "GET" && memberHistory) {
+        if (!runsTheClan(who)) return json(403, { error: "leaders_only" });
+        const ptag = normalizeTag(memberHistory[1]);
+        if (!ptag) return json(400, { error: "bad_request" });
+        return json(200, await manage.memberHistory(tag, who, ptag));
+      }
       const notes = /^\/members\/([0-9A-Za-z]{3,12})\/notes$/.exec(rest);
       if (notes) {
         const ptag = normalizeTag(notes[1]);

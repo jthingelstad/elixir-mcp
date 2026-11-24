@@ -131,7 +131,7 @@ const CLAN_PATH = /^\/api\/clan\/clans\/([0-9A-Za-z]{3,12})(\/.*)?$/;
 // Views that calculate without reconciling actions or grants. Their only
 // shared metadata write is an atomic, monotonic observation.
 const PURE_VIEWS =
-  /^\/(?:week|season|me|home|needs|feed|race|run|members\/[0-9A-Za-z]{3,12}\/activity)$/;
+  /^\/(?:week|season|me|home|needs|feed|race|run|members\/[0-9A-Za-z]{3,12}\/(?:activity|history))$/;
 // Views whose writes (evaluating, reconciling Actions, granting awards,
 // numbering) run inside the services' `exclusive`, and the policy
 // preview, which writes only the size observation. Their record reads,

@@ -159,7 +159,9 @@ for (const size of ["wide", "@narrow"])
       path: `/tmp/elixir-triage-withdrawn-${size}.png`,
       fullPage: true,
     });
+    // Review folded into Members (2026-11-23); its old address goes there.
     await page.goto("/clan/0QC8RCGY/run/review");
+    await expect(page).toHaveURL(/\/clan\/0QC8RCGY\/run\/members$/);
     await expect(
       page.getByText(
         "Removal: 1 protected by their role, a hold or the wait after a decision, 1 not close, 1 with too little to go on, 1 past the removal day.",
@@ -170,12 +172,13 @@ for (const size of ["wide", "@narrow"])
         /^Too little to decide Elder: promotion 2,\s+demotion 1\./,
       ),
     ).toBeVisible();
-    const groups = page.getByRole("navigation", { name: "Review sections" });
-    await groups.getByRole("link", { name: "Clear · 2" }).click();
-    await expect(page).toHaveURL(/#board-clear$/);
+    const filters = page.getByRole("group", { name: "Show members" });
+    await filters.getByRole("button", { name: /^Not enough info/ }).click();
     await expect(
-      page.getByRole("heading", { name: "Clear, 2 members" }),
-    ).toBeInViewport();
+      page.getByRole("heading", { name: "Not enough info, 1 member" }),
+    ).toBeVisible();
+    await expect(page.getByText("Invented 2", { exact: true })).toBeVisible();
+    await expect(page.getByText("Invented 0", { exact: true })).toHaveCount(0);
     expect(
       await page.evaluate(
         () => document.documentElement.scrollWidth <= window.innerWidth,

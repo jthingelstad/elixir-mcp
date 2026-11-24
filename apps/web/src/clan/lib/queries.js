@@ -77,6 +77,15 @@ export const keys = {
     player,
     "notes",
   ],
+  memberHistory: (tag, player) => [
+    "me",
+    "clan",
+    "record",
+    tag,
+    "member",
+    player,
+    "history",
+  ],
   memberAwards: (tag, player) => [
     "me",
     "clan",
@@ -144,6 +153,14 @@ export const useDirectory = (enabled = true) =>
 
 export const useRoster = (tag) =>
   useGated(keys.roster(tag), (refresh) => api.roster(tag, refresh));
+
+/** One member's history in the clan: the leaders' member page. */
+export const useMemberHistory = (tag, player, enabled = true) =>
+  useGated(
+    keys.memberHistory(tag, player),
+    () => manageApi.memberHistory(tag, player),
+    { enabled },
+  );
 
 export const useManage = (tag, enabled = true) =>
   useGated(keys.manage(tag), (refresh) => manageApi.manage(tag, refresh), {

@@ -94,9 +94,18 @@ function MapWhenInBrowser({ clan, me }) {
  *  page under it, or under actions the action's number
  *  (`/clan/<TAG>/actions/37`). */
 export function parseClanPath(path) {
+  const app = appPath(path) ?? "";
+  // The leaders' member page (2026-11-23): /<TAG>/run/members/<player>.
+  const member = /^\/([^/]+)\/run\/members\/([0-9a-z]{3,12})\/?$/i.exec(app);
+  if (member) {
+    const tag = tagOf(member[1]);
+    const player = tagOf(member[2]);
+    if (!tag || !player) return null;
+    return { tag, section: "run", tab: "members", player };
+  }
   const m =
     /^\/([^/]+)(?:\/(feed|standings|war|members|policy|run|actions)(?:\/([a-z0-9-]+))?)?\/?$/i.exec(
-      appPath(path) ?? "",
+      app,
     );
   const tag = m ? tagOf(m[1]) : null;
   if (!tag) return null;
@@ -232,7 +241,7 @@ export function ClanPage() {
     role: clan.role,
   };
   const find = (searchText(search.find) ?? "").slice(0, 100);
-  const { section, tab } = parsed;
+  const { section, tab, player } = parsed;
   if (section === "feed") {
     // A roster search at the clan's old bare address names the roster.
     if (searchText(search.find) !== null)
@@ -319,6 +328,7 @@ export function ClanPage() {
         me={me}
         who={who}
         section={tab}
+        player={player}
         navigate={navigate}
       />
     );

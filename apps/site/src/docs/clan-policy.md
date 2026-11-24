@@ -1,7 +1,7 @@
 ---
 slug: clan-policy
 title: "Write how your clan runs"
-description: "Clan's policy: who writes it, the starting points, the tabs of the editor and what each decides, previewing a draft against the last reviews, saving a version, telling the clan, and the leaders' other pages: Review, Decided, Scout and Clan settings, and the clan's activity in Discord."
+description: "Clan's policy: who writes it, the starting points, the tabs of the editor and what each decides, previewing a draft against the last reviews, saving a version, telling the clan, and the leaders' other pages: Members, Decided, Scout and Clan settings, and the clan's activity in Discord."
 section: clan
 order: 9
 navTitle: "Write how your clan runs"
