@@ -38,7 +38,8 @@ way, until a date.
   leader mutation.
 - **Web:** Run › Exceptions (`views/RunExceptions.jsx`: set by leaders,
   automatic, add), the member sheet's Exceptions (`components/Exceptions.jsx`),
-  chips on Review and on Members for clan-visible ones, the member's own
+  chips on Run › Members (every running one, for leaders) and on the
+  clan's Members roster (clan-visible ones), the member's own
   lines on Standing and You here, Decided's latest exception events, and
   Away reading `away`. Events `clan.exception_set`,
   `clan.exception_changed`, `clan.exception_ended` replace
@@ -64,18 +65,27 @@ a year is kept as written. `on conflict do nothing`, so a re-run copies
 nothing. Expand and contract: the `hold#` items stay; the contract
 migration that deletes them first copies any written after `migrated_at`.
 
-## For the member history page
+## The member page
 
-Read exception events from either:
+Run › Members › a member (`views/RunMember.jsx`) shows the running
+exceptions in its **Notes and exceptions** (the sheet's Exceptions: kind,
+end date, who can see it, why, and Add / Change / End it), and every
+exception event in its history:
 
-- `GET /api/clan/clans/<tag>/history` (leaders): `exception_events`,
-  newest first, each named (`player_name`, `by_name`); or
-- `GET /api/clan/clans/<tag>/members/<player>/exceptions`: `events`,
-  oldest first; non-leaders get only clan-visible ones, with `note`, `by`
-  and `by_name` null.
+- `GET /api/clan/clans/<tag>/members/<player>/history` (leaders) carries
+  `exceptions` (the running ones, as leaders see them) and an entry per
+  event: `kind: "exception"`, `event` (added, changed, ended, expired),
+  `exception` (the kind), `until`, `visibility`, `note`, `by`
+  (`{ player_tag, name }`, null for Elixir's own) and `migration`
+  (`"0318"` on the migration's end date). `exceptionsFor` in
+  `packages/clan/src/manage/service.mjs` is the one read.
+- `historyLine` in `apps/web/src/clan/lib/members.js` words an entry with
+  `eventLine` from `components/Exceptions.jsx` ("Keep as Elder added by
+  Ada", "Keep in clan ran out"); a member's own Away reads "Marked
+  themselves away".
 
-Each event: `exception_id`, `player_tag`, `kind`, `event` (added,
-changed, ended, expired), `at`, `by`, `by_name`, `until`, `visibility`,
-`note`, and `migration: "0318"` on the migration's end date.
-`eventLine(e)` in `apps/web/src/clan/components/Exceptions.jsx` gives the
-line ("Keep as Elder added by Ada", "Keep in clan ran out").
+Elsewhere the same events come from `GET /api/clan/clans/<tag>/history`
+(leaders: `exception_events`, newest first, each named) and `GET
+/api/clan/clans/<tag>/members/<player>/exceptions` (`events`, oldest
+first; non-leaders get only clan-visible ones, with `note`, `by` and
+`by_name` null).

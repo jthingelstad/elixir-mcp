@@ -10,8 +10,9 @@
  *   each race week's war decks, and a leave for a former member;
  * - the roster's recent events (clans_roster, the newest 20 clan-wide):
  *   joins, leaves and role changes for this member, older ones included;
- * - the ledger: the member's actions and how each was decided, the
- *   exception now in force, notes (both tiers) and award grants.
+ * - the ledger: the member's actions and how each was decided, every
+ *   event of their exceptions (added, changed, ended, ran out), notes
+ *   (both tiers) and award grants.
  *
  * Entries are `{ id, kind, groups, at, ... }`, newest first. `groups` names
  * the page's filters an entry shows under (role, actions, war, awards,
@@ -87,7 +88,7 @@ export function buildMemberHistory({
   part,
   roster,
   cards = [],
-  exceptions = [],
+  exceptionEvents = [],
   notes = [],
   grants = [],
   now,
@@ -281,29 +282,21 @@ export function buildMemberHistory({
       });
   }
 
-  // ---- exceptions: the one in force (an ended one leaves no record) -----
-  for (const x of exceptions) {
-    const setAt = x.set_at ?? null;
+  // ---- exceptions: every event of every one, kept after it ends -------
+  for (const e of exceptionEvents)
     add({
-      id: `exception-${x.kind}-${setAt}`,
+      id: `exception-${e.exception_id}-${e.event}-${e.at}`,
       kind: "exception",
       groups: ["actions"],
-      at: setAt,
-      exception: x.kind ?? "leader",
-      until: x.until ?? null,
-      note: x.note ?? null,
-      by: person(x.by, x.by_name),
+      at: e.at,
+      event: e.event,
+      exception: e.kind,
+      until: e.until ?? null,
+      visibility: e.visibility ?? null,
+      note: e.note ?? null,
+      by: person(e.by, e.by_name),
+      migration: e.migration ?? null,
     });
-    const ends = ms(x.until);
-    if (ends !== null && ends <= now)
-      add({
-        id: `exception-${x.kind}-${setAt}-ended`,
-        kind: "exception_ended",
-        groups: ["actions"],
-        at: new Date(ends).toISOString(),
-        exception: x.kind ?? "leader",
-      });
-  }
 
   // ---- River Race weeks -------------------------------------------------
   if (row) {
@@ -397,7 +390,7 @@ function actionEntry(card, status, at) {
 
 /** What this history cannot hold, as stable keys the page words. */
 export function historyGaps({ part, roster }) {
-  const gaps = ["ended_exceptions"];
+  const gaps = [];
   if (!part) gaps.push("participation_unavailable");
   else gaps.push("war_window");
   if (!roster) gaps.push("roster_unavailable");

@@ -29,10 +29,22 @@ const entry = (over: Record<string, unknown>) => ({
   promotion: { state: "none" },
   demotion: { state: "none" },
   removal: { state: "none", triage: { status: "not_candidate" } },
-  hold: null,
+  exceptions: [],
   facts: facts(),
   ...over,
 });
+
+const GIL_EXCEPTION = {
+  exception_id: "x1",
+  player_tag: "#0GRJCUV",
+  kind: "keep_in_clan",
+  visibility: "leaders",
+  until: "2027-02-16T00:00:00.000Z",
+  note: "Exams",
+  set_by: "#0PLUG2V9",
+  set_by_name: "Kai",
+  set_at: "2026-11-20T15:00:00.000Z",
+};
 
 const BOARD = {
   evaluated_at: "2026-11-23T08:00:00Z",
@@ -69,12 +81,7 @@ const BOARD = {
       name: "Gil",
       role: "elder",
       standing: { rank: 1, eligible: true },
-      hold: {
-        kind: "leader",
-        until: "2027-02-16T00:00:00Z",
-        note: "Exams",
-        by: "#098R2R0PUL",
-      },
+      exceptions: [GIL_EXCEPTION],
       facts: facts({ donations_average: 220 }),
     }),
     entry({
@@ -138,12 +145,14 @@ const HISTORY = {
       by: LEADER,
     },
     {
-      id: "exception:leader",
+      id: "exception-x2-added",
       kind: "exception",
       groups: ["actions"],
       at: "2026-11-20T15:00:00Z",
+      event: "added",
       exception: "keep_as_elder",
       until: "2027-02-16T00:00:00Z",
+      visibility: "leaders",
       note: null,
       by: LEADER,
     },
@@ -191,7 +200,7 @@ const HISTORY = {
       at: "2026-07-20T10:00:00Z",
     },
   ],
-  gaps: ["ended_exceptions", "war_window"],
+  gaps: ["war_window"],
 };
 
 function routes(over: Record<string, unknown> = {}) {
@@ -200,6 +209,15 @@ function routes(over: Record<string, unknown> = {}) {
     "GET /api/clan/clans/0QC8RCGY/manage": [200, BOARD],
     "GET /api/clan/clans/0QC8RCGY/members/0GRJCUV/history": [200, HISTORY],
     "GET /api/clan/clans/0QC8RCGY/members/0GRJCUV/notes": [200, { notes: [] }],
+    "GET /api/clan/clans/0QC8RCGY/members/0GRJCUV/exceptions": [
+      200,
+      {
+        player_tag: "#0GRJCUV",
+        leader: true,
+        exceptions: [GIL_EXCEPTION],
+        events: [],
+      },
+    ],
     "GET /api/clan/clans/0QC8RCGY/members/0GRJCUV/grants": [
       200,
       { grants: [] },
@@ -217,12 +235,8 @@ function watchWrites(page: Page) {
   return writes;
 }
 
-/* MemberSheet's hold date has no label of its own: that sheet is being
-   rebuilt for exceptions in another change, which owns the fix, so the
-   one input is left out here until it lands. Everything else is held. */
 const axe = async (page: Page) =>
-  (await new AxeBuilder({ page }).exclude('input[type="date"]').analyze())
-    .violations;
+  (await new AxeBuilder({ page }).analyze()).violations;
 
 const noSideScroll = (page: Page) =>
   page.evaluate(
@@ -271,7 +285,13 @@ test("Members lists everyone with filters, and a row opens the member's page", a
   await expect(history.locator(".kit-row__title").first()).toHaveText(
     "Leader note from Kai",
   );
-  await expect(history).toContainText("Exception added: Keep as Elder");
+  await expect(history).toContainText("Keep as Elder added by Kai");
+  // The running exception, with its end, who can see it and why.
+  const sheet = page.getByRole("region", { name: "Notes and exceptions" });
+  await expect(sheet).toContainText("Keep in clan · to");
+  await expect(sheet).toContainText("Set by Kai");
+  await expect(sheet).toContainText("“Exams.”");
+  await expect(sheet).toContainText("Leaders only can see this.");
   await expect(history).toContainText("River Race week 3: 16 of 16 war decks");
   await expect(history).toContainText("Won Top Donor for Season 136");
   await expect(history).toContainText(

@@ -6,6 +6,7 @@
  * the rules or the record did not say.
  */
 import { DECLINE_WORDS } from "../components/ActionCard.jsx";
+import { KINDS, eventLine } from "../components/Exceptions.jsx";
 import { ROLE } from "./words.js";
 
 /** The members list's filters, in order. */
@@ -17,17 +18,15 @@ export const MEMBER_FILTERS = [
   ["all", "Everyone"],
 ];
 
-/** The exceptions a member can have, by kind. A leader's hold is "Keep in
- *  clan" (it shields removal); a member's own away is "Away". The kinds
- *  after those are the exceptions to come; unknown kinds read as one. */
-const EXCEPTION_WORDS = {
-  leader: "Keep in clan",
-  keep_in_clan: "Keep in clan",
-  keep_as_elder: "Keep as Elder",
-  not_for_elder: "Not for Elder",
-  away: "Away",
-};
-export const exceptionWords = (kind) => EXCEPTION_WORDS[kind] ?? "Exception";
+/** An exception's kind in words ("Keep as Elder"); an unknown kind reads
+ *  as "Exception". */
+export const exceptionWords = (kind) => KINDS[kind]?.label ?? "Exception";
+
+/** The kinds that pause the kick clock while they run. */
+const NO_KICK = new Set(["keep_in_clan", "away"]);
+/** Whether a running exception pauses this member's kick clock. */
+export const kickPaused = (m) =>
+  (m.exceptions ?? []).some((e) => NO_KICK.has(e.kind));
 
 /** Whether a member is under a filter. `waiting` is the set of tags with an
  *  open action in the leaders' inbox. */
@@ -36,7 +35,7 @@ export function inFilter(m, key, waiting = new Set()) {
     return m.bucket === "actionable" || waiting.has(m.player_tag);
   if (key === "close") return m.bucket === "building";
   if (key === "unknown") return m.bucket === "held";
-  if (key === "exception") return Boolean(m.hold);
+  if (key === "exception") return (m.exceptions ?? []).length > 0;
   return true;
 }
 
@@ -70,10 +69,8 @@ export const PART_WORDS = {
 export function whyChips(m, { policy = {}, calendar = (d) => d } = {}) {
   const chips = [];
   const leaderRole = m.role === "leader" || m.role === "coLeader";
-  if (m.hold) {
-    const words = exceptionWords(m.hold.kind);
-    chips.push(m.hold.until ? `${words} to ${calendar(m.hold.until)}` : words);
-  }
+  for (const e of m.exceptions ?? [])
+    chips.push(`${exceptionWords(e.kind)} to ${calendar(e.until)}`);
   const r = m.removal ?? {};
   if (policy.removal && !leaderRole && r.state && r.state !== "none") {
     const day = r.removal_day ?? policy.removal_day;
@@ -203,26 +200,34 @@ export function historyLine(
       };
     }
     case "exception": {
-      const own = e.exception === "away" && e.by?.player_tag === self;
+      const own =
+        e.exception === "away" &&
+        e.event === "added" &&
+        e.by?.player_tag === self;
+      const told = e.event === "added" || e.event === "changed";
       return {
         title: own
           ? "Marked themselves away"
-          : `Exception added: ${exceptionWords(e.exception)}`,
-        detail: join(
-          own ? null : nameOf(e.by) ? `By ${nameOf(e.by)}` : null,
-          e.until ? `ends ${calendar(e.until)}` : "no end date",
-          e.exception === "away" || e.exception === "leader"
-            ? "The kick clock paused"
-            : null,
-          e.note,
-        ),
+          : eventLine({
+              kind: e.exception,
+              event: e.event,
+              by: e.by?.player_tag ?? null,
+              by_name: e.by?.name ?? null,
+              migration: e.migration ?? null,
+            }),
+        detail: told
+          ? join(
+              e.until ? `ends ${calendar(e.until)}` : null,
+              e.visibility === "clan"
+                ? "The clan can see it"
+                : e.visibility === "leaders"
+                  ? "Leaders only"
+                  : null,
+              e.note,
+            )
+          : null,
       };
     }
-    case "exception_ended":
-      return {
-        title: `Exception ended: ${exceptionWords(e.exception)}`,
-        detail: null,
-      };
     case "war_week":
       return {
         title: `${e.colosseum ? "Colosseum" : `River Race week ${e.week}`}: ${e.decks} of ${e.decks_asked} war decks`,
@@ -254,8 +259,6 @@ export function gapLine(gaps = []) {
   if (gaps.includes("roster_unavailable"))
     bits.push("the roster's recent changes could not be read");
   if (gaps.includes("war_window")) bits.push("race weeks go back 8 weeks");
-  if (gaps.includes("ended_exceptions"))
-    bits.push("an exception that ended earlier is not kept");
   if (!bits.length) return null;
   const s = bits.join("; ");
   return `${s.charAt(0).toUpperCase()}${s.slice(1)}.`;

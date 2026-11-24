@@ -172,14 +172,27 @@ async function seedLedger(ledger) {
     status: "proposed",
     raised_at: iso(2),
   });
-  await ledger.putHold(CLAN, {
+  await ledger.putException(CLAN, {
+    exception_id: "x1",
     player_tag: SUBJECT,
-    kind: "leader",
-    until: "2026-12-12",
+    kind: "keep_in_clan",
+    visibility: "leaders",
+    until: "2026-12-12T00:00:00.000Z",
     note: "Exams",
-    by: LEADER,
-    by_name: "Ada",
+    set_by: LEADER,
+    set_by_name: "Ada",
     set_at: iso(3),
+    events: [
+      {
+        event: "added",
+        at: iso(3),
+        by: LEADER,
+        by_name: "Ada",
+        until: "2026-12-12T00:00:00.000Z",
+        visibility: "leaders",
+        note: "Exams",
+      },
+    ],
   });
   await ledger.putNote(CLAN, {
     note_id: "n1",
@@ -253,11 +266,18 @@ test("member history: a leader reads one member's story, newest first, from the 
   assert.equal(demotion[0].note, "Back from a trip.");
   // Nobody else's action.
   assert.ok(!d.entries.some((e) => e.card_id === "other-1"));
-  // The exception in force, who set it and until when.
+  // The exception's events, who set it and until when; the running one
+  // rides along for the page's Exceptions.
   const x = d.entries.find((e) => e.kind === "exception");
-  assert.equal(x.exception, "leader");
-  assert.equal(x.until, "2026-12-12");
+  assert.equal(x.exception, "keep_in_clan");
+  assert.equal(x.event, "added");
+  assert.equal(x.until, "2026-12-12T00:00:00.000Z");
+  assert.equal(x.visibility, "leaders");
   assert.equal(x.by.name, "Ada");
+  assert.deepEqual(
+    d.exceptions.map((e) => [e.kind, e.by_name, e.note]),
+    [["keep_in_clan", "Ada", "Exams"]],
+  );
   // River Race weeks: the five read weeks with decks, never the null one.
   const war = d.entries.filter((e) => e.kind === "war_week");
   assert.deepEqual(
@@ -278,7 +298,7 @@ test("member history: a leader reads one member's story, newest first, from the 
     d.entries.filter((e) => e.kind === "note").map((e) => e.tier),
     ["leader", "elder"],
   );
-  assert.ok(d.gaps.includes("ended_exceptions"));
+  assert.ok(!d.gaps.includes("ended_exceptions"), "exceptions are kept");
 });
 
 test("member history: reading it writes nothing to the ledger", async () => {
@@ -412,24 +432,44 @@ test("buildMemberHistory: a join after the first roster read is told; a later st
   assert.ok(!entries.some((e) => e.kind === "known_since"));
 });
 
-test("buildMemberHistory: an exception whose end has passed says it ended", () => {
+test("buildMemberHistory: every exception event is told, a run-out one too", () => {
   const entries = buildMemberHistory({
     playerTag: SUBJECT,
     part: null,
     roster: null,
-    exceptions: [
+    exceptionEvents: [
       {
+        exception_id: "x9",
+        player_tag: SUBJECT,
         kind: "away",
-        until: iso(1),
-        set_at: iso(8),
+        event: "added",
+        at: iso(8),
         by: SUBJECT,
         by_name: "Bea",
+        until: iso(1),
+        visibility: "clan",
+        note: null,
+      },
+      {
+        exception_id: "x9",
+        player_tag: SUBJECT,
+        kind: "away",
+        event: "expired",
+        at: iso(1),
+        by: null,
+        by_name: null,
+        until: iso(1),
+        visibility: "clan",
+        note: null,
       },
     ],
     now: NOW.getTime(),
   });
   assert.deepEqual(
-    entries.map((e) => e.kind),
-    ["exception_ended", "exception"],
+    entries.map((e) => [e.kind, e.event, e.exception, e.by?.name ?? null]),
+    [
+      ["exception", "expired", "away", null],
+      ["exception", "added", "away", "Bea"],
+    ],
   );
 });
