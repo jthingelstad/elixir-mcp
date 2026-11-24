@@ -25,7 +25,7 @@ import {
   didTheirPart,
   gapLine,
   historyLine,
-  kickPaused,
+  kickHeld,
   median,
   quietDays,
 } from "../lib/members.js";
@@ -68,7 +68,7 @@ const leaderRole = (role) => role === "leader" || role === "coLeader";
 function kickClock(m, policy) {
   if (!policy?.removal) return "No kick clock in the rules";
   if (leaderRole(m.role)) return "Skipped by the rules";
-  if (kickPaused(m)) return "Kick clock paused";
+  if (kickHeld(m)) return "No kick while their exception runs";
   const r = m.removal ?? {};
   if (!r.state || r.state === "none") return "Kick clock not running";
   const days = quietDays(m);

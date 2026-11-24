@@ -278,7 +278,7 @@ test("Members lists everyone with filters, and a row opens the member's page", a
     page.getByText("#0GRJCUV · in Example Clan at least 126 days"),
   ).toBeVisible();
   const where = page.getByRole("group", { name: "Where they stand" });
-  await expect(where).toContainText("Kick clock paused");
+  await expect(where).toContainText("No kick while their exception runs");
   await expect(where).toContainText("Elder rank1 of 3");
   await expect(where).toContainText("Clan median");
   const history = page.getByRole("list", { name: "History in Example Clan" });

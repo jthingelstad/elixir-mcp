@@ -22,10 +22,11 @@ export const MEMBER_FILTERS = [
  *  as "Exception". */
 export const exceptionWords = (kind) => KINDS[kind]?.label ?? "Exception";
 
-/** The kinds that pause the kick clock while they run. */
+/** The kinds that keep a member from a kick while they run. The quiet
+ *  days still count: nothing is subtracted when one ends. */
 const NO_KICK = new Set(["keep_in_clan", "away"]);
-/** Whether a running exception pauses this member's kick clock. */
-export const kickPaused = (m) =>
+/** Whether a running exception keeps this member from a kick. */
+export const kickHeld = (m) =>
   (m.exceptions ?? []).some((e) => NO_KICK.has(e.kind));
 
 /** Whether a member is under a filter. `waiting` is the set of tags with an

@@ -520,7 +520,7 @@ function Quiet({ e, problems }) {
             label="Members can say they're away for up to"
             hint={
               draft.away_max_days > 0
-                ? "Away days don't count as quiet."
+                ? "No kick while they're away. Their quiet days still count."
                 : "At 0, nobody can say they're away."
             }
             was={<Was e={e} k="away_max_days" />}
@@ -987,7 +987,7 @@ export function RunRules({ e, clan }) {
             n={4}
             q={quiet}
             wrong={wrong(quiet)}
-            sub="Elixir counts days with no battle. Away days don't count."
+            sub="Elixir counts days with no battle. Nobody is kicked while they're away."
           >
             <Quiet e={e} problems={problems} />
           </Question>

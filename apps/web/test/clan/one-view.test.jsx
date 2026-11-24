@@ -278,6 +278,41 @@ const showcase = () => {
 };
 
 describe("Rules", () => {
+  test("a member short of the goals is told what the rule asks: every goal, or any one", async () => {
+    for (const [rule, words] of [
+      ["all", "Not yet. Meet every goal to get there."],
+      ["any", "Not yet. Any one of these gets you there."],
+    ]) {
+      vi.restoreAllMocks();
+      showcase();
+      const answer = policyAnswer();
+      answer.data.current.values = { ...rulesValues, minimums_rule: rule };
+      vi.spyOn(manageApi, "policy").mockResolvedValue(answer);
+      vi.spyOn(manageApi, "memberView").mockResolvedValue({
+        ok: true,
+        status: 200,
+        data: {
+          clan: {
+            minimums: {
+              set: { war: 8, donations: 40 },
+              met: { war: true, donations: false },
+              passes: false,
+              unknown: false,
+              have: { war: 12, ranked: null, donations: 31.6, trophies: null },
+              rule,
+              window_weeks: 2,
+            },
+          },
+        },
+      });
+      const { unmount } = renderWithProviders(
+        <ClanRules clan={member} navigate={vi.fn()} />,
+      );
+      expect(await screen.findByText(words)).toBeTruthy();
+      unmount();
+    }
+  });
+
   test("a member reads how the clan plays, with no way to change it", async () => {
     showcase();
     renderWithProviders(<ClanRules clan={member} navigate={vi.fn()} />);
