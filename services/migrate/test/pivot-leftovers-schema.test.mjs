@@ -1,9 +1,9 @@
 /**
  * 0257, read back from a migrated scratch database: the year graph's
- * table and the integration counters are gone, and both audience CHECKs
- * refuse the integration door /i/<id>/mcp while still taking the
- * person's two doors. 0317 later dropped the integration table and the
- * agent door too (accounts-are-people.test.mjs).
+ * table, the integration counters and integration's scopes and limits are
+ * gone; integration keeps what the {integration} op and Clan's morning run
+ * read; and both audience CHECKs refuse the integration door /i/<id>/mcp
+ * while still taking the person's, the JSON API's and an agent's.
  */
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
@@ -54,6 +54,19 @@ test("the dropped tables are gone", async () => {
   );
 });
 
+test("integration keeps its identity and nothing else of 0058's", async () => {
+  const { rows } = await db.query(
+    `select column_name from information_schema.columns
+      where table_schema = 'public' and table_name = 'integration'
+      order by column_name`,
+  );
+  const cols = rows.map((r) => r.column_name);
+  for (const gone of ["scopes", "daily_limit", "hourly_limit", "refresh_limit"])
+    assert.ok(!cols.includes(gone), gone);
+  for (const kept of ["account_id", "name", "created_at"])
+    assert.ok(cols.includes(kept), kept);
+});
+
 async function familyAt(resource) {
   await db.query("savepoint s");
   try {
@@ -70,16 +83,12 @@ async function familyAt(resource) {
   }
 }
 
-test("oauth_family takes the two doors and refuses the integration and agent doors", async () => {
+test("oauth_family takes the three doors and refuses the integration door", async () => {
   await db.query("begin");
   try {
-    for (const p of ["/mcp", "/api/v1"])
+    for (const p of ["/mcp", "/api/v1", "/a/abcd1234/mcp"])
       assert.equal(await familyAt(`${HOST}${p}`), "ok", p);
-    for (const p of [
-      "/i/abcd12345678/mcp",
-      "/i/abcd1234/mcp",
-      "/a/abcd1234/mcp",
-    ])
+    for (const p of ["/i/abcd12345678/mcp", "/i/abcd1234/mcp"])
       assert.equal(
         await familyAt(`${HOST}${p}`),
         "oauth_family_resource_shape",
@@ -98,6 +107,6 @@ test("oauth_code's CHECK is the same pattern as oauth_family's", async () => {
   );
   assert.equal(rows.length, 2);
   assert.equal(rows[0].def, rows[1].def);
-  assert.doesNotMatch(rows[0].def, /\[ai\]|\/i\/|a\/\[/);
-  assert.match(rows[0].def, /\(mcp\|api\/v1\)\$/);
+  assert.doesNotMatch(rows[0].def, /\[ai\]|\/i\//);
+  assert.match(rows[0].def, /a\/\[a-z0-9\]\{8,16\}\/mcp/);
 });
