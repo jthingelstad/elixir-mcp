@@ -272,6 +272,52 @@ test("a sitting begun on time and finished late is one story, all of it", async 
   assert.equal(ids.size, 1, "one id");
 });
 
+test("an observed read at the late capture tells the sitting begun on time whole", async () => {
+  // Codex on #1223: the window holds only the two battles learned two
+  // days late; the first, learned on time, is the sitting's all the same.
+  const subjects = [player(MIX)];
+  const whole = sittingOf(await read({}, subjects), MIX);
+  const at = { basis: "observed", fromMs: MIXED + 2 * DAY - H };
+  for (const batchPlayers of [true, false]) {
+    const built = await read({ ...at, batchPlayers }, subjects);
+    const s = sittingOf(built, MIX);
+    assert.ok(s, JSON.stringify(built.timeline));
+    for (const key of ["id", "at", "revision"])
+      assert.equal(s[key], whole[key], `${key} (batched: ${batchPlayers})`);
+    assert.equal(s.facts.started_at, iso(MIXED));
+    assert.equal(s.facts.battles, 3);
+    assert.deepEqual(
+      { ...s.facts, open: null },
+      { ...whole.facts, open: null },
+      `batched: ${batchPlayers}`,
+    );
+    assert.deepEqual(s.evidence, whole.evidence);
+    assert.equal(s.late, true, "played before the window");
+    assert.equal(learnedLate(s), false);
+    const games = await readTimelineEvidence(db, s, {
+      expectedVersion: s.evidence.version,
+    });
+    assert.equal(games.battles.length, s.facts.battles);
+    // The window's own counts are what it learned: the late two.
+    assert.equal(built.entries[0].battles.played, 2);
+    assert.equal(built.entries[0].battles.late_captures, 2);
+  }
+  // A clan's read about the member tells the same sitting, whole.
+  const clan = await read({ ...at, memberTag: MIX }, [
+    { kind: "clan", tag: CLAN, scope: "comprehensive" },
+  ]);
+  const c = clan.timeline.find(
+    (it) => it.kind === "battle_session" && it.facts.player_tag === MIX,
+  );
+  assert.ok(c, JSON.stringify(clan.timeline));
+  assert.equal(c.id, whole.id);
+  assert.equal(c.facts.started_at, iso(MIXED));
+  assert.equal(c.facts.battles, 3);
+  assert.equal(c.evidence.version, whole.evidence.version);
+  // The window's own counts: MIX's late two and TAG's four.
+  assert.equal(clan.entries[0].activity.battles, 6);
+});
+
 test("a clan's timeline tells a member's late sitting at its played time", async () => {
   const clan = [{ kind: "clan", tag: CLAN, scope: "comprehensive" }];
   const mine = sittingOf(await read());

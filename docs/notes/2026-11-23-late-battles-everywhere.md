@@ -101,6 +101,41 @@ No migration and no backfill. Existing rows:
   time keeps its id; only its revision and version grow. No fallback was
   kept for the rare case.
 
+## A selected sitting is told whole (Codex on #1223)
+
+An observed window selects a sitting by a battle it learned, but read only
+the battles it learned, so a sitting begun on time and finished by
+battles learned two days later was told, in a window at the late
+capture, as its two late games starting five minutes in, while its
+revision and View games held all three. Incremental timeline reads and
+the Discord cross-post saw that slice.
+
+Now an observed read tells a selected sitting with all its battles, the
+facts, start, count, id and revision an occurred read of the whole
+sitting gives, on the single and batched paths and for a clan's member
+sittings:
+
+- `wide` on the observed basis holds the player's battles since a day
+  before `from` that the record knew by the window's end, learned in the
+  window or not (`learnedIn` says which it learned). Selection and the
+  window's counts are still the battles it learned.
+- A selected sitting begun within a session gap of that edge (every
+  sitting of a late capture played before it, rarely another) is
+  completed by `sittingContext`: one statement for all such sittings,
+  walking back from each start and on from each end while the gap stays
+  under 30 minutes (at most 200 steps each way, a probe a step on the
+  player's index), then reading the player's battles between. A clan
+  reads its member rows the same way (`bp.clan_tag`). It runs only when
+  such a sitting exists.
+- A posted sitting the late capture finishes is edited whole (`sync`
+  test). A 9.15.0 pin in `timeline-tool` (#111) that a later window's
+  session "starts inside the sitting" now reads the whole sitting.
+
+Cost: the observed week's fetch also reads the day before `from` for
+each player, as the occurred fetch always did (the bell's ceiling rose
+1,400 to 1,450 buffers); statement counts are unchanged, but a read with
+an edge sitting makes one more.
+
 ## Cost
 
 An observed read now always walks the window's learned battles off

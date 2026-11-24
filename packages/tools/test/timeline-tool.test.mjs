@@ -1450,8 +1450,9 @@ async function seedSittingBattle(
 
 test("9.15.0: one sitting read through overlapping windows is one story, its revision the battles so far (#111)", async () => {
   // Six battles four minutes apart; the first three learned at 12:10,
-  // the rest at 12:30. The player path builds a session from the battles
-  // a window learned, so the later window's session starts at battle 3.
+  // the rest at 12:30. A window selects the sitting by a battle it
+  // learned and tells it whole (Codex on #1223): the later window's
+  // session is all six, as the record knew them by its end.
   const base = Date.parse("2026-09-07T12:00:00Z");
   for (let i = 0; i < 6; i++)
     await seedSittingBattle(ctx.db, {
@@ -1480,9 +1481,11 @@ test("9.15.0: one sitting read through overlapping windows is one story, its rev
   assert.equal(early.facts.battles, 3);
   assert.equal(
     late.facts.started_at,
-    new Date(base + 3 * 4 * 60_000).toISOString(),
-    "the late window's session starts inside the sitting",
+    new Date(base).toISOString(),
+    "the late window's session is the whole sitting",
   );
+  assert.equal(late.facts.battles, 6);
+  assert.deepEqual(late.facts, whole.facts);
   assert.equal(late.id, early.id, "the same sitting, the same story");
   assert.equal(whole.id, early.id);
   assert.equal(early.revision, 3);
