@@ -91,6 +91,26 @@ async function freshCard(page: Page) {
   return cards.nth(at);
 }
 
+async function settledBox(page: Page, card: Locator) {
+  await page.evaluate(() => document.fonts.ready);
+  let last = -1;
+  await expect
+    .poll(async () => {
+      await page.evaluate(
+        () =>
+          new Promise((r) =>
+            requestAnimationFrame(() => requestAnimationFrame(r)),
+          ),
+      );
+      const h = (await card.boundingBox())!.height;
+      const same = h === last;
+      last = h;
+      return same;
+    })
+    .toBe(true);
+  return (await card.boundingBox())!;
+}
+
 function cheersApi(sent: { item_id: string; cheer: string | null }[]) {
   return rhythmApi({
     "PUT /api/me/cheers": (route) => {
@@ -120,7 +140,9 @@ for (const width of [390, 1280]) {
     const card = await freshCard(page);
     const cheer = card.getByRole("button", { name: /^Cheer(ed)?: / });
     await expect(cheer).toHaveAttribute("aria-pressed", "false");
-    const before = await card.boundingBox();
+    // Measure once fonts and images have landed and the card's height
+    // holds across two frames; an early read caught it still growing.
+    const before = await settledBox(page, card);
     const size = await cheer.boundingBox();
     expect(size!.height).toBeGreaterThanOrEqual(44);
     expect(size!.width).toBeGreaterThanOrEqual(44);
@@ -129,8 +151,8 @@ for (const width of [390, 1280]) {
     await expect.poll(() => sent.length).toBe(1);
     expect(sent[0]?.cheer).toBe("well_played");
     // No layout shift: the card keeps its height when the cheer lands.
-    const after = await card.boundingBox();
-    expect(Math.abs(after!.height - before!.height)).toBeLessThanOrEqual(1);
+    const after = await settledBox(page, card);
+    expect(Math.abs(after.height - before.height)).toBeLessThanOrEqual(1);
     await cheer.click();
     await expect(cheer).toHaveAttribute("aria-pressed", "false");
     await expect.poll(() => sent.length).toBe(2);

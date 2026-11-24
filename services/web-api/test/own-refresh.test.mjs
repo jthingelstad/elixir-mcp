@@ -837,6 +837,15 @@ test("older battles new to Elixir are new to the record, not the latest", async 
   );
   try {
     const asked = await call("POST", person, { tag: STRANGER, tap: true });
+    // The marker is later than the row written before the ask, even in
+    // the same millisecond (it carries milliseconds, the row microseconds).
+    const {
+      rows: [{ row_us }],
+    } = await db.query(
+      `select extract(epoch from created_at) * 1e6 as row_us from battle
+        where battle_id = 'older-newest'`,
+    );
+    assert.ok(decodeSince(asked.body.since).at * 1000 > Number(row_us));
     await db.query(
       `insert into battle (battle_id, battle_time, type, type_class)
        values ('older-added', now() - interval '2 days', 'PvP', 'pvp')`,

@@ -613,7 +613,12 @@ async function profileFacts(db, tag) {
   const {
     rows: [r],
   } = await db.query(
-    `select now() as at, p.name, m.state as clan_state, m.clan_tag,
+    // The marker keeps milliseconds and the database keeps microseconds:
+    // rounded up, a row written before the ask in the same millisecond is
+    // still older than the marker, never "new" (a check's own reads come
+    // far later than a millisecond after it).
+    `select date_trunc('milliseconds', now()) + interval '1 millisecond' as at,
+            p.name, m.state as clan_state, m.clan_tag,
             c.name as clan_name, s.trophies, a.name as arena,
             pr.best_trophies, pr.pol_league, pr.profile_observed_at
        from (select $1::text as tag) x
