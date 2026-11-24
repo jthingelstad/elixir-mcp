@@ -112,7 +112,7 @@ export function ActivityDiscordSetting({ clan, navigate }) {
               posting
                 ? "Posting · Connected"
                 : !d.policy.ready
-                  ? "Not posting · Policy needed"
+                  ? "Not posting · Rules needed"
                   : !hasCategories
                     ? "Not posting · No categories on"
                     : "Not posting · Connected"
@@ -387,12 +387,12 @@ function ActivityEditor({
                               send({ categories: { [cat.key]: null } })
                             }
                           >
-                            Use the policy&rsquo;s default (
+                            Use the rules&rsquo; default (
                             {d.policy.defaults[cat.key] ? "on" : "off"})
                           </button>
                         </>
                       ) : (
-                        " The policy's default."
+                        " The rules' default."
                       )
                     ) : null}
                   </p>

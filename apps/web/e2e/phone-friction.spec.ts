@@ -170,11 +170,11 @@ for (const width of [320, 390, 1280]) {
     await page.setViewportSize({ width, height: 844 });
     await mockApi(page, identityFixtures({ ...clanIn(), ...homeApi() }));
     // A deep link to the last tab opens it, scrolled into view.
-    await page.goto("/clan/0QC8RCGY/policy");
+    await page.goto("/clan/0QC8RCGY/rules");
     const bar = page.getByRole("tablist", { name: "Clan" });
-    const policy = bar.getByRole("tab", { name: "Policy" });
-    await expect(policy).toHaveAttribute("aria-selected", "true");
-    await expect(policy).toBeInViewport();
+    const rules = bar.getByRole("tab", { name: "Rules" });
+    await expect(rules).toHaveAttribute("aria-selected", "true");
+    await expect(rules).toBeInViewport();
     await oneRow(page, "Clan");
     await noSideways(page);
     await page.goto("/clan/0QC8RCGY/members");

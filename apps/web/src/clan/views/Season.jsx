@@ -70,7 +70,7 @@ function basisLine(highlight, policy) {
       ),
     )}).`;
   if (policy?.active)
-    return "This clan's policy counts no category, so the week highlights where the clan was busiest.";
+    return "This clan's rules count no category, so the week highlights where the clan was busiest.";
   if (policy?.set)
     return "Clan management is paused below 10 members, so the week highlights where the clan was busiest.";
   return "This clan's leaders have not set up how it runs yet, so the week highlights where the clan was busiest.";

@@ -346,10 +346,10 @@ export function needsYou({ clan, needs, signals, clock }) {
   )
     rows.push({
       key: "policy",
-      title: `Set up how ${clan.name ?? "your clan"} works`,
-      detail: "Nothing runs in Clan until it has a policy.",
+      title: `Set up ${clan.name ?? "your clan"}'s rules`,
+      detail: "Nothing runs in Clan until it has rules.",
       cta: "Start",
-      to: `/clan/${tagPath(clan.clan_tag)}/run/about`,
+      to: `/clan/${tagPath(clan.clan_tag)}/run/rules`,
     });
   if ((signals?.refusals_7d ?? 0) > 0)
     rows.push({

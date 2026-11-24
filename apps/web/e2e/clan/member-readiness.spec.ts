@@ -130,18 +130,20 @@ for (const width of [390, 1280]) {
       path: `/tmp/elixir-member-activity-${width}.png`,
       fullPage: true,
     });
-    await page.goto("/clan/0QC8RCGY/run/about");
+    await page.goto("/clan/0QC8RCGY/run/rules");
+    await expect(page.getByText(/You can set its rules now/)).toBeVisible();
     await expect(
-      page.getByText(/Leaders can prepare and save its policy now/),
-    ).toBeVisible();
-    await expect(
-      page.getByRole("button", { name: "Save this clan's policy" }),
+      page.getByRole("button", { name: "Save rules" }),
     ).toBeEnabled();
+    await page
+      .locator("summary")
+      .filter({ hasText: "Before you save" })
+      .click();
     await expect(
       page.getByRole("button", { name: "Preview the last reviews" }),
     ).toBeDisabled();
     await page.screenshot({
-      path: `/tmp/elixir-policy-prepare-${width}.png`,
+      path: `/tmp/elixir-rules-prepare-${width}.png`,
       fullPage: true,
     });
     expect(business).toEqual([]);

@@ -54,9 +54,7 @@ describe("spread the word", () => {
     );
     expect(screen.getByText("Set up how the clan runs")).toBeTruthy();
     expect(screen.getByText(/each with its own log/)).toBeTruthy();
-    expect(
-      screen.getByRole("link", { name: "Set up the policy" }),
-    ).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Set up the rules" })).toBeTruthy();
   });
 
   test("below 10 members the card points a leader at Recruit", () => {
@@ -87,14 +85,12 @@ describe("spread the word", () => {
       const open = screen.queryByRole("link", { name: "Open Recruit" });
       if (role === "member") expect(open).toBeNull();
       else expect(open).toBeTruthy();
-      const link = screen.queryByRole("link", { name: "Prepare the policy" });
+      const link = screen.queryByRole("link", { name: "Set the rules" });
       if (["leader", "coLeader"].includes(role)) {
-        expect(link.getAttribute("href")).toBe("/clan/0QC8RCGY/run/about");
+        expect(link.getAttribute("href")).toBe("/clan/0QC8RCGY/run/rules");
         fireEvent.click(link);
-        expect(navigate).toHaveBeenCalledWith("/clan/0QC8RCGY/run/about");
-        expect(
-          screen.getByText(/Leaders can prepare and save the policy now/),
-        ).toBeTruthy();
+        expect(navigate).toHaveBeenCalledWith("/clan/0QC8RCGY/run/rules");
+        expect(screen.getByText(/Leaders can set the rules now/)).toBeTruthy();
       } else expect(link).toBeNull();
       cleanup();
     }

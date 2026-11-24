@@ -221,13 +221,13 @@ export const FIELDS = {
   },
   posture: {
     group: "about",
-    label: "How strict",
+    label: "How serious",
     unit: "posture",
     type: "enum",
     options: [
-      { value: "relaxed", label: "Relaxed: real life first" },
-      { value: "standard", label: "Standard: show up most weeks" },
-      { value: "strict", label: "Strict: every week counts" },
+      { value: "relaxed", label: "Chill: real life first" },
+      { value: "standard", label: "Steady: show up most weeks" },
+      { value: "strict", label: "Hardcore: every week counts" },
     ],
     default: "standard",
     why: "Where a starting point, or a tab you turn on, puts the minimums and the clocks. Change the numbers on each tab as you like.",

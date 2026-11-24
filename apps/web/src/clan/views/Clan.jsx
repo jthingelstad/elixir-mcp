@@ -432,7 +432,7 @@ export function Clan({
         <div className="mb-[22px]">
           <div className="callout callout--info mb-3" role="status">
             <span>
-              Run is for the leader and co-leaders, and this clan has no policy
+              Run is for the leader and co-leaders, and this clan has no rules
               to read yet.
             </span>
           </div>

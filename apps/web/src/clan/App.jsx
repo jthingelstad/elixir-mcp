@@ -41,7 +41,7 @@ import { Away } from "./views/Away.jsx";
 import { Awards } from "./views/Awards.jsx";
 import { ActionDetail } from "./views/Actions.jsx";
 import { Feed } from "./views/Feed.jsx";
-import { ClanPolicy } from "./views/ClanPolicy.jsx";
+import { ClanRules } from "./views/ClanRules.jsx";
 import { YouHere } from "./views/YouHere.jsx";
 import { Season } from "./views/Season.jsx";
 import { Run } from "./views/Run.jsx";
@@ -104,7 +104,7 @@ export function parseClanPath(path) {
     return { tag, section: "run", tab: "members", player };
   }
   const m =
-    /^\/([^/]+)(?:\/(feed|standings|war|members|policy|run|actions)(?:\/([a-z0-9-]+))?)?\/?$/i.exec(
+    /^\/([^/]+)(?:\/(feed|standings|war|members|rules|run|actions)(?:\/([a-z0-9-]+))?)?\/?$/i.exec(
       app,
     );
   const tag = m ? tagOf(m[1]) : null;
@@ -314,8 +314,15 @@ export function ClanPage() {
         </section>
       </div>
     );
-  if (section === "policy")
-    return <ClanPolicy key={clan.clan_tag} clan={clan} navigate={navigate} />;
+  if (section === "rules")
+    return (
+      <ClanRules
+        key={clan.clan_tag}
+        clan={clan}
+        who={who}
+        navigate={navigate}
+      />
+    );
   if (section === "run") {
     // Run is the leaders'. Old mail's Decided and Waiting were every
     // member's Today: a member following one lands on the Feed.

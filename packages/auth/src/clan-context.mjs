@@ -8,8 +8,9 @@
  * the player map and Near you. */
 import { ELIXIR_ORIGIN } from "@elixir-mcp/contracts";
 import {
+  DIRECTORY_POLICY_FIELDS,
   actionsWaitingFor,
-  countedCategories,
+  directoryPolicy,
   effectivePolicyValues,
   ownStandingLine,
   policySummaryOf,
@@ -150,20 +151,11 @@ export async function readOwnClanView(db, account, clanTag) {
 
 // ---- the clan directory (#768) ---------------------------------------------
 
-/** The policy fields a directory tile carries, and nothing else. A saved
- *  version also holds who saved it, their note, and every minimum and clock;
- *  none of those leaves the database here. */
-const DIRECTORY_POLICY_FIELDS = [
-  "war_intent",
-  "posture",
-  "goal_together",
-  "war_enabled",
-  "ranked_enabled",
-  "donations_enabled",
-  "trophies_enabled",
-  "removal_enabled",
-  "confirm_days",
-];
+/** The policy fields a directory tile carries, and nothing else, are the
+ *  engine's `DIRECTORY_POLICY_FIELDS`: the same projection the Rules
+ *  editor previews (`directoryPolicy`). A saved version also holds who
+ *  saved it, their note, and every minimum and clock; none of those leaves
+ *  the database here. */
 
 /** [engineering, 2026-11-12] A bound on one read; the page says when it is
  *  reached rather than dropping clans without a word. */
@@ -219,15 +211,11 @@ select l.clan_tag, c.name, c.type, c.description,
  limit $3`;
 
 const CLAN_TYPES = new Set(["open", "inviteOnly", "closed"]);
-const POSTURES = new Set(["relaxed", "standard", "strict"]);
-const INTENTS = new Set(["participating", "not_participating"]);
 
 /** One tile's facts. The record's facts as the record has them (null when
  *  not recorded); the policy as the clan saved it, defaults filled in. */
 function directoryTile(row) {
   const values = effectivePolicyValues(row.policy ?? {});
-  const removal = values.removal_enabled === true;
-  const confirm = Number(values.confirm_days);
   return {
     clan_tag: row.clan_tag,
     name: row.name ?? null,
@@ -240,14 +228,7 @@ function directoryTile(row) {
     yours: row.yours === true,
     policy: {
       version: row.version,
-      war_intent: INTENTS.has(values.war_intent)
-        ? values.war_intent
-        : "unknown",
-      posture: POSTURES.has(values.posture) ? values.posture : null,
-      together: values.goal_together === true,
-      counted: countedCategories(values),
-      removal_day:
-        removal && Number.isInteger(confirm) && confirm > 0 ? confirm : null,
+      ...directoryPolicy(values),
       saved_at:
         row.saved_at === null || row.saved_at === undefined
           ? null

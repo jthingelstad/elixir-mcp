@@ -55,7 +55,7 @@ export function BoardState({ state, query, load, clan, navigate, what }) {
         title="No rules yet"
         action={
           <Link
-            to={`${clanPath(clan.clan_tag)}/run/about`}
+            to={`${clanPath(clan.clan_tag)}/run/rules`}
             navigate={navigate}
             className="btn btn--primary"
           >
@@ -159,7 +159,7 @@ function Summary({ d, state, load }) {
         </p>
       ) : null}
       <p className="page-head__note m-0">
-        Last read {ago(d.evaluated_at)} under policy v{d.policy_version}
+        Last read {ago(d.evaluated_at)} under rules v{d.policy_version}
         {d.boundaries?.length
           ? `, over ${d.boundaries.length} weekly reviews (last ${whenDay(d.boundaries.at(-1))})`
           : ", with no closed weekly review on record yet"}

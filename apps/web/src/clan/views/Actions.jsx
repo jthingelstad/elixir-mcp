@@ -43,7 +43,7 @@ function ActionRefused({ state, query, head }) {
     return (
       <>
         {head}
-        <Empty title="No policy yet">
+        <Empty title="No rules yet">
           Actions start when this clan&rsquo;s leaders set up how the clan runs
           here.
         </Empty>
@@ -279,7 +279,7 @@ export function ActionDetail({ clan, who, number, navigate }) {
             <CopyLink path={actionPath(clan, number)} />
             {a ? (
               <ReportThis
-                about={`This action: ${a.label}${a.player_tag ? `, ${a.player_name ?? a.player_tag}` : ""}. Its evidence and the policy behind it ride along.`}
+                about={`This action: ${a.label}${a.player_tag ? `, ${a.player_name ?? a.player_tag}` : ""}. Its evidence and the rule behind it ride along.`}
                 refs={[
                   { kind: "clan_action", ref: String(a.card_id) },
                   { kind: "clan", ref: clan.clan_tag },

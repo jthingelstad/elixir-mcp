@@ -1,14 +1,15 @@
 /**
  * Clan as one view (slice 8, #766; Jamie, 2026-11-12: "Yes, the canvas
- * tabs"): Feed, Standings, War, Members and Policy for every member, and
+ * tabs"): Feed, Standings, War, Members and Rules for every member, and
  * Run for the leader and co-leaders alone. A member sees five tabs and is
  * refused Run; a leader the server refuses sees the refusal, never the
- * tools; every old address lands on its new tab; and the Feed and Policy
+ * tools; every old address lands on its new tab; and the Feed and Rules
  * read at phone width with no serious accessibility finding. Synthetic
  * names and tags only.
  */
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
+import { policyFromGoals } from "@elixir-mcp/clan-engine";
 import { ME, clanTab, mockApi, signedIn } from "./fixtures.ts";
 
 const EXAMPLE = ME.clans[0]!;
@@ -36,7 +37,7 @@ const POLICY = {
     version: 2,
     saved_at: "2026-09-01T12:00:00Z",
     saved_by_name: "Ada",
-    values: {},
+    values: policyFromGoals(["war", "donations"], "standard"),
   },
   how: [
     {
@@ -87,7 +88,7 @@ test("a member sees five tabs, and Run is refused", async ({ page }) => {
     }),
   );
   await page.goto("/clan/0QC8RCGY/feed");
-  for (const name of ["Standings", "War", "Members", "Policy"])
+  for (const name of ["Standings", "War", "Members", "Rules"])
     await expect(clanTab(page, name)).toBeVisible();
   await expect(clanTab(page, /^Timeline/)).toHaveAttribute(
     "aria-selected",
@@ -97,7 +98,7 @@ test("a member sees five tabs, and Run is refused", async ({ page }) => {
   await expect(page.getByText("Three crowns with seconds left")).toBeVisible();
   await expect(page.getByText("A 3-2 win")).toBeVisible();
   // Typing Run's address shows the refusal, never Run's tools.
-  await page.goto("/clan/0QC8RCGY/run/about");
+  await page.goto("/clan/0QC8RCGY/run/rules");
   await expect(
     page.getByText(/Run is for the clan.s leader and co-leaders/),
   ).toBeVisible();
@@ -125,7 +126,7 @@ test("a leader the server refuses is shown the refusal, never Run's tools", asyn
       "GET /api/clan/clans/0QC8RCGY/run": [403, { error: "leaders_only" }],
     }),
   );
-  await page.goto("/clan/0QC8RCGY/run/about");
+  await page.goto("/clan/0QC8RCGY/run/rules");
   await expect(
     page.getByText(/Run is for the clan.s leader and co-leaders/),
   ).toBeVisible();
@@ -150,7 +151,7 @@ test.describe("a clan's own address and its Actions list land on the Feed", () =
     });
 });
 
-test("@narrow the Feed and Policy read on a phone", async ({ page }) => {
+test("@narrow the Feed and Rules read on a phone", async ({ page }) => {
   await mockApi(
     page,
     signedIn({
@@ -166,16 +167,26 @@ test("@narrow the Feed and Policy read on a phone", async ({ page }) => {
     path: "/tmp/elixir-clan-feed-narrow.png",
     fullPage: true,
   });
-  await clanTab(page, "Policy").click();
-  await expect(page).toHaveURL(/\/clan\/0QC8RCGY\/policy$/);
+  await clanTab(page, "Rules").click();
+  await expect(page).toHaveURL(/\/clan\/0QC8RCGY\/rules$/);
   await expect(
-    page.getByRole("heading", { name: "How Example Clan works" }),
+    page.getByRole("heading", { name: "How Example Clan plays" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Over 2 weeks, do one of these" }),
   ).toBeVisible();
   await expect(page.getByText(/Clan Wars 55%, Donations 30%/)).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Know someone who'd fit?" }),
+  ).toBeVisible();
+  // Members never see a leader's tools here.
+  await expect(
+    page.getByRole("link", { name: "Change it in Run" }),
+  ).toHaveCount(0);
   expect(await fitsTheScreen(page)).toBe(true);
-  await accessible(page, "narrow policy");
+  await accessible(page, "narrow rules");
   await page.screenshot({
-    path: "/tmp/elixir-clan-policy-narrow.png",
+    path: "/tmp/elixir-clan-rules-narrow.png",
     fullPage: true,
   });
 });

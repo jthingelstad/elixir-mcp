@@ -108,9 +108,7 @@ describe("standing", () => {
     await waitFor(() => expect(screen.getByText("Amy")).toBeTruthy());
     // Each group is its own panel, headed by its name and its count.
     const holding = screen.getByRole("region", { name: "Holding Elder" });
-    expect(holding.textContent).toMatch(
-      /^Holding Elder1Elders the policy keeps/,
-    );
+    expect(holding.textContent).toMatch(/^Holding Elder1Elders the rules keep/);
     expect(holding.textContent).toMatch(/Amy/);
     const rising = screen.getByRole("region", { name: "Rising" });
     expect(rising.textContent).toMatch(/^Rising1/);
@@ -131,11 +129,11 @@ describe("standing", () => {
     const rule = screen.getByRole("link", {
       name: "Read the rule: Becoming an Elder",
     });
-    expect(rule.getAttribute("href")).toBe("/clan/0QC8RCGY/policy#rule-elder");
+    expect(rule.getAttribute("href")).toBe("/clan/0QC8RCGY/rules#rule-elder");
     expect(document.getElementById("rule-elder")).toBeTruthy();
     expect(document.querySelector("tr[data-you='true']")).toBeTruthy();
-    // A member is not shown the leaders' policy page.
-    expect(screen.queryByText(/Read the policy in full/)).toBeNull();
+    // A member is not sent to change the rules in Run.
+    expect(screen.queryByText(/Change the rules in Run/)).toBeNull();
     expect(document.body.textContent).not.toMatch(
       /\b(score|percentile|rank)\b/i,
     );
@@ -197,8 +195,8 @@ describe("standing", () => {
     );
     // What Elder weighs, as the policy set it; a leader can open the policy.
     expect(screen.getByText("55%")).toBeTruthy();
-    expect(screen.getByText("policy v3")).toBeTruthy();
-    expect(screen.getByText(/Read the policy in full/)).toBeTruthy();
+    expect(screen.getByText("rules v3")).toBeTruthy();
+    expect(screen.getByText(/Change the rules in Run/)).toBeTruthy();
     expect(document.body.textContent).toMatch(
       /Leaders and co-leaders have no group\./,
     );
@@ -251,7 +249,7 @@ describe("standing", () => {
     renderWithProviders(
       <Standing clan={poap} who={{ player_tag: "#X", role: "member" }} />,
     );
-    await waitFor(() => expect(screen.getByText("No policy yet")).toBeTruthy());
+    await waitFor(() => expect(screen.getByText("No rules yet")).toBeTruthy());
   });
 
   test("a policy that keeps standing to leaders still shows how the clan runs", async () => {

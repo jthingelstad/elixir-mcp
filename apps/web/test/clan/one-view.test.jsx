@@ -1,6 +1,6 @@
 /**
  * Clan as one view (slice 8, #766): the Feed draws the clan's timeline,
- * Policy reads the clan's policy to every member (editing it is Run's), and
+ * Rules reads the clan's rules to every member (editing them is Run's), and
  * Run is refused to anyone who does not lead the clan, by the page and by
  * the server's answer. Synthetic names only.
  */
@@ -10,9 +10,10 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { createQueryClient } from "../../src/client/index.ts";
 import { renderWithProviders } from "./helpers.jsx";
 import { Feed } from "../../src/clan/views/Feed.jsx";
-import { ClanPolicy } from "../../src/clan/views/ClanPolicy.jsx";
+import { ClanRules } from "../../src/clan/views/ClanRules.jsx";
 import { Run } from "../../src/clan/views/Run.jsx";
-import { manageApi } from "../../src/clan/api.js";
+import { api, manageApi } from "../../src/clan/api.js";
+import { policyFromGoals } from "@elixir-mcp/clan-engine";
 import { MemberLink } from "../../src/clan/components/MemberLink.jsx";
 import { keys } from "../../src/clan/lib/queries.js";
 
@@ -205,6 +206,15 @@ describe("Feed", () => {
   });
 });
 
+const rulesValues = {
+  ...policyFromGoals(["war", "donations"], "standard"),
+  war_intent: "participating",
+  removal_enabled: true,
+  watch_days: 3,
+  at_risk_days: 7,
+  confirm_days: 14,
+  away_max_days: 21,
+};
 const policyAnswer = (set = true) => ({
   ok: true,
   status: 200,
@@ -212,10 +222,20 @@ const policyAnswer = (set = true) => ({
     set,
     can_edit: false,
     current: set
-      ? { version: 3, saved_at: "2026-11-01T12:00:00Z", saved_by_name: "Ada" }
+      ? {
+          version: 3,
+          saved_at: "2026-11-01T12:00:00Z",
+          saved_by_name: "Ada",
+          values: rulesValues,
+        }
       : { version: 0 },
     how: set
       ? [
+          {
+            key: "about",
+            title: "About this clan",
+            lines: ["This clan is about Clan Wars and donations."],
+          },
           {
             key: "elder",
             title: "Elder",
@@ -231,31 +251,89 @@ const policyAnswer = (set = true) => ({
       : null,
   },
 });
+const showcase = () => {
+  vi.spyOn(manageApi, "policy").mockResolvedValue(policyAnswer());
+  vi.spyOn(api, "roster").mockResolvedValue({
+    ok: true,
+    status: 200,
+    data: { member_count: 47, required_trophies: 5000, members: [] },
+  });
+  vi.spyOn(manageApi, "memberView").mockResolvedValue({
+    ok: true,
+    status: 200,
+    data: {
+      clan: {
+        minimums: {
+          set: { war: 8, donations: 40 },
+          met: { war: true, donations: false },
+          passes: true,
+          unknown: false,
+          have: { war: 12, ranked: null, donations: 31.6, trophies: null },
+          rule: "any",
+          window_weeks: 2,
+        },
+      },
+    },
+  });
+};
 
-describe("Policy", () => {
-  test("a member reads how the clan runs, with no way to change it", async () => {
-    vi.spyOn(manageApi, "policy").mockResolvedValue(policyAnswer());
-    renderWithProviders(<ClanPolicy clan={member} navigate={vi.fn()} />);
+describe("Rules", () => {
+  test("a member reads how the clan plays, with no way to change it", async () => {
+    showcase();
+    renderWithProviders(<ClanRules clan={member} navigate={vi.fn()} />);
     expect(
-      await screen.findByText("Elder goes to the members who give the most."),
+      await screen.findByRole("heading", { name: /^How .* plays$/ }),
     ).toBeTruthy();
-    expect(screen.getByText("Clan Wars")).toBeTruthy();
-    expect(screen.getByText("60%")).toBeTruthy();
+    // The summary heads the page, and stays with what we do together.
+    expect(
+      (
+        await screen.findAllByText(
+          "This clan is about Clan Wars and donations.",
+        )
+      ).length,
+    ).toBe(2);
+    expect(screen.getByText("Plays Clan Wars")).toBeTruthy();
+    expect(screen.getByText("Elder is earned")).toBeTruthy();
+    expect(screen.getByText("Kick after 14 quiet days")).toBeTruthy();
+    expect(await screen.findByText("47 of 50 members")).toBeTruthy();
+    expect(
+      screen.getByRole("heading", { name: "Over 2 weeks, do one of these" }),
+    ).toBeTruthy();
+    expect(await screen.findByText("You: 12")).toBeTruthy();
+    expect(screen.getByText("You: 31")).toBeTruthy();
+    expect(screen.getByText("You're doing your part.")).toBeTruthy();
+    expect(
+      screen.getByRole("img", {
+        name: "What makes a best player: Clan Wars 60%, Donations 40%",
+      }),
+    ).toBeTruthy();
+    expect(
+      screen.getByRole("link", { name: "I’ll be away" }).getAttribute("href"),
+    ).toBe("/clan/0QC8RCGY/members/away");
+    expect(
+      screen
+        .getByRole("link", { name: "See it in the clan list" })
+        .getAttribute("href"),
+    ).toBe("/clan/directory?q=%230QC8RCGY");
     expect(screen.getByText(/saved .* by Ada\./)).toBeTruthy();
     expect(screen.queryByRole("link", { name: /in Run/ })).toBeNull();
+    // Never a leaders-only thing: no versions, no notes, no draft.
+    expect(document.querySelector(".clan-versions")).toBeNull();
+    for (const id of ["rule-minimums", "rule-elder", "rule-removal"])
+      expect(document.getElementById(id)).toBeTruthy();
   });
 
   test("a leader is sent to Run to change it", async () => {
-    vi.spyOn(manageApi, "policy").mockResolvedValue(policyAnswer());
+    showcase();
     const navigate = vi.fn();
-    renderWithProviders(<ClanPolicy clan={leader} navigate={navigate} />);
+    renderWithProviders(<ClanRules clan={leader} navigate={navigate} />);
     const link = await screen.findByRole("link", { name: "Change it in Run" });
-    expect(link.getAttribute("href")).toBe("/clan/0QC8RCGY/run/about");
+    expect(link.getAttribute("href")).toBe("/clan/0QC8RCGY/run/rules");
   });
 
-  test("no policy: a member is told nothing runs until one is saved", async () => {
+  test("no rules: a member is told nothing runs until they're saved", async () => {
     vi.spyOn(manageApi, "policy").mockResolvedValue(policyAnswer(false));
-    renderWithProviders(<ClanPolicy clan={member} navigate={vi.fn()} />);
+    renderWithProviders(<ClanRules clan={member} navigate={vi.fn()} />);
     expect(
       await screen.findByText(/until then nothing in Clan runs/),
     ).toBeTruthy();

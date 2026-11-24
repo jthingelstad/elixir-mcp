@@ -79,10 +79,7 @@ test("How it works here opens with what the clan is for, and no posture words th
   assert.deepEqual(about.lines, [
     "This clan is about Clan Wars and donations.",
   ]);
-  assert.doesNotMatch(
-    JSON.stringify(describePolicy(v)),
-    /two weeks|Standard\./,
-  );
+  assert.doesNotMatch(JSON.stringify(describePolicy(v)), /two weeks|Steady\./);
   assert.equal(
     goalsInSentence(["donations", "together"]),
     "donations and playing together",

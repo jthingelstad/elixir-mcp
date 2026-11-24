@@ -394,7 +394,7 @@ describe("actions", () => {
         /Earlier: declined \w+ Sep [12]( 2026)? \(knows the member\)/,
       ),
     ).toBeTruthy();
-    expect(screen.getByText("policy v1")).toBeTruthy();
+    expect(screen.getByText("rules v1")).toBeTruthy();
     fireEvent.change(screen.getByLabelText("Comment"), {
       target: { value: "Messaged them first." },
     });
@@ -588,7 +588,7 @@ describe("actions", () => {
     const line = screen.getByText("Nothing waiting for you").closest("p");
     expect(line.closest(".kit-empty")).toBeNull();
     expect(line.textContent).toMatch(
-      /^Nothing waiting for you: an action appears here when the clan.s policy suggests something you can do\. Refresh suggestions$/,
+      /^Nothing waiting for you: an action appears here when the clan.s rules suggest something you can do\. Refresh suggestions$/,
     );
     expect(
       screen.getByRole("button", { name: "Refresh suggestions" }),

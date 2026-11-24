@@ -23,7 +23,7 @@ const me = (role, extra = {}) => ({
 const keys = (m) => clanTabs(m).map((t) => t.key);
 
 describe("Clan as one view: six tabs", () => {
-  const FOUR = ["feed", "standings", "war", "members", "policy"];
+  const FOUR = ["feed", "standings", "war", "members", "rules"];
 
   test("every member has five, a leader and a co-leader have Run as well", () => {
     expect(keys(me("member"))).toEqual(FOUR);
@@ -75,7 +75,7 @@ describe("Clan as one view: six tabs", () => {
       `${BASE}/standings`,
       `${BASE}/war`,
       `${BASE}/members`,
-      `${BASE}/policy`,
+      `${BASE}/rules`,
       `${BASE}/run`,
     ]);
   });
@@ -91,8 +91,8 @@ describe("which tab and page a path is", () => {
       [`${BASE}/members/02qqpcyqq`, "members"],
       [`${BASE}/war/136-2`, "war"],
       [`${BASE}/standings/135`, "standings"],
-      [`${BASE}/policy`, "policy"],
-      [`${BASE}/run/about`, "run"],
+      [`${BASE}/rules`, "rules"],
+      [`${BASE}/run/rules`, "run"],
       [`${BASE}/run/decided`, "run"],
     ])
       expect(tabOf(path)).toBe(tab);
@@ -109,9 +109,9 @@ describe("which tab and page a path is", () => {
       [`${BASE}/members/02qqpcyqq`, "member"],
       [`${BASE}/war/136-2`, "war"],
       [`${BASE}/standings/135`, "standings"],
-      [`${BASE}/policy`, "policy"],
+      [`${BASE}/rules`, "rules"],
       [`${BASE}/run`, "run"],
-      [`${BASE}/run/about`, "run/about"],
+      [`${BASE}/run/rules`, "run/rules"],
       ["/clan/clans", "clans"],
     ])
       expect(pageOf(path)).toBe(page);

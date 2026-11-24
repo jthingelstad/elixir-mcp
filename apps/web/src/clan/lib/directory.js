@@ -24,9 +24,9 @@ const WAR_LABELS = {
 };
 
 const POSTURE_LABELS = {
-  relaxed: "Relaxed",
-  standard: "Standard",
-  strict: "Strict",
+  relaxed: "Chill",
+  standard: "Steady",
+  strict: "Hardcore",
 };
 
 export const FILTERS = {
@@ -37,9 +37,9 @@ export const FILTERS = {
   ],
   posture: [
     { key: "any", label: "Any" },
-    { key: "relaxed", label: "Relaxed" },
-    { key: "standard", label: "Standard" },
-    { key: "strict", label: "Strict" },
+    { key: "relaxed", label: "Chill" },
+    { key: "standard", label: "Steady" },
+    { key: "strict", label: "Hardcore" },
   ],
   removal: [
     { key: "any", label: "Any" },

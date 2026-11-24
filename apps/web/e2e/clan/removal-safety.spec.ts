@@ -330,7 +330,7 @@ for (const size of ["wide", "@narrow"])
   });
 
 for (const size of ["wide", "@narrow"])
-  test(`the Policy page says removal is live and shows the removal day as a day ${size}`, async ({
+  test(`the Rules page says removal is live and shows the kick day as a day ${size}`, async ({
     page,
   }) => {
     if (size === "wide")
@@ -369,22 +369,33 @@ for (const size of ["wide", "@narrow"])
         ],
       }),
     );
-    await page.goto("/clan/0QC8RCGY/run/about");
+    await page.goto("/clan/0QC8RCGY/run/rules");
     await page
       .locator("summary")
-      .filter({ hasText: "What this policy can do today" })
+      .filter({ hasText: "Before you save" })
       .click();
-    const canDo = page.getByRole("region", {
-      name: "What this policy can do today",
-    });
+    await page
+      .locator("summary")
+      .filter({ hasText: "What these rules can do today" })
+      .click();
+    const canDo = page
+      .locator("details")
+      .filter({
+        has: page.locator("summary", {
+          hasText: "What these rules can do today",
+        }),
+      })
+      .last();
     await expect(canDo).toContainText("Remove inactive members: Live");
     await expect(canDo).toContainText("Promote and demote Elders: Live");
-    await page.goto("/clan/0QC8RCGY/run/inactivity");
     await expect(
       page.getByText("Not yet enforceable", { exact: true }),
     ).toHaveCount(0);
-    await expect(page.getByLabel(/^At risk/)).toHaveValue("7");
-    await expect(page.getByLabel(/^At risk/)).toBeEditable();
-    await expect(page.getByLabel(/^Removal action at/)).toHaveValue("10");
+    const warning = page.getByRole("spinbutton", { name: "Warning after" });
+    await expect(warning).toHaveValue("7");
+    await expect(warning).toBeEditable();
+    await expect(
+      page.getByRole("spinbutton", { name: "Kick after" }),
+    ).toHaveValue("10");
     expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
   });

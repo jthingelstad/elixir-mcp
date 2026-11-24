@@ -61,7 +61,7 @@ export function Awards({
   if (afterStanding && state.error === "no_policy")
     return (
       <p className="page-head__note m-0">
-        Awards start with the clan&rsquo;s policy.
+        Awards start with the clan&rsquo;s rules.
       </p>
     );
   if (state.error === "too_few_members") {
@@ -70,9 +70,9 @@ export function Awards({
   }
   if (state.error === "no_policy")
     return (
-      <Empty title="No policy yet">
-        Awards start with the clan&rsquo;s policy. Standing, Actions and Awards
-        wait until a leader or co-leader sets it.
+      <Empty title="No rules yet">
+        Awards start with the clan&rsquo;s rules. Standing, Actions and Awards
+        wait until a leader or co-leader sets them.
       </Empty>
     );
   if (state.error)
