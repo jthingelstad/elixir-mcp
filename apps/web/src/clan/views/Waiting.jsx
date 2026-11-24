@@ -285,7 +285,11 @@ function Decided({ clan, navigate }) {
     clan.clan_tag,
   );
   const [now] = useState(() => Date.now());
-  if (isError && !data)
+  // A refusal (signed out, or no longer a leader) hides what was cached:
+  // the record is the leaders' (Codex on #1240). Any other failure keeps
+  // the last good read on the page.
+  const refused = error?.status === 401 || error?.status === 403;
+  if (isError && (!data || refused))
     return (
       <ReadError
         what="The decisions"

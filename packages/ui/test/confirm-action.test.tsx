@@ -48,7 +48,9 @@ test("the named button writes once, closes and reports", async () => {
   fireEvent.click(named("Yes, revoke"));
   await vi.waitFor(() => expect(onDone).toHaveBeenCalledWith({ ok: true }));
   expect(run).toHaveBeenCalledTimes(1);
-  expect(box()).toBeNull();
+  // onDone runs in the same tick as setOpen(false); the dialog leaves on
+  // React's next commit, which a loaded runner can land after the wait.
+  await vi.waitFor(() => expect(box()).toBeNull());
 });
 
 test("a refused write stays open and says why", async () => {
