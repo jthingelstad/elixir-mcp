@@ -2,9 +2,10 @@
  * The RSS feed reads Home's stored week (readFeedWeek, 2026-11-22), and
  * what it may carry is decided at the read, never by what was stored:
  * Home's week is built interactively and with people lines, the feed's is
- * neither. Pinned here with a leader, the reader for whom the two differ:
- * a leaders-only fact (member_away) and a people line are in Home and
- * never in the feed, whatever the row holds. A poll is a select of the
+ * neither. Pinned here with a leader: a people line is in Home and never
+ * in the feed, and facts are read live, never from the row, whatever it
+ * holds. No fact type is leaders-only since 2026-11-24 (an away became
+ * the clan's), so both carry the clan's facts, an away included. A poll is a select of the
  * row, wakes a build past FRESH, builds once past SERVE, and is not a
  * read of Home (read_at stays).
  */
@@ -67,7 +68,7 @@ before(async () => {
     `insert into account_clan(account_id,clan_tag) values ($1,$2)`,
     [leader, CLAN],
   );
-  // One fact the clan sees and one only its leaders do, an hour ago.
+  // Two facts the clan sees, an hour ago.
   for (const [type, detail, visibility] of [
     [
       "award_standing",
@@ -82,7 +83,7 @@ before(async () => {
       },
       "clan",
     ],
-    ["member_away", { until: null }, "leaders"],
+    ["member_away", { until: null }, "clan"],
   ])
     await db.query(
       `insert into attested_fact
@@ -96,19 +97,18 @@ before(async () => {
 });
 after(async () => ctx?.drop());
 
-test("the feed's week leaves out what Home's adds: a leaders-only fact", async () => {
+test("the feed's week carries the clan's facts, an away included", async () => {
   const feed = await readFeedWeek(ctx.db, leader, { timezone: "UTC" });
   assert.equal(feed.stored, false, "no row yet: the poll builds it");
   assert.ok(kinds(feed).includes("award_standing"), "the clan's fact");
-  assert.equal(kinds(feed).includes("member_away"), false);
+  assert.ok(kinds(feed).includes("member_away"), "an away is the clan's");
 
   // The poll stored Home's week and is not a read of Home.
   const stored = await row();
   assert.ok(stored, "the build is stored");
   assert.equal(stored.read_at, null);
 
-  // The same reader on Home sees the leaders-only fact: the fixture
-  // really distinguishes the two.
+  // Home serves the same facts.
   const home = await readHomeWeek(ctx.db, leader, { timezone: "UTC" });
   assert.equal(home.stored, true, "Home serves the row the poll stored");
   assert.ok(kinds(home).includes("member_away"));
@@ -116,7 +116,7 @@ test("the feed's week leaves out what Home's adds: a leaders-only fact", async (
 
 test("a poll serves the stored row, and the row cannot widen the feed", async () => {
   // Whatever the row holds: a stored story is served, a people line and a
-  // stored leaders-only fact are not.
+  // stored fact are not (facts are read live).
   const at = new Date(Date.now() - 60_000).toISOString();
   const item = (id, extra) => ({
     id,
@@ -136,7 +136,7 @@ test("a poll serves the stored row, and the row cannot widen the feed", async ()
       JSON.stringify([
         item("st_stored_story", { kind: "arena_changed", section: "moments" }),
         item("st_people_line", { kind: "account_place", section: "people" }),
-        item("st_stale_leaders_fact", {
+        item("st_stale_fact", {
           kind: "member_away",
           section: "attested",
         }),
@@ -149,8 +149,8 @@ test("a poll serves the stored row, and the row cannot widen the feed", async ()
   const ids = feed.items.map((it) => it.id);
   assert.ok(ids.includes("st_stored_story"));
   assert.equal(ids.includes("st_people_line"), false);
-  assert.equal(ids.includes("st_stale_leaders_fact"), false);
-  assert.equal(kinds(feed).includes("member_away"), false);
+  assert.equal(ids.includes("st_stale_fact"), false);
+  assert.ok(kinds(feed).includes("member_away"), "the live away");
   assert.ok(kinds(feed).includes("award_standing"), "facts are read live");
   assert.deepEqual((await row()).built_at, before.built_at, "no rebuild");
 });
@@ -192,7 +192,7 @@ test("past FRESH the poll serves the row and wakes a build; past SERVE it builds
 });
 
 test("a week cut at Home's cap with too few stories left: the feed builds its own", async () => {
-  // Home's cap counts people lines and leaders-only facts the feed drops
+  // Home's cap counts people lines the feed drops
   // (Codex on #1188). A row that says it was cut and holds one story
   // cannot say which stories the cap took.
   await readFeedWeek(ctx.db, leader, { timezone: "UTC" });
@@ -227,7 +227,6 @@ test("a week cut at Home's cap with too few stories left: the feed builds its ow
   assert.equal(own.stored, false, "built from the record, not the row");
   assert.equal(ids(own).includes("st_only_in_the_row"), false);
   assert.ok(kinds(own).includes("award_standing"), "the record's items");
-  assert.equal(kinds(own).includes("member_away"), false, "as narrow as ever");
   assert.deepEqual((await row()).built_at, before.built_at, "Home's row stays");
 
   // With as many stories as the feed serves, the cut ones are older than

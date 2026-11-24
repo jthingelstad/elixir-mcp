@@ -631,7 +631,7 @@ and they appear on the timeline of the readers their type allows.
 | `departure_classified` | clan, about a member | leader, co-leader | the clan | `kind` (`kick` or `leave`), `left_at` |
 | `role_change_made` | clan, about a member | leader, co-leader | the clan | `from`, `to` (`member`, `elder`, `coLeader`, `leader`) |
 | `award_granted` | clan, about a member | leader, co-leader, elder | the clan | `award` (60 characters), `season_id`, `place` |
-| `member_away` | clan, about a member | leader, co-leader, or the member | the clan's leaders and co-leaders | `until` (an instant, or null) |
+| `member_away` | clan, about a member | leader, co-leader, or the member | the clan | `until` (an instant, or null) |
 | `clan_message` | clan | leader, co-leader, elder (a Clan Leader Message: leaders and co-leaders) | the clan | `channel` (`leader_message` or `clan_chat`), `title` (24), `body` (200) |
 | `award_standing` | clan, about a member | Clan itself, from the clan's own rules | the clan | `award` (60), `award_id` (40), `season_id`, `place` (1-10), `value`, `unit` (`points`, `donations` or `war_decks`), `as_of`, `previous_player_tag` |
 | `drop_game` | player | Elixir Drop's game server | the verified player and followers | game ID, mode, score, answer count, start and finish, and card highlights |
@@ -665,7 +665,7 @@ the clan's **Run › Discord** page ([Clan Discord](/docs/clan-discord)).
 - **What posts.** Every `publishable` item the timeline holds for that
   account, not otherwise filtered: the same subjects, sections and kinds
   a scheduled agent reads. What is not publishable never leaves Elixir:
-  an item only a clan's leaders may see (a member's away), and your
+  a member's away, which the clan sees only in Elixir, and your
   account's own administration. A session whose battles Elixir only
   learned about a day or more after they were played isn't posted: it's
   on your Timeline at its played time, not news.

@@ -24,8 +24,8 @@ spends the one shared Clash Royale API budget).
 Two things sit outside that rule. Your own account data is private to
 you. And the few facts Clan adds about a clan (a
 leader's note on why a member left, an award) are shown only to the
-people each one is for: a clan's facts to its verified members, a
-member's away only to the clan's leaders.
+people each one is for: a clan's facts, a member's away included, to
+its verified members.
 
 ## The ladder
 
