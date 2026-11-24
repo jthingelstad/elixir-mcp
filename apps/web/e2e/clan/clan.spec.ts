@@ -110,7 +110,7 @@ function memberView() {
       inactivity: null,
     },
     open_actions: 2,
-    hold: null,
+    exceptions: [],
     trophies: [
       {
         season_id: 135,

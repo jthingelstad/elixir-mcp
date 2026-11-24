@@ -1,6 +1,6 @@
 /**
  * The Manage service: evaluation on demand for the signed-in person, the
- * card lifecycle, holds, notes, policy versions, standing, scouting. Pure
+ * card lifecycle, member exceptions, notes, policy versions, standing, scouting. Pure
  * engine in, ledger and Elixir out. Every function takes the caller's
  * resolved context (`who`: their verified tag and role in this clan).
  *
@@ -27,7 +27,15 @@ import {
   diff as policyDiff,
   evaluate,
   inactivityEvidence,
-  holdActive,
+  activeKindsAt,
+  exceptionActiveAt,
+  exceptionEvents,
+  exceptionProblem,
+  shieldsRemoval,
+  EXCEPTION_KINDS,
+  EXCEPTION_LENGTHS,
+  EXCEPTION_MAX_DAYS,
+  AWAY_VISIBILITY,
   removalDay,
   nextSteps,
   participationPhrase,
@@ -291,7 +299,7 @@ export function createManageService({
 
   /** Whether each open removal still qualifies, read again from the
    *  record: the member's battles always, and the policy's full judgment
-   *  (grace, role, hold, cooldown). A view passes the evaluation it just
+   *  (grace, role, exceptions, cooldown). A view passes the evaluation it just
    *  used, when that is minutes old; drafting, completing and reopening
    *  read participation again. */
   async function removalSafety(clanTag, cards, { verdicts = null } = {}) {
@@ -332,19 +340,21 @@ export function createManageService({
       result.set(c.card_id, safety);
       if (ready) plausible.push(c);
     }
-    // A hold or away is read now: setting one does not refresh a saved
-    // evaluation.
+    // An exception (Keep in clan, Away) is read now: setting one does not
+    // refresh a saved evaluation.
     if (plausible.length) {
-      const holdByTag = new Map(
-        (await ledger.holds(clanTag)).map((h) => [h.player_tag, h]),
-      );
-      for (const c of plausible.splice(0))
-        if (holdActive(holdByTag.get(c.player_tag), t))
+      const kindsByTag = activeKindsAt(await ledger.exceptions(clanTag), t);
+      for (const c of plausible.splice(0)) {
+        const kinds = kindsByTag.get(c.player_tag);
+        if (shieldsRemoval(kinds))
           result.set(c.card_id, {
             ...result.get(c.card_id),
-            reason: "The member is on hold.",
+            reason: kinds.has("away")
+              ? "The member is away."
+              : "The member is kept in the clan.",
           });
         else plausible.push(c);
+      }
     }
     const recent =
       verdicts &&
@@ -365,7 +375,7 @@ export function createManageService({
       return result;
     }
     // Only a member past the removal day needs the participation read.
-    // Apply the actual current minimums/grace, role, hold and cooldown rules.
+    // Apply the actual current minimums/grace, role, exception and cooldown rules.
     if (plausible.length) {
       try {
         const part = await fetchParticipation(record, clanTag);
@@ -373,7 +383,7 @@ export function createManageService({
           ...part,
           members: await activityForMembers(clanTag, part.members),
         };
-        const holds = await ledger.holds(clanTag);
+        const exceptions = await ledger.exceptions(clanTag);
         const decisions = (await ledger.cards(clanTag)).filter(
           (c) =>
             ["done", "declined"].includes(c.status) &&
@@ -383,7 +393,7 @@ export function createManageService({
           participation: fresh,
           policy: policy.values,
           now: new Date(now()),
-          holds,
+          exceptions,
           decisions,
           policy_version: policy.version,
         });
@@ -661,6 +671,29 @@ export function createManageService({
     return names;
   }
 
+  /** Ends one exception early, now: `ended_at` and an `ended` event. */
+  async function endOne(clanTag, ex, who, t) {
+    const at = new Date(t).toISOString();
+    await ledger.putException(clanTag, {
+      ...ex,
+      ended_at: at,
+      ended_by: who.player_tag,
+      ended_by_name: who.name ?? null,
+      events: [
+        ...(ex.events ?? []),
+        {
+          event: "ended",
+          at,
+          by: who.player_tag,
+          by_name: who.name ?? null,
+          until: ex.until,
+          visibility: ex.visibility,
+          note: null,
+        },
+      ],
+    });
+  }
+
   async function refreshRoleShares(clanTag, cards) {
     if (!lifecycle) return cards;
     const fresh = [];
@@ -685,7 +718,7 @@ export function createManageService({
    *  under the same policy: what it read is at least as fresh as ours. */
   const fresher = (snapshot, policy, t) =>
     !!snapshot &&
-    snapshot.removal_evidence_schema === 5 &&
+    snapshot.removal_evidence_schema === 6 &&
     snapshot.policy_version === policy.version &&
     Date.parse(snapshot.evaluated_at) > t;
 
@@ -747,7 +780,7 @@ export function createManageService({
       !participation &&
       !small &&
       cached &&
-      cached.removal_evidence_schema === 5 &&
+      cached.removal_evidence_schema === 6 &&
       cached.policy_version === policy.version &&
       t - Date.parse(cached.evaluated_at) < EVALUATION_TTL_MS
     )
@@ -811,20 +844,13 @@ export function createManageService({
         // again; one still inside its window waits (engine blockedUntil).
         outcome_flagged: Boolean(c.outcome?.flagged_at),
       }));
-    const holds = (await ledger.holds(clanTag)).map((h) => ({
-      player_tag: h.player_tag,
-      kind: h.kind ?? "leader",
-      until: h.until ?? null,
-      by: h.by,
-      note: h.note ?? null,
-      set_at: h.set_at,
-    }));
+    const exceptions = await ledger.exceptions(clanTag);
     const verdicts = evaluate({
       participation: part,
       policy: policy.values,
       now: new Date(t),
       decisions,
-      holds,
+      exceptions,
       policy_version: policy.version,
       trophies: policy.values.trophies_enabled ? trophiesFrom(roster) : null,
     });
@@ -954,29 +980,29 @@ export function createManageService({
     const askAway = new Map(
       (awayOn ? awayCandidates(verdicts) : []).map((m) => [m.player_tag, m]),
     );
-    const awayHolds = new Map(
-      holds
-        .filter(
-          (h) => h.kind === "away" && (!h.until || Date.parse(h.until) > t),
-        )
-        .map((h) => [h.player_tag, h]),
+    const awayNow = new Map(
+      exceptions
+        .filter((e) => e.kind === "away" && exceptionActiveAt(e, t))
+        .map((e) => [e.player_tag, e]),
     );
     for (const c of cards.filter(
       (c) => c.type === "away" && c.status === "proposed",
     )) {
-      const away = awayHolds.get(c.player_tag);
+      const away = awayNow.get(c.player_tag);
       if (away) {
-        const note = `Marked away${away.until ? ` until ${away.until.slice(0, 10)}` : ""}.`;
+        const note = `Marked away until ${away.until.slice(0, 10)}.`;
+        const by = away.set_by ?? c.player_tag;
+        const byName = (away.set_by ? away.set_by_name : c.player_name) ?? null;
         await ledger.putCard(clanTag, {
           ...c,
           status: "done",
           decided_at: new Date(t).toISOString(),
-          decided_by: c.player_tag,
-          decided_by_name: c.player_name ?? null,
+          decided_by: by,
+          decided_by_name: byName,
           decision_note: note,
         });
         await logAction(clanTag, c.card_id, "completed", {
-          by: { tag: c.player_tag, name: c.player_name ?? null, role: null },
+          by: { tag: by, name: byName, role: null },
           text: note,
         });
       } else if (!awayOn)
@@ -1203,7 +1229,7 @@ export function createManageService({
     // The snapshot is what the pages read; keep it small.
     const snapshot = {
       ...verdicts,
-      removal_evidence_schema: 5,
+      removal_evidence_schema: 6,
       members: verdicts.members.map((m) => ({
         ...m,
         trail: m.trail.slice(-4),
@@ -1252,8 +1278,14 @@ export function createManageService({
       const policy = await policyFor(clanTag);
       const members = part.members.length;
       const active = policy.set && members >= MIN_MEMBERS;
-      const holds = await ledger.holds(clanTag);
-      const hold = holds.find((h) => h.player_tag === who.player_tag) ?? null;
+      const exceptions = await ledger.exceptions(clanTag);
+      // Your own, as the clan sees them: a leaders-only one stays theirs.
+      const yours = exceptions.filter(
+        (e) =>
+          e.player_tag === who.player_tag &&
+          e.visibility === "clan" &&
+          exceptionActiveAt(e, t),
+      );
       let clan = null;
       if (active) {
         const measured = {
@@ -1264,11 +1296,7 @@ export function createManageService({
           participation: measured,
           policy: policy.values,
           now: new Date(t),
-          holds: holds.map((h) => ({
-            player_tag: h.player_tag,
-            kind: h.kind ?? "leader",
-            until: h.until ?? null,
-          })),
+          exceptions,
           policy_version: policy.version,
           trophies: policy.values.trophies_enabled
             ? trophiesFrom(roster)
@@ -1314,9 +1342,7 @@ export function createManageService({
         you,
         clan,
         open_actions,
-        hold: hold
-          ? { kind: hold.kind ?? "leader", until: hold.until ?? null }
-          : null,
+        exceptions: yours.map((e) => ({ kind: e.kind, until: e.until })),
         trophies,
       };
     },
@@ -1446,15 +1472,20 @@ export function createManageService({
     /**
      * What Home's stored clan card (home_clan_card, 0248) was judged on,
      * as one digest: the reader's player, role and verification, the
-     * policy's version and the clan's holds. Home keeps the record half
-     * of the card and builds it again whenever this differs, so a role
-     * change, a new policy or a hold reaches the card at once. Two store
-     * reads, nothing from the record.
+     * policy's version and the clan's running exceptions. Home keeps the
+     * record half of the card and builds it again whenever this differs,
+     * so a role change, a new policy or an exception set, changed, ended
+     * or run out reaches the card at once. Two store reads, nothing from
+     * the record.
      */
     async cardBasis(clanTag, who) {
       const policy = await policyFor(clanTag);
-      const holds = (await ledger.holds(clanTag))
-        .map((h) => JSON.stringify(h))
+      const t = now();
+      const running = (await ledger.exceptions(clanTag))
+        .filter((e) => exceptionActiveAt(e, t))
+        .map((e) =>
+          JSON.stringify([e.exception_id, e.kind, e.until, e.visibility]),
+        )
         .sort();
       return createHash("sha256")
         .update(
@@ -1464,7 +1495,7 @@ export function createManageService({
             who.verified !== false,
             policy.set,
             policy.version,
-            holds,
+            running,
           ]),
         )
         .digest("hex");
@@ -1812,8 +1843,13 @@ export function createManageService({
         force: refresh,
       });
       const cards = await ledger.cards(clanTag);
-      const holds = await ledger.holds(clanTag);
-      const holdByTag = new Map(holds.map((h) => [h.player_tag, h]));
+      const t = now();
+      const exceptionsBy = new Map();
+      for (const e of await ledger.exceptions(clanTag)) {
+        if (!exceptionActiveAt(e, t)) continue;
+        if (!exceptionsBy.has(e.player_tag)) exceptionsBy.set(e.player_tag, []);
+        exceptionsBy.get(e.player_tag).push(leaderFace(e));
+      }
       const byCard = await logsByCard(clanTag);
       const safety = await removalSafety(clanTag, cards, { verdicts });
       const inbox = cards
@@ -1836,7 +1872,11 @@ export function createManageService({
         demotion: m.demotion,
         removal: m.removal,
         standing: m.standing,
-        hold: holdByTag.get(m.player_tag) ?? null,
+        exceptions: (exceptionsBy.get(m.player_tag) ?? []).sort(
+          (a, b) =>
+            Object.keys(EXCEPTION_KINDS).indexOf(a.kind) -
+            Object.keys(EXCEPTION_KINDS).indexOf(b.kind),
+        ),
         phrase: participationPhrase(m, policy.values),
         facts: {
           days_idle: m.facts.days_idle,
@@ -1988,9 +2028,25 @@ export function createManageService({
         ...row,
         [nameKey]: row[nameKey] ?? knownName.get(row[tagKey]) ?? null,
       });
-      const holds = (await ledger.holds(clanTag)).map((h) =>
-        named(named(h, "player_tag", "player_name"), "by", "by_name"),
-      );
+      // Every exception ever set, and what happened to each, newest
+      // first: Decided shows them beside the Actions.
+      const allExceptions = await ledger.exceptions(clanTag);
+      const exceptions = allExceptions
+        .map((e) =>
+          leaderFace(
+            named(
+              named(e, "player_tag", "player_name"),
+              "set_by",
+              "set_by_name",
+            ),
+          ),
+        )
+        .sort((a, b) => (a.set_at < b.set_at ? 1 : -1));
+      const exceptionEventsNow = exceptionEvents(allExceptions, observedAt)
+        .map((e) =>
+          named(named(e, "player_tag", "player_name"), "by", "by_name"),
+        )
+        .reverse();
       const timeline = (roster?.recent_events ?? [])
         .filter((e) => e.detail?.player_tag)
         .map((e) => {
@@ -2056,7 +2112,8 @@ export function createManageService({
         .sort((a, b) => (a.at < b.at ? 1 : -1));
       return {
         cards: cards.map((c) => named(c, "decided_by", "decided_by_name")),
-        holds,
+        exceptions,
+        exception_events: exceptionEventsNow,
         timeline,
         timeline_since: roster?.events_recorded_since ?? null,
       };
@@ -2509,44 +2566,234 @@ export function createManageService({
     // ---- what the clan records in Elixir: read-only ------------------------
     sharingView: (clanTag, who) => sharing.view(clanTag, who),
 
-    // ---- holds -----------------------------------------------------------
-    async setHold(clanTag, who, playerTag, { until = null, note = null }) {
+    // ---- exceptions (2026-11-23): what a leader sets on one member so the
+    // rules leave them alone in one way, until a date. They replace holds.
+    // Leaders and co-leaders set, change and end them; a member says they
+    // will be away on their own page (below). Leaders-only ones never
+    // leave Clan's leader views; clan-visible ones show to the clan's
+    // verified members, without the why or who set it.
+    async exceptionsView(clanTag, who) {
+      const policy = await requirePolicy(clanTag);
+      const t = now();
+      const roster = await fetchRoster(record, clanTag);
+      const rosterBy = new Map(
+        (roster?.members ?? []).map((m) => [m.player_tag, m]),
+      );
+      const here = (await ledger.exceptions(clanTag)).filter(
+        (e) =>
+          exceptionActiveAt(e, t) && (!roster || rosterBy.has(e.player_tag)),
+      );
+      const named = (e) => ({
+        ...e,
+        player_name: rosterBy.get(e.player_tag)?.name ?? e.player_name ?? null,
+        role: rosterBy.get(e.player_tag)?.role ?? null,
+      });
+      const leader = isLeader(who) && who.verified !== false;
+      if (!leader)
+        return {
+          leader: false,
+          exceptions:
+            who.verified === false
+              ? []
+              : here
+                  .filter((e) => e.visibility === "clan")
+                  .map((e) => clanFace(named(e))),
+        };
+      const snapshot = await ledger.latestVerdicts(clanTag);
+      const roleOf = (r) => (roster?.members ?? []).filter((m) => m.role === r);
+      const face = (m) => ({
+        player_tag: m.player_tag,
+        name: m.name ?? null,
+        role: m.role,
+      });
+      return {
+        leader: true,
+        kinds: exceptionKinds(),
+        lengths: EXCEPTION_LENGTHS,
+        max_days: EXCEPTION_MAX_DAYS,
+        exceptions: here
+          .map((e) => leaderFace(named(e)))
+          .sort((a, b) => (a.until < b.until ? -1 : 1)),
+        // Who an exception can be set on: the roster, leaders aside.
+        members: (roster?.members ?? [])
+          .filter((m) => !LEADERS.has(m.role))
+          .map(face),
+        // What the rules leave alone by themselves, with no exception.
+        automatic: {
+          leadership: [...roleOf("leader"), ...roleOf("coLeader")].map(face),
+          elders: {
+            shielded:
+              !policy.values.removal_enabled ||
+              !policy.values.removal_includes_elders,
+            members: roleOf("elder").map(face),
+          },
+          away: here
+            .filter((e) => e.kind === "away")
+            .map((e) => clanFace(named(e))),
+        },
+        removal_enabled: policy.values.removal_enabled,
+        away_max_days: policy.values.away_max_days,
+        // The earned Elder seats, from the latest evaluation: a kept
+        // Elder takes none of them.
+        band: snapshot?.band
+          ? {
+              current_elders: snapshot.band.current_elders,
+              kept_elders: snapshot.band.kept_elders ?? 0,
+              target: snapshot.band.target,
+              ceil: snapshot.band.ceil,
+            }
+          : null,
+      };
+    },
+
+    /** One member's exceptions: the running ones and everything that
+     *  happened to them, oldest first, as the viewer may see them. */
+    async memberExceptions(clanTag, who, playerTag) {
+      await requirePolicy(clanTag);
+      const t = now();
+      const leader = isLeader(who) && who.verified !== false;
+      const all = await ledger.exceptions(clanTag, playerTag);
+      const seen = leader
+        ? all
+        : who.verified === false
+          ? []
+          : all.filter((e) => e.visibility === "clan");
+      return {
+        player_tag: playerTag,
+        leader,
+        exceptions: seen
+          .filter((e) => exceptionActiveAt(e, t))
+          .map(leader ? leaderFace : clanFace),
+        events: exceptionEvents(seen, t)
+          .filter((e) => leader || e.visibility === "clan")
+          .map((e) =>
+            leader ? e : { ...e, note: null, by: null, by_name: null },
+          ),
+        ...(leader
+          ? {
+              kinds: exceptionKinds(),
+              lengths: EXCEPTION_LENGTHS,
+              max_days: EXCEPTION_MAX_DAYS,
+            }
+          : {}),
+      };
+    },
+
+    /** Sets one kind on a member, or changes the one running: a new end
+     *  date (renewing is a change), who can see it, why. `length` is one
+     *  of EXCEPTION_LENGTHS' keys, or `until` a date of the leader's. */
+    async setException(clanTag, who, playerTag, kind, body = {}) {
       requireLeader(who);
       await requirePolicy(clanTag);
-      if (until && Number.isNaN(Date.parse(until)))
+      if (!EXCEPTION_KINDS[kind]) throw new ManageError(400, "bad_kind");
+      const t = now();
+      const at = new Date(t).toISOString();
+      const roster = await fetchRoster(record, clanTag);
+      if (!roster) throw new ManageError(503, "record_unavailable");
+      const row = (roster.members ?? []).find(
+        (m) => m.player_tag === playerTag,
+      );
+      if (!row) throw new ManageError(404, "not_on_roster");
+      const preset = EXCEPTION_LENGTHS.find((l) => l.key === body.length);
+      if (body.length != null && !preset)
         throw new ManageError(400, "bad_until");
-      return ledger.putHold(clanTag, {
-        player_tag: playerTag,
-        kind: "leader",
-        until,
-        note,
+      const until = preset
+        ? new Date(t + preset.days * DAY_MS).toISOString()
+        : body.until;
+      const existing = (await ledger.exceptions(clanTag, playerTag)).find(
+        (e) => e.kind === kind && exceptionActiveAt(e, t),
+      );
+      const visibility =
+        kind === "away"
+          ? AWAY_VISIBILITY
+          : (body.visibility ?? existing?.visibility ?? "leaders");
+      const note =
+        body.note === undefined
+          ? (existing?.note ?? null)
+          : body.note
+            ? String(body.note).trim() || null
+            : null;
+      const problem = exceptionProblem(
+        { kind, until, visibility, note },
+        { role: row.role, nowMs: t },
+      );
+      if (problem) throw new ManageError(400, problem);
+      const untilIso = new Date(Date.parse(until)).toISOString();
+      const event = {
+        event: existing ? "changed" : "added",
+        at,
         by: who.player_tag,
         by_name: who.name ?? null,
-        set_at: new Date(now()).toISOString(),
-      });
+        until: untilIso,
+        visibility,
+        note,
+      };
+      const ex = existing
+        ? {
+            ...existing,
+            player_name: row.name ?? existing.player_name ?? null,
+            until: untilIso,
+            visibility,
+            note,
+            changed_at: at,
+            changed_by: who.player_tag,
+            changed_by_name: who.name ?? null,
+            events: [...(existing.events ?? []), event],
+          }
+        : {
+            exception_id: newId(),
+            player_tag: playerTag,
+            player_name: row.name ?? null,
+            kind,
+            visibility,
+            until: untilIso,
+            note,
+            set_by: who.player_tag,
+            set_by_name: who.name ?? null,
+            set_at: at,
+            changed_at: null,
+            changed_by: null,
+            changed_by_name: null,
+            ended_at: null,
+            ended_by: null,
+            ended_by_name: null,
+            events: [event],
+          };
+      await ledger.putException(clanTag, ex);
+      return leaderFace({ ...ex, role: row.role });
     },
-    async clearHold(clanTag, who, playerTag) {
+
+    /** Ends the running exception of one kind early. */
+    async endException(clanTag, who, playerTag, kind) {
       requireLeader(who);
       await requirePolicy(clanTag);
-      const existing = (await ledger.holds(clanTag)).find(
-        (h) => h.player_tag === playerTag,
+      if (!EXCEPTION_KINDS[kind]) throw new ManageError(400, "bad_kind");
+      const t = now();
+      const existing = (await ledger.exceptions(clanTag, playerTag)).find(
+        (e) => e.kind === kind && exceptionActiveAt(e, t),
       );
-      await ledger.removeHold(clanTag, playerTag);
-      // A member's away cleared by a leader is taken back in Elixir too, on
-      // the leader's grant (a leader may attest an away; 2026-09-26 review:
-      // Elixir kept showing leaders the member as away).
-      if (existing?.kind === "away")
+      if (!existing) throw new ManageError(404, "no_exception");
+      await endOne(clanTag, existing, who, t);
+      // A member's own away ended by a leader is taken back in Elixir too,
+      // on the leader's grant (a leader may attest an away; 2026-09-26
+      // review: Elixir kept showing leaders the member as away).
+      if (kind === "away" && existing.set_by === playerTag)
         await sharing
           .awayCleared(clanTag, { player_tag: playerTag })
           .catch(() => {});
     },
 
-    // ---- away: a member says so on their own page (2026-09-12). The
-    // hold shields removal eligibility; the policy caps how long; a
-    // leader can clear it; the board says it was the member's word.
+    // ---- away: a member says so on their own page (2026-09-12). An Away
+    // exception, always seen by the clan: no kick suggestion while it
+    // lasts; the policy caps how long; a leader can end it, or set one
+    // for the member (then it is the leader's, and the member's page says
+    // so).
     async myAway(clanTag, who) {
-      const holds = await ledger.holds(clanTag);
-      const mine = holds.find((h) => h.player_tag === who.player_tag) ?? null;
+      const t = now();
+      const mine =
+        (await ledger.exceptions(clanTag, who.player_tag)).find(
+          (e) => e.kind === "away" && exceptionActiveAt(e, t),
+        ) ?? null;
       const policy = await policyFor(clanTag);
       const allowed =
         policy.set &&
@@ -2558,12 +2805,15 @@ export function createManageService({
         // name: an unverified player cannot.
         verified: who.verified !== false,
         max_days: allowed ? policy.values.away_max_days : 0,
-        hold: mine
+        away: mine
           ? {
-              ...mine,
-              by_name:
-                mine.by_name ??
-                (await knownNames(clanTag)).get(mine.by) ??
+              until: mine.until,
+              note: mine.note ?? null,
+              set_at: mine.set_at,
+              by_leader: mine.set_by !== who.player_tag,
+              set_by_name:
+                mine.set_by_name ??
+                (await knownNames(clanTag)).get(mine.set_by) ??
                 null,
             }
           : null,
@@ -2576,24 +2826,57 @@ export function createManageService({
         throw new ManageError(403, "away_off");
       const untilMs = Date.parse(String(until ?? ""));
       const t = now();
+      const at = new Date(t).toISOString();
       if (Number.isNaN(untilMs) || untilMs <= t)
         throw new ManageError(400, "bad_until");
       if (untilMs > t + max * DAY_MS) throw new ManageError(400, "too_long");
-      const existing = (await ledger.holds(clanTag)).find(
-        (h) => h.player_tag === who.player_tag,
+      const existing = (await ledger.exceptions(clanTag, who.player_tag)).find(
+        (e) => e.kind === "away" && exceptionActiveAt(e, t),
       );
-      // A leader's hold is the leader's; the member does not overwrite it.
-      if (existing && existing.kind !== "away")
-        throw new ManageError(409, "held_by_leader");
-      const hold = await ledger.putHold(clanTag, {
-        player_tag: who.player_tag,
-        kind: "away",
-        until: new Date(untilMs).toISOString(),
-        note: note ? String(note).slice(0, 200) : null,
+      // A leader's Away for the member is the leader's; the member does not
+      // overwrite it.
+      if (existing && existing.set_by !== who.player_tag)
+        throw new ManageError(409, "set_by_leader");
+      const text = note ? String(note).slice(0, 200) : null;
+      const event = {
+        event: existing ? "changed" : "added",
+        at,
         by: who.player_tag,
         by_name: who.name ?? null,
-        set_at: new Date(t).toISOString(),
-      });
+        until: new Date(untilMs).toISOString(),
+        visibility: AWAY_VISIBILITY,
+        note: text,
+      };
+      const away = existing
+        ? {
+            ...existing,
+            until: event.until,
+            note: text,
+            changed_at: at,
+            changed_by: who.player_tag,
+            changed_by_name: who.name ?? null,
+            events: [...(existing.events ?? []), event],
+          }
+        : {
+            exception_id: newId(),
+            player_tag: who.player_tag,
+            player_name: who.name ?? null,
+            kind: "away",
+            visibility: AWAY_VISIBILITY,
+            until: event.until,
+            note: text,
+            set_by: who.player_tag,
+            set_by_name: who.name ?? null,
+            set_at: at,
+            changed_at: null,
+            changed_by: null,
+            changed_by_name: null,
+            ended_at: null,
+            ended_by: null,
+            ended_by_name: null,
+            events: [event],
+          };
+      await ledger.putException(clanTag, away);
       // Marking away completes the "going to be away?" action, if one is open.
       let completed = null;
       for (const c of (await ledger.cards(clanTag)).filter(
@@ -2602,34 +2885,40 @@ export function createManageService({
           c.status === "proposed" &&
           c.player_tag === who.player_tag,
       )) {
-        const text = `Marked away until ${hold.until.slice(0, 10)}.`;
+        const done = `Marked away until ${away.until.slice(0, 10)}.`;
         await ledger.putCard(clanTag, {
           ...c,
           status: "done",
-          decided_at: new Date(t).toISOString(),
+          decided_at: at,
           decided_by: who.player_tag,
           decided_by_name: who.name ?? null,
-          decision_note: text,
+          decision_note: done,
         });
         await logAction(clanTag, c.card_id, "completed", {
           by: person(who),
-          text,
+          text: done,
         });
         completed = c.card_id;
       }
       await sharing
-        .away(clanTag, who, hold, { cardId: completed })
+        .away(
+          clanTag,
+          who,
+          { set_at: at, until: away.until },
+          { cardId: completed },
+        )
         .catch(() => []);
-      return hold;
+      return { until: away.until, note: text, set_at: away.set_at };
     },
     async clearAway(clanTag, who) {
-      const existing = (await ledger.holds(clanTag)).find(
-        (h) => h.player_tag === who.player_tag,
+      const t = now();
+      const existing = (await ledger.exceptions(clanTag, who.player_tag)).find(
+        (e) => e.kind === "away" && exceptionActiveAt(e, t),
       );
       if (!existing) return;
-      if (existing.kind !== "away")
-        throw new ManageError(409, "held_by_leader");
-      await ledger.removeHold(clanTag, who.player_tag);
+      if (existing.set_by !== who.player_tag)
+        throw new ManageError(409, "set_by_leader");
+      await endOne(clanTag, existing, who, t);
       await sharing.awayCleared(clanTag, who).catch(() => {});
     },
 
@@ -2721,8 +3010,10 @@ export function createManageService({
           }))
         : [];
       const mine = byTag.get(who.player_tag) ?? null;
-      const holds = await ledger.holds(clanTag);
-      const myHold = holds.find((h) => h.player_tag === who.player_tag) ?? null;
+      const tNow = now();
+      const mineRunning = (
+        await ledger.exceptions(clanTag, who.player_tag)
+      ).filter((e) => e.visibility === "clan" && exceptionActiveAt(e, tNow));
       return {
         policy_version: policy.version,
         how,
@@ -2759,12 +3050,47 @@ export function createManageService({
               at_risk_days: policy.values.at_risk_days,
               days_idle: mine.facts.days_idle,
               inactivity_evidence: mine.facts.activity_evidence,
-              hold: myHold ? { until: myHold.until ?? null } : null,
+              exceptions: mineRunning.map((e) => ({
+                kind: e.kind,
+                until: e.until,
+              })),
             }
           : null,
       };
     },
   };
+}
+
+/** An exception as the clan sees it: the kind and its end date, never
+ *  why or who set it. */
+function clanFace(e) {
+  return {
+    exception_id: e.exception_id,
+    player_tag: e.player_tag,
+    player_name: e.player_name ?? null,
+    ...(e.role !== undefined ? { role: e.role } : {}),
+    kind: e.kind,
+    until: e.until,
+    visibility: e.visibility,
+  };
+}
+
+/** An exception as leaders see it: everything but its event list. */
+function leaderFace(e) {
+  const rest = { ...e };
+  delete rest.events;
+  delete rest.hold;
+  return rest;
+}
+
+/** The kinds, in the order the pages list them. */
+function exceptionKinds() {
+  return Object.entries(EXCEPTION_KINDS).map(([key, k]) => ({
+    key,
+    label: k.label,
+    short: k.short,
+    roles: k.roles,
+  }));
 }
 
 function bucketFor(m) {

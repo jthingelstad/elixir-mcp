@@ -26,3 +26,4 @@ export * from "./stories.mjs";
 export * from "./editor.mjs";
 export * from "./capabilities.mjs";
 export * from "./own-view.mjs";
+export * from "./exceptions.mjs";

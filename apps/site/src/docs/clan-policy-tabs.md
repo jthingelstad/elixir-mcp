@@ -48,9 +48,9 @@ the battle count on their profile counts as play too. **Quiet after**,
 one clock: with warning at 7 and kick at 10, a member is at risk after 7
 days without a battle and the Leaders get a kick Action on day 10, not
 day 17. The kick day is never before the warning day. Grace for meeting
-the goals adds days to the kick day. A hold, or a member's own away,
-keeps the Action from being raised, and Elders are Protected unless
-**Elders can be kicked too** is on.
+the goals adds days to the kick day. A Keep in clan or an Away
+[exception](/docs/clan-exceptions) keeps the Action from being raised,
+and Elders are Protected unless **Elders can be kicked too** is on.
 
 A member who reaches the warning day is asked whether they're away, when
 the rules ask quiet members. If Elixir could not read a member's

@@ -100,10 +100,23 @@ export const manageApi = {
     }),
   commentAction: (tag, id, text) =>
     post(`${clanBase(tag)}/actions/${id}/comments`, { text }),
-  setHold: (tag, playerTag, body) =>
-    put(`${clanBase(tag)}/holds/${String(playerTag).replace(/^#/, "")}`, body),
-  clearHold: (tag, playerTag) =>
-    del(`${clanBase(tag)}/holds/${String(playerTag).replace(/^#/, "")}`),
+  // Member exceptions (2026-11-23): the clan's list, one member's, and a
+  // leader setting, changing or ending one kind. `body` is { length } (a
+  // preset key) or { until }, with `visibility` and `note`.
+  exceptions: (tag) => get(`${clanBase(tag)}/exceptions`),
+  memberExceptions: (tag, playerTag) =>
+    get(
+      `${clanBase(tag)}/members/${String(playerTag).replace(/^#/, "")}/exceptions`,
+    ),
+  setException: (tag, playerTag, kind, body) =>
+    put(
+      `${clanBase(tag)}/members/${String(playerTag).replace(/^#/, "")}/exceptions/${kind}`,
+      body,
+    ),
+  endException: (tag, playerTag, kind) =>
+    del(
+      `${clanBase(tag)}/members/${String(playerTag).replace(/^#/, "")}/exceptions/${kind}`,
+    ),
   notes: (tag, playerTag) =>
     get(
       `${clanBase(tag)}/members/${String(playerTag).replace(/^#/, "")}/notes`,

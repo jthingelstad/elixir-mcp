@@ -26,7 +26,7 @@ each a number of days without a battle. On the removal day (plus any
 grace for meeting the minimums) the leader and co-leaders get a
 **Remove from the clan** Action; a member at risk is asked **Going to be
 away?** first, when the policy asks quiet members.
-The leader, co-leaders, members on a hold and, unless the clan allows
+The leader, co-leaders, members kept in the clan or away and, unless the clan allows
 it, Elders are shown as **protected** on Review and are never put up for
 removal.
 
@@ -54,8 +54,8 @@ removal that no longer qualifies says so, and withholds its copy, model
 drafting, completion and reopening; leadership can still explicitly
 Decline it.
 
-Review counts members under removal four ways: **protected** by their role, a
-hold or the waiting period after an earlier decision, **not close**, **too little to go on**, and **past the removal day**.
+Review counts members under removal four ways: **protected** by their role, an
+exception or the waiting period after an earlier decision, **not close**, **too little to go on**, and **past the removal day**.
 Protected roles and recent recorded play
 do not become removal cases just because some coverage is incomplete. These
 labels keep evidence quality separate from relevance; they do not relax the
@@ -66,11 +66,11 @@ below those counts jump to each section of the board.
 
 Two things shield removal eligibility while active:
 
-- **A hold**, set by the leader or a co-leader on a member who said they
-  will be away. Silence is not a hold.
-- **An away notice**, set by the member under **Away**, up to the number
-  of days the clan allows. Leaders see it beside the member's name. It
-  waits until the member's player is verified.
+- **Keep in clan**, an [exception](/docs/clan-exceptions) the leader or a
+  co-leader sets on a member, until a date. Silence is not an exception.
+- **Away**, set by the member under **Away**, up to the number of days
+  the clan allows, or by a leader for them. The clan sees it beside the
+  member's name. A member's own waits until their player is verified.
 
 Neither resets the activity anchor nor subtracts held time from elapsed time.
 After it clears or expires, the current evidence and policy are assessed again.

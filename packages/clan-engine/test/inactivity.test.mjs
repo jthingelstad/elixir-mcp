@@ -139,7 +139,7 @@ test("removal waits only when the clock cannot be read: a failed read, a departe
   assert.equal(u.actionable.removal, false);
 });
 
-test("protections stand: leaders, elders unless included, holds, and removal turned off", () => {
+test("protections stand: leaders, elders unless included, exceptions, and removal turned off", () => {
   for (const role of ["leader", "coLeader", "elder"]) {
     const m = idle(20);
     m.role = role;
@@ -159,7 +159,14 @@ test("protections stand: leaders, elders unless included, holds, and removal tur
   );
   const held = idle(20);
   const v = judge(held, {
-    holds: [{ player_tag: held.player_tag, until: null }],
+    exceptions: [
+      {
+        player_tag: held.player_tag,
+        kind: "keep_in_clan",
+        set_at: "2026-01-01T00:00:00Z",
+        until: "2099-01-01T00:00:00Z",
+      },
+    ],
   });
   assert.equal(v.removal.triage.status, "protected");
   assert.equal(v.actionable.removal, false);

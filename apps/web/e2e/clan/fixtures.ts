@@ -371,6 +371,11 @@ export function signedIn(
     // the shared door, with the shared session.
     "POST /api/feedback": [200, { ok: true, feedback_id: 41 }],
     "GET /api/clan/clans/0QC8RCGY/me/away": [200, { away: null }],
+    // Member exceptions (2026-11-23): none unless a test sets some.
+    "GET /api/clan/clans/0QC8RCGY/exceptions": [
+      200,
+      { leader: false, exceptions: [] },
+    ],
     // The Feed's timeline and Run's one question (slice 8, #766).
     "GET /api/clan/clans/0QC8RCGY/feed": [200, FEED],
     // The race now, for the clan card and the Feed's race bar (G5).

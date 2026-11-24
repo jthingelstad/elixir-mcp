@@ -113,7 +113,7 @@ test("a member past the removal day without a battle: the removal shows its word
   }
 });
 
-test("a hold set after the evaluation a view reuses withholds the removal's words at once", async () => {
+test("an exception set after the evaluation a view reuses withholds the removal's words at once", async () => {
   const h = await harness();
   // An evaluation a minute old, which a view reuses.
   const saved = await h.ledger.latestVerdicts(clan);
@@ -121,13 +121,15 @@ test("a hold set after the evaluation a view reuses withholds the removal's word
     ...saved,
     evaluated_at: new Date(NOW.getTime() - 60_000).toISOString(),
   });
-  await h.manage.setHold(clan, who, h.subject.player_tag, {});
+  await h.manage.setException(clan, who, h.subject.player_tag, "keep_in_clan", {
+    length: "1w",
+  });
   for (const a of [
     (await h.manage.actionsView(clan, who)).open[0],
     (await h.manage.actionByNumber(clan, who, 45)).action,
   ]) {
     assert.equal(a.removal_safety.status, "held");
-    assert.equal(a.removal_safety.reason, "The member is on hold.");
+    assert.equal(a.removal_safety.reason, "The member is kept in the clan.");
     assert.equal(a.copy, null);
     assert.equal(a.can_complete, false);
   }
@@ -157,7 +159,7 @@ test("verdicts cached under the old hold are judged again on the battle-log cloc
   assert.deepEqual(stored.evidence, h.card.evidence);
   assert.equal(
     (await h.ledger.latestVerdicts(clan)).removal_evidence_schema,
-    5,
+    6,
   );
 });
 

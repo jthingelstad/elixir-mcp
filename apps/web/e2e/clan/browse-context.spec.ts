@@ -82,7 +82,8 @@ for (const size of ["wide", "@narrow"]) {
           {
             cards: [{ ...closed, decided_at: new Date().toISOString() }],
             timeline: [],
-            holds: [],
+            exceptions: [],
+            exception_events: [],
           },
         ],
         "GET /api/clan/clans/0QC8RCGY/actions/44": [

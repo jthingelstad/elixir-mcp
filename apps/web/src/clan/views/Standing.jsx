@@ -13,7 +13,7 @@ import {
 import { useStanding } from "../lib/queries.js";
 import { clanPath } from "../lib/base.js";
 import { ROLE, seasonWeek } from "../lib/words.js";
-import { holdWords } from "../components/YouHereCard.jsx";
+import { YourExceptions } from "../components/Exceptions.jsx";
 import { ReportThis } from "../components/ReportThis.jsx";
 import { PageHead } from "../components/PageHead.jsx";
 import { MemberLink } from "../components/MemberLink.jsx";
@@ -305,7 +305,7 @@ function You({ you, who, how, clan, navigate }) {
             </span>
           </div>
         ) : null}
-        {you.hold ? <div className="notice">{holdWords(you.hold)}</div> : null}
+        <YourExceptions exceptions={you.exceptions} />
         {LEADERS.has(who?.role) ? null : (
           <WhyHere you={you} how={how} clan={clan} navigate={navigate} />
         )}

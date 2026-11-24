@@ -10,10 +10,10 @@ import { VERIFY } from "../../components/VerifyPlayer.jsx";
 /**
  * Away: a member tells the clan they will be gone, on their own page
  * (Jamie, 2026-09-12: "they could go there and indicate they are away"),
- * when the clan's policy tracks inactivity and offers it. Eligibility is shielded
- * like a leader's hold, up to the policy's cap; leaders see it on the board
- * with the member's note and can clear it; a leader's own hold is not the
- * member's to move.
+ * when the clan's policy tracks inactivity and offers it. Since 2026-11-23
+ * it is the member's own Away exception: no kick while it lasts, up to the
+ * policy's cap, and always one the clan can see (the note stays the
+ * leaders'). An Away a leader set for them is the leader's to change.
  */
 export function Away({ clan }) {
   const { calendar } = useClock();
@@ -27,56 +27,44 @@ export function Away({ clan }) {
   const load = () => invalidate(keys.away(clan.clan_tag));
 
   if (!state) return <p className="page__lede">Reading…</p>;
-  const hold = state.hold;
+  const away = state.away;
   const maxDate = new Date(today + state.max_days * 86400_000)
     .toISOString()
     .slice(0, 10);
   const ERRORS = {
     too_long: `At most ${state.max_days} ${noun(state.max_days, "day")} from today.`,
     bad_until: "Pick a date after today.",
-    held_by_leader: "A leader has set a hold on you; ask them to change it.",
+    set_by_leader: "A leader marked you away. Ask them to change it.",
     away_off: "This clan does not take away notices here.",
   };
   return (
     <div className="max-w-[640px]">
       <PageHead
         title="Away"
-        lede={`Tell your leaders when you will be back. It keeps you off the removal list while it's on. The days keep counting, and war decks still count.${
+        lede={`Tell your clan when you'll be back. No kick while it's on. The clan can see it. The days keep counting, and war decks still count.${
           state.allowed
             ? ` Up to ${state.max_days} ${noun(state.max_days, "day")} at a time.`
             : " This clan's rules don't offer it; tell a leader instead."
         }`}
       />
-      {hold ? (
-        <Panel
-          as="div"
-          title={
-            hold.kind === "away"
-              ? "You are marked away"
-              : "A leader has you on hold"
-          }
-          titleAs="div"
-        >
-          <div className="panel__body" style={{ display: "grid", gap: "8px" }}>
+      {away ? (
+        <Panel as="div" title="You're marked away" titleAs="div">
+          <div className="panel__body grid gap-2">
             <div>
-              {hold.until
-                ? `Until ${calendar(hold.until)}`
-                : "With no end date"}
-              {hold.note ? ` · ${hold.note}` : ""}
-              {hold.kind !== "away"
-                ? ` · set by ${hold.by_name ?? hold.by}`
+              Until {calendar(away.until)}
+              {away.note ? ` · ${away.note}` : ""}
+              {away.by_leader
+                ? ` · set by ${away.set_by_name ?? "a leader"}`
                 : ""}
             </div>
-            {hold.kind !== "away" ? (
+            {away.by_leader ? (
               <p className="page-head__note m-0">
-                A leader&rsquo;s hold stays until they change it; ask them to
-                change it.
+                A leader marked you away. Ask them if it should change.
               </p>
             ) : (
               <button
                 type="button"
-                className="btn"
-                style={{ width: "fit-content" }}
+                className="btn w-fit"
                 disabled={busy}
                 onClick={async () => {
                   setBusy(true);

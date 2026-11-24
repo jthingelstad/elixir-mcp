@@ -32,6 +32,7 @@ import {
   statusChip,
 } from "../components/YouHereCard.jsx";
 import { Tile, Tiles } from "../components/PageHead.jsx";
+import { eventLine } from "../components/Exceptions.jsx";
 import { ActionList, DiscordNudge } from "./Actions.jsx";
 import { CLAN, clanPath } from "../lib/base.js";
 import { leads } from "../lib/tabs.js";
@@ -125,7 +126,9 @@ function YouCard({ clan, base, navigate }) {
           ) : null}
           {d.clan ? (
             <Link to={away} navigate={navigate} className="btn btn--sm">
-              {d.hold?.kind === "away" ? "Change it" : "Going to be away?"}
+              {d.exceptions?.some((e) => e.kind === "away")
+                ? "Change it"
+                : "Going to be away?"}
             </Link>
           ) : null}
         </div>
@@ -427,30 +430,43 @@ function Decided({ clan, navigate }) {
           </div>
         ) : null}
       </Panel>
-      {data.holds.length ? (
-        <Panel aria-labelledby="decided-holds">
-          <CardHead id="decided-holds" title="Holds" />
+      {data.exception_events?.length ? (
+        <Panel aria-labelledby="decided-exceptions">
+          <CardHead id="decided-exceptions" title="Exceptions" />
           <ul className="m-0 list-none p-0">
-            {data.holds.map((h) => (
-              <li key={h.player_tag} className="clan-row">
+            {data.exception_events.slice(0, 20).map((e) => (
+              <li
+                key={`${e.exception_id}-${e.event}-${e.at}`}
+                className="clan-row"
+              >
                 <span className="clan-row__main">
                   <span className="clan-row__title">
-                    <PlayerName tag={h.player_tag}>
-                      {h.player_name ?? <Tag tag={h.player_tag} />}
+                    <PlayerName tag={e.player_tag}>
+                      {e.player_name ?? <Tag tag={e.player_tag} />}
                     </PlayerName>
                   </span>
                   <span className="clan-row__meta">
-                    {h.kind === "away" ? "Marked away" : "On hold"}{" "}
-                    {h.until
-                      ? `until ${calendar(h.until)}`
-                      : "with no end date"}
-                    , set by {h.by_name ?? h.by} on {whenDay(h.set_at)}
-                    {h.note ? ` · ${h.note}` : ""}
+                    {eventLine(e)}
+                    {e.event === "added" || e.event === "changed"
+                      ? `, to ${calendar(e.until)}`
+                      : ""}
+                    {e.note ? ` · ${e.note}` : ""}
                   </span>
+                </span>
+                <span className="shrink-0 text-mono text-ink-faint">
+                  {whenDay(e.at)}
                 </span>
               </li>
             ))}
           </ul>
+          <div className="panel__foot">
+            <Link
+              to={`${clanPath(clan.clan_tag)}/run/exceptions`}
+              navigate={navigate}
+            >
+              See who has one now
+            </Link>
+          </div>
         </Panel>
       ) : null}
     </div>

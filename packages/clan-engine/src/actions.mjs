@@ -328,8 +328,8 @@ export function welcomeContext(member, joinedAt, asOf, now) {
 
 /**
  * Members to ask "going to be away?": a member or elder whose clock (days
- * without a battle) is at risk or past it, and not already on a hold.
- * Leadership sets its own holds.
+ * without a battle) is at risk or past it, and not already away or kept
+ * in the clan by an exception. Leadership is never judged by the rules.
  */
 export function awayCandidates(verdicts) {
   return verdicts.members.filter(
@@ -340,6 +340,6 @@ export function awayCandidates(verdicts) {
       m.facts.days_idle !== null &&
       m.facts.activity_evidence.status === "ready" &&
       (m.removal.state === "at_risk" || m.removal.state === "recommended") &&
-      !m.hold?.active,
+      !(m.exceptions ?? []).some((k) => k === "away" || k === "keep_in_clan"),
   );
 }

@@ -36,7 +36,13 @@ function door({ players, part, profile = null, log = null, roster = null }) {
   const record = fakeRecord({
     players,
     roster: roster ?? {
-      ...rosterBody([]),
+      ...rosterBody(
+        (part?.members ?? []).map((m) => ({
+          player_tag: m.player_tag,
+          name: m.name,
+          role: m.role,
+        })),
+      ),
       member_count: part?.members?.length ?? 0,
     },
   });
@@ -392,16 +398,25 @@ test("cards: a done removal is verified when the record no longer lists the memb
   );
 });
 
-test("holds shield eligibility without resetting the clock; a member cannot set one", async () => {
+test("exceptions: Keep in clan shields the kick without resetting the clock; leaders set, change and end them; history tells it", async () => {
   const h = harness({ part: partClan() });
   const cookies = await leader(h);
-  const set = await api(h, cookies, "PUT", "/api/clans/0QC8RCGY/holds/0RJL", {
-    until: new Date(NOW.getTime() + 3 * DAY).toISOString(),
-    note: "away",
+  const base = "/api/clans/0QC8RCGY/members/0RJL/exceptions";
+  const set = await api(h, cookies, "PUT", `${base}/keep_in_clan`, {
+    length: "1w",
+    note: "Family trip",
   });
-  assert.equal(set.status, 200);
-  assert.equal(set.body.by, "#098R2R0PUL");
-  assert.equal(set.body.by_name, "Ada");
+  assert.equal(set.status, 200, JSON.stringify(set.body));
+  assert.equal(set.body.kind, "keep_in_clan");
+  assert.equal(set.body.visibility, "leaders", "leaders only unless asked");
+  assert.equal(set.body.set_by, "#098R2R0PUL");
+  assert.equal(set.body.set_by_name, "Ada");
+  assert.equal(set.body.player_name, "Sleepy");
+  assert.equal(
+    Date.parse(set.body.until),
+    NOW.getTime() + 7 * DAY,
+    "a week from now",
+  );
   const view = await api(
     h,
     cookies,
@@ -409,13 +424,11 @@ test("holds shield eligibility without resetting the clock; a member cannot set 
     "/api/clans/0QC8RCGY/manage?refresh=1",
   );
   const row = view.body.board.find((m) => m.player_tag === "#0RJL");
-  assert.equal(row.removal.shielded, "hold");
-  // History names the held member and the leader who set it, whether the
-  // row was stamped (by_name) or is named from the ledger (player_name).
-  const history = await api(h, cookies, "GET", "/api/clans/0QC8RCGY/history");
-  const hold = history.body.holds.find((x) => x.player_tag === "#0RJL");
-  assert.equal(hold.by_name, "Ada");
-  assert.equal(hold.player_name, row.name);
+  assert.equal(row.removal.shielded, "exception");
+  assert.deepEqual(
+    row.exceptions.map((e) => [e.kind, e.note]),
+    [["keep_in_clan", "Family trip"]],
+  );
   assert.equal(row.removal.triage.status, "protected");
   assert.notEqual(row.bucket, "held");
   assert.equal(row.removal.days_idle, 20);
@@ -423,10 +436,151 @@ test("holds shield eligibility without resetting the clock; a member cannot set 
     view.body.inbox.filter((c) => c.player_tag === "#0RJL").length,
     0,
   );
+
+  // Every exception ends: no end date, too far off, or a kind that does
+  // not fit the role is refused.
+  for (const [kind, body, error] of [
+    ["keep_in_clan", { until: null }, "bad_until"],
+    [
+      "keep_in_clan",
+      { until: new Date(NOW.getTime() + 400 * DAY).toISOString() },
+      "too_long",
+    ],
+    ["keep_as_elder", { length: "1m" }, "elders_only"],
+    ["hold", { length: "1m" }, "bad_kind"],
+  ]) {
+    const r = await api(h, cookies, "PUT", `${base}/${kind}`, body);
+    assert.equal(r.status, 400, kind);
+    assert.equal(r.body.error, error, kind);
+  }
+  const lead = await api(
+    h,
+    cookies,
+    "PUT",
+    "/api/clans/0QC8RCGY/members/098R2R0PUL/exceptions/keep_in_clan",
+    { length: "1w" },
+  );
+  assert.equal(lead.body.error, "leaders_are_automatic");
+
+  // A second kind beside it, a minute later; then the first is changed
+  // (renewed, and shown to the clan) and ended early.
+  h.clock.t += 60_000;
+  const not = await api(h, cookies, "PUT", `${base}/not_for_elder`, {
+    length: "3m",
+    visibility: "clan",
+  });
+  assert.equal(not.status, 200);
+  const changed = await api(h, cookies, "PUT", `${base}/keep_in_clan`, {
+    length: "1m",
+    visibility: "clan",
+  });
+  assert.equal(changed.body.exception_id, set.body.exception_id, "one stretch");
+  assert.equal(changed.body.note, "Family trip", "the why is kept");
+  assert.equal(changed.body.changed_by_name, "Ada");
+  const mine = await api(h, cookies, "GET", base);
+  assert.deepEqual(mine.body.exceptions.map((e) => e.kind).sort(), [
+    "keep_in_clan",
+    "not_for_elder",
+  ]);
+  h.clock.t += DAY;
   assert.equal(
-    (await api(h, cookies, "DELETE", "/api/clans/0QC8RCGY/holds/0RJL")).status,
+    (await api(h, cookies, "DELETE", `${base}/keep_in_clan`)).status,
     200,
   );
+  assert.equal(
+    (await api(h, cookies, "DELETE", `${base}/keep_in_clan`)).status,
+    404,
+    "nothing running to end",
+  );
+  const after = await api(h, cookies, "GET", base);
+  assert.deepEqual(
+    after.body.exceptions.map((e) => e.kind),
+    ["not_for_elder"],
+  );
+  assert.deepEqual(
+    after.body.events.map((e) => [e.kind, e.event, e.by_name]),
+    [
+      ["keep_in_clan", "added", "Ada"],
+      ["not_for_elder", "added", "Ada"],
+      ["keep_in_clan", "changed", "Ada"],
+      ["keep_in_clan", "ended", "Ada"],
+    ],
+  );
+  // The clan's list, as leaders see it.
+  const list = await api(h, cookies, "GET", "/api/clans/0QC8RCGY/exceptions");
+  assert.equal(list.body.leader, true);
+  assert.deepEqual(
+    list.body.exceptions.map((e) => [e.player_tag, e.kind]),
+    [["#0RJL", "not_for_elder"]],
+  );
+  assert.deepEqual(
+    list.body.automatic.leadership.map((m) => m.player_tag),
+    ["#098R2R0PUL"],
+  );
+  assert.equal(list.body.automatic.elders.shielded, true);
+  // History names the member and who set it, from the stamp or the ledger.
+  const history = await api(h, cookies, "GET", "/api/clans/0QC8RCGY/history");
+  const kept = history.body.exceptions.find((x) => x.kind === "keep_in_clan");
+  assert.equal(kept.set_by_name, "Ada");
+  assert.equal(kept.player_name, row.name);
+  assert.ok(kept.ended_at);
+  assert.equal(history.body.exception_events[0].event, "ended", "newest first");
+});
+
+test("a member sees only the clan's clan-visible exceptions, without why or who", async () => {
+  const ledger = ledgerWithPolicy(
+    createMemoryLedger(),
+    "#0QC8RCGY",
+    EXAMPLE_POLICY,
+  );
+  const lead = harness({ part: partClan(), ledger });
+  const lc = await leader(lead);
+  const base = "/api/clans/0QC8RCGY/members/0RJL/exceptions";
+  await api(lead, lc, "PUT", `${base}/keep_in_clan`, {
+    length: "2w",
+    note: "Private reason",
+  });
+  await api(lead, lc, "PUT", `${base}/not_for_elder`, {
+    length: "2w",
+    visibility: "clan",
+    note: "Second account",
+  });
+  const member = harness({
+    players: [
+      player({ player_tag: "#0RJL", name: "Sleepy", clan_role: "member" }),
+    ],
+    part: partClan(),
+    ledger,
+  });
+  const mc = await leader(member);
+  const list = await api(member, mc, "GET", "/api/clans/0QC8RCGY/exceptions");
+  assert.equal(list.status, 200);
+  assert.deepEqual(list.body, {
+    leader: false,
+    exceptions: [
+      {
+        exception_id: list.body.exceptions[0].exception_id,
+        player_tag: "#0RJL",
+        player_name: "Sleepy",
+        role: "member",
+        kind: "not_for_elder",
+        until: new Date(NOW.getTime() + 14 * DAY).toISOString(),
+        visibility: "clan",
+      },
+    ],
+  });
+  const one = await api(member, mc, "GET", base);
+  assert.deepEqual(
+    one.body.events.map((e) => [e.kind, e.event, e.note, e.by]),
+    [["not_for_elder", "added", null, null]],
+  );
+  assert.ok(!JSON.stringify(one.body).includes("Private reason"));
+  assert.ok(!JSON.stringify(list.body).includes("Second account"));
+  const refused = await api(member, mc, "PUT", `${base}/keep_in_clan`, {
+    length: "1w",
+  });
+  assert.equal(refused.status, 403);
+  assert.equal(refused.body.error, "leaders_only");
 });
 
 test("notes: elders write and read elder notes; leaders write leader notes and read both; members see none", async () => {
@@ -589,7 +743,11 @@ test("before a leader saves a policy, no clan management runs: the roster, the p
     ["GET", "/api/clans/0QC8RCGY/manage"],
     ["GET", "/api/clans/0QC8RCGY/history"],
     ["GET", "/api/clans/0QC8RCGY/standing"],
-    ["PUT", "/api/clans/0QC8RCGY/holds/0CR", { until: null }],
+    [
+      "PUT",
+      "/api/clans/0QC8RCGY/members/0CR/exceptions/keep_in_clan",
+      { length: "1w" },
+    ],
     ["GET", "/api/clans/0QC8RCGY/members/0CR/notes"],
     ["POST", "/api/clans/0QC8RCGY/members/0CR/notes", { text: "hi" }],
     ["POST", "/api/clans/0QC8RCGY/actions/abc/decide", { status: "done" }],
@@ -609,7 +767,7 @@ test("before a leader saves a policy, no clan management runs: the roster, the p
     allowed: false,
     verified: true,
     max_days: 0,
-    hold: null,
+    away: null,
   });
   assert.equal(
     (await api(h, cookies, "GET", "/api/clans/0QC8RCGY/policy")).status,
@@ -1324,7 +1482,7 @@ test("cards: the inbox carries paste-ready in-game copy, clan-chat safe", async 
   assert.doesNotMatch(removal.copy, /[&]|\+\d/);
 });
 
-test("away: a member marks themselves away within the policy's cap; the clock pauses; a leader can clear it; a leader's hold is not theirs to move", async () => {
+test("away: a member marks themselves away within the policy's cap; the clock pauses; a leader can end it; a leader's Away is not theirs to move", async () => {
   const ledger = ledgerWithPolicy(
     createMemoryLedger(),
     "#0QC8RCGY",
@@ -1343,7 +1501,7 @@ test("away: a member marks themselves away within the policy's cap; the clock pa
     allowed: true,
     verified: true,
     max_days: 30,
-    hold: null,
+    away: null,
   });
   const tooLong = await api(member, mc, "PUT", "/api/clans/0QC8RCGY/me/away", {
     until: new Date(NOW.getTime() + 45 * DAY).toISOString(),
@@ -1355,8 +1513,9 @@ test("away: a member marks themselves away within the policy's cap; the clock pa
     note: "Holiday, back on the 22nd",
   });
   assert.equal(set.status, 200, JSON.stringify(set.body));
-  assert.equal(set.body.kind, "away");
-  assert.equal(set.body.by, "#0RJL");
+  assert.equal(set.body.note, "Holiday, back on the 22nd");
+  const mine = await api(member, mc, "GET", "/api/clans/0QC8RCGY/me/away");
+  assert.equal(mine.body.away.by_leader, false);
 
   const lead = harness({ part: partClan(), ledger });
   const lc = await leader(lead);
@@ -1367,23 +1526,37 @@ test("away: a member marks themselves away within the policy's cap; the clock pa
     "/api/clans/0QC8RCGY/manage?refresh=1",
   );
   const row = view.body.board.find((m) => m.player_tag === "#0RJL");
-  assert.equal(row.hold.kind, "away");
+  assert.deepEqual(
+    row.exceptions.map((e) => [e.kind, e.visibility, e.set_by]),
+    [["away", "clan", "#0RJL"]],
+  );
   assert.equal(
     row.removal.state,
     "at_risk",
-    "on hold the clock stops at at-risk",
+    "while away the clock stops at at-risk",
   );
   assert.ok(
     !view.body.inbox.some(
       (c) => c.type === "removal" && c.player_tag === "#0RJL",
     ),
   );
+  const exBase = "/api/clans/0QC8RCGY/members/0RJL/exceptions";
 
-  // A leader replaces it with their own hold; the member can no longer move it.
-  await api(lead, lc, "PUT", "/api/clans/0QC8RCGY/holds/0RJL", {
-    until: null,
-    note: "leader hold",
+  // A leader's Keep in clan sits beside it; the member's Away is still theirs.
+  await api(lead, lc, "PUT", `${exBase}/keep_in_clan`, { length: "1m" });
+  assert.equal(
+    (await api(member, mc, "DELETE", "/api/clans/0QC8RCGY/me/away")).status,
+    200,
+  );
+  await api(lead, lc, "DELETE", `${exBase}/keep_in_clan`);
+
+  // A leader's Away for the member is the leader's: the member cannot move
+  // it, and their page says a leader set it.
+  const leaderAway = await api(lead, lc, "PUT", `${exBase}/away`, {
+    length: "2w",
+    visibility: "leaders",
   });
+  assert.equal(leaderAway.body.visibility, "clan", "Away is always seen");
   const blocked = await api(
     member,
     mc,
@@ -1391,20 +1564,24 @@ test("away: a member marks themselves away within the policy's cap; the clock pa
     "/api/clans/0QC8RCGY/me/away",
   );
   assert.equal(blocked.status, 409);
-  await api(lead, lc, "DELETE", "/api/clans/0QC8RCGY/holds/0RJL");
+  assert.equal(blocked.body.error, "set_by_leader");
+  const theirs = await api(member, mc, "GET", "/api/clans/0QC8RCGY/me/away");
+  assert.equal(theirs.body.away.by_leader, true);
+  assert.equal(theirs.body.away.set_by_name, "Ada");
+  await api(lead, lc, "DELETE", `${exBase}/away`);
   const cleared = await api(member, mc, "GET", "/api/clans/0QC8RCGY/me/away");
-  assert.equal(cleared.body.hold, null);
+  assert.equal(cleared.body.away, null);
 
-  // A member's away that a leader clears is taken back in Elixir too.
+  // A member's away that a leader ends is taken back in Elixir too.
   await api(member, mc, "PUT", "/api/clans/0QC8RCGY/me/away", {
     until: new Date(NOW.getTime() + 5 * DAY).toISOString(),
   });
-  await api(lead, lc, "DELETE", "/api/clans/0QC8RCGY/holds/0RJL");
+  await api(lead, lc, "DELETE", `${exBase}/away`);
   assert.ok(
     lead.record.calls.some(
       (c) => c[0] === "removeFact" && c[1].ref === "away:#0RJL",
     ),
-    "the leader's clear takes the member's away back",
+    "the leader's end takes the member's away back",
   );
 
   // The policy can turn it off.
@@ -2845,7 +3022,7 @@ test("unverified: a Leader in the game is a member here who reads, told once aft
     assert.equal(r.status, 403, `${method} ${path}`);
     assert.equal(r.body.error, "unverified", `${method} ${path}`);
   }
-  assert.deepEqual(await h.ledger.holds("#0QC8RCGY"), []);
+  assert.deepEqual(await h.ledger.exceptions("#0QC8RCGY"), []);
 
   // "I understand": acknowledged for this session, and it stays so.
   const ack = await api(h, cookies, "POST", "/api/verify-notice", {});

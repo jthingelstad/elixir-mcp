@@ -1,7 +1,7 @@
 ---
 slug: clan-actions
 title: "Actions"
-description: "Clan's actions: the calls a clan's policy hands its leaders, elders and members, each kind and who gets it, when one appears and is withdrawn, how to decide one, the inactivity clock behind a removal, holds and away notices, the morning email, and Actions in the clan's Discord."
+description: "Clan's actions: the calls a clan's policy hands its leaders, elders and members, each kind and who gets it, when one appears and is withdrawn, how to decide one, the inactivity clock behind a removal, exceptions and away notices, the morning email, and Actions in the clan's Discord."
 section: clan
 order: 5
 navTitle: "Actions"
@@ -260,7 +260,7 @@ member and this clan rather than anyone's:
 - **What you ask for** in **What should it say?**, as you wrote it.
 
 Never sent: a tag, a note saved on the Action (yours or another
-leader's), a hold, a removal's
+leader's), an exception, a removal's
 rationale or inactivity numbers, a member's share of the clan's fame, or
 anything the record does not hold. A fact the record lacks is left out.
 A draft says at least what Elixir's own words say, then two to four
@@ -322,7 +322,8 @@ leader and co-leaders see closed actions. **Nobody below co-leader ever sees a r
 is on the clock**, and nobody below co-leader sees a promotion or demotion
 before it's done: not here, and not in the clan's Discord, where none of
 these is posted ([Actions in the clan's Discord](/docs/clan-actions-delivery#actions-in-the-clans-discord)). The leader and co-leaders also have **Decided**, under
-Run, every action the clan has had with its outcome, and the holds.
+Run, every action the clan has had with its outcome, and the latest
+[exception](/docs/clan-exceptions) changes.
 
 Everyone opens a clan on the **Timeline**
 ([Finding your way](/docs/bring-your-clan#finding-your-way)).

@@ -68,6 +68,16 @@ export const keys = {
   ],
   week: (tag, week) => ["me", "clan", "record", tag, "week", week ?? "latest"],
   season: (tag) => ["me", "clan", "record", tag, "season"],
+  exceptions: (tag) => ["me", "clan", "record", tag, "exceptions"],
+  memberExceptions: (tag, player) => [
+    "me",
+    "clan",
+    "record",
+    tag,
+    "member",
+    player,
+    "exceptions",
+  ],
   memberNotes: (tag, player) => [
     "me",
     "clan",
@@ -270,6 +280,21 @@ export const useMyAway = (tag) =>
     queryKey: keys.away(tag),
     queryFn: payload(() => manageApi.myAway(tag)),
     enabled: Boolean(tag),
+  });
+
+/** The clan's running exceptions: all of them for its leaders, the
+ *  clan-visible ones (kind and end date only) for everyone else. */
+export const useExceptions = (tag, enabled = true) =>
+  useGated(keys.exceptions(tag), () => manageApi.exceptions(tag), {
+    enabled: Boolean(tag) && enabled,
+  });
+
+/** One member's exceptions, running and past, as this reader may see them. */
+export const useMemberExceptions = (tag, player, enabled = true) =>
+  useQuery({
+    queryKey: keys.memberExceptions(tag, player),
+    queryFn: payload(() => manageApi.memberExceptions(tag, player)),
+    enabled: Boolean(tag && player) && enabled,
   });
 
 export const useMemberNotes = (tag, player) =>

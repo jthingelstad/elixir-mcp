@@ -1851,7 +1851,7 @@ function BoundActionCard({
               aria-expanded={sheet}
               onClick={() => setSheet((v) => !v)}
             >
-              Notes and hold
+              Notes and exceptions
             </button>
           ) : null}
           {DECIDE_HINT[action.type] ? (
@@ -1869,7 +1869,6 @@ function BoundActionCard({
               player_tag: action.player_tag,
               name: action.player_name,
               role: action.role_at_raise,
-              hold: null,
             }}
             role={who.role}
             onChange={onChanged}

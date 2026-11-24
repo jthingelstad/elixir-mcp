@@ -11,7 +11,8 @@ import {
   useClock,
 } from "@elixir-mcp/ui";
 import { useEffect, useState } from "react";
-import { useRoster } from "../lib/queries.js";
+import { useExceptions, useRoster } from "../lib/queries.js";
+import { ExceptionChips } from "../components/Exceptions.jsx";
 import { SETTINGS } from "../../lib/settings.js";
 import {
   InviteLeaders,
@@ -51,8 +52,14 @@ export function RosterTable({
   onMore,
   clanTag,
   navigate,
+  exceptions = [],
 }) {
   const { when } = useClock();
+  // The exceptions the whole clan can see, by member (2026-11-23).
+  const excepted = new Map();
+  for (const e of exceptions)
+    if (e.visibility === "clan")
+      excepted.set(e.player_tag, [...(excepted.get(e.player_tag) ?? []), e]);
   const shown = limit === null ? members : members.slice(0, limit);
   const hidden = members.slice(shown.length);
   const groups = [...ROLE_ORDER, ...new Set(members.map((m) => m.role))]
@@ -110,6 +117,7 @@ export function RosterTable({
                       you
                     </span>
                   ) : null}
+                  <ExceptionChips exceptions={excepted.get(m.player_tag)} />
                 </span>
                 <span className="roster-table__line">
                   <span>
@@ -387,6 +395,7 @@ export function Clan({
 }) {
   const tag = clan.clan_tag;
   const gated = useRoster(tag);
+  const exceptions = useExceptions(tag).state.data?.exceptions ?? [];
   const state = { ...gated.state, roster: gated.state.data };
   const load = gated.load;
   const [all, setAll] = useState(false);
@@ -501,6 +510,7 @@ export function Clan({
                     clanTag={clan.clan_tag}
                     navigate={navigate}
                     members={found}
+                    exceptions={exceptions}
                     limit={limit}
                     onMore={() => setAll(true)}
                   />

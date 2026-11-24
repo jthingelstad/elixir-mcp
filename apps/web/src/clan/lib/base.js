@@ -42,7 +42,7 @@ export function tagOf(segment) {
 export const clanPath = (tag) => `${CLAN}/${String(tag).replace(/^#/, "")}`;
 
 /** Another member's record in a clan, and for the leaders their clock,
- *  notes and hold: the Clan tab of their player page since 2026-11-12, when
+ *  notes and exceptions: the Clan tab of their player page since 2026-11-12, when
  *  the member page folded into it. Review and an Action's "Open their page"
  *  open it. */
 export const playerInClanPath = (playerTag) =>

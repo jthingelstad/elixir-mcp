@@ -81,7 +81,8 @@ for (const size of ["wide", "@narrow"])
             {
               cards: card.status === "declined" ? [card] : [],
               timeline: [],
-              holds: [],
+              exceptions: [],
+              exception_events: [],
             },
           ],
           "GET /api/clan/clans/0QC8RCGY/actions": () => [

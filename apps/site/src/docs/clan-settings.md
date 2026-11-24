@@ -55,7 +55,7 @@ Elixir refuses Run's pages to them:
   member it is about, by name ([what it
   receives](/docs/clan-actions#the-words-to-send)), with what the leader
   asks for in **What should it say?** as written; tags, notes saved on
-  an Action (anyone's), holds, a removal's rationale or inactivity
+  an Action (anyone's), exceptions, a removal's rationale or inactivity
   numbers and a member's share of fame are never sent. Chat
   drafts use fixed tone choices for welcomes, removals and farewells.
   Everything it writes is a draft a leader edits and copies into the

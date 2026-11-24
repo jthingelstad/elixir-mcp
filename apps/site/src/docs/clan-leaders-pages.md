@@ -23,27 +23,30 @@ Under **Run**, with **Recruit** and **Scout** also at the foot of **Members**:
   **Needs you**, **Getting close**, **Not enough info**, **Has an
   exception** or **Everyone**. Each row shows the role, the last battle,
   whether they did their part, and a few words on why (a kick clock, a
-  promotion, a hold). Held promotion and demotion counts stay separate
+  promotion, an exception). Held promotion and demotion counts stay separate
   from removal evidence, and the inactivity clock shows as triage for
   every member
   ([the inactivity clock](/docs/clan-policy-tabs#the-inactivity-clock)).
 - **One member**, tap a row in Members: their name, role, tag and days in
   the clan, a link to their player page, and four tiles (last battle and
   the kick clock, did their part, Elder rank, donations a week beside the
-  clan's median). Below are their notes and a **hold**, which shields
-  removal eligibility for a member who said they will be away, until a
-  date or until cleared. Then **History in** the clan, newest first, with
-  filters for Role, Actions, War, Awards and Notes: joins and leaves, role
-  changes (with the Action behind one, when there was one), Actions raised
-  and decided, holds, race weeks, awards and notes. It shows only what
-  Elixir recorded. Race weeks go back 8 weeks; a hold that was cleared or
-  ran out is not kept; for a member who was already in the clan when
-  Elixir started following it, nothing before that day is known. Each
-  part of the page loads on its own, so one that fails says so in place
-  with **Try again**.
+  clan's median). Below are their notes and their
+  [exceptions](/docs/clan-exceptions), each with its end date, who can
+  see it and why, with a way to add, change or end one. Then **History
+  in** the clan, newest first, with filters for Role, Actions, War,
+  Awards and Notes: joins and leaves, role changes (with the Action
+  behind one, when there was one), Actions raised and decided, each
+  exception added, changed, ended or run out, race weeks, awards and
+  notes. It shows only what Elixir recorded. Race weeks go back 8 weeks;
+  for a member who was already in the clan when Elixir started following
+  it, nothing before that day is known. Each part of the page loads on
+  its own, so one that fails says so in place with **Try again**.
+- **Exceptions**, under Run: the members the rules leave alone and how,
+  each with its end date and who can see it; what the rules leave alone by
+  themselves; and a way to add one.
 - **Decided**, under Run, beside **Waiting**: the joins, leaves and role changes the record saw, with
   how each leave was answered; every action the clan has had, with its
-  outcome and who decided it; and the holds.
+  outcome and who decided it; and the latest exception changes.
 - **Scout**, at the foot of **Members**: paste an applicant's tag and see
   their numbers; with a policy, also whether they would meet its minimums
   today. Elders see it too, and it works before a policy.

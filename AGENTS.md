@@ -146,7 +146,7 @@ Skills and tests cite these by number; keep the numbering.
 - An MCP token never authenticates at `/api/v1`, nor the reverse.
 - Clan is a set of features inside Elixir, never a separate product or
   an integration (Jamie, 2026-11-12). Private Clan state (leader notes,
-  holds, decisions) reaches only those the clan's policy allows and never
+  exceptions, decisions) reaches only those the clan's policy allows and never
   MCP or public tools. The one exception, `clans_my_view` (a person's own view), reads through
   `@elixir-mcp/auth/clan-context` (pinned by
   `services/web-api/test/clan-boundary.test.mjs`); `clans_context`

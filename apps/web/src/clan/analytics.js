@@ -75,7 +75,7 @@ export function analyticsLocation(
 export function routeLabel(method, path) {
   const generic = path
     .replace(/^\/api\/clan\/clans\/[0-9A-Za-z]+/, "/api/clan/clans/*")
-    .replace(/\/(actions|notes|holds|members)\/[^/]+/g, "/$1/*")
+    .replace(/\/(actions|notes|exceptions|members)\/[^/]+/g, "/$1/*")
     .replace(/\/awards\/grants\/.+$/, "/awards/grants/*")
     .replace(/^(\/api\/clan\/(?:maintain\/)?feedback)\/[^/]+$/, "$1/*")
     .replace(/\?.*$/, "");

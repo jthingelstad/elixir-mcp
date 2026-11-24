@@ -64,6 +64,12 @@ category, and the weighted places make one order, the Elder order.
 Leaders and co-leaders are never in it. Time in the clan is a gate and a
 tiebreak, never a way to earn Elder on its own.
 
+Two [exceptions](/docs/clan-exceptions) take a member out of the Elder
+order while they run: **Keep as Elder**, for an Elder the leaders keep
+whatever the numbers say, and **Not for Elder**, for a member who is
+never suggested for promotion. A kept Elder doesn't take one of the
+earned seats and blocks nobody's promotion.
+
 ## The Elder band
 
 The band is how many Elders the clan wants, as a share of the roster: a
@@ -107,7 +113,8 @@ Once the clan has saved rules, every member's **Standing** page shows:
 - **Their own line**: where they stand, the evidence in a player's
   terms ("100% war decks over 4 war weeks, 12 ranked battles, ~213
   donations a week"), their war decks race by race when the clan counts
-  war, the activity clock and its uncertainty, and any hold a leader has set.
+  war, the activity clock and its uncertainty, and any of their
+  [exceptions](/docs/clan-exceptions) the whole clan can see.
   What the clan counts and the minimums, each met or not, are on the Timeline and
   their own page.
 

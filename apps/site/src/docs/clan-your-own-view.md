@@ -30,7 +30,7 @@ switch. It reads exactly three things:
   raised, each with a link to open it in Clan. An Action Clan has not
   numbered yet has no number and links to the Timeline.
 
-It never shows another member's line, clock, hold or note; never a
+It never shows another member's line, clock, exception or note; never a
 removal Action, to anyone, a leader who would decide it included; never
 an Action's evidence, log or comments; and it never decides anything.
 Deciding happens in Clan. A leader's or co-leader's answer always says

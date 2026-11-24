@@ -656,7 +656,8 @@ for (const size of ["wide", "@narrow"]) {
           {
             cards: [{ ...recent, decided_at: new Date().toISOString() }],
             timeline: [],
-            holds: [],
+            exceptions: [],
+            exception_events: [],
           },
         ],
         "GET /api/clan/clans/0QC8RCGY/actions": (route) => {

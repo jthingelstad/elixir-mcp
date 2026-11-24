@@ -206,7 +206,7 @@ async function arrange(page: Page, surface: "timeline" | "clan") {
             this_week: { ranked_battles: 4, donations: 16, battles: 12 },
           },
           clan: { status: null, minimums: { set: {} }, inactivity: null },
-          hold: null,
+          exceptions: [],
         },
       ],
       "PUT /api/me/cheers": (route) => {
