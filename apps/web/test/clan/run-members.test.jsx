@@ -426,6 +426,35 @@ describe("Run › Members › one member", () => {
     expect(screen.getByRole("heading", { name: "Invented 1" })).toBeTruthy();
   });
 
+  test("the kick clock counts the member's own day, grace included, and a quiet joiner has no battle", async () => {
+    mockMemberReads({
+      manage: board([
+        member(0),
+        member(1, {
+          removal: {
+            state: "pending",
+            removal_day: 17,
+            triage: { status: "not_candidate", reason: "Explanation 1" },
+          },
+          facts: {
+            ...member(1).facts,
+            days_idle: 15.2,
+            last_battle_time: null,
+          },
+        }),
+      ]),
+    });
+    renderWithProviders(<RunMember clan={clan} who={who} player="#SYNTH1" />);
+    const tiles = await screen.findByRole("group", {
+      name: "Where they stand",
+    });
+    // The policy says day 14; this member's grace makes it 17.
+    expect(tiles.textContent).toMatch(/Kick clock: day 15 of 17/);
+    // Quiet days count the join, never a battle that is not on record.
+    expect(tiles.textContent).toMatch(/None on record/);
+    expect(tiles.textContent).not.toMatch(/Today/);
+  });
+
   test("a tag Elixir never saw in the clan", async () => {
     mockMemberReads({
       memberHistory: {
