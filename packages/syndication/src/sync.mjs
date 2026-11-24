@@ -14,6 +14,7 @@ import {
   buildTimeline,
   shownAt,
   isPublishable,
+  learnedLate,
   subjectsFor,
   timelineNews,
 } from "@elixir-mcp/tools/activity/entries";
@@ -137,7 +138,10 @@ async function syncLocked(db, accountId, { outbox, readStatus, now }) {
   // Not filtered (Jamie, 2026-10-10), but what may not leave Elixir
   // stays in the console: the account's own administration and
   // leaders-only items (the item's `publishable`, 11.8.0).
-  const game = isPublishable;
+  // A sitting learned a day or more after it was played is told on
+  // Elixir at its played time, never cross-posted as news.
+  // [engineering, 2026-11-23]
+  const game = (it) => isPublishable(it) && !learnedLate(it);
   const read = (from, to, filter = game) =>
     buildTimeline(db, subjects, {
       fromMs: from,

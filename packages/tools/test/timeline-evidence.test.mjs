@@ -45,8 +45,8 @@ before(async () => {
       [id(n), TAG, at(n), n === 9 ? 5990 : 5900],
     );
   }
-  // Neither an enemy attacking the boat nor a game captured days late is
-  // the sitting's constituent. Fresh capture delay, not window width.
+  // An enemy attacking the boat is not the sitting's constituent; a game
+  // captured days late is, at its played time (2026-11-23).
   await db.query(
     "insert into battle (battle_id,battle_time,type,type_class,boat_battle_side,created_at) values ($1,$2,'boatBattle','boat','defender',$3),($4,$5,'PvP','pvp',null,$6)",
     [id(101), at(15), at(16), id(102), at(20), at(20 + 2880)],
@@ -83,8 +83,8 @@ async function feed(from = FROM, to = FROM + 60 * 60000, accountId = owner) {
 test("session references are exact, ordered and paged with exclusions and honest completeness", async () => {
   const built = await feed();
   const item = built.timeline.find((x) => x.kind === "battle_session");
-  assert.equal(item.revision, 30);
-  assert.equal(item.evidence.count, 30);
+  assert.equal(item.revision, 31);
+  assert.equal(item.evidence.count, 31);
   assert.equal(item.evidence.capture_completeness, "unknown");
   assert.equal(item.evidence.completeness, "recorded_sitting");
   const page = await readTimelineEvidence(db, item, {
@@ -93,7 +93,12 @@ test("session references are exact, ordered and paged with exclusions and honest
   });
   assert.deepEqual(
     page.battles.map((b) => b.battle_id),
-    Array.from({ length: 25 }, (_, i) => id(i + 1)),
+    // The late game, played with id(20), sorts after it by id.
+    [
+      ...Array.from({ length: 20 }, (_, i) => id(i + 1)),
+      id(102),
+      ...Array.from({ length: 4 }, (_, i) => id(i + 21)),
+    ],
   );
   assert.ok(
     page.battles.every(
@@ -109,14 +114,14 @@ test("session references are exact, ordered and paged with exclusions and honest
   });
   assert.deepEqual(
     next.battles.map((b) => b.battle_id),
-    Array.from({ length: 5 }, (_, i) => id(i + 26)),
+    Array.from({ length: 6 }, (_, i) => id(i + 25)),
   );
   assert.equal(next.next_offset, null);
   const recent = (await feed(FROM + 25 * 60000)).timeline.find(
     (x) => x.kind === "battle_session",
   );
   assert.equal(recent.id, item.id);
-  assert.equal(recent.evidence.count, 30);
+  assert.equal(recent.evidence.count, 31);
   assert.deepEqual(
     await readTimelineEvidence(db, { ...JSON.parse(JSON.stringify(item)) }),
     { error: "evidence_unavailable" },
@@ -336,7 +341,7 @@ test("authorized tool and browser reads preserve pointers, refuse forged IDs, an
     queryStringParameters: q,
   });
   assert.equal(allowed.statusCode, 200);
-  assert.equal(JSON.parse(allowed.body).battles.length, 5);
+  assert.equal(JSON.parse(allowed.body).battles.length, 6);
   assert.equal(
     (await route(db, { accountId: other, queryStringParameters: q }))
       .statusCode,

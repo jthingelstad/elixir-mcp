@@ -150,7 +150,7 @@ test("a player entry is a diff of state plus the battles the record learned", as
   );
 });
 
-test("battles the record learned in the window are counted; late captures set aside", async () => {
+test("battles the record learned in the window are counted and told, late captures too", async () => {
   const toMs = Date.now();
   const { entry: e } = await buildPlayerEntry(ctx.db, {
     tag: OBSERVER,
@@ -165,13 +165,9 @@ test("battles the record learned in the window are counted; late captures set as
     )
   ).rows[0].n;
   assert.ok(recorded >= 25, "the fixture log lands as distinct battles");
-  // Every recorded battle is counted exactly once: narrated when played
-  // within a day of the window, otherwise as a late capture.
-  assert.equal(
-    e.battles.played + e.battles.late_captures,
-    recorded,
-    JSON.stringify(e.battles),
-  );
+  // Every recorded battle is told exactly once, however late it was
+  // learned (2026-11-23); late_captures counts the late ones among them.
+  assert.equal(e.battles.played, recorded, JSON.stringify(e.battles));
   assert.ok(e.battles.played >= 25);
   assert.ok(
     e.battles.by_mode.ranked > 0,
@@ -190,7 +186,7 @@ test("battles the record learned in the window are counted; late captures set as
   // Late is the battle's own capture delay, not its distance from the
   // window (Gym #211): the 09-01 pair was learned on 09-03, over a day
   // after play, so it is a late capture in this window and in a narrow
-  // one around its capture alike, never narrated.
+  // one around its capture alike, told at its played time.
   assert.equal(e.battles.late_captures, 2);
   const { entry: narrow } = await buildPlayerEntry(ctx.db, {
     tag: OBSERVER,

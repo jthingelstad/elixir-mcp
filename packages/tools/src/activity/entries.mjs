@@ -19,9 +19,13 @@
  *
  * Window semantics (§13.2): the window is what the record LEARNED between
  * `from` and `to`, keyed on commit time (`battle.created_at`) or the
- * ledger's `window_end`. Battles admitted in the window but played more
- * than a day before `from` are counted once as late captures and never
- * narrated. State facts are a diff of the latest snapshot at each end.
+ * ledger's `window_end` (basis observed), or what happened in it (basis
+ * occurred). Every battle is told at its played time however late the
+ * record learned it (Jamie, 2026-11-23); a late capture (learned a day or
+ * more after play) is counted in late_captures, never judged a return
+ * from, and a sitting of nothing else is never sent as news
+ * (learnedLate). State facts are a diff of the latest snapshot at each
+ * end.
  */
 
 import {
@@ -312,28 +316,24 @@ const ledgerStory = (ledger, firstIds, row) => ({
  * window holds while the gap stays under the session split, so the same
  * sitting read through two windows has one start (the player path builds
  * sessions from the battles a window learned). The walk and the count
- * read the player's own battles as the timeline counts them: never a boat
- * defense (0171), never a late capture (Gym #211), unless the read tells
- * late captures (buildTimeline's `lateBattles`: a player's page). Bounded
- * at 200 steps.
+ * read the player's own battles as the timeline counts them: every battle
+ * at its played time however late Elixir learned it (2026-11-23), never a
+ * boat defense (0171). Bounded at 200 steps.
  *
  * `battles` counts the sitting from that first battle through `upToMs`:
  * the revision, so a sitting told at 20 battles and read again at 40 is
- * the same story, grown.
+ * the same story, grown. `learned_late` says every one of those battles
+ * was a late capture (learned a day or more after it was played): the
+ * sitting is told, never sent as news (learnedLate).
  */
 const SITTING_WALK_STEPS = 200;
-const NOT_BOAT_DEFENSE_SQL = `not (b.boat_battle_side is not null
+/** The player's own battles as the timeline counts them: every battle
+ *  but a boat defense (0171), however late the record learned it. */
+const OWN_BATTLE_SQL = `not (b.boat_battle_side is not null
                   and (b.boat_battle_side = 'defender') = (bp.side = 0))`;
-const OWN_BATTLE_SQL = `b.battle_time >= b.created_at - interval '1 day'
-         and ${NOT_BOAT_DEFENSE_SQL}`;
-/** The player's own battles as a read counts them: OWN_BATTLE_SQL, or,
- *  for a read that tells late captures (`lateBattles`), every battle but a
- *  boat defense. */
-const ownBattleSql = (lateBattles) =>
-  lateBattles ? NOT_BOAT_DEFENSE_SQL : OWN_BATTLE_SQL;
-async function sittingAnchors(db, sittings, { lateBattles = false } = {}) {
+async function sittingAnchors(db, sittings) {
   if (sittings.length === 0) return [];
-  const own = ownBattleSql(lateBattles);
+  const own = OWN_BATTLE_SQL;
   const { rows } = await db.query(
     `with recursive s as (
        select t.i, t.p, to_timestamp(t.st / 1000.0) as start, to_timestamp(t.up / 1000.0) as upto
@@ -353,12 +353,14 @@ async function sittingAnchors(db, sittings, { lateBattles = false } = {}) {
             order by bp.battle_time desc limit 1) prev
         where w.steps < ${SITTING_WALK_STEPS}
      ), anchor as (select i, min(cur) as anchor, max(steps) as steps from walk group by i)
-     select s.i, a.anchor, a.steps, refs.battles, refs.fingerprint, refs.observed_at
+     select s.i, a.anchor, a.steps, refs.battles, refs.fingerprint, refs.observed_at,
+            refs.learned_late
        from s join anchor a on a.i = s.i
        cross join lateral (
          select count(*)::int as battles,
                 md5(string_agg(r.battle_id, ',' order by r.battle_time, r.battle_id)) as fingerprint,
-                max(r.created_at) as observed_at
+                max(r.created_at) as observed_at,
+                coalesce(bool_and(r.battle_time < r.created_at - interval '1 day'), false) as learned_late
            from (select distinct b.battle_id, b.battle_time, b.created_at
                    from battle_participant bp join battle b on b.battle_id = bp.battle_id
                   where bp.player_tag = s.p and bp.battle_time >= a.anchor
@@ -379,6 +381,7 @@ async function sittingAnchors(db, sittings, { lateBattles = false } = {}) {
       complete: r.steps < SITTING_WALK_STEPS,
       fingerprint: r.fingerprint,
       observed_at: iso(r.observed_at),
+      learned_late: r.learned_late === true,
     };
   return out;
 }
@@ -389,7 +392,7 @@ async function sittingAnchors(db, sittings, { lateBattles = false } = {}) {
  * them as one (feedback #370: two identical 8W-1L lines); and
  * `best_win`, the win over the opponent who started it with the most
  * trophies, as a crossing battle is said. Each from the sitting's own
- * battles (never a boat defense or a late capture); absent when the
+ * battles (never a boat defense); absent when the
  * record holds no partner, or no win over an opponent with recorded
  * trophies: absence over a guess.
  */
@@ -544,6 +547,17 @@ const sittingStory = (playerTag, anchored, fallbackStart) => ({
 /** Server-only provenance. Evidence requests resolve an authorized item first;
  * a caller cannot supply a player, bounds or a battle as authority. */
 const EVIDENCE = Symbol("evidence source");
+/** A sitting every battle of which was a late capture (learned a day or
+ *  more after it was played; sittingAnchors' `learned_late`). Told at its
+ *  played time like any sitting (2026-11-23); never sent as news: the
+ *  digest, the Discord cross-post and the clan's Discord leave it out
+ *  (learnedLate). Server-only, so MCP's shape does not change. */
+const LEARNED_LATE = Symbol("learned late");
+/** Whether an item is a sitting Elixir learned only late: true for a
+ *  battle_session or session_standout whose every battle was a late
+ *  capture, false for anything else. A send path (mail, push, Discord)
+ *  never announces one as if it had just been played. */
+export const learnedLate = (item) => item?.[LEARNED_LATE] === true;
 /** A sitting's battles in order, for Home's sparkline (slice 7, #765): each
  *  battle's outcome and its crown margin (crowns minus the other side's;
  *  null when the record lacks either). Web-only and never on the wire: JSON
@@ -622,15 +636,19 @@ export function storedItem(it) {
   if (it[SPARK] !== undefined) out._spark = it[SPARK];
   if (it[DECK] !== undefined) out._deck = it[DECK];
   if (it[EVIDENCE] !== undefined) out._evidence_source = it[EVIDENCE];
+  if (it[LEARNED_LATE] === true) out._learned_late = true;
   return out;
 }
 /** A stored item as the builder finished it: its server-only fields back
  *  under their symbols, and nothing else changed. */
 export function restoredItem(stored) {
-  const { _spark, _deck, _evidence_source, ...it } = stored;
+  const { _spark, _deck, _evidence_source, _learned_late, ...it } = stored;
   if (_spark !== undefined) it[SPARK] = _spark;
   if (_deck !== undefined) it[DECK] = _deck;
+  // A source the page's read stored on 2026-11-23 also says
+  // `late_battles`, which no read asks any more: every read counts them.
   if (_evidence_source !== undefined) it[EVIDENCE] = _evidence_source;
+  if (_learned_late === true) it[LEARNED_LATE] = true;
   return it;
 }
 const evidenceVersion = (...parts) =>
@@ -675,10 +693,9 @@ function crossingEvidence(row, origin) {
     },
   };
 }
-/** A sitting's evidence. `lateBattles` rides in its server-only source, so
- *  whoever reads its games (readTimelineEvidence) counts the battles the
- *  build counted, late captures included when the build told them. */
-function sessionEvidence(playerTag, anchored, through, open, lateBattles) {
+/** A sitting's evidence, and whether the record learned the whole sitting
+ *  late (learnedLate). */
+function sessionEvidence(playerTag, anchored, through, open) {
   const evidence = {
     kind: "session",
     status: "recorded_only",
@@ -704,8 +721,8 @@ function sessionEvidence(playerTag, anchored, through, open, lateBattles) {
       playerTag,
       from: evidence.from,
       through,
-      ...(lateBattles ? { late_battles: true } : {}),
     },
+    ...(anchored?.learned_late ? { [LEARNED_LATE]: true } : {}),
   };
 }
 
@@ -886,7 +903,7 @@ export async function readTimelineEvidence(
          select distinct b.battle_id, b.battle_time, b.type, b.event_tag, bp.side, bp.outcome, bp.crowns, bp.trophy_change, bp.deck_hash
            from battle_participant bp join battle b on b.battle_id = bp.battle_id
           where bp.player_tag = $1 and bp.battle_time >= $2::timestamptz
-            and bp.battle_time <= $3::timestamptz and ${ownBattleSql(source.late_battles === true)}
+            and bp.battle_time <= $3::timestamptz and ${OWN_BATTLE_SQL}
        )
        select md5(string_agg(battle_id, ',' order by battle_time, battle_id)) as fingerprint,
               count(*)::int as count,
@@ -1610,63 +1627,72 @@ async function playerLedger(db, tag, fromMs, toMs, basis) {
 }
 
 /**
- * Battles the record learned in the window: the ones played within a day
- * of it come off the player-time index. A battle the record learned more
- * than a day after it was played is a late capture (a history backfill,
- * a log polled late), counted by the created_at index and never
- * narrated. "Late" is the battle's own capture delay, not its distance
- * from the window's start (Gym #211): measured against `from`, the same
+ * A player's battles as a window selects them, each told at its played
+ * time however late the record learned it (Jamie, 2026-11-23: "I don't
+ * know that we should ever delete a battle just because it was late",
+ * "as long as the timestamps are honored"). Played in the window
+ * (occurred), off the player-time index; or learned in it (observed): the
+ * ones played since a day before `from` off the same index, and the
+ * earlier ones, which can only be late captures (learned a day or more
+ * after play), off the created_at index (`earlier`). A window selects by
+ * the battle's own times, never its distance from `from` (Gym #211: a
  * backfilled session was a standout in a wide window and absent in a
- * narrow one. A boat DEFENSE is not the member's battle (Jamie
+ * narrow one). A boat DEFENSE is not the member's battle (Jamie
  * 2026-09-24; 0171): an enemy attacked their boat and their defense deck
  * answered, so it never counts here.
  */
-/** The battles statement playerBattles reads, for one player: `tagSql`
- *  names it (`$1`, or a batch's lateral column, `t.tag`). `lateBattles`
- *  keeps late captures in `wide` (a player's page, buildTimeline). */
-function playerBattlesSql(tagSql, fromMs, toMs, basis, lateBattles = false) {
-  const occurred = basis === "occurred";
-  const selected = occurred
-    ? `bp.battle_time >= ${ts(fromMs - DAY_MS)} and bp.battle_time < ${ts(toMs + 1)}`
-    : `bp.battle_time >= ${ts(fromMs - DAY_MS)} and bp.battle_time < ${ts(toMs + 1)}
-        and b.created_at >= ${ts(fromMs + 1)} and b.created_at < ${ts(toMs + 1)}`;
-  return {
-    wide: `select b.battle_id, b.type, b.event_tag, b.game_mode_name, b.battle_time, b.created_at, bp.outcome, bp.crowns,
+const PLAYER_BATTLE_COLUMNS = `b.battle_id, b.type, b.event_tag, b.game_mode_name, b.battle_time, b.created_at, bp.outcome, bp.crowns,
             o.crowns_against, o.mates, o.foes, b.league_number, b.deck_selection,
-            bp.trophy_change, bp.starting_trophies, bp.clan_tag, bp.deck_hash
-       from battle_participant bp
-       join battle b on b.battle_id = bp.battle_id
-       cross join lateral (
-         -- The other participants by key (2026-11-16): the opposing
-         -- crowns, and who stood on each side, one probe a battle.
+            bp.trophy_change, bp.starting_trophies, bp.clan_tag, bp.deck_hash`;
+/** The other participants by key (2026-11-16): the opposing crowns, and
+ *  who stood on each side, one probe a battle. */
+const OTHERS_SQL = `cross join lateral (
          select max(o.crowns) filter (where o.side <> bp.side) as crowns_against,
                 coalesce(array_agg(o.player_tag order by o.player_tag)
                   filter (where o.side = bp.side and o.player_tag <> bp.player_tag), '{}') as mates,
                 coalesce(array_agg(o.player_tag order by o.player_tag)
                   filter (where o.side <> bp.side), '{}') as foes
-           from battle_participant o where o.battle_id = bp.battle_id) o
+           from battle_participant o where o.battle_id = bp.battle_id) o`;
+/** The battles statements playerBattles reads, for one player: `tagSql`
+ *  names it (`$1`, or a batch's lateral column, `t.tag`). `earlier` is
+ *  null for an occurred window. */
+function playerBattlesSql(tagSql, fromMs, toMs, basis) {
+  const occurred = basis === "occurred";
+  const learned = `b.created_at >= ${ts(fromMs + 1)} and b.created_at < ${ts(toMs + 1)}`;
+  return {
+    wide: `select ${PLAYER_BATTLE_COLUMNS}
+       from battle_participant bp
+       join battle b on b.battle_id = bp.battle_id
+       ${OTHERS_SQL}
       where bp.player_tag = ${tagSql}
-        and ${selected}${
-          lateBattles
+        and bp.battle_time >= ${ts(fromMs - DAY_MS)} and bp.battle_time < ${ts(toMs + 1)}${
+          occurred
             ? ""
             : `
-        and b.battle_time >= b.created_at - interval '1 day'`
+        and ${learned}`
         }
-        and not (b.boat_battle_side is not null
-                 and (b.boat_battle_side = 'defender') = (bp.side = 0))
+        and ${OWN_BATTLE_SQL}
       order by b.battle_time`,
-    late: `select count(*)::int as n
+    earlier: occurred
+      ? null
+      : `select ${PLAYER_BATTLE_COLUMNS}
        from battle b
-       join battle_participant bp on bp.battle_id = b.battle_id
-      where ${
-        occurred
-          ? `bp.battle_time >= ${ts(fromMs + 1)} and bp.battle_time < ${ts(toMs + 1)}`
-          : `b.created_at >= ${ts(fromMs + 1)} and b.created_at < ${ts(toMs + 1)}`
-      }
-        and b.battle_time < b.created_at - interval '1 day'
-        and bp.player_tag = ${tagSql}`,
+       join battle_participant bp on bp.battle_id = b.battle_id and bp.player_tag = ${tagSql}
+       ${OTHERS_SQL}
+      where ${learned}
+        and b.battle_time < ${ts(fromMs - DAY_MS)}
+        and ${OWN_BATTLE_SQL}
+      order by b.battle_time`,
   };
 }
+
+/** Whether a battle row was a late capture: learned a day or more after it
+ *  was played (a log polled late, a history read). Told at its played
+ *  time like any battle; it only decides what is sent as news
+ *  (learnedLate), what a return is judged from (timelyOf), and the
+ *  late_captures counts. */
+const isLateRow = (b) =>
+  b.battle_time.getTime() < b.created_at.getTime() - DAY_MS;
 
 /** A per-player statement run once for every tag of a batch: each tag's
  *  rows come from the statement its player alone would run, on its
@@ -1689,109 +1715,96 @@ async function playerBattles(
   basis = "observed",
   prefetched = null,
   lateCounts = true,
-  lateBattles = false,
 ) {
-  // Learned in the window (observed), or played in it (occurred); either
-  // way never a late capture, which is counted, not narrated, unless the
-  // read tells them (`lateBattles`: then none is left to count). An occurred
-  // read also fetches the day before `from` (`wide`), so a sitting begun
-  // before the window is built whole (Codex on #472): its id, totals,
-  // decks and evidence are the sitting's, not the window's slice of it.
+  // Learned in the window (observed), or played in it (occurred). An
+  // occurred read also fetches the day before `from` (`wide`), so a
+  // sitting begun before the window is built whole (Codex on #472): its
+  // id, totals, decks and evidence are the sitting's, not the window's
+  // slice of it. late_captures counts the told battles the record learned
+  // a day or more after play; null for a read that serves no entry.
   const occurred = basis === "occurred";
   let wide;
-  let lateN;
-  if (prefetched) {
-    wide = prefetched.wide;
-    lateN = prefetched.late;
-  } else {
-    const sql = playerBattlesSql("$1", fromMs, toMs, basis, lateBattles);
+  if (prefetched) wide = prefetched.wide;
+  else {
+    const sql = playerBattlesSql("$1", fromMs, toMs, basis);
     wide = (await db.query(sql.wide, [tag])).rows;
-    // Not counted (null) for a read that serves no entry: an observed
-    // window's count reads every battle the record learned in the window,
-    // anyone's, by created_at (1,031 of the bell's 2,008 buffers on a
-    // year's record, 2026-11-13).
-    lateN = !lateCounts
-      ? null
-      : lateBattles
-        ? 0
-        : ((await db.query(sql.late, [tag])).rows[0]?.n ?? 0);
+    if (sql.earlier)
+      wide = [...(await db.query(sql.earlier, [tag])).rows, ...wide];
   }
   const rows = occurred
     ? wide.filter((r) => r.battle_time.getTime() > fromMs)
     : wide;
-  return { rows, wide, late: lateN };
+  return {
+    rows,
+    wide,
+    late: lateCounts ? rows.filter(isLateRow).length : null,
+  };
 }
 
 /** The statements prefetchPlayers runs, each over `$1`, a tag array.
  *  Exported so {explain_timeline} can EXPLAIN what Home runs. */
-export function prefetchStatements({
-  fromMs,
-  toMs,
-  basis = "observed",
-  lateBattles = false,
-}) {
-  const sql = playerBattlesSql("t.tag", fromMs, toMs, basis, lateBattles);
+export function prefetchStatements({ fromMs, toMs, basis = "observed" }) {
+  const sql = playerBattlesSql("t.tag", fromMs, toMs, basis);
   return {
     wide: perTag(sql.wide, "x.battle_time"),
-    // An observed window's late count reads the battles the record
-    // learned in the window, anyone's, by created_at: per tag, that is the
-    // whole week once for every player (263,921 buffers for a feed of 56
-    // on a year's record, 2026-11-13). The week's late captures are read
-    // once instead and counted by player; each tag's count is the one its
-    // own statement gives. An occurred window reads each player's own
-    // battles by time, so it stays per tag.
-    late:
+    // An observed window's battles played before it (late captures, all
+    // of them) are found by when the record learned them, anyone's: per
+    // tag, that is the whole window once for every player (263,921
+    // buffers for a feed of 56 on a year's record, 2026-11-13, when it was
+    // a count). They are read once instead, each battle's participants by
+    // key, and kept for the batch's tags; each tag's rows are the ones its
+    // own statement gives. The late-capture test is implied by the two
+    // bounds; said, it keeps the estimate of the week's learned battles
+    // small enough that the plan stays on the created_at index. Null for
+    // an occurred window.
+    earlier:
       basis === "occurred"
-        ? perTag(sql.late)
-        : `with late as materialized (
+        ? null
+        : `with learned as materialized (
              select b.battle_id from battle b
               where b.created_at >= ${ts(fromMs + 1)} and b.created_at < ${ts(toMs + 1)}
                 and b.battle_time < b.created_at - interval '1 day'
-           ), counts as (
-             select bp.player_tag, count(*)::int as n
-               from late l
-               cross join lateral (
-                 select bp.player_tag from battle_participant bp
-                  where bp.battle_id = l.battle_id
-                 offset 0) bp
-              group by bp.player_tag
+                and b.battle_time < ${ts(fromMs - DAY_MS)}
            )
-           select t.tag as batch_tag, coalesce(c.n, 0) as n
-             from unnest($1::text[]) with ordinality as t(tag, ord)
-             left join counts c on c.player_tag = t.tag
-            order by t.ord`,
+           select bp.player_tag as batch_tag, ${PLAYER_BATTLE_COLUMNS}
+             from learned l
+             cross join lateral (
+               select bp.player_tag, bp.side, bp.outcome, bp.crowns, bp.trophy_change,
+                      bp.starting_trophies, bp.clan_tag, bp.deck_hash, bp.battle_id
+                 from battle_participant bp
+                where bp.battle_id = l.battle_id and bp.player_tag = any($1::text[])
+                offset 0) bp
+             cross join lateral (
+               select b.battle_id, b.type, b.event_tag, b.game_mode_name, b.battle_time,
+                      b.created_at, b.league_number, b.deck_selection, b.boat_battle_side
+                 from battle b where b.battle_id = l.battle_id limit 1) b
+             ${OTHERS_SQL}
+            where ${OWN_BATTLE_SQL}
+            order by bp.player_tag, b.battle_time`,
     snapshot: (atMs) => perTag(snapshotSql("t.tag", atMs)),
   };
 }
 
 /**
  * The per-player reads a timeline of many players makes once for all of
- * them (Home's feed, G1 2026-11-12): each player's battles, late count,
- * profile before and after the window, and the names of every deck and
+ * them (Home's feed, G1 2026-11-12): each player's battles, profile before
+ * and after the window, and the names of every deck and
  * event those battles carry. One player read them in seven statements; a
  * feed of fifty paid 350 round trips, about half its time, for the same
  * rows. The statements are playerBattles' and snapshotAt's own, run once per
  * tag inside one statement (perTag), so a batched entry is the entry its
  * player alone would get, read on the same index.
  */
-async function prefetchPlayers(
-  db,
-  tags,
-  { fromMs, toMs, basis, lateCounts = true, lateBattles = false },
-) {
-  const sql = prefetchStatements({ fromMs, toMs, basis, lateBattles });
-  const battles = new Map(
-    tags.map((t) => [t, { wide: [], late: lateCounts ? 0 : null }]),
-  );
+async function prefetchPlayers(db, tags, { fromMs, toMs, basis }) {
+  const sql = prefetchStatements({ fromMs, toMs, basis });
+  const battles = new Map(tags.map((t) => [t, { wide: [] }]));
+  if (sql.earlier)
+    for (const { batch_tag: t, ...row } of (await db.query(sql.earlier, [tags]))
+      .rows)
+      battles.get(t)?.wide.push(row);
   for (const { batch_tag: t, ...row } of (await db.query(sql.wide, [tags]))
     .rows)
     battles.get(t)?.wide.push(row);
-  // A read that tells late captures leaves none to count: each is 0.
-  if (lateCounts && !lateBattles)
-    for (const r of (await db.query(sql.late, [tags])).rows) {
-      const b = battles.get(r.batch_tag);
-      if (b) b.late = r.n;
-    }
   const snapshots = async (atMs) => {
     const { rows } = await db.query(sql.snapshot(atMs), [tags]);
     return new Map(rows.map(({ batch_tag, ...r }) => [batch_tag, r]));
@@ -1887,12 +1900,11 @@ async function prefetchPlayers(
   const played = new Map(
     tags.map((t) => [t, playedOf(battles.get(t).wide, fromMs, basis)]),
   );
+  // A return is judged from the battles learned on time (timelyOf).
   const presence = await presenceBatch(
     db,
     tags,
-    lateBattles
-      ? new Map([...played].map(([t, rows]) => [t, timelyOf(rows)]))
-      : played,
+    new Map([...played].map(([t, rows]) => [t, timelyOf(rows)])),
     toMs,
   );
   const sessions = new Map(
@@ -1904,7 +1916,7 @@ async function prefetchPlayers(
   const sittings = tags.flatMap((t) =>
     sessions.get(t).map((s) => sittingOf(t, s)),
   );
-  const anchors = await sittingAnchors(db, sittings, { lateBattles });
+  const anchors = await sittingAnchors(db, sittings);
   const anchorsOf = new Map();
   for (const [i, s] of sittings.entries())
     anchorsOf.set(s.player_tag, [
@@ -2043,15 +2055,12 @@ const playedOf = (wide, fromMs, basis) =>
     ? wide.filter((r) => r.battle_time.getTime() > fromMs)
     : wide;
 
-/** The battles the record learned within a day of play: what a read that
- *  tells late captures (`lateBattles`) still judges a return by. A late
- *  batch is a log read after a gap, and the gap before it may be battles
- *  Elixir never saw (a log keeps the last 30 or so), so "back after N
- *  days" from it would be a guess. */
-const timelyOf = (rows) =>
-  rows.filter(
-    (b) => b.battle_time.getTime() >= b.created_at.getTime() - DAY_MS,
-  );
+/** The battles the record learned within a day of play: what a return is
+ *  judged by, though every battle is told. A late batch is a log read
+ *  after a gap, and the gap before it may be battles Elixir never saw (a
+ *  log keeps the last 30 or so), so "back after N days" from it would be
+ *  a guess. */
+const timelyOf = (rows) => rows.filter((b) => !isLateRow(b));
 
 /** Whole sittings from the wider fetch, kept when the window holds one of
  *  their battles (not yet named: nameSessions). */
@@ -2465,8 +2474,6 @@ export async function buildPlayerEntry(
     prefetched = null,
     // battles.late_captures counted, or null (buildTimeline's lateCounts).
     lateCounts = true,
-    // Late captures told like any battle (buildTimeline's lateBattles).
-    lateBattles = false,
   },
 ) {
   const who = prefetched?.who ?? (await db.query(WHO_SQL("$1"), [tag])).rows;
@@ -2485,7 +2492,6 @@ export async function buildPlayerEntry(
       basis,
       prefetched?.battles,
       lateCounts,
-      lateBattles,
     ),
   );
   const byMode = {};
@@ -2597,7 +2603,7 @@ export async function buildPlayerEntry(
     presenceOf(
       db,
       tag,
-      lateBattles ? timelyOf(played) : played,
+      timelyOf(played),
       fromMs,
       toMs,
       prefetched?.presence ?? null,
@@ -2768,7 +2774,6 @@ export async function buildPlayerEntry(
       sittingAnchors(
         db,
         sessions.map((s) => sittingOf(tag, s)),
-        { lateBattles },
       ),
     ));
   for (const [i, s] of sessions.entries())
@@ -2782,7 +2787,7 @@ export async function buildPlayerEntry(
       [SPARK]: s.spark,
       ...deckOf(s),
       [STORY]: sittingStory(tag, anchored[i], s.started_at),
-      ...sessionEvidence(tag, anchored[i], s.ended_at, s.open, lateBattles),
+      ...sessionEvidence(tag, anchored[i], s.ended_at, s.open),
     });
   const told =
     prefetched?.told ??
@@ -2936,35 +2941,41 @@ export async function buildPlayerEntry(
 /* Clan entry                                                          */
 /* ------------------------------------------------------------------ */
 
-/** The empty-path probe (3.18.0): did this window learn a battle of the
- *  clan's at all, split into played within a day of the window (the
- *  narrated ones) and late captures. Exported so {explain_timeline} can
- *  EXPLAIN the same statement the tool runs. */
-export function clanLearnedQuery({
-  tag,
-  fromMs,
-  toMs,
-  basis = "observed",
-  late = true,
-}) {
+/** The battles an observed window learned that were played more than a
+ *  day before it opened: late captures, all of them, found by when the
+ *  record learned them (the created_at index) and asked their
+ *  participants by key. Every other battle a window learned was played
+ *  since a day before `from`, on the clan's own (clan_tag, battle_time)
+ *  range. */
+const learnedEarlierSql = (fromMs, toMs) =>
+  `select b.battle_id from battle b
+    where b.created_at >= ${ts(fromMs + 1)} and b.created_at < ${ts(toMs + 1)}
+      and b.battle_time < b.created_at - interval '1 day'
+      and b.battle_time < ${ts(fromMs - DAY_MS)}`;
+
+/** The empty-path probe (3.18.0): did this window hold a battle of the
+ *  clan's at all. Every battle is told at its played time however late
+ *  the record learned it (2026-11-23), so an observed window counts what
+ *  it learned in two parts that each read what they need: `recent`,
+ *  played since a day before `from`, and `earlier`, played before that
+ *  (late captures). Exported so {explain_timeline} can EXPLAIN the same
+ *  statement the tool runs. */
+export function clanLearnedQuery({ tag, fromMs, toMs, basis = "observed" }) {
   const occurred = basis === "occurred";
-  // Learned in the window, in two counts that each read what they need.
-  // A battle played within a day of being learned was played after
-  // from - 1 day and before `to`, so the narrated count is the clan's own
-  // (clan_tag, battle_time) range, each row asking its battle (primary
-  // key) when it was learned: a cost that grows with the clan's battles,
-  // not the record's (joined, the planner hashed the window's battles). A
-  // late capture can be played at any time, so that count still walks the
-  // window's battles off the created_at index, but asks a battle's
-  // participants (primary key) only for a late one, which are few. The
-  // per-battle probe for every battle learned in the window (2026-11-09)
-  // made a 30-day read 4.2 s (#649); before it, a joined statement hashed
-  // the window and scanned battle_participant whole for a big clan.
-  // LIMIT keeps each lateral a per-row probe the planner cannot flatten.
-  // `late: false` leaves the late count out (null): a read that serves no
-  // activity section never says it, and on a month window it walked
-  // 71,314 battles learned in the window, 67,193 of them late, probing
-  // each one's participants (#649, 2026-11-12).
+  // A battle learned in the window and played after from - 1 day is the
+  // clan's own (clan_tag, battle_time) range, each row asking its battle
+  // (primary key) when it was learned: a cost that grows with the clan's
+  // battles, not the record's (joined, the planner hashed the window's
+  // battles). One played earlier can be played at any time, so that count
+  // walks the window's battles off the created_at index, but asks a
+  // battle's participants (primary key) only for one played before the
+  // window, which are few, and hands their ids (`earlier_ids`) to the
+  // member battles and the most-active count, so a read walks the
+  // window's learned battles once. The per-battle probe for every battle learned
+  // in the window (2026-11-09) made a 30-day read 4.2 s (#649); before it,
+  // a joined statement hashed the window and scanned battle_participant
+  // whole for a big clan. LIMIT keeps each lateral a per-row probe the
+  // planner cannot flatten.
   if (!occurred)
     return {
       text: `select (select count(distinct bp.battle_id)::int
@@ -2973,94 +2984,101 @@ export function clanLearnedQuery({
                         select 1 from battle b
                          where b.battle_id = bp.battle_id
                            and b.created_at >= ${ts(fromMs + 1)} and b.created_at < ${ts(toMs + 1)}
-                           and b.battle_time >= b.created_at - interval '1 day'
                          limit 1) learned
                       where bp.clan_tag = $1
                         and bp.battle_time >= ${ts(fromMs - DAY_MS)}
                         and bp.battle_time < ${ts(toMs + 1)}) as recent,
-                    ${
-                      late
-                        ? `(select count(*)::int
-                       from battle b
+                    cardinality(e.ids) as earlier, e.ids as earlier_ids
+               from (select coalesce(array_agg(x.battle_id order by x.battle_id), '{}'::text[]) as ids
+                       from (${learnedEarlierSql(fromMs, toMs)}) x
                       cross join lateral (
                         select 1 from battle_participant bp
-                         where bp.battle_id = b.battle_id and bp.clan_tag = $1
-                         limit 1) in_clan
-                      where b.created_at >= ${ts(fromMs + 1)} and b.created_at < ${ts(toMs + 1)}
-                        and b.battle_time < b.created_at - interval '1 day')`
-                        : "null::int"
-                    } as late`,
+                         where bp.battle_id = x.battle_id and bp.clan_tag = $1
+                         limit 1) in_clan) e`,
       values: [tag],
     };
   // Played in the window: the clan's own (clan_tag, battle_time) range.
   return {
-    text: `select count(distinct b.battle_id) filter (where b.battle_time >= b.created_at - interval '1 day')::int as recent,
-                  count(distinct b.battle_id) filter (where b.battle_time < b.created_at - interval '1 day')::int as late
-             from battle b
-             join battle_participant bp on bp.battle_id = b.battle_id
+    text: `select count(distinct bp.battle_id)::int as recent, 0 as earlier,
+                  '{}'::text[] as earlier_ids
+             from battle_participant bp
             where bp.battle_time >= ${ts(fromMs)} and bp.battle_time < ${ts(toMs + 1)}
               and bp.clan_tag = $1`,
     values: [tag],
   };
 }
 
+/** The member battle columns clanMemberBattlesQuery reads, `learned` and
+ *  `played` aside. */
+const CLAN_BATTLE_COLUMNS = `bp.player_tag, bp.battle_id, b.type, b.event_tag, b.game_mode_name, b.battle_time, b.created_at, bp.outcome, bp.trophy_change, bp.deck_hash,
+                  bp.crowns, bp.starting_trophies, b.league_number, b.deck_selection,
+                  o.crowns_against, o.mates, o.foes`;
+/** Each row's battle by key, off battle_timeline_cover (0249): joined, the
+ *  planner scanned battle whole for one clan's week (2026-11-13, the Clan
+ *  landing budget test; a parallel sequential scan live, note
+ *  2026-11-12). LIMIT keeps it a per-row probe; battle_id is the key, so
+ *  the rows are the join's. Then the other participants by key
+ *  (2026-11-16): the opposing crowns, and who stood on each side, one
+ *  probe a battle. */
+const CLAN_BATTLE_JOINS = `cross join lateral (
+               select b.type, b.event_tag, b.game_mode_name, b.battle_time,
+                      b.created_at, b.boat_battle_side, b.league_number,
+                      b.deck_selection
+                 from battle b where b.battle_id = bp.battle_id limit 1) b
+             ${OTHERS_SQL}`;
+
 /** The day-wide member battle fetch behind sessions and standouts: the
- *  statement an empty window used to pay for. */
+ *  statement an empty window used to pay for. `earlier` (an observed
+ *  window's late captures: the battle ids clanLearnedQuery's probe found
+ *  learned in it but played before it) adds those battles by key. */
 export function clanMemberBattlesQuery({
   tag,
   fromMs,
   toMs,
   basis = "observed",
+  earlier = false,
 }) {
   // `learned` marks the rows this window narrates: learned in it
-  // (observed), or played in it (occurred, as the record knows now), never
-  // a late capture. `played` marks what an occurred read counts: played in
-  // [from, to) whenever it was learned, the clan report's own count (A13).
-  // A boat defense is not the member's battle (0171), on either basis.
+  // (observed), or played in it (occurred, as the record knows now),
+  // however late the record learned them (2026-11-23). `played` marks what
+  // an occurred read counts: played in [from, to), the clan report's own
+  // count (A13). A boat defense is not the member's battle (0171), on
+  // either basis.
   const occurred = basis === "occurred";
-  return {
-    text: `select bp.player_tag, bp.battle_id, b.type, b.event_tag, b.game_mode_name, b.battle_time, b.created_at, bp.outcome, bp.trophy_change, bp.deck_hash,
-                  bp.crowns, bp.starting_trophies, b.league_number, b.deck_selection,
-                  o.crowns_against, o.mates, o.foes,
+  const range = `select ${CLAN_BATTLE_COLUMNS},
                   (${
                     occurred
                       ? `bp.battle_time >= ${ts(fromMs + 1)}`
                       : `b.created_at >= ${ts(fromMs + 1)} and b.created_at < ${ts(toMs + 1)}`
-                  }
-                   and b.battle_time >= b.created_at - interval '1 day') as learned,
+                  }) as learned,
                   (bp.battle_time >= ${ts(fromMs)} and bp.battle_time < ${ts(toMs)}) as played
              from battle_participant bp
-             -- Each row's battle by key, off battle_timeline_cover (0249):
-             -- joined, the planner scanned battle whole for one clan's
-             -- week (2026-11-13, the Clan landing budget test; a parallel
-             -- sequential scan live, note 2026-11-12). LIMIT keeps it a
-             -- per-row probe; battle_id is the key, so the rows are the
-             -- join's.
-             cross join lateral (
-               select b.type, b.event_tag, b.game_mode_name, b.battle_time,
-                      b.created_at, b.boat_battle_side, b.league_number,
-                      b.deck_selection
-                 from battle b where b.battle_id = bp.battle_id limit 1) b
-             -- The other participants by key (2026-11-16): the opposing
-             -- crowns, and who stood on each side, one probe a battle.
-             cross join lateral (
-               select max(o.crowns) filter (where o.side <> bp.side) as crowns_against,
-                      coalesce(array_agg(o.player_tag order by o.player_tag)
-                        filter (where o.side = bp.side and o.player_tag <> bp.player_tag), '{}') as mates,
-                      coalesce(array_agg(o.player_tag order by o.player_tag)
-                        filter (where o.side <> bp.side), '{}') as foes
-                 from battle_participant o where o.battle_id = bp.battle_id) o
+             ${CLAN_BATTLE_JOINS}
             where bp.clan_tag = $1
-              and not (b.boat_battle_side is not null
-                       and (b.boat_battle_side = 'defender') = (bp.side = 0))
+              and ${OWN_BATTLE_SQL}
               and bp.battle_time >= ${ts(fromMs - DAY_MS)} and bp.battle_time < ${ts(toMs + 1)}${
                 occurred
                   ? ""
                   : `
               and b.created_at < ${ts(toMs + 1)}`
-              }
-            order by bp.player_tag, b.battle_time`,
-    values: [tag],
+              }`;
+  const before =
+    !occurred && earlier
+      ? `
+           union all
+           select ${CLAN_BATTLE_COLUMNS}, true as learned, false as played
+             from unnest($2::text[]) as e(battle_id)
+             cross join lateral (
+               select bp.* from battle_participant bp
+                where bp.battle_id = e.battle_id and bp.clan_tag = $1
+                offset 0) bp
+             ${CLAN_BATTLE_JOINS}
+            where ${OWN_BATTLE_SQL}`
+      : "";
+  return {
+    text: `${range}${before}
+            order by player_tag, battle_time`,
+    values: before ? [tag, earlier] : [tag],
   };
 }
 
@@ -3068,12 +3086,32 @@ export function clanMemberBattlesQuery({
  *  then named, each name by primary key (2026-11-13, #649): with the
  *  player join before the count the planner hashed the whole player
  *  table for a clan's few members. Rows and order are the joined
- *  statement's (every participant tag is a player row). */
-export function clanMostQuery({ tag, fromMs, toMs, basis = "observed" }) {
+ *  statement's (every participant tag is a player row). Every battle
+ *  counts however late it was learned; `earlier` (battle ids) as for
+ *  clanMemberBattlesQuery. */
+export function clanMostQuery({
+  tag,
+  fromMs,
+  toMs,
+  basis = "observed",
+  earlier = false,
+}) {
   const occurred = basis === "occurred";
+  const before =
+    !occurred && earlier
+      ? `
+                    union all
+                    select bp.player_tag, bp.battle_id
+                      from unnest($3::text[]) as e(battle_id)
+                      cross join lateral (
+                        select bp.player_tag, bp.battle_id from battle_participant bp
+                         where bp.battle_id = e.battle_id and bp.clan_tag = $1
+                         offset 0) bp`
+      : "";
   return {
     text: `select m.player_tag, p.name, m.battles
-             from (select bp.player_tag, count(distinct bp.battle_id)::int as battles
+             from (select x.player_tag, count(distinct x.battle_id)::int as battles
+                     from (select bp.player_tag, bp.battle_id
                      from battle_participant bp
                      -- Each row's battle by key, as clanMemberBattlesQuery.
                      cross join lateral (
@@ -3085,13 +3123,12 @@ export function clanMostQuery({ tag, fromMs, toMs, basis = "observed" }) {
                           ? `bp.battle_time >= ${ts(fromMs + 1)} and bp.battle_time < ${ts(toMs + 1)}`
                           : `bp.battle_time >= ${ts(fromMs - DAY_MS)} and bp.battle_time < ${ts(toMs + 1)}
                       and b.created_at >= ${ts(fromMs + 1)} and b.created_at < ${ts(toMs + 1)}`
-                      }
-                      and b.battle_time >= b.created_at - interval '1 day'
-                    group by bp.player_tag) m
+                      }${before}) x
+                    group by x.player_tag) m
              join lateral (select p.name from player p
                             where p.player_tag = m.player_tag offset 0) p on true
             order by m.battles desc, p.name nulls last limit $2`,
-    values: [tag, STANDOUT_CAP],
+    values: before ? [tag, STANDOUT_CAP, earlier] : [tag, STANDOUT_CAP],
   };
 }
 
@@ -3145,32 +3182,38 @@ export async function buildClanEntry(
   // the battle created_at index says whether this window learned a
   // battle of the clan's at all; when it did not, the session, standout,
   // returned and most-active queries have nothing to find and are
-  // skipped. The probe splits the learned count into played-within-a-day
-  // (narrated) and late captures, so the late count comes for free.
+  // skipped. Every battle is told at its played time however late the
+  // record learned it (2026-11-23); the probe says, too, whether an
+  // observed window learned battles played before it, and which
+  // (`earlier_ids`): the member battles and the most-active count read
+  // those by key, so a read walks the window's learned battles once.
   const { rows: learnedRows } = await timed(perf, "clan.learned", () =>
-    db.query(
-      clanLearnedQuery({
-        tag,
-        fromMs,
-        toMs,
-        basis,
-        // An occurred read's late count is the clan's own range, cheap,
-        // and decides whether member battles are read at all.
-        late: lateCounts || occurred,
-      }),
-    ),
+    db.query(clanLearnedQuery({ tag, fromMs, toMs, basis })),
   );
   const learnedRecent = learnedRows[0]?.recent ?? 0;
-  const lateCount = learnedRows[0]?.late ?? 0;
-  const { rows: allBattles } =
-    learnedRecent || (occurred && lateCount)
-      ? await timed(perf, "clan.member_battles", () =>
-          db.query(clanMemberBattlesQuery({ tag, fromMs, toMs, basis })),
-        )
-      : { rows: [] };
+  const earlierIds = learnedRows[0]?.earlier_ids ?? [];
+  const learnedEarlier = earlierIds.length > 0 ? earlierIds : false;
+  const anyLearned = learnedRecent > 0 || earlierIds.length > 0;
+  const { rows: allBattles } = anyLearned
+    ? await timed(perf, "clan.member_battles", () =>
+        db.query(
+          clanMemberBattlesQuery({
+            tag,
+            fromMs,
+            toMs,
+            basis,
+            earlier: learnedEarlier,
+          }),
+        ),
+      )
+    : { rows: [] };
   const memberBattles = allBattles.filter((r) =>
     occurred ? r.played : r.learned,
   );
+  // The told battles the record learned a day or more after play.
+  const lateCount = new Set(
+    memberBattles.filter(isLateRow).map((r) => r.battle_id),
+  ).size;
   const distinctBattles = new Set();
   const byMode = {};
   const byPlayer = new Map();
@@ -3617,8 +3660,14 @@ export async function buildClanEntry(
           : occurred
             ? end
             : learnedAt.get(`${m.player_tag}|${end}`);
+        // Never from a late capture (timelyOf): the gap before a log read
+        // late may be battles the record never saw.
+        const closedLate =
+          !open &&
+          (learnedAt.get(`${m.player_tag}|${end}`) ?? end) - end >= DAY_MS;
         if (
           !open &&
+          !closedLate &&
           memberAt(m, end) &&
           end - start >= RETURN_AFTER_DAYS * DAY_MS &&
           (learnedMs ?? end) > fromMs &&
@@ -3692,10 +3741,18 @@ export async function buildClanEntry(
   // Returns come from the battle gaps below (Gym #272), which also see
   // a return whose absence began inside the window.
   // Standouts, bounded and named.
-  const { rows: most } = !learnedRecent
+  const { rows: most } = !anyLearned
     ? { rows: [] }
     : await timed(perf, "clan.most", () =>
-        db.query(clanMostQuery({ tag, fromMs, toMs, basis })),
+        db.query(
+          clanMostQuery({
+            tag,
+            fromMs,
+            toMs,
+            basis,
+            earlier: learnedEarlier,
+          }),
+        ),
       );
   // Member moments from the ledger: named, bounded.
   const { rows: momentRows } = await timed(perf, "clan.moments", () =>
@@ -3859,8 +3916,8 @@ export async function buildClanEntry(
           late_captures: lateCounts || occurred ? lateCount : null,
           played_here_learned_later: learnedLater,
           // Counted above because the record learned them here, though
-          // they were played (within a day) before the window opened (Gym
-          // #259: 39 battles said, 33 played in the window).
+          // they were played before the window opened (Gym #259: 39
+          // battles said, 33 played in the window), late captures too.
           learned_here_played_before: memberBattles.filter(
             (r) => r.battle_time.getTime() <= fromMs,
           ).length,
@@ -5075,20 +5132,14 @@ export async function buildTimeline(
     // Off only for the test that holds a batched read to the per-player
     // one.
     batchPlayers = true,
-    // Late captures (a clan entry's, with its battles learned after the
-    // window, and a player entry's battles.late_captures): off only when
-    // the caller serves no entry, only items.
+    // Late captures counted (a clan entry's, with its battles learned
+    // after the window, and a player entry's battles.late_captures): off
+    // only when the caller serves no entry, only items. A late capture (a
+    // battle learned a day or more after it was played) is told at its
+    // played time like any other on every read (2026-11-23); a return is
+    // never judged from one (timelyOf), and a sitting of nothing else is
+    // never sent as news (learnedLate).
     lateCounts = true,
-    // A player entry's late captures (battles Elixir learned more than a
-    // day after they were played) told like any other battle: counted in
-    // its battles and sittings, their anchors and their games
-    // (readTimelineEvidence), so late_captures is 0. For a read that asks
-    // what HAPPENED in its window (basis occurred): a player's page
-    // (services/web-api routes/player.mjs pageTimeline) and the stories
-    // stored from it. Off for every feed, which never retells a backfill
-    // as fresh play; clan entries never read it. A return is
-    // still judged by the timely battles alone (timelyOf).
-    lateBattles = false,
     // Items kept after the filter. TIMELINE_CAP is sized to MCP's result
     // cap; the digest, which keeps no response under it and picks its own
     // few per person, reads further (DIGEST_TIMELINE_CAP), so a busy
@@ -5111,13 +5162,7 @@ export async function buildTimeline(
   const batch =
     batchPlayers && playerTags.length > 1
       ? await timed(perf, "players.batch", () =>
-          prefetchPlayers(db, playerTags, {
-            fromMs,
-            toMs,
-            basis,
-            lateCounts,
-            lateBattles,
-          }),
+          prefetchPlayers(db, playerTags, { fromMs, toMs, basis }),
         )
       : null;
   for (const s of subjects) {
@@ -5151,7 +5196,6 @@ export async function buildTimeline(
       modeRecords,
       prefetched: batch?.get(s.tag) ?? null,
       lateCounts,
-      lateBattles,
     });
     const e = built.entry;
     // A moment item is something said, whatever the entry counts: a
@@ -5587,12 +5631,19 @@ export async function timelineNews(
     `select cm.player_tag from clan_membership cm
       where cm.clan_tag = any(${tagsParam}) and cm.joined_observed_at < ${ts(toMs + 1)}${extra}`;
   const checks = {
+    // A battle played before a day ahead of the window is a late capture,
+    // told at its played time (2026-11-23): asked off the created_at
+    // index, as the entry reads it (learnedEarlierSql).
     player_battles:
       players.length &&
-      `exists (select 1 from battle_participant bp join battle b on b.battle_id = bp.battle_id
+      `(exists (select 1 from battle_participant bp join battle b on b.battle_id = bp.battle_id
                 where bp.player_tag = any(p.players)
                   and bp.battle_time >= ${ts(fromMs - DAY_MS)} and bp.battle_time < ${ts(toMs + 1)}
-                  and ${inWindow("b.created_at")})`,
+                  and ${inWindow("b.created_at")})
+        or exists (select 1 from (${learnedEarlierSql(fromMs, toMs)}) e
+                    where exists (select 1 from battle_participant bp
+                                   where bp.battle_id = e.battle_id
+                                     and bp.player_tag = any(p.players))))`,
     player_moments:
       players.length &&
       `exists (select 1 from player_event pe
@@ -5645,12 +5696,16 @@ export async function timelineNews(
     // deepest rung, so both are asked.
     clan_member_battles:
       clans.length &&
-      `exists (select 1 from battle b join battle_participant bp on bp.battle_id = b.battle_id
+      `(exists (select 1 from battle b join battle_participant bp on bp.battle_id = b.battle_id
                 where ${inWindow("b.created_at")}
                   and bp.battle_time > ${ts(fromMs - QUIET_RUNGS_DAYS.at(-1) * DAY_MS)}
                   and bp.battle_time < ${ts(toMs + 1)}
                   and (bp.clan_tag = any(p.clans)
-                       or bp.player_tag in (${members("p.clans")})))`,
+                       or bp.player_tag in (${members("p.clans")})))
+        or exists (select 1 from (${learnedEarlierSql(fromMs, toMs)}) e
+                    where exists (select 1 from battle_participant bp
+                                   where bp.battle_id = e.battle_id
+                                     and bp.clan_tag = any(p.clans))))`,
     clan_quiet:
       comprehensive.length &&
       quietSql(

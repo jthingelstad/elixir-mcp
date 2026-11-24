@@ -12,10 +12,12 @@ import { prefetchStatements } from "../src/activity/entries.mjs";
  * own index per tag, never a scan or a hash of battle_participant, and
  * rows equal to what each player's statement returns alone.
  *
- * An observed window's late count is the exception (2026-11-13): per tag
- * it read the whole week's battles by created_at once for every player,
- * so it reads the week's late captures once and counts them by player.
- * Its counts must be the ones the per-player statement gave.
+ * An observed window's earlier battles are the exception (2026-11-13 as a
+ * count, 2026-11-23 as rows): the battles learned in the window but
+ * played before it, which only the created_at index finds. Per tag that
+ * read the whole week's battles once for every player, so the batch reads
+ * the week's once and keeps each tag's; its rows must be the ones the
+ * player's own read finds.
  */
 const planNodes = async (db, text, values) => {
   const r = await db.query(
@@ -96,7 +98,6 @@ test("prefetchStatements: each tag reads its own index, once, and gets its own r
       const alone = prefetchStatements({ fromMs, toMs, basis });
       // Rows: the batch is the per-player statements, tag by tag.
       const wide = (await db.query(q.wide, [tags])).rows;
-      const late = (await db.query(q.late, [tags])).rows;
       for (const tag of tags) {
         const mine = (await db.query(alone.wide, [[tag]])).rows;
         assert.deepEqual(
@@ -104,65 +105,56 @@ test("prefetchStatements: each tag reads its own index, once, and gets its own r
           mine,
           `${basis} ${tag}`,
         );
-        assert.deepEqual(
-          late.filter((r) => r.batch_tag === tag),
-          (await db.query(alone.late, [[tag]])).rows,
-        );
       }
       assert.ok(wide.length > 52, `${basis}: the batch found battles`);
-      assert.ok(
-        late.some((r) => r.n > 0),
-        `${basis}: some battles were learned late`,
-      );
-      assert.equal(late.length, tags.length, "one count per tag, zero too");
-
-      // Plans: the player's own index, probed once per tag; never a scan
-      // or a hash of battle_participant (the opponent's crowns come off
-      // the primary key).
-      // The observed late count against the per-player statement it
-      // replaced, as that statement read.
-      if (basis === "observed")
+      if (basis === "occurred")
+        assert.equal(q.earlier, null, "occurred: no earlier read");
+      if (basis === "observed") {
+        // The earlier battles against the plain read of one player's:
+        // learned in the window, played before a day ahead of it.
+        const earlier = (await db.query(q.earlier, [tags])).rows;
+        assert.ok(earlier.length > 0, "observed: some battles were earlier");
         for (const tag of tags) {
           const { rows } = await db.query(
-            `select count(*)::int as n
+            `select b.battle_id
                from battle b
                join battle_participant bp on bp.battle_id = b.battle_id
               where b.created_at >= to_timestamp(${fromMs + 1} / 1000.0)
                 and b.created_at < to_timestamp(${toMs + 1} / 1000.0)
-                and b.battle_time < b.created_at - interval '1 day'
-                and bp.player_tag = $1`,
+                and b.battle_time < to_timestamp(${fromMs - 86_400_000} / 1000.0)
+                and bp.player_tag = $1
+              order by b.battle_time`,
             [tag],
           );
-          assert.equal(
-            late.find((r) => r.batch_tag === tag).n,
-            rows[0].n,
-            `observed late ${tag}`,
+          assert.deepEqual(
+            earlier.filter((r) => r.batch_tag === tag).map((r) => r.battle_id),
+            rows.map((r) => r.battle_id),
+            `observed earlier ${tag}`,
           );
         }
-      if (basis === "observed") {
-        // The week's late captures once, by created_at; each one's
+        // The week's learned battles once, by created_at; each one's
         // players by the primary key.
-        const nodes = await planNodes(db, q.late, [tags]);
+        const nodes = await planNodes(db, q.earlier, [tags]);
         for (const n of nodes)
           if (["battle", "battle_participant"].includes(n["Relation Name"]))
             assert.ok(
               !n["Node Type"].includes("Seq Scan"),
-              `observed late: a scan of ${n["Relation Name"]}`,
+              `observed earlier: a scan of ${n["Relation Name"]}`,
             );
         const week = nodes.filter(
           (n) => n["Index Name"] === "battle_created_at",
         );
-        assert.equal(week.length, 1, "observed late: the week read once");
+        assert.equal(week.length, 1, "observed earlier: the week read once");
         assert.equal(week[0]["Actual Loops"], 1);
-        const sides = nodes.filter(
-          (n) => n["Index Name"] === "battle_participant_pkey",
+        assert.ok(
+          nodes.some((n) => n["Index Name"] === "battle_participant_pkey"),
+          "observed earlier: sides by key",
         );
-        assert.equal(sides.length, 1, "observed late: sides by key");
       }
-      for (const [name, text] of [
-        ["wide", q.wide],
-        ...(basis === "occurred" ? [["late", q.late]] : []),
-      ]) {
+      // Plans: the player's own index, probed once per tag; never a scan
+      // or a hash of battle_participant (the opponent's crowns come off
+      // the primary key).
+      for (const [name, text] of [["wide", q.wide]]) {
         const nodes = await planNodes(db, text, [tags]);
         const own = nodes.filter(
           (n) => n["Index Name"] === "battle_participant_player_time_cover",
