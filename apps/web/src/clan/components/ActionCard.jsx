@@ -781,7 +781,7 @@ const DRAFT_ERROR = {
     "The action's context changed. Reload it before drafting or sending these words.",
   departure_unconfirmed:
     "Confirm Kicked or Left before drafting a departure message.",
-  no_model_key: "The clan has no model key yet (Run › Model & voice).",
+  no_model_key: "The clan has no model key yet (Run › Setup › Model & voice).",
   model_key_refused:
     "Anthropic stopped accepting the clan's key. Add it again in Model & voice.",
   model_key_unreadable:

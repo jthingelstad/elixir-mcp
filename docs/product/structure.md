@@ -128,21 +128,31 @@ as built [engineering, 2026-11-12, #766]:
 | War | A period picker merging The week and Season (was Season) | Every member |
 | Members | Roster, Map; Recruit and Scout at the foot; find a member; Follow per row (G6, 2026-11-12: Standing went to Standings, Review to Run) | Recruit and Scout for elders and up (Jamie, 2026-11-12, replacing A11); every member keeps the active policy's lines at the foot |
 | Rules | How the clan plays, shown as to a friend: its chips, each week's goals with your own number, Becoming Elder, Staying in the clan (with I'll be away), What we do together, and a share line to the directory (renamed from Policy, 2026-11-23) | Every member (public per A2); nobody's standing, clock or hold but your own numbers |
-| Run | A grouped side list | Leader and co-leaders, verified; refused on the server to everyone else |
+| Run | Five tabs across the top (a grouped side list until 2026-11-24) | Leader and co-leaders, verified; refused on the server to everyone else |
 
-Run's side list:
+Run's tabs (2026-11-24, `docs/notes/2026-11-24-run-tabs.md`):
 
-- **Actions:** Waiting, Decided, Members (Review until 2026-11-23).
-- **How it runs:** Rules, the six questions on one page (2026-11-23; it
-  replaced the ten policy sections from About to Announcements).
-- **Elsewhere:** Awards setup, Discord, Model & voice, Clan settings.
+- **To do:** Waiting, with Decided beside it.
+- **Members** (Review until 2026-11-23), with one member's page under it.
+- **Exceptions.**
+- **Rules:** the six questions on one page (2026-11-23; it replaced the
+  ten policy sections from About to Announcements).
+- **Setup:** a list of Awards setup, Discord, Model & voice and Clan
+  settings, each with a way back to Setup.
+
+Each page under the tabs reads and draws on its own: a failed read or a
+page that breaks says so in its place, with Try again, and the tabs and
+an unsaved rules draft stay.
 
 Routes: `/clan/<TAG>/feed`, `/standings`, `/war`, `/members`
 (`?show=recruit` and `?show=scout` open the foot), `/members/map`,
 `/members/away`, `/members/<player>`, `/rules`, `/run/<section>`
-(`/run/actions` is Waiting, `/run/decided` Decided, `/run/members` Members,
-`/run/members/<player>` one member, `/run/rules` Rules; `/run/review`
-forwards to Members; `/policy` and the old section addresses stopped on
+(`/run` and `/run/actions` are To do's Waiting, `/run/decided` Decided,
+`/run/members` Members, `/run/members/<player>` one member,
+`/run/exceptions` Exceptions, `/run/rules` Rules, `/run/setup` Setup, and
+`/run/awards-setup`, `/run/discord`, `/run/model-voice` and
+`/run/settings` its pages; `/run/review` forwards to Members and any other
+`/run/<section>` to To do; `/policy` and the old section addresses stopped on
 2026-11-23).
 Since G6 (2026-11-12) `/members/standing` redirects to `/standings`,
 `/members/review` to `/run/review`, and `/members/recruit` and

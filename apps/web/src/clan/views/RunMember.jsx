@@ -1,7 +1,6 @@
 import {
   Chips,
   Empty,
-  ErrorState,
   Icon,
   Link,
   Panel,
@@ -30,6 +29,7 @@ import {
   quietDays,
 } from "../lib/members.js";
 import { BoardState, runMembersPath } from "./RunMembers.jsx";
+import { ReadError } from "../components/ReadError.jsx";
 
 /** A demotion's reason as a leader reads it; the stored value stays. */
 const DEMOTION_WORDS = {
@@ -178,14 +178,12 @@ function History({ clan, player, history }) {
     );
   if (state.error)
     return (
-      <ErrorState
-        title="The history could not be read just now"
+      <ReadError
+        what="The history"
+        failure={state}
         onRetry={() => load()}
         busy={state.loading}
-      >
-        Elixir was slow or did not answer. The rest of this page still works.
-        Try again in a moment.
-      </ErrorState>
+      />
     );
   const d = state.data;
   if (!d) return <p className="page__lede m-0 p-4">Reading the history…</p>;

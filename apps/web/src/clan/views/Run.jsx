@@ -1,48 +1,69 @@
-import { Link, ErrorState, Icon, noun } from "@elixir-mcp/ui";
+import { Icon, Link, NavigateProvider, Panel, Row, Rows } from "@elixir-mcp/ui";
 import { rulesCheck } from "@elixir-mcp/clan-engine";
 import { useBlocker } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { clanPath } from "../lib/base.js";
-import { useAwards, useRunGate } from "../lib/queries.js";
-import { leads } from "../lib/tabs.js";
+import { useAwards, useExceptions, useRunGate } from "../lib/queries.js";
+import { leads, waitingFor } from "../lib/tabs.js";
 import { PageHead } from "../components/PageHead.jsx";
+import { PanelBoundary, ReadError } from "../components/ReadError.jsx";
 import { ActivityDiscordSetting } from "./ActivityDiscordSetting.jsx";
 import { AwardsConfig } from "./Awards.jsx";
 import { DiscordSetting } from "./DiscordSetting.jsx";
 import { Model } from "./Model.jsx";
 import { LEAVE_POLICY, usePolicyDraft } from "./Policy.jsx";
-import { RunRules, changeLines } from "./RunRules.jsx";
+import { RunRules } from "./RunRules.jsx";
 import { Sharing } from "./Sharing.jsx";
 import { SocialSetting } from "./SocialSetting.jsx";
 import { VoiceSetting } from "./VoiceSetting.jsx";
 import { ActionsNow, Decided, RefreshSuggestions } from "./Waiting.jsx";
-import { RunExceptions } from "./RunExceptions.jsx";
+import { RunExceptions, setByLeaders } from "./RunExceptions.jsx";
 import { RunMember } from "./RunMember.jsx";
 import { RunMembers } from "./RunMembers.jsx";
 
-/** Run's list, in the order a leader reads it. */
-const SIDE = [
-  { head: "Actions", items: ["actions", "decided", "members"] },
-  { head: "How it runs", items: ["rules", "exceptions"] },
+/**
+ * Run's tabs (the Run redesign, 2026-11-24), in the order a leader works:
+ * what to do, who is in the clan, who the rules leave alone, the rules, and
+ * what is set once. Each tab owns the pages under it; `""` is `/run` itself.
+ */
+const TABS = [
+  { key: "todo", label: "To do", pages: ["", "actions", "decided"] },
+  { key: "members", label: "Members", pages: ["members"] },
+  { key: "exceptions", label: "Exceptions", pages: ["exceptions"] },
+  { key: "rules", label: "Rules", pages: ["rules"] },
   {
-    head: "Elsewhere",
-    items: ["awards-setup", "discord", "model-voice", "settings"],
+    key: "setup",
+    label: "Setup",
+    pages: ["setup", "awards-setup", "discord", "model-voice", "settings"],
   },
 ];
-const ELSEWHERE = {
-  actions: "Waiting",
-  decided: "Decided",
-  members: "Members",
-  rules: "Rules",
-  exceptions: "Exceptions",
-  "awards-setup": "Awards setup",
-  discord: "Discord",
-  "model-voice": "Model & voice",
-  settings: "Clan settings",
-};
-const titleOf = (slug) => ELSEWHERE[slug];
+/** The pages Setup gathers, each its own page with its own save. */
+const SETUP = [
+  {
+    slug: "awards-setup",
+    title: "Awards setup",
+    detail: "Which awards the clan gives each season.",
+  },
+  {
+    slug: "discord",
+    title: "Discord",
+    detail: "Send Actions and clan news to your Discord.",
+  },
+  {
+    slug: "model-voice",
+    title: "Model & voice",
+    detail: "Your Anthropic key, and how drafts sound.",
+  },
+  {
+    slug: "settings",
+    title: "Clan settings",
+    detail: "The member map, and what Elixir records.",
+  },
+];
+const tabOfPage = (page) => TABS.find((t) => t.pages.includes(page ?? ""));
+const setupOf = (slug) => SETUP.find((p) => p.slug === slug);
 
-/** Asks before leaving Run with an unsaved draft: moving between its sections
+/** Asks before leaving Run with an unsaved draft: moving between its tabs
  *  keeps the draft, so only a way out of Run asks. */
 function LeaveGuard({ when, runPath }) {
   useBlocker({
@@ -74,65 +95,119 @@ function Mark({ edited, wrong }) {
   return null;
 }
 
-/** The list of Run's sections, marked with what the draft holds. */
-function RunList({ e, base, current, navigate }) {
-  const facts = (slug) => {
-    if (slug !== "rules" || !e.view) return {};
-    return {
-      state: e.view.set ? `v${e.view.current.version}` : "not set",
-      edited: e.changed.length > 0,
-      wrong:
-        Object.keys(e.errors).length > 0 ||
-        rulesCheck(e.draft).some((f) => f.kind === "invalid"),
-    };
+/** The Exceptions tab's count: the ones leaders set. Nothing while it reads
+ *  or when the read fails; the tab still opens. */
+function useExceptionCount(clanTag) {
+  const { state } = useExceptions(clanTag);
+  return state.data?.leader ? setByLeaders(state.data.exceptions).length : 0;
+}
+
+/** Run's five tabs. They wrap onto a second line on a narrow phone rather
+ *  than scroll, and the Rules tab carries the draft's mark. */
+function RunTabs({ e, me, clan, base, current, navigate }) {
+  const exceptions = useExceptionCount(clan.clan_tag);
+  const counts = {
+    todo: [waitingFor(me), "waiting"],
+    exceptions: [exceptions, "set by leaders"],
   };
+  const edited = Boolean(e.view) && e.changed.length > 0;
+  const wrong =
+    Boolean(e.view) &&
+    (Object.keys(e.errors).length > 0 ||
+      rulesCheck(e.draft).some((f) => f.kind === "invalid"));
   return (
-    <nav className="clan-run__list" aria-label="Run">
-      {SIDE.map((g) => (
-        <div key={g.head}>
-          <h2 className="label">{g.head}</h2>
-          <ul>
-            {g.items.map((slug) => {
-              const { state, edited, wrong } = facts(slug);
-              const to = `${base}/${slug}`;
-              return (
-                <li key={slug}>
-                  <Link
-                    to={to}
-                    navigate={navigate}
-                    aria-current={current === slug ? "page" : undefined}
-                  >
-                    <span>
-                      {titleOf(slug)}
-                      <Mark edited={edited} wrong={wrong} />
-                    </span>
-                    <span className="clan-run__state">
-                      {state === "on" || state === "off" ? (
-                        <>
-                          <i
-                            aria-hidden="true"
-                            className={
-                              state === "on"
-                                ? "clan-run__dot clan-run__dot--on"
-                                : "clan-run__dot"
-                            }
-                          />
-                          <span className="sr-only">
-                            {state === "on" ? "On" : "Off"}
-                          </span>
-                        </>
-                      ) : (
-                        state
-                      )}
-                    </span>
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
-        </div>
+    <nav className="clan-run__tabs" aria-label="Run">
+      <ul>
+        {TABS.map((t) => {
+          const [count, says] = counts[t.key] ?? [0, ""];
+          return (
+            <li key={t.key}>
+              <Link
+                to={t.key === "todo" ? base : `${base}/${t.key}`}
+                navigate={navigate}
+                aria-current={current === t.key ? "page" : undefined}
+              >
+                {t.label}
+                {count ? (
+                  <em className="clan-run__count">
+                    {count}
+                    <span className="sr-only"> {says}</span>
+                  </em>
+                ) : null}
+                {t.key === "rules" ? (
+                  <Mark edited={edited} wrong={wrong} />
+                ) : null}
+              </Link>
+            </li>
+          );
+        })}
+      </ul>
+    </nav>
+  );
+}
+
+/** To do's two lists: what waits, and what was decided. */
+function ToDoLists({ base, decided, navigate }) {
+  const lists = [
+    { key: "waiting", label: "Waiting", to: base, on: !decided },
+    { key: "decided", label: "Decided", to: `${base}/decided`, on: decided },
+  ];
+  return (
+    <nav className="kit-chips" aria-label="To do">
+      {lists.map((l) => (
+        <Link
+          key={l.key}
+          to={l.to}
+          navigate={navigate}
+          className="kit-chip"
+          aria-current={l.on ? "page" : undefined}
+        >
+          {l.label}
+        </Link>
       ))}
     </nav>
+  );
+}
+
+/** The one way back from a page under Setup. */
+function SetupBack({ base, navigate }) {
+  return (
+    <Link to={`${base}/setup`} navigate={navigate} className="clan-run__up">
+      <Icon name="chevron-left" size={16} />
+      Setup
+    </Link>
+  );
+}
+
+/** Setup: what is set once and left alone, a row per page. */
+function Setup({ base, navigate }) {
+  const rows = (
+    <Rows>
+      {SETUP.map((p) => (
+        <Row
+          key={p.slug}
+          href={`${base}/${p.slug}`}
+          title={p.title}
+          detail={p.detail}
+          right={<Icon name="chevron-right" size={16} />}
+        />
+      ))}
+    </Rows>
+  );
+  return (
+    <div className="grid gap-4">
+      <PageHead
+        title="Setup"
+        lede="Set once, then leave alone. Each page saves on its own."
+      />
+      <Panel as="nav" aria-label="Setup">
+        {navigate ? (
+          <NavigateProvider navigate={navigate}>{rows}</NavigateProvider>
+        ) : (
+          rows
+        )}
+      </Panel>
+    </div>
   );
 }
 
@@ -146,13 +221,12 @@ function AwardsSetup({ clan }) {
     );
   if (state.forbidden || (state.error && state.error !== "too_few_members"))
     return (
-      <ErrorState
-        title="Awards could not be read just now"
+      <ReadError
+        what="Awards"
+        failure={state}
         onRetry={() => load()}
         busy={state.loading}
-      >
-        Try again in a moment.
-      </ErrorState>
+      />
     );
   if (!state.data)
     return state.error ? (
@@ -177,27 +251,31 @@ function AwardsSetup({ clan }) {
   );
 }
 
-/** What is not the rules: each saves on its own. */
-function Elsewhere({ clan, who, slug, player, navigate }) {
-  // The leaders' Actions (Today's Waiting and Decided until 2026-11-12).
-  if (slug === "actions")
+/** Every page but the rules: each saves on its own. */
+function Elsewhere({ clan, who, slug, player, base, navigate }) {
+  // To do: the leaders' Actions, what waits and what was decided.
+  if (slug === "" || slug === "actions" || slug === "decided") {
+    const decided = slug === "decided";
     return (
       <div className="grid gap-4">
         <PageHead
-          title="Waiting"
-          fresh={<RefreshSuggestions clan={clan} />}
-          lede="What the clan's rules suggest you can do. The same actions are first in the Timeline."
-        />
-        <ActionsNow clan={clan} who={who} navigate={navigate} />
+          title="To do"
+          fresh={decided ? null : <RefreshSuggestions clan={clan} />}
+          lede="What the rules say to do next. Do it in the game, then tap Done."
+        >
+          <ToDoLists base={base} decided={decided} navigate={navigate} />
+        </PageHead>
+        <PanelBoundary what={decided ? "Decided" : "Actions"}>
+          {decided ? (
+            <Decided clan={clan} navigate={navigate} />
+          ) : (
+            <ActionsNow clan={clan} who={who} navigate={navigate} />
+          )}
+        </PanelBoundary>
       </div>
     );
-  if (slug === "decided")
-    return (
-      <div className="grid gap-4">
-        <PageHead title="Decided" />
-        <Decided clan={clan} navigate={navigate} />
-      </div>
-    );
+  }
+  if (slug === "setup") return <Setup base={base} navigate={navigate} />;
   // Every member and where they stand, with one member's page under it
   // (2026-11-23; Review until then). The API refuses both to everyone else.
   if (slug === "members")
@@ -283,7 +361,7 @@ function Elsewhere({ clan, who, slug, player, navigate }) {
       <p className="page-head__note m-0">
         Other clan settings live with what they change: the rules under Rules;
         the recruiting pitch in Members › Spread the word; Discord and Model
-        &amp; voice above.
+        &amp; voice under Setup.
       </p>
     </div>
   );
@@ -353,89 +431,67 @@ export function Run(props) {
 }
 
 /**
- * Run's sections. On a wide screen the list stands beside the section and
- * `/run` opens Waiting; on a phone `/run` is the list and each section has a
- * way back to it. The two are one page, so a draft outlives every move
- * between sections, and CSS alone picks what shows.
+ * Run's tabs and the page open under them. The tabs and the page are one
+ * component, so a rules draft outlives every move between tabs, and each
+ * page sits in its own boundary: one that fails to read or to draw says so
+ * in its place, and the tabs and the draft stay.
  */
-function RunSections({ clan, who, section, player, navigate }) {
+function RunSections({ clan, me, who, section, player, navigate }) {
   const e = usePolicyDraft(clan);
   const base = `${clanPath(clan.clan_tag)}/run`;
-  const slug = titleOf(section) ? section : "actions";
-  // A save refused from the list opens Rules, where the problem is marked.
-  const go = () => {
-    if (slug !== "rules") navigate?.(`${base}/rules`);
-  };
-  const isPolicy = slug === "rules";
+  const page = tabOfPage(section) ? (section ?? "") : "";
+  const tab = tabOfPage(page).key;
   const dirty = Boolean(e.view && e.dirty);
   useEffect(() => {
     // Review folded into Members on 2026-11-23; its address goes there.
     if (section === "review") navigate?.(`${base}/members`, { replace: true });
-    else if (section && !titleOf(section)) navigate?.(base, { replace: true });
+    else if (section && !tabOfPage(section))
+      navigate?.(base, { replace: true });
   }, [section, base, navigate]);
-  useOldSettingsAnchor({ slug, base, navigate });
-  const failed = e.policy.isError;
-  const readError =
-    e.policy.error?.status === 403
-      ? "The rules are unavailable for your current clan access."
-      : e.policy.error?.status === 401
-        ? "Your session expired. Sign in again."
-        : "Try again in a moment.";
-  const changes = e.view ? changeLines(e).length : 0;
+  useOldSettingsAnchor({ slug: page, base, navigate });
+  const setup = setupOf(page);
   return (
-    <div className={`clan-run${section ? "" : " clan-run--index"}`}>
+    <div className="clan-run">
       <LeaveGuard when={dirty} runPath={base} />
-      <RunList e={e} base={base} current={slug} navigate={navigate} />
-      {dirty && e.view.can_edit ? (
-        <div className="clan-run__listsave">
-          <span className="page-head__note" role="status">
-            {changes
-              ? `You changed ${changes} ${noun(changes, "thing")}.`
-              : "Your rules aren't saved yet."}
-          </span>
-          <button
-            type="button"
-            className="btn btn--primary btn--sm"
-            disabled={e.busy || !e.canSave}
-            onClick={() => e.save(go)}
-          >
-            Save rules
-          </button>
-        </div>
-      ) : null}
+      <RunTabs
+        e={e}
+        me={me}
+        clan={clan}
+        base={base}
+        current={tab}
+        navigate={navigate}
+      />
       <div className="clan-run__section">
-        <Link to={base} navigate={navigate} className="clan-run__back">
-          <Icon name="chevron-left" size={16} />
-          Run
-        </Link>
-        {!isPolicy ? (
-          <Elsewhere
-            clan={clan}
-            who={who}
-            slug={slug}
-            player={slug === "members" ? player : undefined}
-            navigate={navigate}
-          />
-        ) : failed ? (
-          <>
-            <PageHead title={titleOf(slug)} />
-            <ErrorState
-              title="The rules could not be read just now"
-              onRetry={
-                e.policy.error?.status === 403 || e.policy.error?.status === 401
-                  ? undefined
-                  : () => e.policy.refetch()
-              }
-              busy={e.policy.isFetching}
-            >
-              {readError}
-            </ErrorState>
-          </>
-        ) : !e.view ? (
-          <p className="page__lede">Loading the rules…</p>
-        ) : (
-          <RunRules e={e} clan={clan} />
-        )}
+        {setup ? <SetupBack base={base} navigate={navigate} /> : null}
+        <PanelBoundary
+          key={`${page}/${player ?? ""}`}
+          what={setup?.title ?? TABS.find((t) => t.key === tab).label}
+        >
+          {page !== "rules" ? (
+            <Elsewhere
+              clan={clan}
+              who={who}
+              slug={page}
+              player={page === "members" ? player : undefined}
+              base={base}
+              navigate={navigate}
+            />
+          ) : e.policy.isError ? (
+            <>
+              <PageHead title="Rules" />
+              <ReadError
+                what="The rules"
+                failure={e.policy.error}
+                onRetry={() => e.policy.refetch()}
+                busy={e.policy.isFetching}
+              />
+            </>
+          ) : !e.view ? (
+            <p className="page__lede">Loading the rules…</p>
+          ) : (
+            <RunRules e={e} clan={clan} />
+          )}
+        </PanelBoundary>
       </div>
     </div>
   );

@@ -106,12 +106,17 @@ test("a member sees five tabs, and Run is refused", async ({ page }) => {
   expect(runAsked).toBe(false);
 });
 
-test("a leader sees Run, opening on Waiting", async ({ page }) => {
+test("a leader sees Run, opening on To do's Waiting", async ({ page }) => {
   await mockApi(page, signedIn({ "GET /api/clan/me": [200, as("leader")] }));
   await page.goto("/clan/0QC8RCGY/feed");
   await clanTab(page, "Run").click();
   await expect(page).toHaveURL(/\/clan\/0QC8RCGY\/run$/);
-  const list = page.getByRole("navigation", { name: "Run" });
+  await expect(
+    page
+      .getByRole("navigation", { name: "Run" })
+      .getByRole("link", { name: /^To do/ }),
+  ).toHaveAttribute("aria-current", "page");
+  const list = page.getByRole("navigation", { name: "To do" });
   await expect(list.getByRole("link", { name: /^Waiting/ })).toBeVisible();
   await expect(list.getByRole("link", { name: /^Decided/ })).toBeVisible();
 });

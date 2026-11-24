@@ -37,6 +37,7 @@ import { ActionList, DiscordNudge } from "./Actions.jsx";
 import { CLAN, clanPath } from "../lib/base.js";
 import { leads } from "../lib/tabs.js";
 import { date, n, plural, raceSentence, seasonWeek } from "../lib/words.js";
+import { ReadError } from "../components/ReadError.jsx";
 
 const rank = (t) => {
   const i = ORDER.indexOf(t);
@@ -280,17 +281,18 @@ const OUTCOME = {
 /** Decided: the leaders' record, every decision and who came and went. */
 function Decided({ clan, navigate }) {
   const { whenDay, calendar } = useClock();
-  const { data, isError, refetch, isFetching } = useHistory(clan.clan_tag);
+  const { data, error, isError, refetch, isFetching } = useHistory(
+    clan.clan_tag,
+  );
   const [now] = useState(() => Date.now());
-  if (isError)
+  if (isError && !data)
     return (
-      <ErrorState
-        title="The decisions could not be read just now"
+      <ReadError
+        what="The decisions"
+        failure={error}
         onRetry={() => refetch()}
         busy={isFetching}
-      >
-        Check your clan access, or try again in a moment.
-      </ErrorState>
+      />
     );
   if (!data) return <p className="page__lede">Reading the decisions…</p>;
   const base = clanPath(clan.clan_tag);
@@ -586,19 +588,16 @@ export function ActionsNow({ clan, who, navigate }) {
         <span>These Actions are unavailable for your current clan access.</span>
       </div>
     );
+  if (state.error === "clan_not_recorded")
+    return <ErrorState title="Elixir is not recording this clan yet" />;
   if (state.error)
     return (
-      <ErrorState
-        title={
-          state.error === "clan_not_recorded"
-            ? "Elixir is not recording this clan yet"
-            : "Actions could not be read just now"
-        }
-        onRetry={state.error === "clan_not_recorded" ? undefined : () => load()}
+      <ReadError
+        what="Actions"
+        failure={state}
+        onRetry={() => load()}
         busy={state.loading}
-      >
-        {state.error === "clan_not_recorded" ? null : "Try again in a moment."}
-      </ErrorState>
+      />
     );
   if (!d) return <p className="page__lede">Reading the record…</p>;
   return (

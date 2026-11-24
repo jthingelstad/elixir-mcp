@@ -162,11 +162,17 @@ Below it, the tabs:
   number beside each, how Elder is earned, how to stay in the clan, what
   it does together, and a link to share its card in the
   [clan list](/docs/clan-directory).
-- **Run**, for the leader and co-leaders only, once verified: **Waiting**,
-  **Decided**, the record of every decision ([Actions](/docs/clan-actions)),
-  and **Review** ([the leaders pages](/docs/clan-leaders-pages));
-  **Rules**, six questions ([setting the rules](/docs/clan-policy)); then **Awards setup**, **Discord**,
-  **Model & voice** and **Clan settings**. Anyone else who opens Run's
+- **Run**, for the leader and co-leaders only, once verified. Five tabs
+  across the top:
+  - **To do**: what the rules say to do next, with **Decided**, the record
+    of every decision ([Actions](/docs/clan-actions)).
+  - **Members** and **Exceptions** ([the leaders pages](/docs/clan-leaders-pages)).
+  - **Rules**, six questions ([setting the rules](/docs/clan-policy)).
+  - **Setup**: **Awards setup**, **Discord**, **Model & voice** and
+    **Clan settings**, set once and left alone.
+
+  If one part of a page can't load, only that part says so, with **Try
+  again**; the tabs and the rest keep working. Anyone else who opens Run's
   address is told it is the leaders', and Elixir refuses its pages to them.
 
 **Send feedback**, at the foot of the page, and **Report this** beside an

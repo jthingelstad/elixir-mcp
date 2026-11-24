@@ -14,7 +14,7 @@ guide: clan-policy
 
 ## Clan settings
 
-**Run › Clan settings**, **Run › Discord** and **Run › Model & voice** hold
+**Run › Setup** lists **Clan settings**, **Discord** and **Model & voice**. They hold
 what belongs to the whole clan, with or without a policy, and each setting
 saves on its own. Only the leader and co-leaders open Run, once verified; anyone else who
 follows a link to it is told so, with a way to the clan's **Rules**, and
@@ -34,7 +34,7 @@ Elixir refuses Run's pages to them:
   when it is back on. The player map and Near you show every place
   whatever this switch says ([Your place](/docs/your-account#your-place)). Only the leader and co-leaders can change
   whether the member map is on. The clan's activity
-  channel is under **Run › Discord** ([The
+  channel is under **Run › Setup › Discord** ([The
   clan's activity in Discord](/docs/clan-discord#the-clans-activity-in-discord)).
 - **Actions in Discord**: a webhook from one of the clan's Discord channels.
   Each open action leaders or elders can take, but a removal, a

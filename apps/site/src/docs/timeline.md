@@ -660,7 +660,7 @@ Your own timeline's sharing is **Timeline to Discord**, on Settings ›
 Connections › Discord. Only you can save changes, on the website, never
 MCP. Delivery history expands there, and Connections shows whether
 sharing is on. A clan's own Discord channel is set up by its leaders on
-the clan's **Run › Discord** page ([Clan Discord](/docs/clan-discord)).
+the clan's **Run › Setup › Discord** page ([Clan Discord](/docs/clan-discord)).
 
 - **What posts.** Every `publishable` item the timeline holds for that
   account, not otherwise filtered: the same subjects, sections and kinds
@@ -710,7 +710,7 @@ the clan's **Run › Discord** page ([Clan Discord](/docs/clan-discord)).
 
 A clan's leaders can also post the clan's own activity to a channel,
 chosen by category and set by the clan's policy, from Clan's
-Run › Discord ([The clan's activity in
+Run › Setup › Discord ([The clan's activity in
 Discord](/docs/clan-discord#the-clans-activity-in-discord)). The panel
 names each clan you follow that does, with one of your verified players
 in it: what it tells is in your timeline too, so a server carrying both

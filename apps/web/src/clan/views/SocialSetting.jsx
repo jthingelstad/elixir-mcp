@@ -1,8 +1,8 @@
-import { ErrorState } from "@elixir-mcp/ui";
 import { useState } from "react";
 import { manageApi } from "../api.js";
 import { keys, useInvalidate, useSocial } from "../lib/queries.js";
 import { trackEvent } from "../../analytics.js";
+import { ReadError } from "../components/ReadError.jsx";
 
 /**
  * The clan's Social switch (Jamie, 2026-09-26): every clan has the social
@@ -20,13 +20,12 @@ export function SocialSetting({ clan }) {
   if (state.forbidden || state.signedOut) return null;
   if (state.error)
     return (
-      <ErrorState
-        title="Social settings could not be read just now"
+      <ReadError
+        what="The member map"
+        failure={state}
         onRetry={() => load()}
         busy={state.loading}
-      >
-        Try again in a moment.
-      </ErrorState>
+      />
     );
   if (!d) return <p className="page__lede">Reading…</p>;
   const canSet = LEADERS.has(clan.role);

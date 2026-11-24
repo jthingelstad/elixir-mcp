@@ -88,7 +88,7 @@ to consent again ([Protocol](/docs/connecting#tokens),
 
 Everything you connect spends your budgets and follows on your slots.
 A clan's Discord needs no bot: its leaders set it up on the clan's
-**Run › Discord** page ([Clan Discord](/docs/clan-discord)).
+**Run › Setup › Discord** page ([Clan Discord](/docs/clan-discord)).
 
 ## Followed means recorded
 

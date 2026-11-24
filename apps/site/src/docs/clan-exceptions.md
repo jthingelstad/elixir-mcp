@@ -77,5 +77,5 @@ rewrite last month.
 
 Every exception is kept after it ends. Each one records who set it and
 when, its end date, the why and who could see it, and every change:
-added, changed, ended early, or ran out. **Run › Decided** lists the
+added, changed, ended early, or ran out. **Run › To do › Decided** lists the
 latest, one line each, like "Keep as Elder added by Ada".

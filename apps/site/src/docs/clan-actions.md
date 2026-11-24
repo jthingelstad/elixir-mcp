@@ -78,7 +78,7 @@ Award standings have no switch: they come with the clan's
 ## When one appears
 
 Clan reads the clan every morning from 11:00 UTC, and again when someone
-opens Standing or chooses **Refresh suggestions** in Run › Waiting. The Timeline
+opens Standing or chooses **Refresh suggestions** in Run › To do. The Timeline
 and Waiting normally open the saved evaluation with its as-of time, keeping decisions quick; its
 first reading or a changed policy also evaluates the record.
 A member has at most one open action of each
@@ -116,7 +116,7 @@ change which decisions your role may make.
 
 The **Timeline** lists what is waiting for you first. Once an Action closes, it
 leaves your list. Closed Actions are for the leader and co-leaders: they
-have **Waiting** and **Decided** under **Run**, every decision, newest
+have **Waiting** and **Decided** under **Run › To do**, every decision, newest
 first. Its **Who came and went** shows recent
 recorded roster changes, capped at the newest twenty events, rather than the
 entire history since roster recording began. Earlier changes are not listed in
@@ -202,7 +202,7 @@ cannot guarantee readable delivery or identify every filter trigger. Elixir
 cannot verify game delivery or readability and never automatically resends.
 Completed decisions and saved receipts do not change.
 
-Older lifecycle Actions keep the drafts and delivery choices they originally offered. For those Actions and for announcements, with the clan’s own model set up under **Run › Model & voice**, an open
+Older lifecycle Actions keep the drafts and delivery choices they originally offered. For those Actions and for announcements, with the clan’s own model set up under **Run › Setup › Model & voice**, an open
 message, welcome or removal action offers leaders and co-leaders
 **Draft in our voice**. It uses the
 clan's Anthropic key to draft a promotion, demotion, awards announcement
@@ -305,7 +305,7 @@ While a draft is loading, copying and action decisions wait for it to finish.
 Review the returned words before sending and marking the action complete.
 
 When a call's outcome is unknown, that attempt counts toward the daily
-limit. Check the use log under **Run › Model & voice** before requesting another draft;
+limit. Check the use log under **Run › Setup › Model & voice** before requesting another draft;
 Elixir does not automatically repeat it. The daily use limit is not a dollar cap.
 The use record counts attempts; an unknown result is not confirmation of
 a provider charge. Review your provider's usage record for billing.

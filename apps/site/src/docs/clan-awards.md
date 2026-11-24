@@ -83,7 +83,7 @@ so later recording or configuration changes do not rewrite the podium.
 
 ## Where members see them
 
-**Standings** shows the selected season's provisional races or final saved grants, with award setup for leaders under **Run › Awards setup**.
+**Standings** shows the selected season's provisional races or final saved grants, with award setup for leaders under **Run › Setup › Awards setup**.
 Equal points use known season donations to break ties, and equal in both share
 a place. The displayed place includes this donation tiebreak; `=` means a
 shared place after both values match. The season donation totals shown alongside

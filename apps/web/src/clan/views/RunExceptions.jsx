@@ -1,16 +1,9 @@
-import {
-  ErrorState,
-  Link,
-  Panel,
-  Row,
-  Rows,
-  Tag,
-  useClock,
-} from "@elixir-mcp/ui";
+import { Link, Panel, Row, Rows, Tag, useClock } from "@elixir-mcp/ui";
 import { useState } from "react";
 import { clanPath } from "../lib/base.js";
 import { useExceptions } from "../lib/queries.js";
 import { PageHead } from "../components/PageHead.jsx";
+import { ReadError } from "../components/ReadError.jsx";
 import {
   ExceptionForm,
   KINDS,
@@ -19,6 +12,11 @@ import {
 } from "../components/Exceptions.jsx";
 
 const ROLE = { member: "Member", elder: "Elder" };
+
+/** The exceptions leaders set: a member's own Away is automatic, one a
+ *  leader set is a leader's. Run's Exceptions tab counts these. */
+export const setByLeaders = (exceptions = []) =>
+  exceptions.filter((e) => !(e.kind === "away" && e.set_by === e.player_tag));
 
 /**
  * Run, Exceptions (2026-11-23): the members the rules leave alone, and
@@ -30,7 +28,7 @@ const ROLE = { member: "Member", elder: "Elder" };
  */
 export function RunExceptions({ clan, navigate }) {
   const { calendar } = useClock();
-  const { state } = useExceptions(clan.clan_tag);
+  const { state, load } = useExceptions(clan.clan_tag);
   const [editing, setEditing] = useState(null); // exception_id
   const [adding, setAdding] = useState(false);
   const run = `${clanPath(clan.clan_tag)}/run`;
@@ -44,9 +42,12 @@ export function RunExceptions({ clan, navigate }) {
     return (
       <div className="grid gap-4">
         {head}
-        <ErrorState title="Exceptions could not be read just now">
-          Try again in a moment.
-        </ErrorState>
+        <ReadError
+          what="Exceptions"
+          failure={state}
+          onRetry={() => load()}
+          busy={state.loading}
+        />
       </div>
     );
   const d = state.data;
@@ -67,16 +68,12 @@ export function RunExceptions({ clan, navigate }) {
       </div>
     );
 
-  // A member's own Away is automatic; one a leader set is a leader's.
-  const own = (e) => e.kind === "away" && e.set_by === e.player_tag;
-  const set = d.exceptions
-    .filter((e) => !own(e))
-    .sort(
-      (a, b) =>
-        String(a.player_name ?? a.player_tag).localeCompare(
-          String(b.player_name ?? b.player_tag),
-        ) || KIND_ORDER.indexOf(a.kind) - KIND_ORDER.indexOf(b.kind),
-    );
+  const set = setByLeaders(d.exceptions).sort(
+    (a, b) =>
+      String(a.player_name ?? a.player_tag).localeCompare(
+        String(b.player_name ?? b.player_tag),
+      ) || KIND_ORDER.indexOf(a.kind) - KIND_ORDER.indexOf(b.kind),
+  );
   const nameOf = (e) => e.player_name ?? e.player_tag;
   const leadership = d.automatic.leadership;
   const elders = d.automatic.elders;

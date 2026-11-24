@@ -1,17 +1,11 @@
-import {
-  Disclosure,
-  ago,
-  useClock,
-  Panel,
-  Table,
-  ErrorState,
-} from "@elixir-mcp/ui";
+import { Disclosure, ago, useClock, Panel, Table } from "@elixir-mcp/ui";
 import { modelName } from "@elixir-mcp/clan-engine";
 import { useEffect, useRef, useState } from "react";
 import { manageApi } from "../api.js";
 import { useModel } from "../lib/queries.js";
 import { trackEvent } from "../../analytics.js";
 import { CLAN } from "../lib/base.js";
+import { ReadError } from "../components/ReadError.jsx";
 
 const n = (x) => (x === null || x === undefined ? "—" : x.toLocaleString());
 /** Dollars a leader can read: cents, or the first figures of a fraction. */
@@ -107,13 +101,12 @@ export function Model({ clan }) {
     );
   if (state.error)
     return (
-      <ErrorState
-        title="The clan’s model could not be read just now"
+      <ReadError
+        what="The model settings"
+        failure={state}
         onRetry={() => load()}
         busy={state.loading}
-      >
-        Try again in a moment.
-      </ErrorState>
+      />
     );
   const d = state.data;
   if (!d) return <p className="page__lede">Reading…</p>;
@@ -193,8 +186,8 @@ export function Model({ clan }) {
           action.
         </p>
         <p className="page-head__note m-0">
-          The one exception is the clan&rsquo;s activity in Discord (Run ›
-          Discord), when a leader has the clan&rsquo;s model edit the channel:
+          The one exception is the clan&rsquo;s activity in Discord (Run › Setup
+          › Discord), when a leader has the clan&rsquo;s model edit the channel:
           it is told the same record, may look up a member&rsquo;s record and
           battles and the channel&rsquo;s recent posts, may tell a few stories
           together or skip one with a reason, and posts without a review. A post

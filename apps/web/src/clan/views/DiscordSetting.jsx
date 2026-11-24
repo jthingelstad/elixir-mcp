@@ -1,8 +1,9 @@
 import { useState } from "react";
-import { DiscordDeliveries, useClock, Panel, ErrorState } from "@elixir-mcp/ui";
+import { DiscordDeliveries, useClock, Panel } from "@elixir-mcp/ui";
 import { manageApi } from "../api.js";
 import { keys, useDiscord, useInvalidate } from "../lib/queries.js";
 import { trackEvent } from "../../analytics.js";
+import { ReadError } from "../components/ReadError.jsx";
 
 /**
  * Actions in the clan's Discord (Jamie, 2026-10-10). A leader or
@@ -38,13 +39,12 @@ export function DiscordSetting({ clan }) {
     );
   if (state.error)
     return (
-      <ErrorState
-        title="The clan’s Discord could not be read just now"
+      <ReadError
+        what="The Discord settings"
+        failure={state}
         onRetry={() => load()}
         busy={state.loading}
-      >
-        Try again in a moment.
-      </ErrorState>
+      />
     );
   const d = state.data;
   if (!d) return <p className="page__lede">Reading…</p>;
