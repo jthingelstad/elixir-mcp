@@ -2,7 +2,7 @@
  * Discord webhooks, the one shape for everything Elixir posts to Discord:
  * Actions in a clan's Discord (Clan, 2026-10-10) and the timeline
  * cross-posted to a channel (2026-10-10, Jamie: a person syndicates THEIR
- * timeline, an agent its clan's, "not filtered").
+ * timeline, "not filtered").
  *
  * The webhook address is a credential (anyone holding it can post in that
  * channel). It is accepted only as Discord's own webhook address, kept
@@ -278,7 +278,7 @@ export function timelineDiscordStateKey(
 }
 
 /** One webhook's pace record, shared by every destination that posts
- *  through it (a person's timeline and their agent's, say), so a reused
+ *  through it (two people's timelines, say), so a reused
  *  webhook is paced as the one channel it is. */
 export function timelineDiscordPaceKey(fingerprint: string): string {
   return `timeline-discord-state/pace/${fingerprint}.json`;

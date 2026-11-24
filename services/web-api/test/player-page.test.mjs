@@ -404,10 +404,10 @@ test("the refusal's words count what is left", () => {
 });
 
 // A second reader, W, whose pool records two players W does not follow: one
-// W only watches, one only W's agent tracks (Codex on #784).
+// W only watches, one only another person follows (Codex on #784).
 const W_OWN = "#00YQ9Q90";
 const WATCHED = "#0U9RGV8R";
-const AGENTS = "#0GJLGVVR";
+const OTHERS = "#0GJLGVVR";
 let W;
 async function secondReader() {
   if (W) return W;
@@ -415,7 +415,7 @@ async function secondReader() {
   for (const [tag, name] of [
     [W_OWN, "Willow"],
     [WATCHED, "Walnut"],
-    [AGENTS, "Wisteria"],
+    [OTHERS, "Wisteria"],
   ])
     await db.query("insert into player(player_tag,name) values ($1,$2)", [
       tag,
@@ -424,17 +424,11 @@ async function secondReader() {
   W = await person("player-w");
   await claim(W, W_OWN, "primary");
   await claim(W, WATCHED, "friend");
-  const agent = (
-    await db.query(
-      "insert into account(kind,owned_by_account_id,status,role) values ('agent',$1,'approved','member') returning account_id",
-      [W],
-    )
-  ).rows[0].account_id;
-  await claim(agent, AGENTS, "friend");
+  await claim(await person("player-w-other"), OTHERS, "friend");
   return W;
 }
 
-test("following is the reader's own Follow: a friend is followed, an agent-only player is not, and following is free", async () => {
+test("following is the reader's own Follow: a friend is followed, a player only someone else follows is not, and following is free", async () => {
   const w = await secondReader();
   const page = data(
     await call(w, "GET", `/api/player?tag=${encodeURIComponent(WATCHED)}`),
@@ -442,12 +436,12 @@ test("following is the reader's own Follow: a friend is followed, an agent-only 
   assert.equal(page.you.following, true, "a friend is following");
   assert.equal(page.you.relationship, "friend");
 
-  const plan = await followPlan(scratch.db, w, [WATCHED, AGENTS]);
+  const plan = await followPlan(scratch.db, w, [WATCHED, OTHERS]);
   assert.deepEqual(
     plan.players.map((p) => [p.player_tag, p.following, p.free]),
     [
       [WATCHED, true, true],
-      [AGENTS, false, true],
+      [OTHERS, false, true],
     ],
   );
   assert.equal(plan.to_follow, 1);
@@ -455,19 +449,19 @@ test("following is the reader's own Follow: a friend is followed, an agent-only 
   assert.equal(plan.slots, 0, "the pool records both already");
 
   const ok = await call(w, "POST", "/api/me/follow-all", {
-    player_tags: [WATCHED, AGENTS],
+    player_tags: [WATCHED, OTHERS],
   });
   assert.equal(ok.statusCode, 200, ok.body);
-  assert.deepEqual(data(ok).followed, [AGENTS]);
+  assert.deepEqual(data(ok).followed, [OTHERS]);
   const { rows } = await scratch.db.query(
     "select player_tag, relationship from claim where account_id = $1 and player_tag = any($2) order by player_tag",
-    [w, [WATCHED, AGENTS]],
+    [w, [WATCHED, OTHERS]],
   );
   assert.deepEqual(
     rows.map((r) => [r.player_tag, r.relationship]),
-    [AGENTS, WATCHED].sort().map((t) => [t, "friend"]),
+    [OTHERS, WATCHED].sort().map((t) => [t, "friend"]),
   );
-  const after = await followPlan(scratch.db, w, [WATCHED, AGENTS]);
+  const after = await followPlan(scratch.db, w, [WATCHED, OTHERS]);
   assert.equal(after.following, 2);
   assert.equal(after.to_follow, 0);
 });

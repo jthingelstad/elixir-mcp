@@ -203,9 +203,8 @@ export function Profile({ me, refresh, hash = null }) {
  * (apps/site/src/docs/your-account.md). The button opens a confirm that
  * asks for your main player's name or your @handle typed out (DELETE for
  * an account with neither), by the contracts' one rule; the server checks
- * it again. A refusal (a
- * live collector, an integration) says why; success loads the front door
- * fresh, signed out.
+ * it again. A refusal (a live collector) says why; success loads the
+ * front door fresh, signed out.
  */
 function DeleteAccount({ me, main }) {
   const [open, setOpen] = useState(false);

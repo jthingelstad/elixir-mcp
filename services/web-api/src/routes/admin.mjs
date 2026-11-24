@@ -51,25 +51,22 @@ export function adminRoutes({
     "GET /api/admin/email/sends": async (db, event) => {
       // Everything sent, every account, newest first (Jamie, 2026-09-19:
       // "we can audit what we send without user feedback"). Recipients
-      // are named by their primary player and public id, never an
-      // address; the body is one click away through the record.
+      // are named by their primary player, never an address; the body is
+      // one click away through the record.
       const account = await resolveAccount(db, event);
       if (!account?.isAdmin) return json(403, { error: "not_entitled" });
       const { rows } = await db.query(
         `select ${SENDS_COLS},
-                a.public_id,
                 (select c.player_tag from claim c
                  where c.account_id = s.account_id and c.is_primary) as to_player,
                 (select count(*)::int from feedback f where f.send_id = s.send_id) as reports
            ${SENDS_FROM}
-           join account a on a.account_id = s.account_id
           order by s.enqueued_at desc limit 200`,
       );
       return json(200, {
         sends: rows.map((r) => ({
           ...sendRow(r),
           account_id: r.account_id,
-          public_id: r.public_id,
           to_player: r.to_player,
           reports: r.reports,
         })),
@@ -191,15 +188,7 @@ export function adminRoutes({
       const account = await resolveAccount(db, event);
       if (!account?.isAdmin) return json(403, { error: "not_entitled" });
       const { rows: accounts } = await db.query(
-        `select a.account_id, a.email_hash, a.kind, a.public_id,
-                -- A principal name is an agent's or an integration's; a
-                -- person's own legacy key is not their name (console walk
-                -- 2: the owner read "Principal name: elixir-bot").
-                case when coalesce(a.kind, 'person') <> 'person' then
-                  (select st.name from service_token st
-                    where st.account_id = a.account_id and st.revoked_at is null
-                    order by st.created_at limit 1) end as principal_name,
-                a.mcp_daily_quota,
+        `select a.account_id, a.email_hash, a.mcp_daily_quota,
                 (select c.player_tag from claim c
                  where c.account_id = a.account_id and c.is_primary) as primary_tag,
                 (select p.name from claim c join player p on p.player_tag = c.player_tag
@@ -259,7 +248,7 @@ export function adminRoutes({
       const { rows } = await db.query(
         `select f.family_id, f.account_id, f.scope, f.created_at,
                 f.absolute_expires_at, c.client_name,
-                a.email, a.kind, a.public_id, ${tierSql("a")} as role,
+                a.email, ${tierSql("a")} as role,
                 (select max(t.created_at) from oauth_token t
                  where t.family_id = f.family_id) as last_token_at,
                 (select count(*)::int from mcp_call_audit m
@@ -345,28 +334,14 @@ export function adminRoutes({
       if (!account?.isAdmin) return json(403, { error: "not_entitled" });
       const { rows } = await db.query(
         `select a.account_id, a.email_hash, a.email, a.status, a.is_owner,
-                a.kind, a.public_id, a.owned_by_account_id, a.handle,
+                a.handle,
                 -- The tier is earned in the game (#530) and read now;
                 -- granted_role is what is stored, the grant Admin sets
                 -- (Partner, or Member to take one away). A stored leader
                 -- or family is a pre-2026-10-12 hand grant that no longer
                 -- counts.
                 ${tierSql("a")} as role, a.role as granted_role,
-                coalesce(a.kind, 'person') = 'person'
-                  and ${leaderGroundSql("a")} as leads_tracked_clan,
-                -- Agents and integrations are accounts too (0053), owned by
-                -- the person who created them. The list shows people and
-                -- says how many principals each one runs; the record page
-                -- names them.
-                (select count(*)::int from account c
-                  where c.owned_by_account_id = a.account_id) as children,
-                -- A principal name is an agent's or an integration's; a
-                -- person's own legacy key is not their name (console walk
-                -- 2: the owner read "Principal name: elixir-bot").
-                case when coalesce(a.kind, 'person') <> 'person' then
-                  (select st.name from service_token st
-                    where st.account_id = a.account_id and st.revoked_at is null
-                    order by st.created_at limit 1) end as principal_name,
+                ${leaderGroundSql("a")} as leads_tracked_clan,
                 a.created_at, a.max_player_recordings, a.mcp_daily_quota,
                 a.live_daily_quota,
                 -- What the account TRACKS: its claims and its clans. Not
@@ -487,7 +462,6 @@ export function adminRoutes({
         ok: true,
         account_id: result.account_id,
         dry_run: result.dry_run,
-        agents: result.agents,
         removed: result.removed,
         subjects: result.subjects,
         kept: result.kept,

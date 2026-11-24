@@ -462,11 +462,10 @@ test("a save waits for the hello's first word, and a forum's webhook is refused 
 test("an admission wakes the accounts its tag reaches, once a minute each", async () => {
   await enable(person, "2026-09-02T17:00Z");
   const db = ctx.db;
-  const agent = (
+  const fan = (
     await db.query(
-      `insert into account (email_hash, status, kind, owned_by_account_id)
-       values (null, 'approved', 'agent', $1) returning account_id`,
-      [person],
+      `insert into account (email_hash, status) values ('sync-clan-fan', 'approved')
+       returning account_id`,
     )
   ).rows[0].account_id;
   await db.query(
@@ -475,13 +474,13 @@ test("an admission wakes the accounts its tag reaches, once a minute each", asyn
   );
   await db.query(
     `insert into account_clan (account_id, clan_tag, scope, notify) values ($1, $2, 'comprehensive', true)`,
-    [agent, CLAN],
+    [fan, CLAN],
   );
-  await enable(agent, "2026-09-02T17:00Z");
+  await enable(fan, "2026-09-02T17:00Z");
   // The player's own admission reaches the person who follows them; the
-  // clan's reaches the agent that follows it.
+  // clan's reaches the person who follows it.
   assert.deepEqual(await accountsToWake(db, OBSERVER), [person]);
-  assert.deepEqual(await accountsToWake(db, CLAN), [agent]);
+  assert.deepEqual(await accountsToWake(db, CLAN), [fan]);
   // A member's battles reach the clan's followers too.
   await db.query(
     `insert into clan_membership (clan_tag, player_tag, joined_observed_at)
@@ -490,15 +489,15 @@ test("an admission wakes the accounts its tag reaches, once a minute each", asyn
   );
   assert.deepEqual(
     new Set(await accountsToWake(db, OBSERVER)),
-    new Set([person, agent]),
+    new Set([person, fan]),
   );
   assert.deepEqual(
     new Set(await accountsToWake(db, CLAN)),
-    new Set([person, agent]),
+    new Set([person, fan]),
   );
   await db.query(
     `update timeline_discord set enabled = false where account_id = $1`,
-    [agent],
+    [fan],
   );
   assert.deepEqual(await accountsToWake(db, CLAN), [person]);
   assert.deepEqual(await accountsToWake(db, "#NOBODY"), []);

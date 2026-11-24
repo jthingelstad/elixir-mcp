@@ -41,13 +41,6 @@ export function poolLimits(owner) {
   };
 }
 
-/** An account `a` whose tracking is a reason to record. reconcileRecording
- *  (index.mjs) and the slot count read this one text. Agent-kind accounts
- *  still exist as rows until they are deleted (DECISIONS, "The old agent
- *  accounts are deleted"): an approved one's tracking still records, a
- *  suspended one's does not, so nothing recorded changes before then. */
-export const COUNTS = `(a.kind <> 'agent' or a.status = 'approved')`;
-
 /**
  * Why Elixir records the player `tag` (a SQL expression) apart from the
  * pool whose account ids `pool` (a subquery) selects, read from what the
@@ -79,8 +72,8 @@ const playerCostSql = (tag, pool) => `
            where cm.player_tag = ${tag} and cm.left_observed_at is null)
     as in_recorded_clan,
   coalesce((select c.account_id not in (${pool})
-              from claim c join account a using (account_id)
-             where c.player_tag = ${tag} and ${COUNTS}
+              from claim c
+             where c.player_tag = ${tag}
              order by c.created_at, c.account_id
              limit 1), false)
     as followed_by_others`;

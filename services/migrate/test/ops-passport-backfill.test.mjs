@@ -2,7 +2,7 @@
  * {passport_backfill} (#1015, 0272): the legacy Stamps for accounts made
  * before launch. A dry run writes nothing and answers what an apply
  * writes; batches follow a cursor to done; a second apply grants
- * nothing; accounts made after launch, agents and removed accounts are
+ * nothing; accounts made after launch and removed accounts are
  * never read; the answer is counts only. Every tag is invented
  * (docs/invented-tags.json).
  */
@@ -36,14 +36,13 @@ let db;
 let seq = 0;
 const ids = {};
 
-async function account({ created = BEFORE, owner = null, hash } = {}) {
+async function account({ created = BEFORE, hash } = {}) {
   seq += 1;
   return (
     await db.query(
-      `insert into account (email_hash, status, role, kind,
-                            owned_by_account_id, created_at)
-       values ($1, 'approved', 'member', $2, $3, $4) returning account_id`,
-      [hash ?? `backfill-${seq}`, owner ? "agent" : "person", owner, created],
+      `insert into account (email_hash, status, role, created_at)
+       values ($1, 'approved', 'member', $2) returning account_id`,
+      [hash ?? `backfill-${seq}`, created],
     )
   ).rows[0].account_id;
 }
@@ -85,7 +84,6 @@ before(async () => {
   ids.two = await account();
   await verified(ids.two, TWO);
   ids.bare = await account();
-  ids.agent = await account({ owner: ids.one });
   ids.removed = await account({ hash: "removed:backfill" });
   ids.late = await account({ created: AFTER });
 });
@@ -124,8 +122,8 @@ test("a dry run writes nothing; batches follow the cursor; an apply writes what 
   const dry = await run({});
   assert.equal(dry.dry_run, true);
   assert.equal(dry.done, true);
-  // Three approved people made before launch; never the agent, the
-  // removed account or the one made after launch.
+  // Three approved people made before launch; never the removed account
+  // or the one made after launch.
   assert.equal(dry.accounts, 3);
   assert.deepEqual(await stored(), { earned: 0, facts: 0, ordinary: 0 });
   assert.deepEqual(dry.granted, { player_verified: { 1: 2 } });

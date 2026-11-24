@@ -25,10 +25,8 @@ const DB_URL = ADMIN_URL.replace(/\/postgres$/, `/${NAME}`);
 let db;
 let person;
 let other;
-let agent;
 const CALL = "11111111-1111-4111-8111-111111111111";
 const CALL_TOO = "77777777-7777-4777-8777-777777777777";
-const AGENT_CALL = "22222222-2222-4222-8222-222222222222";
 const OTHER_CALL = "33333333-3333-4333-8333-333333333333";
 const SEND = "44444444-4444-4444-8444-444444444444";
 const OTHER_SEND = "55555555-5555-4555-8555-555555555555";
@@ -46,20 +44,9 @@ before(async () => {
     ).rows[0].account_id;
   person = { accountId: await make("feedback-person") };
   other = { accountId: await make("feedback-other") };
-  // An agent-kind account left from before 2026-11-23.
-  agent = {
-    accountId: (
-      await db.query(
-        `insert into account (email_hash, status, kind, owned_by_account_id, public_id)
-         values (null, 'approved', 'agent', $1, 'fbagent001') returning account_id`,
-        [person.accountId],
-      )
-    ).rows[0].account_id,
-  };
   for (const [account, id] of [
     [person.accountId, CALL],
     [person.accountId, CALL_TOO],
-    [agent.accountId, AGENT_CALL],
     [other.accountId, OTHER_CALL],
   ])
     await db.query(
@@ -123,7 +110,7 @@ test("cleanContext keeps small labelled facts and cuts the rest", () => {
   assert.equal(cleanContext(null), null);
 });
 
-test("filing keeps the filer's own calls and emails; another's, and an agent-kind account's, are dropped as not_yours", async () => {
+test("filing keeps the filer's own calls and emails; another's are dropped as not_yours", async () => {
   const notified = [];
   const out = await fileFeedback(db, {
     account: person,
@@ -135,7 +122,6 @@ test("filing keeps the filer's own calls and emails; another's, and an agent-kin
     refs: [
       { kind: "call", ref: CALL },
       { kind: "call", ref: CALL_TOO },
-      { kind: "call", ref: AGENT_CALL },
       { kind: "call", ref: OTHER_CALL },
       { kind: "email", ref: SEND },
       { kind: "email", ref: OTHER_SEND },
@@ -151,7 +137,7 @@ test("filing keeps the filer's own calls and emails; another's, and an agent-kin
   );
   assert.deepEqual(
     out.dropped.map((d) => `${d.kind}:${d.reason}`),
-    ["call:not_yours", "call:not_yours", "email:not_yours"],
+    ["call:not_yours", "email:not_yours"],
   );
   const { rows } = await db.query(
     `select surface, area, message, request_id, send_id, context, via from feedback where feedback_id = $1`,

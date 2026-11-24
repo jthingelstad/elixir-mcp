@@ -1,7 +1,6 @@
 import { blockedSql } from "./blocks.mjs";
 import { readMembershipCapture } from "@elixir-mcp/record/membership-capture";
 import {
-  COUNTS,
   playerCost,
   poolLimits,
   poolOwner,
@@ -174,15 +173,12 @@ export async function reconcileRecording(
        -- account associates with a player through claim and with a clan
        -- through account_clan. Retired Collections and boards do not count.
        ($2 = 'player'
-        and exists (select 1 from claim c join account a using (account_id)
-                     where c.player_tag = $1 and ${COUNTS})) as claimed,
+        and exists (select 1 from claim c where c.player_tag = $1)) as claimed,
        ($2 = 'clan'
-        and exists (select 1 from account_clan ac join account a using (account_id)
-                     where ac.clan_tag = $1 and ${COUNTS})) as added,
+        and exists (select 1 from account_clan ac where ac.clan_tag = $1)) as added,
        ($2 = 'clan'
-        and exists (select 1 from account_clan ac join account a using (account_id)
-                     where ac.clan_tag = $1 and ac.scope = 'comprehensive'
-                       and ${COUNTS})) as added_deep,
+        and exists (select 1 from account_clan ac
+                     where ac.clan_tag = $1 and ac.scope = 'comprehensive')) as added_deep,
        exists (select 1 from recording
                where subject_type = $2 and subject_tag = $1
                  and status = 'active') as active`,
@@ -748,10 +744,6 @@ export async function addClan(db, account, { tag, scope, via }) {
     if (!acct) {
       await db.query("rollback");
       return { ok: false, error: "not_found" };
-    }
-    if (acct.kind === "integration") {
-      await db.query("rollback");
-      return { ok: false, error: "not_entitled", kind: acct.kind };
     }
     const owner = await poolOwner(db, account.accountId);
     await lockSubject(db, tag);

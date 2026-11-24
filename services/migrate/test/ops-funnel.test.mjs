@@ -145,30 +145,21 @@ test("counts each funnel step for people only, and writes nothing", async () => 
      values ($1, 'funnel-c', 'th0', 'mcp')`,
     [c],
   );
-  // Not people, so not counted: an agent-kind row left from before
-  // 2026-11-23 (its token no longer counts for its owner) and an
-  // integration, both with sign-in events.
-  const agent = (
+  // Not people, so not counted: a test identity (0316) with a sign-in
+  // event and a live MCP key of its own.
+  const tester = (
     await db.query(
-      `insert into account (status, role, kind, owned_by_account_id, public_id, created_at)
-       values ('approved', 'member', 'agent', $1, 'funnelagent1', $2) returning account_id`,
-      [c, ago(5)],
+      `insert into account (email_hash, status, role, test_name, created_at)
+       values ('test:funnel-gym', 'approved', 'member', 'funnel-gym', $1) returning account_id`,
+      [ago(5)],
     )
   ).rows[0].account_id;
-  await event(agent, "signed_in", ago(5));
+  await event(tester, "signed_in", ago(5));
   await db.query(
     `insert into service_token (account_id, name, token_hash, audience)
-     values ($1, 'funnel-agent', 'th1', 'mcp')`,
-    [agent],
+     values ($1, 'funnel-gym', 'th1', 'mcp')`,
+    [tester],
   );
-  const integration = (
-    await db.query(
-      `insert into account (status, role, kind, owned_by_account_id, public_id, created_at)
-       values ('approved', 'member', 'integration', $1, 'funnelinteg1', $2) returning account_id`,
-      [d, ago(5)],
-    )
-  ).rows[0].account_id;
-  await event(integration, "signed_in", ago(5));
 
   const count = async () =>
     (
@@ -216,7 +207,7 @@ test("counts each funnel step for people only, and writes nothing", async () => 
   // Counts only: no tag, account id or hash anywhere in the answer.
   const text = JSON.stringify(r);
   assert.ok(!text.includes("#"), "no tag");
-  for (const id of [a, b, c, d, agent, integration])
+  for (const id of [a, b, c, d, tester])
     assert.ok(!text.includes(id), "no account id");
   assert.ok(!text.includes("funnel-"), "no email hash");
 

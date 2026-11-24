@@ -443,15 +443,6 @@ test("the timeline shows each fact only to the reader its type allows; a departu
   assert.ok(!memberSees.includes("member_away"));
   // Someone outside the clan sees none of it.
   assert.deepEqual(await kinds(accounts.outsider), []);
-  // An agent-kind account left from before 2026-11-23 reads nothing,
-  // even one a leader owned.
-  const agent = (
-    await db.query(
-      "insert into account(kind,owned_by_account_id,status,role) values ('agent',$1,'approved','member') returning account_id",
-      [accounts.leader],
-    )
-  ).rows[0].account_id;
-  assert.deepEqual(await kinds(agent), []);
   // A departure written under 9.2.0 carries visibility 'leaders' in its
   // row; who sees it is the type's rule now, so a member sees it too.
   await db.query(

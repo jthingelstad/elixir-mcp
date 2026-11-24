@@ -180,7 +180,7 @@ test("Clan's door always exists and accepts only Elixir sessions", async () => {
   for (const headers of [
     {},
     { authorization: "Bearer eat_api-grant" },
-    { authorization: "Bearer svt_integration-key" },
+    { authorization: "Bearer svt_mcp-key" },
   ])
     assert.equal(
       (await request("GET", "/api/clan/me", { cookie: null, headers }))
@@ -203,35 +203,6 @@ test("Clan's door always exists and accepts only Elixir sessions", async () => {
       .statusCode,
     401,
   );
-});
-
-test("only a person's session reaches Clan: an agent's session row is refused before Clan's gate", async () => {
-  // Clan keeps no refusal page of its own for a non-person: Elixir's
-  // session resolution admits only approved people, so an agent answers
-  // the same 401 as a signed-out visitor and never reaches Clan's gate.
-  const agentId = (
-    await scratch.db.query(
-      // An email hash too, so only the account's kind tells it apart.
-      `insert into account (email_hash, status, role, kind, owned_by_account_id, public_id)
-       values ('clan-session-agent', 'approved', 'member', 'agent', $1, 'clanagent01')
-       returning account_id`,
-      [accountId],
-    )
-  ).rows[0].account_id;
-  const agent = await createSession(scratch.db, {
-    secret: "test",
-    accountId: agentId,
-    emailHash: "clan-session-agent",
-  });
-  for (const path of ["/api/clan/me", "/api/clan/directory"])
-    assert.equal(
-      (
-        await request("GET", path, {
-          cookie: `__Host-elixir_session=${agent.token}`,
-        })
-      ).statusCode,
-      401,
-    );
 });
 
 test("account preferences need the CSRF marker and never use a second session", async () => {

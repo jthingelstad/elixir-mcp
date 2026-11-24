@@ -801,51 +801,20 @@ test("an expired OAuth access token is refused with 401 and attributed to its fa
   assert.equal(rows[0].account_id, accountId, "attributed through the family");
 });
 
-test("an agent-kind account left from before is refused at /mcp, and /a/... is gone (2026-11-23)", async () => {
-  // Agents were removed from Elixir on 2026-11-23 with no migration: the
-  // rows stay until deleted, and neither their keys nor their tokens open
-  // the one MCP door.
-  const { rows: owner } = await db.query(
+test("the old agent door /a/... is gone (2026-11-23)", async () => {
+  // Every MCP connection is a person's, at /mcp alone: a person's key
+  // opens nothing at the agent door's old address.
+  const { rows: acct } = await db.query(
     `insert into account (email_hash, status) values ($1, 'approved')
      returning account_id`,
-    [emailHash("leftover-owner@example.com")],
+    [emailHash("old-door-person@example.com")],
   );
-  const { rows: acct } = await db.query(
-    `insert into account (kind, status, public_id, owned_by_account_id)
-     values ('agent', 'approved', 'leftoverbot01', $1) returning account_id`,
-    [owner[0].account_id],
-  );
-  const accountId = acct[0].account_id;
   const key = "svt_" + "l".repeat(43);
   await db.query(
     `insert into service_token (account_id, name, token_hash)
-     values ($1, 'leftover-bot', $2)`,
-    [accountId, crypto.createHash("sha256").update(key).digest("hex")],
+     values ($1, 'old-door', $2)`,
+    [acct[0].account_id, crypto.createHash("sha256").update(key).digest("hex")],
   );
-  await db.query(
-    `insert into oauth_client (client_id, client_name, redirect_uris, expires_at)
-     values ('leftover-client', 'Leftover', '{}', now() + interval '1 day')`,
-  );
-  const minted = await mintTokens(db, {
-    clientId: "leftover-client",
-    accountId,
-    scope: "cr:read",
-    resource: RESOURCE,
-  });
-  for (const bearer of [key, minted.accessToken]) {
-    const res = await handler({
-      path: "/mcp",
-      method: "POST",
-      headers: { authorization: `Bearer ${bearer}` },
-      body: JSON.stringify({
-        jsonrpc: "2.0",
-        id: 1,
-        method: "tools/call",
-        params: { name: "game_clock", arguments: {} },
-      }),
-    });
-    assert.equal(res.statusCode, 401, `${bearer.slice(0, 4)}: ${res.body}`);
-  }
   const gone = await handler(
     event({
       method: "GET",

@@ -524,17 +524,10 @@ test("the default weekly digest is not a choice; an explicit one is", async () =
   );
 });
 
-test("an agent account has nothing to reconcile or settle", async () => {
-  const owner = await person();
-  const {
-    rows: [a],
-  } = await db.query(
-    `insert into account (status, role, kind, owned_by_account_id)
-     values ('approved', 'member', 'agent', $1) returning account_id`,
-    [owner],
-  );
-  assert.equal(await reconcilePassport(db, a.account_id, { now: AUG30 }), null);
-  assert.deepEqual(await settlePassport(db, a.account_id, { now: AUG30 }), {
+test("an id that is no account has nothing to reconcile or settle", async () => {
+  const nobody = "00000000-0000-4000-8000-0000000000fe";
+  assert.equal(await reconcilePassport(db, nobody, { now: AUG30 }), null);
+  assert.deepEqual(await settlePassport(db, nobody, { now: AUG30 }), {
     refused: "not_person",
   });
 });

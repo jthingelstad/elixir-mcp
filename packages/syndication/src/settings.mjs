@@ -1,8 +1,7 @@
 /** The setting behind the console's Timeline page: whether the account's
- *  timeline is cross-posted, and to which Discord webhook. The owner's
- *  alone (a person's own, or an agent's through its owner's console);
- *  never served to MCP or /api/v1. The webhook is sealed here, as it is
- *  saved, and is never read back whole: the console sees its shortened
+ *  timeline is cross-posted, and to which Discord webhook. The person's
+ *  own; never served to MCP or /api/v1. The webhook is sealed here, as it
+ *  is saved, and is never read back whole: the console sees its shortened
  *  form, and only the relay opens it. */
 import { randomUUID } from "node:crypto";
 import {

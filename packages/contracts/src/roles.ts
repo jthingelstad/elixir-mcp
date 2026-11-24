@@ -203,12 +203,9 @@ function personTierSql(a: string): string {
 
 /**
  * The tier of the account row aliased `a`, as a SQL expression to select
- * in place of `a.role`. An integration keeps its stored role (Partner
- * access is admin-provisioned).
+ * in place of `a.role`: every account is a person (0317).
  */
 export function tierSql(a: string = "a"): string {
   alias(a);
-  return `(case
-    when ${a}.kind = 'integration' then ${a}.role
-    else ${personTierSql(a)} end)`;
+  return `(${personTierSql(a)})`;
 }

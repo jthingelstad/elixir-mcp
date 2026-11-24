@@ -591,9 +591,9 @@ cookie is `/oauth/authorize`, the consent page, on its own behavior).
 - First-party clients (a provisioned `family_oauth_client`, every redirect
   URI on a family origin) are not metered; others are, 600 per person per
   hour. Calls are audited with `surface=rest`.
-- Integration accounts left from before 5.0.0 stay as rows: the `{integration}`
-  op lists them and revokes their keys, and Clan's morning run still reads
-  the `elixir-clan` row as the account its facts are attested by.
+- Every account is a person (0317). The signed-in app is the OAuth
+  client, never an account of its own, and Clan's computed facts carry no
+  attester.
 
 ## Clan inside Elixir
 

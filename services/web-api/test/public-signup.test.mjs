@@ -483,29 +483,26 @@ test("a new account's cross-device sign-in needs confirmation before the asking 
 });
 
 test("current denial, disablement or privileged pending state cannot be bypassed by a previously issued signup link", async () => {
-  for (const [status, role, kind] of [
-    ["denied", "member", "person"],
-    ["disabled", "member", "person"],
-    ["requested", "admin", "person"],
-    ["requested", "member", "agent"],
-    ["approved", "member", "agent"],
+  for (const [status, role] of [
+    ["denied", "member"],
+    ["disabled", "member"],
+    ["requested", "admin"],
   ]) {
-    const email = `${status}-${role}-${kind}@example.com`;
+    const email = `${status}-${role}@example.com`;
     const { mail } = await ask(email);
     await db.query(
-      "insert into account(email_hash,status,role,kind,owned_by_account_id) values($1,$2,$3,$4,case when $4='agent' then (select account_id from account where email='new-public@example.com') end)",
-      [emailHash(email), status, role, kind],
+      "insert into account(email_hash,status,role) values($1,$2,$3)",
+      [emailHash(email), status, role],
     );
     const res = await handler(event("/api/auth/redeem", { token: mail.token }));
     assert.equal(res.statusCode, 403, res.body);
     assert.equal(res.headers["set-cookie"], undefined);
     const {
       rows: [kept],
-    } = await db.query(
-      "select status,role,kind from account where email_hash=$1",
-      [emailHash(email)],
-    );
-    assert.deepEqual(kept, { status, role, kind });
+    } = await db.query("select status,role from account where email_hash=$1", [
+      emailHash(email),
+    ]);
+    assert.deepEqual(kept, { status, role });
     const sent = mails.length;
     const retry = await ask(email);
     assert.equal(retry.response.statusCode, 200);
@@ -698,8 +695,8 @@ test("a public member retains recording slot limits across concurrent adds and c
   assert.match(gateway.provision_env, /^emcg_/);
 });
 
-test("handoff collection and existing sessions refuse an account that becomes a non-person", async () => {
-  const email = "changed-kind@example.com";
+test("handoff collection and existing sessions refuse an account disabled after the link", async () => {
+  const email = "disabled-later@example.com";
   const { response, mail } = await ask(email, "198.51.100.92");
   const redeemed = await handler(
     event("/api/auth/redeem", { token: mail.token }, null, "198.51.100.92"),
@@ -715,10 +712,9 @@ test("handoff collection and existing sessions refuse an account that becomes a 
     ),
   );
   assert.equal(allowed.statusCode, 200, allowed.body);
-  await db.query(
-    "update account set kind='agent',owned_by_account_id=(select account_id from account where email='new-public@example.com') where email_hash=$1",
-    [emailHash(email)],
-  );
+  await db.query("update account set status='disabled' where email_hash=$1", [
+    emailHash(email),
+  ]);
   const poll = await handler(
     event("/api/auth/poll", { poll_id: parse(response).poll_id }),
   );

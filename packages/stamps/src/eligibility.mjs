@@ -12,7 +12,7 @@
  * smaller one). Every field may be null, which means "not known", never
  * "no":
  *
- *   person          boolean   a person account (agents never earn)
+ *   person          boolean   a person account
  *   primary         { verified } | null   the account's primary claim
  *   own_verified    boolean   a primary or alt claim currently verified
  *   has_alt         boolean   an own alt claim (relationship 'alt'), any status

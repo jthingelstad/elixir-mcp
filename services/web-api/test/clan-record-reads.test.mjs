@@ -1,11 +1,11 @@
 /**
  * Clan reads the record in process (2026-11-13): no recorded client, no
- * credential, no audited tool call. Every read Clan makes must answer
- * exactly what it answered through the audited invoker, on the same
- * record: the web path as the signed-in person (who was marked first
- * party then), and the morning run as Elixir itself (which read as the
- * `elixir-clan` integration then). The comparison drops only what the
- * invoker adds to a client's call: its request id and pending hints.
+ * credential, no audited tool call. Every read Clan makes on the web path
+ * must answer exactly what it answered through the audited invoker, on
+ * the same record, as the signed-in person (who was marked first party
+ * then). The comparison drops only what the invoker adds to a client's
+ * call: its request id and pending hints. The morning run reads as
+ * Elixir itself (SYSTEM_READER), which never sees a person's nicknames.
  */
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
@@ -26,7 +26,7 @@ process.env.TZ = "UTC";
 
 const registry = makeRegistry();
 const HOUR = 3600_000;
-let scratch, db, person, integration, clanTag, profileTag, battleTag, members;
+let scratch, db, person, clanTag, profileTag, battleTag, members;
 
 /** The live lane, the same answer for both paths: the profile fixture. */
 let profilePayload, rosterPayload;
@@ -135,19 +135,6 @@ before(async () => {
     role: "member",
     timezone: null,
   };
-  const {
-    rows: [i],
-  } = await db.query(
-    `insert into account (email_hash, status, role, kind, owned_by_account_id)
-     values ('crr-clan-attester', 'approved', 'member', 'integration', $1) returning account_id`,
-    [owner.account_id],
-  );
-  integration = {
-    accountId: i.account_id,
-    name: "elixir-clan",
-    kind: "integration",
-    role: "member",
-  };
 });
 after(async () => scratch?.drop());
 
@@ -227,12 +214,6 @@ for (const [label, oldAccount, newAccount, opts] of [
     () => person,
     { clientName: "Clan", queryBudgetMs: 15_000, deadlineMs: 25_000 },
   ],
-  [
-    "the morning run, as Elixir itself",
-    () => ({ ...integration, firstParty: true }),
-    () => SYSTEM_READER,
-    { clientName: "Clan morning", queryBudgetMs: 15_000, deadlineMs: 75_000 },
-  ],
 ])
   test(`${label}: every Clan read answers what the audited invoker answered`, async () => {
     const before = (
@@ -257,8 +238,6 @@ for (const [label, oldAccount, newAccount, opts] of [
     });
     let answered = 0;
     for (const [name, args] of reads()) {
-      if (name === "elixir_my_players" && newAccount() === SYSTEM_READER)
-        continue; // the morning run has no person to read for
       const was = await invoke(name, structuredClone(args));
       const now = await read(name, structuredClone(args));
       assert.equal(now.isError, was.isError, `${name} ${JSON.stringify(args)}`);
@@ -270,9 +249,8 @@ for (const [label, oldAccount, newAccount, opts] of [
       if (!now.isError) answered += 1;
     }
     // The fixture reaches what it claims: every read but the refusal
-    // answers (and the morning run asks no elixir_my_players).
-    const asked = reads().length - (newAccount() === SYSTEM_READER ? 1 : 0);
-    assert.equal(answered, asked - 1);
+    // answers.
+    assert.equal(answered, reads().length - 1);
     // The old path audited each call; the new one leaves no row.
     const audited = (
       await db.query(

@@ -71,7 +71,7 @@ named about a dozen ops and the rest could be found only by reading
    Copy the key from `ops.md` and pass `true` or an object.
 9. **Results stay out of the repo.** It is public, and results carry
    feedback text, email-hash prefixes, tags and people's timelines; every
-   op but `{integration}` also logs its result to the migrate log group.
+   op also logs its result to the migrate log group.
    Quote only what the question needs.
 
 ## Running an op

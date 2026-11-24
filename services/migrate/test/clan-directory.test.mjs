@@ -201,19 +201,6 @@ test("only an approved person reads it", async () => {
     await readClanDirectory(scratch.db, { ...person(me), kind: "integration" }),
     { refused: "not_a_person" },
   );
-  // An agent-kind account left from before 2026-11-23 reads nothing, even
-  // with an approved owner.
-  const { rows } = await scratch.db.query(
-    "insert into account(email_hash,kind,status,role,owned_by_account_id) values($1,'agent','approved','member',$2) returning account_id",
-    ["dir-agent-me", me],
-  );
-  assert.deepEqual(
-    await readClanDirectory(scratch.db, {
-      accountId: rows[0].account_id,
-      kind: "agent",
-    }),
-    { refused: "not_a_person" },
-  );
   assert.deepEqual(await readClanDirectory(scratch.db, null), {
     refused: "not_a_person",
   });

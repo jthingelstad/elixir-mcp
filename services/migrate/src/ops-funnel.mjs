@@ -3,8 +3,8 @@
  *
  * Of the people who made an account in the last `days` (default 90, at
  * most 3650), how many signed in, added their player, got a first read,
- * verified, connected an AI client and came back. Person accounts only:
- * integrations, agent-kind rows and test accounts are not people. Overall
+ * verified, connected an AI client and came back. Test accounts are
+ * not people and are left out. Overall
  * and by the UTC week (Monday) the account was made, newest first. Every
  * figure is read from what Elixir already keeps; nothing is stored for it.
  *
@@ -230,8 +230,7 @@ export async function funnelOp(databaseUrl, spec = {}) {
     return {
       days,
       as_of: new Date().toISOString(),
-      population:
-        "person accounts made in the window (agents, integrations and test accounts excluded)",
+      population: "person accounts made in the window (test accounts excluded)",
       overall: { ...overall, by_status: byStatus },
       // Newest first; a week with no accounts is not listed.
       by_week: [...weeks].map(([week, counts]) => ({

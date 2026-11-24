@@ -8,7 +8,7 @@
  *
  * The page lives at /home/account/<id>, where <id> is the account's page
  * id: its passport id (0269, 0277), random and opaque, never the account
- * UUID or account.public_id. It shows what DECISIONS "What is public about
+ * UUID. It shows what DECISIONS "What is public about
  * an account" makes public and nothing past it: the players the account
  * claims or verified, its badges (a linked Discord as a boolean), its
  * place (city at most, read through Clan's seam under the ownership rule),

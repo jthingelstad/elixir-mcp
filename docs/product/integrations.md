@@ -56,4 +56,7 @@ Drop write to Elixir; accept an MCP token at `/api/v1`.
 - **The build.** Built 2026-11-13 in JSON API 5.0.0
   (`docs/notes/2026-11-13-api-v1-sign-in-only.md`): `/api/v1` answers
   `GET /api/v1/me` alone, the integration keys and Admin → Integrations
-  are gone, and Drop asks for nothing else. Nothing else is open.
+  are gone, and Drop asks for nothing else. The integration accounts
+  themselves were deleted on 2026-11-23 and migration 0317 left `person`
+  the only kind ("An account is a person", DECISIONS). Nothing else is
+  open.

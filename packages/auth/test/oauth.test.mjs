@@ -18,7 +18,6 @@ import {
   issueServiceToken,
   validateServiceToken,
   serviceTokenAccountByName,
-  describeRefusedCredential,
   OAUTH_SCOPES,
 } from "../src/index.mjs";
 import { STANDARD_OAUTH_SCOPES } from "@elixir-mcp/contracts";
@@ -193,51 +192,6 @@ test("access tokens validate to account context; the gate applies here too", asy
   await db.query(
     `update account set status = 'approved' where account_id = $1`,
     [accountId],
-  );
-});
-
-test("an agent-kind account's credentials are refused at both doors", async () => {
-  // Agent accounts stay as rows until they are deleted. Their OAuth grants
-  // and keys validate to nothing, so the door answers 401 like any unknown
-  // credential, and the refusal is named rather than read as a wrong door.
-  const {
-    rows: [person],
-  } = await db.query(
-    `insert into account (email_hash, status, role) values ($1, 'approved', 'member')
-     returning account_id`,
-    [emailHash("old-agent-owner@example.com")],
-  );
-  const {
-    rows: [agent],
-  } = await db.query(
-    `insert into account (status, role, kind, owned_by_account_id, public_id)
-     values ('approved', 'member', 'agent', $1, 'oldagentacct')
-     returning account_id`,
-    [person.account_id],
-  );
-  const { clientId } = await registerClient(db, {
-    clientName: "agent-client",
-    redirectUris: ["https://w.example/cb"],
-  });
-  const tokens = await mintTokens(db, {
-    clientId,
-    accountId: agent.account_id,
-    scope: "cr:read",
-    resource: RESOURCE,
-  });
-  const key = await issueServiceToken(db, {
-    accountId: agent.account_id,
-    name: "old-agent-key",
-  });
-  assert.equal(
-    await validateAccessToken(db, tokens.accessToken, { resource: RESOURCE }),
-    null,
-  );
-  assert.equal(await validateServiceToken(db, key), null);
-  assert.equal(await serviceTokenAccountByName(db, "old-agent-key"), null);
-  assert.equal(
-    (await describeRefusedCredential(db, key)).reason,
-    "principal_suspended",
   );
 });
 
@@ -485,23 +439,11 @@ test("service keys retain write-only permissions while the retired scope is filt
   assert.deepEqual(account.scopes, ["feedback:write"]);
 });
 
-test("a test account's key acts as a person at /mcp, and an agent's key of the same name is not it (0316)", async () => {
-  // An agent-kind account left from before, holding a key named
-  // `acceptance-0316`.
-  const {
-    rows: [agent],
-  } = await db.query(
-    `insert into account (status, role, kind, owned_by_account_id, public_id)
-     values ('approved', 'member', 'agent', $1, 'tstacctagnt1')
-     returning account_id`,
-    [accountId],
-  );
-  await issueServiceToken(db, {
-    accountId: agent.account_id,
-    name: "acceptance-0316",
-  });
+test("a test account's key acts as a person at /mcp, and wins over an older key of the same name (0316)", async () => {
+  // A person's older key named `acceptance-0316`.
+  await issueServiceToken(db, { accountId, name: "acceptance-0316" });
   const byName = () => serviceTokenAccountByName(db, "acceptance-0316");
-  assert.equal(await byName(), null, "an agent's key acts as nobody");
+  assert.equal((await byName())?.accountId, accountId);
 
   // The test account the {test_account} op makes: a person with no address.
   const {

@@ -124,7 +124,6 @@ export async function auditCensus(databaseUrl, spec) {
               count(distinct account_id)::int as accounts,
               count(*) filter (where error_code is not null)::int as errors,
               count(*) filter (where rpc_error_code is not null)::int as rpc_refusals,
-              count(*) filter (where on_behalf_of is not null)::int as delegated,
               round(avg(duration_ms))::int as avg_ms
        from mcp_call_audit
        where created_at > $1::timestamptz and created_at <= $2::timestamptz
@@ -252,7 +251,8 @@ export async function argsCensus(databaseUrl, spec) {
  *  surface, the most frequent distinct argument sets among calls that
  *  answered, with their counts, and the tool's duration percentiles. The
  *  audit keeps bounded, redacted arguments for 28 days; this drops the
- *  caller-identity ones (on_behalf_of, display_name) and any set asking
+ *  caller-identity ones a call from before 2026-11-23 may still carry
+ *  (on_behalf_of, display_name) and any set asking
  *  for a live read, and never returns values beyond the arguments. */
 export async function acceptanceCatalogue(databaseUrl, spec) {
   const days = Math.min(Math.max(Number(spec?.days ?? 7), 1), 90);

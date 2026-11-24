@@ -6,7 +6,7 @@
  * and their address; the account id (userinfo's `sub`) rides beside them
  * since 5.0.0, and the profile image since 5.1.0. Every other path,
  * the ones 4.x served included, is the unknown operation's 404 whatever
- * the credential, and an old integration key is no credential at all.
+ * the credential, and a person's MCP key is no credential here.
  */
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
@@ -118,18 +118,12 @@ before(async () => {
     redirectUris: ["https://example.org/callback"],
   });
 
-  // An integration key as 4.x minted one: the row stays, the door is gone.
-  const integration = (
-    await db.query(
-      "insert into account(kind,owned_by_account_id,public_id,status,role) values ('integration',$1,'0a1b2c3d4e5f','approved','partner') returning account_id",
-      [person],
-    )
-  ).rows[0].account_id;
+  // A person's MCP key (a test identity's kind): it is for /mcp alone.
   const key = mintServiceTokenValue();
   keyRaw = key.raw;
   await db.query(
-    "insert into service_token(account_id,name,token_hash,scope,audience) values ($1,'old-site',$2,'','integration_api')",
-    [integration, key.hash],
+    "insert into service_token(account_id,name,token_hash,scope,audience) values ($1,'gym',$2,'','mcp')",
+    [person, key.hash],
   );
   handler = makeHandler({ databaseUrl, secret: "test" });
 });
@@ -287,7 +281,7 @@ test("the address only for a family app holding account:email", async () => {
   }
 });
 
-test("only a person's grant for this door: an MCP grant, an old integration key or none is 401, and this grant is refused at MCP", async () => {
+test("only a person's grant for this door: an MCP grant, an MCP key or none is 401, and this grant is refused at MCP", async () => {
   const mcp = await grant(drop, "cr:read", "https://elixir.poapkings.com/mcp");
   for (const token of [undefined, "sk-not-an-elixir-key", mcp, keyRaw]) {
     const r = await call("GET", "/api/v1/me", token);
