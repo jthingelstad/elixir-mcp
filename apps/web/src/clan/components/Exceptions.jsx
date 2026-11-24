@@ -86,8 +86,8 @@ export function endsLine(e, calendar) {
 /**
  * One exception event as a line: "Keep as Elder added by Ada", "Away
  * ended by Bea", "Keep in clan ran out". `by` is null for Elixir's own
- * (an end date running out, or 0318 giving a hold with none an end date),
- * and for a member who may not see who set it.
+ * (an end date running out, or 0318 or 0319 giving a hold with none an
+ * end date), and for a member who may not see who set it.
  */
 export function eventLine(e) {
   const kind = KINDS[e.kind]?.label ?? e.kind;
