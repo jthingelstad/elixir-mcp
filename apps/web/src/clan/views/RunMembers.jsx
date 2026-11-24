@@ -178,17 +178,15 @@ function Summary({ d, state, load }) {
 }
 
 /** When a member last battled, in a word or a day. */
-function lastBattle(m, whenDay) {
-  const days = quietDays(m);
-  if (days === 0) return "Battled today";
-  if (days === 1) return "Battled yesterday";
-  if (m.facts?.last_battle_time)
-    return `Last battle ${whenDay(m.facts.last_battle_time)}`;
-  return days === null ? "No battle on record" : `Quiet ${days} days`;
+function lastBattle(m, feedDayHeading) {
+  const t = m.facts?.last_battle_time;
+  if (!t) return "No battle on record";
+  const day = feedDayHeading(t);
+  return `Last battle ${/^(Today|Yesterday)$/.test(day) ? day.toLowerCase() : day}`;
 }
 
 function MemberRow({ m, d, clan }) {
-  const { whenDay, calendar } = useClock();
+  const { feedDayHeading, calendar } = useClock();
   const chips = whyChips(m, { policy: d.policy ?? {}, calendar });
   const part = didTheirPart(m);
   return (
@@ -200,7 +198,7 @@ function MemberRow({ m, d, clan }) {
           <span>
             {[
               ROLE[m.role] ?? m.role,
-              lastBattle(m, whenDay),
+              lastBattle(m, feedDayHeading),
               PART_WORDS[String(part)],
             ].join(" · ")}
           </span>

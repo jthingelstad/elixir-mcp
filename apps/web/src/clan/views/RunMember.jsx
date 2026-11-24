@@ -71,23 +71,23 @@ function kickClock(m, policy) {
   const r = m.removal ?? {};
   if (!r.state || r.state === "none") return "Kick clock not running";
   const days = quietDays(m);
-  const day = policy.removal_day;
+  // The member's own day: the engine adds any contribution grace to it.
+  const day = r.removal_day ?? policy.removal_day;
   return day && days !== null
     ? `Kick clock: day ${days} of ${day}`
     : "Kick clock running";
 }
 
-function lastBattleValue(m, whenDay) {
-  const days = quietDays(m);
-  if (days === 0) return "Today";
-  if (days === 1) return "Yesterday";
-  if (m.facts?.last_battle_time) return whenDay(m.facts.last_battle_time);
-  return "—";
+/** The day of the last recorded battle. The kick clock's quiet days also
+ *  count a join or a battle-count rise, so they never name a battle. */
+function lastBattleValue(m, feedDayHeading) {
+  const t = m.facts?.last_battle_time;
+  return t ? feedDayHeading(t) : "None on record";
 }
 
 /** The four tiles and the reasons: where the member stands now. */
 function Standing({ m, d }) {
-  const { whenDay } = useClock();
+  const { feedDayHeading } = useClock();
   const part = didTheirPart(m);
   const war = m.facts?.war;
   const donations = m.facts?.donations_average;
@@ -99,7 +99,7 @@ function Standing({ m, d }) {
       <Stats label="Where they stand" className="kit-stats--quad">
         <Stat
           label="Last battle"
-          value={lastBattleValue(m, whenDay)}
+          value={lastBattleValue(m, feedDayHeading)}
           small
           note={kickClock(m, d.policy)}
         />
