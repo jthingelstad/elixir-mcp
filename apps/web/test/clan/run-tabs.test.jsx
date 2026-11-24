@@ -213,6 +213,47 @@ describe("one page fails on its own", () => {
     await waitFor(() => expect(read.mock.calls.length).toBeGreaterThan(before));
   });
 
+  // Codex on #1240: the decisions are the leaders' record, so a refusal
+  // hides what was cached; a slow read keeps it on the page.
+  test.each([
+    [401, "You're signed out", false],
+    [403, "Not yours to see", false],
+    [504, null, true],
+  ])(
+    "a Decided read answered %i after a good one: kept only if not refused",
+    async (status, says, kept) => {
+      reads();
+      const card = {
+        card_id: "c1",
+        number: 7,
+        label: "Invented decision",
+        status: "done",
+        raised_at: new Date().toISOString(),
+        decided_at: new Date().toISOString(),
+        log: [],
+      };
+      const history = vi
+        .spyOn(manageApi, "history")
+        .mockResolvedValue(ok({ cards: [card] }));
+      const { queryClient } = renderWithProviders(<Walk first="decided" />);
+      expect(await screen.findByText("Invented decision")).toBeTruthy();
+      history.mockResolvedValue({
+        ok: false,
+        status,
+        data: { error: status === 504 ? "timeout" : "refused" },
+      });
+      await queryClient.refetchQueries({ queryKey: ["me", "clan"] });
+      await waitFor(() => expect(history.mock.calls.length).toBeGreaterThan(1));
+      if (kept) {
+        expect(screen.getByText("Invented decision")).toBeTruthy();
+      } else {
+        expect(await screen.findByText(says)).toBeTruthy();
+        expect(screen.queryByText("Invented decision")).toBeNull();
+      }
+      expect(tabs()).toBeTruthy();
+    },
+  );
+
   test("a rules read that fails leaves the other tabs working", async () => {
     reads();
     manageApi.policy.mockRejectedValue(
