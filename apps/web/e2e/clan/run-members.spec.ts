@@ -371,7 +371,7 @@ test("a panel fails alone, and says why", async ({ page }) => {
   );
   await page.goto("/clan/0QC8RCGY/run/members/0GRJCUV");
   await expect(
-    page.getByText("The history could not be read just now"),
+    page.getByText("The history didn’t load in time. Nothing is lost."),
   ).toBeVisible();
   // The rest of the page stands.
   await expect(
@@ -379,4 +379,32 @@ test("a panel fails alone, and says why", async ({ page }) => {
   ).toBeVisible();
   await page.getByRole("button", { name: /Try again/ }).click();
   await expect.poll(() => reads).toBeGreaterThan(1);
+});
+
+test("a member's page on a phone has one way back, under the tabs", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await mockApi(page, routes());
+  await page.goto("/clan/0QC8RCGY/run/members/0GRJCUV");
+  await expect(
+    page.getByRole("group", { name: "Where they stand" }),
+  ).toBeVisible();
+  const tabs = page.getByRole("navigation", { name: "Run" });
+  await expect(tabs).toBeVisible();
+  await expect(tabs.getByRole("link", { name: /^Members/ })).toHaveAttribute(
+    "aria-current",
+    "page",
+  );
+  // One back link: Members. Run's own way back is the tabs.
+  const back = page.locator(".clan-member__back");
+  await expect(back).toHaveCount(1);
+  await expect(back).toBeVisible();
+  await expect(page.locator(".clan-run__back, .clan-run__up")).toHaveCount(0);
+  await page.screenshot({
+    path: "/tmp/elixir-run-member-back-390.png",
+    fullPage: true,
+  });
+  await back.click();
+  await expect(page).toHaveURL(/\/clan\/0QC8RCGY\/run\/members$/);
 });

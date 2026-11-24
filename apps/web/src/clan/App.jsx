@@ -144,9 +144,12 @@ function useClanMe() {
     if (!env.ok) return { signed_in: true, unavailable: true };
     return env.data;
   };
-  const me = query.isError
-    ? { signed_in: true, unavailable: true }
-    : meOf(query.data);
+  // A refetch Elixir did not answer keeps the clans it last answered with,
+  // so one slow read never swaps the page someone is on for Unavailable.
+  const me =
+    query.isError && !query.data?.ok
+      ? { signed_in: true, unavailable: true }
+      : meOf(query.data);
   const { refetch } = query;
   const refresh = useCallback(
     async (force = false) => {

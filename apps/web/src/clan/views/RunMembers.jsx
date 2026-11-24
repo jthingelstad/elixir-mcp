@@ -15,6 +15,7 @@ import {
 } from "@elixir-mcp/ui";
 import { useState } from "react";
 import { useManage } from "../lib/queries.js";
+import { ReadError } from "../components/ReadError.jsx";
 import { PageHead } from "../components/PageHead.jsx";
 import { CLAN, clanPath } from "../lib/base.js";
 import { ROLE } from "../lib/words.js";
@@ -66,21 +67,20 @@ export function BoardState({ state, query, load, clan, navigate, what }) {
         Nothing here runs until a leader or co-leader sets how the clan runs.
       </Empty>
     );
+  if (state.error === "clan_not_recorded")
+    return (
+      <ErrorState title="Elixir is not recording this clan yet">
+        There is nothing to read until it does.
+      </ErrorState>
+    );
   if (state.error)
     return (
-      <ErrorState
-        title={
-          state.error === "clan_not_recorded"
-            ? "Elixir is not recording this clan yet"
-            : `${what} could not be read just now`
-        }
-        onRetry={state.error === "clan_not_recorded" ? undefined : () => load()}
+      <ReadError
+        what={what}
+        failure={state}
+        onRetry={() => load()}
         busy={state.loading}
-      >
-        {state.error === "clan_not_recorded"
-          ? "There is nothing to read until it does."
-          : "Elixir was slow or did not answer. Try again in a moment."}
-      </ErrorState>
+      />
     );
   return <p className="page__lede m-0">Reading the record…</p>;
 }

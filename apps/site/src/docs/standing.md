@@ -143,7 +143,7 @@ inactivity clock.** A member sees only their own activity clock and its uncertai
 
 Clan reads every clan with saved rules each morning from 11:00 UTC. Opening
 Standing or the leaders' Run › Members reads it again when the last reading is
-more than five minutes old. The Timeline and Run › Waiting open the last reading, and read
+more than five minutes old. The Timeline and Run › To do open the last reading, and read
 again when someone chooses **Refresh suggestions** or the rules have a
 new version. A reading can raise or withdraw
 [actions](/docs/clan-actions). A new version of the rules is read

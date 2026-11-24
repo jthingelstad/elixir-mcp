@@ -149,9 +149,13 @@ function useGated(queryKey, read, { enabled = true, refetchInterval } = {}) {
     [keyId, refetch, queryClient],
   );
   const env = query.data;
+  // A read that fails after a good answer keeps the good answer: a refetch
+  // that Elixir was too slow for never blanks a panel that had drawn. With
+  // no good answer, `failed` is the ApiError, for words that name the cause.
+  const lost = query.isError && !env?.ok;
   const state = {
     loading: query.isFetching || refreshing,
-    ...(query.isError ? { error: query.error.message } : {}),
+    ...(lost ? { error: query.error.message, failed: query.error } : {}),
     ...(env ? gate(env) : {}),
   };
   return { state, load, updatedAt: query.dataUpdatedAt, query };

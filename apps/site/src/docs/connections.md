@@ -74,7 +74,7 @@ MCP service or count as an answered question.
 - **Building a routine or a bot that runs for you** →
   [Your own agent](/docs/agents): it signs in as you, the same way.
 - **Running a clan and want its news in Discord** → your clan's leaders
-  set that up on the clan's **Run › Discord** page
+  set that up on the clan's **Run › Setup › Discord** page
   ([Clan Discord](/docs/clan-discord)); no bot to run.
 - **Building an app that signs people in with Elixir** →
   [Sign in with Elixir](/docs/sign-in-with-elixir); it learns who they

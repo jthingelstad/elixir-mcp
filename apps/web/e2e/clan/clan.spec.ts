@@ -588,11 +588,12 @@ test.describe("signed in", () => {
     await clanTab(page, "Run").click();
     await expect(page).toHaveURL(/\/run$/);
     const list = page.getByRole("navigation", { name: "Run" });
-    await expect(list.getByRole("link", { name: /^Rules/ })).toContainText(
-      "v1",
-    );
     await list.getByRole("link", { name: /^Rules/ }).click();
     await expect(page).toHaveURL(/\/run\/rules$/);
+    await expect(list.getByRole("link", { name: /^Rules/ })).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
     for (const n of [1, 2, 3, 4, 5, 6])
       await expect(
         page.locator(".rules-q__n", { hasText: String(n) }),
@@ -621,12 +622,16 @@ test.describe("signed in", () => {
     await expect(changes).toContainText("Ranked battles: Off to On");
     await expect(changes).toContainText("Ranked battles goal: 0 to 5");
     await expect(changes).toContainText(/What makes a best player: .+ to .+/);
+    // The Rules tab marks an unsaved change, and drops the mark on undo.
     await expect(list.getByRole("link", { name: /^Rules/ })).toContainText(
-      "v1",
+      "changed",
     );
     await accessible(page, "rules editor");
     await bar.getByRole("button", { name: "Undo all" }).click();
     await expect(bar).toContainText("No changes.");
+    await expect(list.getByRole("link", { name: /^Rules/ })).toHaveText(
+      "Rules",
+    );
     await expect(
       page.getByRole("spinbutton", { name: "Ranked battles goal" }),
     ).toHaveCount(0);
@@ -708,14 +713,19 @@ test.describe("signed in", () => {
     await page.goto("/clan/0QC8RCGY/members");
     await clanTab(page, "Run").click();
     const list = page.getByRole("navigation", { name: "Run" });
-    await list.getByRole("link", { name: /^Clan settings/ }).click();
+    await list.getByRole("link", { name: "Setup" }).click();
+    await expect(page).toHaveURL(/\/run\/setup$/);
+    const setup = page.getByRole("navigation", { name: "Setup" });
+    await setup.getByRole("link", { name: /^Clan settings/ }).click();
     await expect(page).toHaveURL(/\/run\/settings$/);
     await expect(
       page.getByRole("heading", { name: "Clan settings" }),
     ).toBeVisible();
     await expect(page.getByText("Kicks and leaves")).toBeVisible();
     await accessible(page, "clan settings");
-    await list.getByRole("link", { name: /^Model & voice/ }).click();
+    await page.locator(".clan-run__up").click();
+    await expect(page).toHaveURL(/\/run\/setup$/);
+    await setup.getByRole("link", { name: /^Model & voice/ }).click();
     await expect(page).toHaveURL(/\/run\/model-voice$/);
     await expect(page.getByLabel("Add the clan's key")).toHaveAttribute(
       "type",
@@ -1109,29 +1119,65 @@ test.describe("signed in", () => {
     await accessible(page, "narrow feed");
   });
 
-  test("@narrow Run is a list, then a section with a way back", async ({
+  test("@narrow Run's tabs fit a phone, and a failed read fails alone", async ({
     page,
   }) => {
+    let actionReads = 0;
     await mockApi(
       page,
-      signedIn({ "GET /api/clan/clans/0QC8RCGY/policy": [200, POLICY_VIEW] }),
+      signedIn({
+        "GET /api/clan/clans/0QC8RCGY/policy": [200, POLICY_VIEW],
+        "GET /api/clan/clans/0QC8RCGY/actions": () => {
+          actionReads += 1;
+          return [504, { error: "timeout" }];
+        },
+      }),
     );
-    await page.goto("/clan/0QC8RCGY/run");
-    const list = page.getByRole("navigation", { name: "Run" });
-    await expect(list).toBeVisible();
-    await expect(page.locator(".clan-run__section")).toBeHidden();
-    await list.getByRole("link", { name: /^Rules/ }).click();
-    await expect(list).toBeHidden();
+    const noSideScroll = () =>
+      page.evaluate(
+        () => document.documentElement.scrollWidth <= window.innerWidth,
+      );
+    for (const width of [320, 390]) {
+      await page.setViewportSize({ width, height: 844 });
+      await page.goto("/clan/0QC8RCGY/run");
+      const tabs = page.getByRole("navigation", { name: "Run" });
+      await expect(tabs).toBeVisible();
+      await expect(tabs.getByRole("link")).toHaveCount(5);
+      for (const name of ["To do", "Members", "Exceptions", "Rules", "Setup"])
+        await expect(
+          tabs.getByRole("link", { name: new RegExp(`^${name}`) }),
+        ).toBeInViewport();
+      // Actions timed out: only that panel says so, and the tabs stay.
+      await expect(page.getByText("Elixir was slow")).toBeVisible();
+      await expect(page.getByRole("heading", { name: "To do" })).toBeVisible();
+      expect(await noSideScroll()).toBe(true);
+    }
+    await page.screenshot({
+      path: "/tmp/elixir-run-tabs-390.png",
+      fullPage: true,
+    });
+    const before = actionReads;
+    await page.getByRole("button", { name: /Try again/ }).click();
+    await expect.poll(() => actionReads).toBeGreaterThan(before);
+    const tabs = page.getByRole("navigation", { name: "Run" });
+    await tabs.getByRole("link", { name: /^Rules/ }).click();
+    await expect(tabs).toBeVisible();
+    await expect(tabs.getByRole("link", { name: /^Rules/ })).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
     await expect(
       page.getByRole("spinbutton", { name: "War decks goal" }),
     ).toHaveValue("8");
-    expect(
-      await page.evaluate(
-        () => document.documentElement.scrollWidth <= window.innerWidth,
-      ),
-    ).toBe(true);
-    await page.getByRole("link", { name: "Run" }).click();
-    await expect(list).toBeVisible();
+    expect(await noSideScroll()).toBe(true);
+    await tabs.getByRole("link", { name: "Setup" }).click();
+    await page
+      .getByRole("navigation", { name: "Setup" })
+      .getByRole("link", { name: /^Discord/ })
+      .click();
+    await expect(page).toHaveURL(/\/run\/discord$/);
+    await expect(page.locator(".clan-run__up")).toBeVisible();
+    expect(await noSideScroll()).toBe(true);
     await accessible(page, "narrow run");
   });
 

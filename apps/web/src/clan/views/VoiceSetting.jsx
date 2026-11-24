@@ -1,8 +1,9 @@
-import { useClock, ErrorState } from "@elixir-mcp/ui";
+import { useClock } from "@elixir-mcp/ui";
 import { useState } from "react";
 import { manageApi } from "../api.js";
 import { keys, useInvalidate, useVoice } from "../lib/queries.js";
 import { trackEvent } from "../../analytics.js";
+import { ReadError } from "../components/ReadError.jsx";
 
 /**
  * How our messages sound (2026-10-20): the clan's one voice, in its
@@ -29,13 +30,12 @@ export function VoiceSetting({ clan }) {
     );
   if (state.error)
     return (
-      <ErrorState
-        title="The clan’s voice could not be read just now"
+      <ReadError
+        what="The voice"
+        failure={state}
         onRetry={() => load()}
         busy={state.loading}
-      >
-        Try again in a moment.
-      </ErrorState>
+      />
     );
   const d = state.data;
   if (!d) return <p className="page__lede">Reading…</p>;

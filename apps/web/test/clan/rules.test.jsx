@@ -92,7 +92,8 @@ describe("Rules: six questions under Run", () => {
       .getAllByRole("link")
       .find((a) => a.textContent.startsWith("Rules"));
     expect(link.getAttribute("href")).toBe("/clan/0QC8RCGY/run/rules");
-    expect(link.textContent).toMatch(/not set$/);
+    expect(link.getAttribute("aria-current")).toBe("page");
+    expect(link.textContent).toBe("Rules");
     for (const name of ["About", "Clan Wars", "Elder", "Inactivity"])
       expect(
         within(nav)

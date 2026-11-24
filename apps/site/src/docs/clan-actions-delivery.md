@@ -27,7 +27,7 @@ clan, and at most once a day per clan. Turn it off on
 ## Actions in the clan's Discord
 
 The leader or a co-leader can connect a Discord webhook under
-**Run › Discord** ([Clan settings](/docs/clan-settings#clan-settings)).
+**Run › Setup › Discord** ([Clan settings](/docs/clan-settings#clan-settings)).
 From then on, every open action that leaders or elders can take, but a
 removal, a promotion or a demotion, is posted to that channel as one message: its number, what it is and who it is
 about, and a link to it here. When someone completes or declines it,
@@ -57,14 +57,14 @@ again.
   ten at a time, spaced under Discord's limit for a channel; a long
   backlog arrives over a few minutes.
 - Nothing pings anyone unless the leader or a co-leader names one Discord
-  role to mention (**Run › Discord**, by the role's id). That role, and only it, is
+  role to mention (**Run › Setup › Discord**, by the role's id). That role, and only it, is
   mentioned when an action is first posted; an edit never mentions
   anyone. Connecting a different webhook clears the role, since it may
   be another server's channel.
 - A forum channel's webhook works: each action becomes a forum post of its
   own, named for it, and its close is edited in that post. A webhook
   ending in `?thread_id=` posts every action into that one thread.
-- **Run › Discord** lists the last deliveries: posted, edited, refused (with what
+- **Run › Setup › Discord** lists the last deliveries: posted, edited, refused (with what
   Discord said), and those Discord never answered, which may be in the
   channel and are never sent again (a duplicate is worse than a missing
   message). It counts what did not arrive in the last 30 days. When
@@ -75,4 +75,4 @@ again.
   their own.
 - Until a webhook is connected, the **Timeline** suggests one to the
   leader and co-leaders. If Discord stops taking it (the webhook was
-  deleted, say), posting stops and **Run › Discord** and the **Timeline** say so.
+  deleted, say), posting stops and **Run › Setup › Discord** and the **Timeline** say so.

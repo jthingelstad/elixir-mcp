@@ -176,7 +176,7 @@ Your agent never needs to be a bot to reach Discord:
 - **Your own Timeline** goes to a Discord channel from Settings ›
   Connections › Discord ([Cross-posting to Discord](/docs/timeline#cross-posting-to-discord)).
 - **Your clan's** Activity channel and leader Actions are set up by its
-  leaders on the clan's own **Run › Discord** page
+  leaders on the clan's own **Run › Setup › Discord** page
   ([Clan Discord](/docs/clan-discord)).
 
 A bot you run that answers people in a Discord is your own client: it

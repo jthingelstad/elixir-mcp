@@ -7,13 +7,13 @@ import {
   useClock,
   Panel,
   Link,
-  ErrorState,
 } from "@elixir-mcp/ui";
 import { manageApi } from "../api.js";
 import { keys, useActivityDiscord, useInvalidate } from "../lib/queries.js";
 import { trackEvent } from "../../analytics.js";
 import { clanPath } from "../lib/base.js";
 import { untilWritten } from "../lib/pending.js";
+import { ReadError } from "../components/ReadError.jsx";
 
 const dead = (c) =>
   ["gone", "forum"].includes(c?.delivery?.state) ||
@@ -46,13 +46,12 @@ export function ActivityDiscordSetting({ clan, navigate }) {
     );
   if (state.error)
     return (
-      <ErrorState
-        title="The activity channel could not be read just now"
+      <ReadError
+        what="The activity channel"
+        failure={state}
         onRetry={() => load()}
         busy={state.loading}
-      >
-        Try again in a moment.
-      </ErrorState>
+      />
     );
   const d = state.data;
   if (!d) return <p className="page__lede">Reading…</p>;

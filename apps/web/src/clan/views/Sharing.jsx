@@ -1,5 +1,5 @@
-import { ErrorState } from "@elixir-mcp/ui";
 import { useSharing } from "../lib/queries.js";
+import { ReadError } from "../components/ReadError.jsx";
 
 /**
  * What Clan records in Elixir (2026-09-25): what the clan did goes
@@ -21,13 +21,12 @@ export function Sharing({ clan }) {
     );
   if (state.error)
     return (
-      <ErrorState
-        title="The recording summary could not be read just now"
+      <ReadError
+        what="The recording summary"
+        failure={state}
         onRetry={() => load()}
         busy={state.loading}
-      >
-        Try again in a moment.
-      </ErrorState>
+      />
     );
   if (!d) return <p className="page__lede">Reading…</p>;
   return (

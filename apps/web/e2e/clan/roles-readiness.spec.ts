@@ -526,7 +526,7 @@ for (const size of ["wide", "@narrow"])
     routes[`GET ${apiBase}/history`] = [503, { error: "unavailable" }];
     await page.goto(`${base}/run/decided`);
     await expect(page.getByRole("alert")).toContainText(
-      "The decisions could not be read just now",
+      "The decisions didn’t load in time",
     );
     await expect(
       page.getByText(

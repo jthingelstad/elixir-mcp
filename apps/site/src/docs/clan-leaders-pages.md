@@ -14,9 +14,16 @@ guide: clan-policy
 
 ## The leaders pages
 
+**Run** has five tabs across the top: **To do**, **Members**,
+**Exceptions**, **Rules** and **Setup**. On a phone they wrap onto a second
+line, so every tab is always in reach. If one part of a page can't load,
+only that part says so, with **Try again**; nothing you typed is lost.
+
 Under **Run**, with **Recruit** and **Scout** also at the foot of **Members**:
 
-- **Members**, under Run beside **Waiting** and **Decided**: every member
+- **To do**: what the rules say to do next. Do it in the game, then tap
+  **Done** ([Actions](/docs/clan-actions)).
+- **Members**: every member
   and where they stand today, sorted by Elder rank. Tiles up top: Elder
   seats taken, who did their part (the policy's minimums over its
   window), and who has gone 4 or more days without a battle. Filter by
@@ -41,10 +48,10 @@ Under **Run**, with **Recruit** and **Scout** also at the foot of **Members**:
   for a member who was already in the clan when Elixir started following
   it, nothing before that day is known. Each part of the page loads on
   its own, so one that fails says so in place with **Try again**.
-- **Exceptions**, under Run: the members the rules leave alone and how,
+- **Exceptions**: the members the rules leave alone and how,
   each with its end date and who can see it; what the rules leave alone by
   themselves; and a way to add one.
-- **Decided**, under Run, beside **Waiting**: the joins, leaves and role changes the record saw, with
+- **Decided**, in **To do** beside **Waiting**: the joins, leaves and role changes the record saw, with
   how each leave was answered; every action the clan has had, with its
   outcome and who decided it; and the latest exception changes.
 - **Scout**, at the foot of **Members**: paste an applicant's tag and see
@@ -55,7 +62,10 @@ Under **Run**, with **Recruit** and **Scout** also at the foot of **Members**:
   numbers from the game. Elders read and copy it too; the leader and
   co-leaders write the pitch. It works before a policy. A member who opens
   its address sees the role it needs.
+- **Setup**: the pages you set once and leave alone: **Awards setup**,
+  **Discord**, **Model & voice** and **Clan settings**. Each one has a
+  link back to Setup.
 
 **Standings** is a tab every member sees; the leaders set the awards up under
-**Run › Awards setup** and grant leaders' picks on the tab
+**Run › Setup › Awards setup** and grant leaders' picks on the tab
 ([Awards and trophies](/docs/clan-awards)).

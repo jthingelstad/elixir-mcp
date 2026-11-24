@@ -205,7 +205,7 @@ describe("Run › Members", () => {
     renderWithProviders(<RunMembers clan={clan} />);
     await waitFor(() =>
       expect(
-        screen.getByText("Members could not be read just now"),
+        screen.getByText("Members didn’t load in time. Nothing is lost."),
       ).toBeTruthy(),
     );
     // The page's head still stands.
@@ -395,7 +395,7 @@ describe("Run › Members › one member", () => {
     renderWithProviders(<RunMember clan={clan} who={who} player="#SYNTH1" />);
     await waitFor(() =>
       expect(
-        screen.getByText("The history could not be read just now"),
+        screen.getByText("The history didn’t load in time. Nothing is lost."),
       ).toBeTruthy(),
     );
     // The rest of the page still stands.
@@ -414,7 +414,9 @@ describe("Run › Members › one member", () => {
     renderWithProviders(<RunMember clan={clan} who={who} player="#SYNTH1" />);
     await waitFor(() =>
       expect(
-        screen.getByText("Where they stand could not be read just now"),
+        screen.getByText(
+          "Where they stand didn’t load in time. Nothing is lost.",
+        ),
       ).toBeTruthy(),
     );
     await waitFor(() =>

@@ -17,11 +17,19 @@ import { ErrorState } from "./Empty.tsx";
  * caught, so without that a single bad page keeps showing its error
  * after you navigated away from it.
  */
+interface BoundaryProps {
+  children?: ReactNode;
+  /** What to draw instead, for a boundary round one panel: given a way to
+   *  try that panel again. Without it the boundary draws the whole-page
+   *  error with the message. */
+  fallback?: (retry: () => void) => ReactNode;
+}
+
 export class ErrorBoundary extends Component<
-  { children?: ReactNode },
+  BoundaryProps,
   { error: Error | null }
 > {
-  constructor(props: { children?: ReactNode }) {
+  constructor(props: BoundaryProps) {
     super(props);
     this.state = { error: null };
   }
@@ -38,6 +46,8 @@ export class ErrorBoundary extends Component<
 
   override render() {
     if (!this.state.error) return this.props.children;
+    if (this.props.fallback)
+      return this.props.fallback(() => this.setState({ error: null }));
     return (
       <div className="my-6">
         <ErrorState
