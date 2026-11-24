@@ -22,28 +22,42 @@
  * refreshSubjectStories; the jobs' five-minute home_feeds run wakes what
  * no admission announces (storiesToWake). Each write stamps
  * timeline_story_subject (0315) with when its build began
- * (docs/notes/2026-11-23-timeline-story-fresh.md).
+ * (docs/notes/2026-11-23-timeline-story-fresh.md). Stage 3 (2026-11-24)
+ * stores every recorded player (RECORDED_PLAYERS_SQL, the tools' own
+ * set) and serves the rows to the player page, its games' read and its
+ * session read when readSubjectStories proves them current
+ * (docs/notes/2026-11-24-timeline-story-read.md).
  */
 import { createHash } from "node:crypto";
 import {
   ITEM_KINDS,
   buildTimeline,
   itemVisibility,
+  restoredItem,
   storedItem,
   timelineNews,
 } from "./entries.mjs";
+import { RECORDED_PLAYERS_SQL } from "../recorded-players.mjs";
 
 const DAY_MS = 86_400_000;
 
 /** How far back stories are kept, and what a write with no span covers:
- *  a session link's 30 days (the longest a player-page read reaches; its
- *  list reads the Timeline's week, lookback.mjs) and a margin. */
+ *  a session link's 30 days (the longest a player-page read reaches,
+ *  through the same stored read; its list reads the Timeline's week,
+ *  lookback.mjs) and a margin. */
 export const STORY_SPAN_DAYS = 35;
 
 /** Items the store never holds. A Drop game is a signed-in follower's
  *  alone (pageGameReader); a post about a battle is the post's, edited
  *  and removed in its own table and read live. */
 export const UNSTORED_KINDS = new Set(["drop_game", "battle_highlight"]);
+
+/** Nor a people item (a player's verification): it tells an account's
+ *  claim, which its owner can remove, and its account's identity, which
+ *  can be deleted. A stored copy would say so for hours after; a read adds
+ *  it live (storedTimeline's `people`). */
+export const unstored = (it) =>
+  UNSTORED_KINDS.has(it.kind) || it.section === "people";
 
 /** What finishItem writes for a reader (its zone, its window, its door),
  *  and the reader's own nickname: never stored. */
@@ -94,8 +108,8 @@ export const storySpan = (now = Date.now()) => ({
 });
 
 /** The stories the builder tells about one player over the span, as rows:
- *  the player page's read (occurred, public game record and the player's
- *  verification), with no reader and no cap. */
+ *  the player page's read (occurred, the public game record), with no
+ *  reader, no people items (`unstored`) and no cap. */
 export async function buildSubjectStories(db, kind, tag, span = storySpan()) {
   if (kind !== "player")
     throw new Error(`timeline_story stores players only, not ${kind}`);
@@ -108,13 +122,12 @@ export async function buildSubjectStories(db, kind, tag, span = storySpan()) {
       timezone: "UTC",
       accountId: null,
       basis: "occurred",
-      people: { accounts: [], players: true },
       lateCounts: false,
       cap: Number.MAX_SAFE_INTEGER,
     },
   );
   return built.timeline
-    .filter((it) => !UNSTORED_KINDS.has(it.kind))
+    .filter((it) => !unstored(it))
     .map((it) => {
       const { item, content_hash } = storyForm(it);
       return {
@@ -296,8 +309,88 @@ const SWEEP_BUDGET_MS = 20_000;
 /** A player written this recently is not probed for news. */
 const JUST_WRITTEN_MS = 2 * 60_000;
 
-/** Every recorded player with their write's time (null: never written by
- *  stage 2) and whether a sitting stored open has since gone quiet. */
+/** How old a write the read still serves: the floor, and a margin for a
+ *  sweep that runs late. Older, the subject left the set or the sweep is
+ *  not running, and the read computes. */
+export const STORY_READ_MARGIN_MS = 30 * 60_000;
+const STORY_READ_STALE_MS = STORY_FLOOR_MS + STORY_READ_MARGIN_MS;
+
+/**
+ * One subject's stored stories for a read (stage 3 of the stored
+ * Timeline, 2026-11-24; docs/notes/2026-11-24-timeline-story-read.md),
+ * served only when they are provably current. Answers
+ * `{ ok: true, items, written_at }`, the rows whose sort_at lies in
+ * (fromMs, toMs] and whose visibility is one of `visibilities`, each as
+ * the builder finished it (restoredItem: its server-only fields back
+ * under their symbols), newest first; or `{ ok: false, reason }`:
+ *
+ *  - `unwritten`: no timeline_story_subject marker (a player outside the
+ *    stored set, or never written).
+ *  - `stale`: the marker is older than the floor and STORY_READ_MARGIN_MS.
+ *  - `news`: the record learned something the stored kinds can tell
+ *    since the write (subjectNews), so a read right after a live fetch or
+ *    an admission computes rather than serve rows a minute behind.
+ *  - `open`: a stored sitting in the window says `open` and its last
+ *    battle is more than SITTING_QUIET_MS old: the clock closed it and no
+ *    write has yet.
+ *
+ * The stored telling is canonical: rows are taken by sort_at as the
+ * 35-day build told them, never re-cut to the read's window. A stored
+ * quiet_crossed item's `days_since_poll` is the write's (at most the
+ * floor old, in whole days) and is served as stored, with no read-time
+ * recompute. A people item is never served from a row (`unstored`; a row
+ * written before 2026-11-24 can still hold one until its next write).
+ * Players only. Three statements, one at a time: the marker, the probe
+ * (subjectNews) and the select.
+ */
+export async function readSubjectStories(
+  db,
+  kind,
+  tag,
+  { fromMs, toMs, visibilities, now = Date.now() },
+) {
+  if (kind !== "player")
+    throw new Error(`timeline_story serves players only, not ${kind}`);
+  const writtenMs = await writtenAt(db, kind, tag);
+  if (writtenMs === null) return { ok: false, reason: "unwritten" };
+  if (now - writtenMs > STORY_READ_STALE_MS)
+    return { ok: false, reason: "stale" };
+  if (await subjectNews(db, tag, writtenMs, now))
+    return { ok: false, reason: "news" };
+  const { rows } = await db.query(
+    `select item from timeline_story
+      where subject_kind = $1 and subject_tag = $2
+        and sort_at > $3 and sort_at <= $4
+        and visibility = any($5::text[])
+        and section <> 'people'
+      order by sort_at desc, story_id`,
+    [
+      kind,
+      tag,
+      new Date(fromMs).toISOString(),
+      new Date(toMs).toISOString(),
+      visibilities,
+    ],
+  );
+  for (const { item } of rows)
+    if (
+      item.kind === "battle_session" &&
+      item.facts?.open === true &&
+      now - Date.parse(item.facts.ended_at ?? item.sort_at) > SITTING_QUIET_MS
+    )
+      return { ok: false, reason: "open" };
+  return {
+    ok: true,
+    items: rows.map((r) => restoredItem(r.item)),
+    written_at: new Date(writtenMs).toISOString(),
+  };
+}
+
+/** Every recorded player (RECORDED_PLAYERS_SQL: a direct recording, or
+ *  an open member of a clan recorded at comprehensive scope) with their
+ *  write's time (null: never written by stage 2) and whether a sitting
+ *  stored open has since gone quiet. A player who leaves the set keeps
+ *  their rows until the daily trim. */
 const RECORDED_PLAYERS = `
   select r.tag, m.written_at,
          exists (select 1 from timeline_story s
@@ -305,8 +398,7 @@ const RECORDED_PLAYERS = `
                     and s.kind = 'battle_session'
                     and s.sort_at > $1 and s.sort_at < $2
                     and s.item->'facts'->>'open' = 'true') as open_quiet
-    from (select distinct subject_tag as tag from recording
-           where subject_type = 'player' and status = 'active') r
+    from (select player_tag as tag from (${RECORDED_PLAYERS_SQL}) rp) r
     left join timeline_story_subject m
       on m.subject_kind = 'player' and m.subject_tag = r.tag
    order by m.written_at nulls first, md5(r.tag)`;
@@ -395,8 +487,7 @@ export async function storyStaleness(
     `select count(distinct s.subject_tag)::int as n
        from timeline_story s
       where s.subject_kind = 'player'
-        and s.subject_tag in (select subject_tag from recording
-                               where subject_type = 'player' and status = 'active')`,
+        and s.subject_tag in (select player_tag from (${RECORDED_PLAYERS_SQL}) rp)`,
   );
   const {
     rows: [build],
@@ -456,11 +547,11 @@ const GROUPS = 25;
 /** A story this close to the window's start can differ by the window
  *  alone (a sitting begun before it is cut by the wider fetch, repeats
  *  collapse and first ids are found inside the window, an occurred
- *  ledger row must be observed after `from`). */
+ *  ledger row must be observed after `from`, a return at the window's
+ *  first battle whose earlier battles a wider window holds). Since stage
+ *  3 a return is told at every battle after a gap (presenceOf), so it is
+ *  `window` only here, like any other kind. */
 const WINDOW_EDGE_MS = 2 * DAY_MS;
-/** Built for the window's first battle (presenceOf), so a 35-day write
- *  and the page's shorter window can tell it differently anywhere. */
-const WINDOW_KINDS = new Set(["returned"]);
 /** Objects whose own keys are fixed field names, so a difference is
  *  named one level down; every other key is named at the top. */
 const NAMED_DEEP = new Set(["facts", "evidence"]);
@@ -508,8 +599,8 @@ const ms = (v) => (v ? new Date(v).getTime() : null);
  * since the write), and `groups`: each difference counted by story kind,
  * bucket (only_computed, only_stored, revision, content), cause and, for
  * content, the field that differs. The cause is `unwritten` (no write
- * yet, or the story was learned after it), `window` (a returned story,
- * or one within WINDOW_EDGE_MS of the window's start) or `settled`
+ * yet, or the story was learned after it), `window` (a story within
+ * WINDOW_EDGE_MS of the window's start) or `settled`
  * (neither: what stage 3 must explain). Field names are read from at most
  * FIELD_SAMPLE stored items; past that the field is `unread`.
  */
@@ -569,9 +660,9 @@ export async function compareStories(
   };
   const near = (atMs, sortMs) =>
     Math.min(atMs ?? Infinity, sortMs ?? Infinity) <= fromMs + WINDOW_EDGE_MS;
-  const causeOf = (storyKind, learnedMs, atMs, sortMs) => {
+  const causeOf = (learnedMs, atMs, sortMs) => {
     if (writtenMs === null || (learnedMs ?? 0) > writtenMs) return "unwritten";
-    if (WINDOW_KINDS.has(storyKind) || near(atMs, sortMs)) return "window";
+    if (near(atMs, sortMs)) return "window";
     return "settled";
   };
   const note = (bucket, id) => {
@@ -582,7 +673,7 @@ export async function compareStories(
   const contentDiffs = [];
   const seen = new Set();
   for (const it of items) {
-    if (UNSTORED_KINDS.has(it.kind) || seen.has(it.id)) continue;
+    if (unstored(it) || seen.has(it.id)) continue;
     seen.add(it.id);
     out.computed += 1;
     const learnedMs = ms(it.observed_at ?? it.at);
@@ -591,12 +682,7 @@ export async function compareStories(
       (newestLearned === null || learnedMs > newestLearned)
     )
       newestLearned = learnedMs;
-    const cause = causeOf(
-      it.kind,
-      learnedMs,
-      ms(it.at),
-      ms(it.sort_at ?? it.at),
-    );
+    const cause = causeOf(learnedMs, ms(it.at), ms(it.sort_at ?? it.at));
     const row = stored.get(it.id);
     if (!row) {
       note("only_computed", it.id);
@@ -624,7 +710,7 @@ export async function compareStories(
     const cause =
       writtenMs === null
         ? "unwritten"
-        : WINDOW_KINDS.has(row.kind) || near(ms(row.at), ms(row.sort_at))
+        : near(ms(row.at), ms(row.sort_at))
           ? "window"
           : out.stale
             ? "unwritten"

@@ -136,6 +136,15 @@ Parameters:
       page also reads the player's stored stories and logs one line of
       differences from what it computed; the page is served either way.
       off - no shadow read. A deploy never resets it.
+  TimelineStoryRead:
+    Type: String
+    Default: "on"
+    AllowedValues: ["on", "off"]
+    Description: >-
+      The stored Timeline's read (2026-11-24, stage 3). on - the player
+      page, its games' read and its session reads serve the player's stored
+      stories when they are proved current, and compute otherwise. off -
+      always computed. A deploy never resets it.
   DiscordClientId:
     Type: String
     Default: ""
@@ -1576,6 +1585,7 @@ Resources:
           POSTS_ENABLED: !If [HasPosts, "true", !Ref AWS::NoValue]
           # The stored Timeline's shadow on the player page (2026-11-23).
           TIMELINE_STORY_SHADOW: !Ref TimelineStoryShadow
+          TIMELINE_STORY_READ: !Ref TimelineStoryRead
           # Web push (2026-11-16): the VAPID PUBLIC key only, which every
           # browser is handed to subscribe; not a secret. The private key
           # stays in the secret and is read by the relay at runtime.

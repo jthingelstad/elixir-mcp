@@ -16,6 +16,7 @@
  * sweep (storiesToWake) finds the news within five minutes.
  */
 import { createHash } from "node:crypto";
+import { RECORDED_PLAYERS_SQL } from "../recorded-players.mjs";
 
 const MINUTE_MS = 60_000;
 
@@ -42,14 +43,14 @@ export function storyWake(outbox) {
 }
 
 /** After an admission about `tag`: wake its stories when it is a
- *  recorded player (the store holds only those). Returns 1 when woken. */
+ *  recorded player (RECORDED_PLAYERS_SQL: the store holds only those).
+ *  One statement; the tag is pushed into both branches of the set, each
+ *  an indexed lookup. Returns 1 when woken. */
 export async function wakeStories(db, tag, { outbox, now = Date.now() }) {
   const wake = storyWake(outbox);
   if (!wake || !tag) return 0;
   const { rows } = await db.query(
-    `select 1 from recording
-      where subject_type = 'player' and subject_tag = $1 and status = 'active'
-      limit 1`,
+    `select 1 from (${RECORDED_PLAYERS_SQL}) r where r.player_tag = $1 limit 1`,
     [tag],
   );
   if (!rows.length) return 0;

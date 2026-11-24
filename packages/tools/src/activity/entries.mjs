@@ -2468,22 +2468,40 @@ async function presenceOf(db, tag, played, fromMs, toMs, read = null) {
     ? Math.floor((toMs - lastBattle.getTime()) / DAY_MS)
     : null;
   let returned = null;
+  // Every return in the window (stage 3 of the stored Timeline,
+  // 2026-11-24): a timely battle after a gap of RETURN_AFTER_DAYS since the
+  // player's previous battle of any kind, so a 35-day build tells the
+  // return a 7-day read tells. The first battle's is `returned`, as the
+  // entry has always said it.
+  const returns = [];
+  const priorTo = async (ms) =>
+    (
+      await db.query(
+        `select max(bp.battle_time) as t from battle_participant bp
+          where bp.player_tag = $1 and bp.battle_time < ${ts(ms)}`,
+        [tag],
+      )
+    ).rows[0]?.t;
+  const gapTo = (ms, t) => (t ? Math.floor((ms - t.getTime()) / DAY_MS) : null);
   if (played.length > 0) {
     const firstIn = played[0].battle_time.getTime();
-    const t = read
-      ? read.prior
-      : (
-          await db.query(
-            `select max(bp.battle_time) as t from battle_participant bp
-              where bp.player_tag = $1 and bp.battle_time < ${ts(firstIn)}`,
-            [tag],
-          )
-        ).rows[0]?.t;
-    if (t) {
-      const gap = Math.floor((firstIn - t.getTime()) / DAY_MS);
-      if (gap >= RETURN_AFTER_DAYS)
-        returned = { after_days: gap, at: iso(firstIn) };
+    const gap = gapTo(firstIn, read ? read.prior : await priorTo(firstIn));
+    if (gap !== null && gap >= RETURN_AFTER_DAYS) {
+      returned = { after_days: gap, at: iso(firstIn) };
+      returns.push(returned);
     }
+  }
+  // A later battle is a return only when the timely battle before it is a
+  // gap's length away (the previous battle of any kind is no earlier), so
+  // only those few are asked. Inside a window of RETURN_AFTER_DAYS or less
+  // on the occurred basis there are none.
+  for (let i = 1; i < played.length; i++) {
+    const atMs = played[i].battle_time.getTime();
+    if (atMs - played[i - 1].battle_time.getTime() < RETURN_AFTER_DAYS * DAY_MS)
+      continue;
+    const gap = gapTo(atMs, await priorTo(atMs));
+    if (gap !== null && gap >= RETURN_AFTER_DAYS)
+      returns.push({ after_days: gap, at: iso(atMs) });
   }
   const daysSincePoll = read
     ? read.daysSincePoll
@@ -2515,6 +2533,7 @@ async function presenceOf(db, tag, played, fromMs, toMs, read = null) {
     days_since_poll: daysSincePoll,
     returned_after_days: returned?.after_days ?? null,
     returned,
+    returns,
     rungCrossed,
   };
 }
@@ -3075,14 +3094,14 @@ export async function buildPlayerEntry(
   }
   // A return and a quiet crossing name the player, so the same one on a
   // clan's timeline (the member's) is the same story.
-  if (presence.returned)
+  for (const r of presence.returns)
     items.push({
       ...subject,
-      at: presence.returned.at,
+      at: r.at,
       kind: "returned",
       section: "presence",
-      facts: { ...self, after_days: presence.returned.after_days },
-      [STORY]: moment("returned", tag, presence.returned.at),
+      facts: { ...self, after_days: r.after_days },
+      [STORY]: moment("returned", tag, r.at),
     });
   if (presence.rungCrossed)
     items.push({
@@ -5359,7 +5378,7 @@ export async function buildTimeline(
 ) {
   const entries = [];
   const quiet = [];
-  let items = [];
+  const items = [];
   let more = 0;
   // Every item a cap left out, so the caller can say where a reader must
   // continue from (Gym #120) and count only what its filters would show.
@@ -5490,6 +5509,41 @@ export async function buildTimeline(
       basis,
     })),
   );
+  return finishTimeline(db, tellItems(items), {
+    subjects,
+    accountId,
+    clanStories,
+    filter,
+    fromMs,
+    toMs,
+    timezone,
+    basis,
+    cap,
+    more,
+    dropped,
+    entries,
+    quiet,
+  });
+}
+
+/** The story fields of a built item, first on it: its id and revision
+ *  from what its builder named (STORY), or, for an item no builder named
+ *  (none today), the story its dedupe key says. */
+const told = (it) => {
+  const { [STORY]: named, ...rest } = it;
+  const story = named ?? moment("item", dedupeKey(it));
+  return {
+    id: story.id ?? storyId(...story.key),
+    revision: story.revision ?? 1,
+    ...rest,
+  };
+};
+
+/** Built items as stories: in the order they happened, each saying when
+ *  the record observed it, repeats collapsed, told (their ids), and a
+ *  crossing's late proof folded into its original observation. */
+function tellItems(built) {
+  let items = [...built];
   items.sort((a, b) => (a.at ?? "").localeCompare(b.at ?? ""));
   // The same moment written twice (feedback #48, still in the 09-14
   // ledger rows, Gym #121): identical subject, kind and facts is one
@@ -5499,22 +5553,12 @@ export async function buildTimeline(
   // polled moment (a battle session, a join) was observed at its instant.
   for (const it of items) it.observed_at ??= it.at;
   items = collapseRepeats(items);
-  // The story fields, after the dedupe (#111), first on each item. An
-  // item no builder named (none today) is the story its dedupe key says.
-  const told = (it) => {
-    const { [STORY]: named, ...rest } = it;
-    const story = named ?? moment("item", dedupeKey(it));
-    return {
-      id: story.id ?? storyId(...story.key),
-      revision: story.revision ?? 1,
-      ...rest,
-    };
-  };
+  // The story fields, after the dedupe (#111), first on each item.
   items = items.map(told);
   // A late proof and its original observation are one moment. Keep the
   // latest evidence under the original id, including legacy duplicate rows.
   const origins = new Map();
-  items = items.filter((it) => {
+  return items.filter((it) => {
     if (!it.evidence || it.evidence.kind !== "crossing") return true;
     const key = `${it.subject_tag}|${it.id}`;
     const kept = origins.get(key);
@@ -5529,6 +5573,32 @@ export async function buildTimeline(
       Object.assign(kept, it);
     return false;
   });
+}
+
+/** A told timeline as a door serves it: the caller's filter, one item
+ *  per story, newest first by sort_at, the cap cut in the order the basis
+ *  selects by, and each kept item finished for the reader. buildTimeline
+ *  and a read of stored stories (storedTimeline) end here alike. */
+async function finishTimeline(
+  db,
+  input,
+  {
+    subjects,
+    accountId = null,
+    clanStories = false,
+    filter = null,
+    fromMs,
+    toMs,
+    timezone,
+    basis,
+    cap,
+    more = 0,
+    dropped = [],
+    entries = [],
+    quiet = [],
+  },
+) {
+  let items = input;
   // The caller's filter (kinds, sections, a member) applies BEFORE the
   // cap (Gym #244: the cap counted items the filter then removed, so a
   // filtered reader got 18 of 50 items and a busy-window note).
@@ -5545,9 +5615,17 @@ export async function buildTimeline(
   // their clan's timeline was two items under one id.
   items = mergeStories(items);
   for (const it of items) it.sort_at = sortAt(it);
-  // Served newest first by when the story last moved (sort_at).
+  // Served newest first by when the story last moved (sort_at). Stories
+  // that moved at one instant go by when each happened, then by id: a
+  // total order, so a read of stored rows (storedTimeline), which carry
+  // no build order, serves what a build serves.
   const sortMs = (it) => Date.parse(it.sort_at ?? it.at);
-  items.sort((a, b) => sortMs(b) - sortMs(a));
+  items.sort(
+    (a, b) =>
+      sortMs(b) - sortMs(a) ||
+      (a.at ?? "").localeCompare(b.at ?? "") ||
+      String(a.id).localeCompare(String(b.id)),
+  );
   // The cap cuts in the order the window SELECTS by (Gym #317): cut by
   // `at`, an item learned 17 h late was the oldest left out, its
   // observed_at became the boundary, and a continuation to that instant
@@ -5559,14 +5637,13 @@ export async function buildTimeline(
     cap,
   );
   const keptSet = new Set(kept);
-  more += cut.length;
   dropped.push(...cut);
   items = items.filter((it) => keptSet.has(it));
   for (const it of items) finishItem(it, { fromMs, basis, timezone });
   return {
     window: { from: iso(fromMs), to: iso(toMs) },
     timeline: items,
-    timeline_more: more,
+    timeline_more: more + cut.length,
     timeline_dropped: dropped.map((it) => {
       const t = it.id === undefined ? told(it) : it;
       t.sort_at ??= sortAt(t);
@@ -5575,6 +5652,73 @@ export async function buildTimeline(
     entries,
     quiet,
   };
+}
+
+/**
+ * One player's timeline from their stored stories (stage 3 of the stored
+ * Timeline, 2026-11-24): what buildTimeline answers for that one player
+ * subject, from `stored` (story-store.mjs readSubjectStories' items, as
+ * the builder finished them) in place of a build. What the store never
+ * holds is read live, as the builder reads it: with `people.players`, the
+ * player's verification (peopleItems: an account's claim, which can be
+ * removed at any time); with `pageGameReader`, the player's completed
+ * Drop games that reader may see. Then the builder's own tail
+ * (finishTimeline): the caller's filter, sort_at, newest first in its one
+ * total order, the cap and the reader's zone. `entries` and `quiet` are
+ * empty: the store keeps items only. A battle_highlight is never stored
+ * and never added, so `timeline_more` here does not count highlights past
+ * the cap (the player page drops them anyway).
+ */
+export async function storedTimeline(
+  db,
+  tag,
+  stored,
+  {
+    fromMs,
+    toMs,
+    timezone = "UTC",
+    basis = "occurred",
+    people = null,
+    pageGameReader = null,
+    filter = null,
+    cap = TIMELINE_CAP,
+  },
+) {
+  const subjects = [
+    { kind: "player", tag, relationship: null, nickname: null },
+  ];
+  const live = [];
+  if (people?.players)
+    live.push(
+      ...(await peopleItems(db, {
+        accounts: [],
+        playerTags: [tag],
+        fromMs,
+        toMs,
+      })),
+    );
+  if (pageGameReader)
+    live.push(
+      ...(await readFactItems(db, subjects, {
+        fromMs,
+        toMs,
+        basis,
+        inClan: [],
+        leads: [],
+        playerTags: [tag],
+        dropReader: pageGameReader,
+        onlyDrop: true,
+      })),
+    );
+  return finishTimeline(db, [...stored, ...tellItems(live)], {
+    subjects,
+    filter,
+    fromMs,
+    toMs,
+    timezone,
+    basis,
+    cap,
+  });
 }
 
 const observedOf = (it) => Date.parse(it.observed_at ?? it.at);

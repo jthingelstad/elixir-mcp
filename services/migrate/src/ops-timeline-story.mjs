@@ -1,6 +1,7 @@
 /**
  * The stored Timeline's backfill ({timeline_story_backfill}, 0314; stage 1,
- * 2026-11-23): every recorded player's stories over the last 35 days,
+ * 2026-11-23): every recorded player's stories over the last 35 days
+ * (since stage 3, the tools' recorded set: RECORDED_PLAYERS_SQL),
  * written by the builder through writeSubjectStories
  * (packages/tools/src/activity/story-store.mjs), so the player page's
  * shadow has rows to compare with and real row sizes can be measured
@@ -33,6 +34,7 @@ import {
   storySpan,
   writeSubjectStories,
 } from "@elixir-mcp/tools/activity/story-store";
+import { RECORDED_PLAYERS_SQL } from "@elixir-mcp/tools/recorded-players";
 import { vacuumAnalyze } from "./vacuum.mjs";
 
 const KEYS = new Set(["after", "limit", "budget_ms"]);
@@ -57,10 +59,10 @@ export function readSpec(spec) {
 }
 
 /** The players the backfill is for, after the cursor: every player the
- *  record is recording. */
+ *  record is recording (RECORDED_PLAYERS_SQL: a direct recording, or an
+ *  open member of a clan recorded at comprehensive scope). */
 const NEXT = `select player_tag, md5(player_tag) as cursor
-  from (select distinct subject_tag as player_tag from recording
-         where subject_type = 'player' and status = 'active') r
+  from (${RECORDED_PLAYERS_SQL}) r
   where ($1::text is null or md5(player_tag) > $1::text)
   order by md5(player_tag) limit $2::int`;
 

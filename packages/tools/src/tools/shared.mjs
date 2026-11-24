@@ -202,18 +202,9 @@ export function VERBOSITY(compactDesc) {
   };
 }
 
-/** Players whose games Elixir records now: direct active recordings and
- *  current members of an actively recorded comprehensive clan. Scoped
- *  history uses this to exclude incidental opponent-only observations. */
-export const RECORDED_PLAYERS_SQL = `select subject_tag as player_tag from recording
-       where subject_type = 'player' and status = 'active'
-     union
-     select cm.player_tag
-       from recording r
-       join clan_membership cm on cm.clan_tag = r.subject_tag
-         and cm.left_observed_at is null
-      where r.subject_type = 'clan' and r.status = 'active'
-        and r.scope = 'comprehensive'`;
+/** Players whose games Elixir records now (recorded-players.mjs, the one
+ *  definition; re-exported here for the tools). */
+export { RECORDED_PLAYERS_SQL } from "../recorded-players.mjs";
 
 export function zoneFor(ctx, args = {}) {
   if (args.timezone === undefined) return ctx.account?.timezone ?? null;

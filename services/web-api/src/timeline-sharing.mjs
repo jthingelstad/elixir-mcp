@@ -24,7 +24,7 @@ const DAY = 86400_000;
 async function canonicalItem(
   db,
   target,
-  { plain = false, now = Date.now() } = {},
+  { plain = false, now = Date.now(), storyRead = null } = {},
 ) {
   if (target.source === "battle") {
     const read = await readPublicBattle(db, target.battleId, { around: false });
@@ -58,6 +58,7 @@ async function canonicalItem(
         at: new Date(at).toISOString(),
         publicOnly: true,
         timezone: "UTC",
+        storyRead,
       },
       now,
     );
