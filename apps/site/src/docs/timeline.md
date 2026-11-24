@@ -666,7 +666,9 @@ the clan's **Run › Discord** page ([Clan Discord](/docs/clan-discord)).
   account, not otherwise filtered: the same subjects, sections and kinds
   a scheduled agent reads. What is not publishable never leaves Elixir:
   an item only a clan's leaders may see (a member's away), and your
-  account's own administration.
+  account's own administration. A session whose battles Elixir only
+  learned about a day or more after they were played isn't posted: it's
+  on your Timeline at its played time, not news.
 - **When.** About a minute after the record learns something about one
   of the subjects, the timeline is read from the cross-post's own place
   in it and anything new is posted. Nothing polls. An attested fact (a

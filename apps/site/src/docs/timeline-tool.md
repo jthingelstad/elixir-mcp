@@ -268,8 +268,15 @@ learned (293 played) against 312: 13 of one member's friendlies were against
 clanmates.
 
 A battle the record learned more than a day after it was played (a history
-backfill, a log polled late) is a late recording: counted in the entry's
-`battles.late_captures` and never narrated, whatever the window.
+backfill, a log polled late, Check for new battles on a player nobody
+follows) is a late recording. It is told like any battle, at its played
+time and in its sitting, on every read: an occurred read by when it was
+played, an `observed` read by when it was learned (marked `late: true`
+when it was played before `from`). The entry's `battles.late_captures`
+(and a clan's `activity.late_captures`) counts the told battles that were
+late recordings. A return is never judged from one, and a session whose
+every battle was a late recording is not sent as news: Elixir's mail and
+Discord posts leave it out.
 
 ### One story, one item
 
@@ -352,8 +359,8 @@ not recorded. A session's `status` says `recorded_only`: its
 `capture_completeness` is **unknown**, even when all its recorded games are
 listed, and it also carries `from` and `through`. Its `completeness` is
 `recorded_sitting` or `anchor_bound`; `anchor_bound` means the 200-step search
-may omit its beginning. `open`: the session was still open at this read. Boat defenses and games
-recorded more than a day late remain outside these sessions.
+may omit its beginning. `open`: the session was still open at this read. Boat defenses remain outside
+these sessions; games recorded late are in them, at their played time.
 
 A crossing says `proved` only when its canonical game establishes it.
 For a ranked promotion, the recorded profile league change is paired with the
@@ -521,6 +528,6 @@ Every window is **(from, to]**, by `sort_at` on an occurred read and by
 serves: `from` is exclusive and `to` inclusive, so the busy-window note's
 `to` reaches the item at the cut. An `observed` clan entry's `activity` counts
 battles learned in the window:
-`activity.learned_here_played_before` counts ones played in the day before
-`from` and recorded here (counted), `activity.played_here_learned_later` ones
+`activity.learned_here_played_before` counts ones played before `from`
+and recorded here (counted, however long before), `activity.played_here_learned_later` ones
 played in the window and recorded after `to` (not counted).

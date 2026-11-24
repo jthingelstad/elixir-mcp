@@ -1,5 +1,8 @@
 # 2026-11-23 — A player's page tells battles Elixir learned late
 
+Superseded the same day by `2026-11-23-late-battles-everywhere.md`: every
+read now tells late captures, and the `lateBattles` option is gone.
+
 A player's page reads the seven days of battles they played
 (`basis: "occurred"`). It showed nothing when every one of those battles
 was a late capture, meaning a battle Elixir learned more than a day after
