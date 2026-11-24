@@ -61,8 +61,10 @@ chooses what to say, and the timeline keeps everything.
   **Daily** (every day at 11:00 UTC) or **Off**: tap one.
 - **What it covers:** the week (or the day) before it comes, starting no
   earlier than your last digest, so nothing is told twice. It tells what
-  the record learned in that time, so a battle recorded late still
-  arrives, once.
+  the record learned in that time, so a battle recorded late is never
+  skipped. A session Elixir only learned about a day or more after it
+  was played isn't news, so the mail leaves it out; it's on the
+  player's page and your Timeline at the time it was played.
 - **From people you follow:** each friend who played
   or posted, up to twelve with the rest counted. Each has
   their sessions, then their battles and record, their trophies, and up to

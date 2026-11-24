@@ -25,7 +25,9 @@ produced into one story and writes it as a sentence or two, with no
 time, for example "Ada moved up to Magic Academy with a 3-0
 win over keyluis and set a new best of 12,005 trophies, joining Bo
 there. Their Hog Rider cycle deck is 9-2 on ladder this season." A story
-told more than three hours late says when in words ("Yesterday").
+told more than three hours late says when in words ("Yesterday"). A
+member's session whose battles Elixir only learned about a day or more
+after they were played isn't posted: it's history, not news.
 
 Every post ends with one link back to Elixir, **Open in Elixir**, and
 Discord shows no preview of it: the address is in angle brackets and
