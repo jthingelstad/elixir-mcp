@@ -78,7 +78,7 @@ first, or to go on as a member for now.
 
 The record learns a role change when it next reads the clan's roster
 from the game. So before the leader or a co-leader changes anything
-(saving the policy, deciding an Action, a hold, a note, the clan's
+(saving the policy, deciding an Action, an exception, a note, the clan's
 settings), Clan checks that the roster was read within the last hour.
 If it was not, Elixir reads it now and Clan says **Confirming your role
 in the game; try again in a minute**, with **Try again**; nothing is

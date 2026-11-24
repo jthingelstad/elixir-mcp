@@ -467,7 +467,7 @@ async function buildClanCard(
  *  every read, and what it answers (Actions waiting on you, the unlock
  *  notice, your role) is laid over the kept half. The gate's basis (your
  *  player, role and verification, the policy's version, the clan's
- *  holds) is kept beside it: a read whose basis differs, a departure the
+ *  running exceptions) is kept beside it: a read whose basis differs, a departure the
  *  gate refuses, another clan, or a card past a week builds now.
  *  `rebuild` builds it whatever its age (the page's ask past fresh). One
  *  build per account at a time: a second reader waits for it and is

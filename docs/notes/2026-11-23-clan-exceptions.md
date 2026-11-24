@@ -89,3 +89,10 @@ Elsewhere the same events come from `GET /api/clan/clans/<tag>/history`
 /api/clan/clans/<tag>/members/<player>/exceptions` (`events`, oldest
 first; non-leaders get only clan-visible ones, with `note`, `by` and
 `by_name` null).
+
+## The Rules check counts the same seats
+
+`elderSeats`, `seatShareFor` and `rulesCheck` (`packages/clan-engine/src/rules.mjs`)
+take `kept`, the Elders kept as Elder, and count only the rest, as
+`evaluate()` does for the band. Run › Rules counts `kept` from the clan's
+running `keep_as_elder` exceptions on Elders and says how many take no seat.

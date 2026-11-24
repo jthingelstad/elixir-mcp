@@ -128,8 +128,8 @@ Your clan's card beside the feed is kept the same way: your standing, your
 week and the war line are rebuilt in the background at most fifteen minutes
 after you last saw them, so they can trail the record by up to about twenty
 minutes. Whether you may see the card, your role, and the Actions waiting for
-you are read live on every visit, and a role change, a policy change, a hold
-or leaving the clan builds the card again at once. Otherwise your Timeline shows the
+you are read live on every visit, and a role change, a policy change, an
+exception or leaving the clan builds the card again at once. Otherwise your Timeline shows the
 kept card first and swaps in a fresh one when it is ready, so an older card
 (up to a week) can show for a moment after a long break.
 

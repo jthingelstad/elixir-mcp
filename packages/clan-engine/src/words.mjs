@@ -13,7 +13,7 @@
  *    "the model sees only the line"): the clan (`clanContext`), the
  *    moment and the member it is about, by name, with their record
  *    (`context.mjs`), and the leader's note (the draft's "What should
- *    it say?") as written. Never a note saved on an Action (anyone's), a hold, a removal's rationale or inactivity numbers,
+ *    it say?") as written. Never a note saved on an Action (anyone's), an exception, a removal's rationale or inactivity numbers,
  *    fame per member, or anything else private to Clan beyond the
  *    Action's own evidence;
  *  - a draft for an Action (2026-10-20) is given the words Elixir would

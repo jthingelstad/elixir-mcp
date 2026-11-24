@@ -66,10 +66,10 @@ Each part ends with a quiet line on who sees what about you under it:
   [Discord](/docs/clan-actions-delivery#actions-in-the-clans-discord), and
   a kick is shared with the clan once it's done.
 
-The tab never shows another member's standing or clock, or a leaders-only exception. Elders read
-the Elders' notes about a member, and the Leader and Co-Leaders read every
-note. Closed Actions and past versions of the rules are for the Leader and
-Co-Leaders.
+The tab never shows another member's standing or clock, or a
+leaders-only exception. Elders read the Elders' notes about a member, and
+the Leader and Co-Leaders read every note. Closed Actions and past
+versions of the rules are for the Leader and Co-Leaders.
 
 ## Quick starts
 
@@ -117,6 +117,8 @@ Under the card, the **Rules check** points out what won't work:
 
 - **Elder seats are full**: there is room for fewer Elders than you have,
   so nobody new can be promoted. Its button raises the seats to make room.
+  An Elder [kept as Elder](/docs/clan-exceptions) takes no seat, so they
+  are not counted.
 - **On but does nothing**: something you count has no goal and no share
   of Elder. Its button turns it off.
 - **Question N needs a fix**: an answer is out of range. The question is

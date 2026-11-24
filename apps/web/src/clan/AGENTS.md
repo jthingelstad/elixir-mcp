@@ -29,22 +29,22 @@ Clan's views. Read `packages/clan/AGENTS.md` first, and
   text, a tag or a URL. That keeps the reports readable (one row per
   page, not per clan); it is report hygiene, not privacy, since a tag is
   public. The events, which this list must match:
-  `clan.action_commented`, `clan.action_link_copied`,
-  `clan.activity_discord_category`, `clan.activity_discord_preview`,
-  `clan.activity_discord_removed`, `clan.activity_discord_rewrite`,
-  `clan.activity_discord_set`, `clan.activity_discord_switch`,
-  `clan.award_granted`,
+  `clan.action_commented`, `clan.action_decided`,
+  `clan.action_link_copied`, `clan.activity_discord_category`,
+  `clan.activity_discord_preview`, `clan.activity_discord_removed`,
+  `clan.activity_discord_rewrite`, `clan.activity_discord_set`,
+  `clan.activity_discord_switch`, `clan.award_granted`,
   `clan.awards_saved`, `clan.away_cleared`, `clan.away_set`,
   `clan.copy_in_game`, `clan.discord_mention_off`,
-  `clan.discord_mention_set`, `clan.discord_nudge`, `clan.discord_removed`,
-  `clan.discord_set`, `clan.exception_changed`, `clan.exception_ended`,
-  `clan.exception_set`, `clan.feedback_answered`, `clan.feedback_sent`,
-  `clan.model_cap_removed`, `clan.model_cap_set`,
-  `clan.model_drafted`, `clan.model_key_removed`,
-  `clan.model_key_set`, `clan.note_added`, `clan.place_cleared`,
-  `clan.place_set`, `clan.policy_preset`, `clan.policy_previewed`,
-  `clan.policy_saved`, `clan.recruit_copied`, `clan.recruit_saved`,
-  `clan.scout`, `clan.social_set`, `clan.voice_set`, and the client's
+  `clan.discord_mention_set`, `clan.discord_nudge`,
+  `clan.discord_removed`, `clan.discord_set`, `clan.exception_changed`,
+  `clan.exception_ended`, `clan.exception_set`, `clan.invite_copied`,
+  `clan.model_cap_removed`, `clan.model_cap_set`, `clan.model_drafted`,
+  `clan.model_key_removed`, `clan.model_key_set`, `clan.note_added`,
+  `clan.place_cleared`, `clan.place_set`, `clan.policy_preset`,
+  `clan.policy_previewed`, `clan.policy_saved`, `clan.recruit_copied`,
+  `clan.recruit_saved`, `clan.scout`, `clan.social_set`,
+  `clan.voice_set`, and the client's
   `web.*` failures.
 - Tests: `apps/web/test/clan/` (`npm test -w @elixir-mcp/web`, vitest,
   jsdom) and `apps/web/e2e/clan/`.

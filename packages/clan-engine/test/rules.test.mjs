@@ -49,10 +49,17 @@ test("each category has a weekly goal field and plain words", () => {
 
 test("Elder seats come from band(): 30% of 47 is 14, so 15 Elders fill them", () => {
   const seats = elderSeats(ranked(), { members: 47, elders: 15 });
-  assert.deepEqual(seats, { seats: 14, elders: 15, open: 0, full: true });
+  assert.deepEqual(seats, {
+    seats: 14,
+    elders: 15,
+    kept: 0,
+    open: 0,
+    full: true,
+  });
   assert.deepEqual(elderSeats(ranked(), { members: 47, elders: 10 }), {
     seats: 14,
     elders: 10,
+    kept: 0,
     open: 4,
     full: false,
   });
@@ -61,6 +68,47 @@ test("Elder seats come from band(): 30% of 47 is 14, so 15 Elders fill them", ()
   // Elders by hand have no seats to count, and an unknown roster none.
   assert.equal(elderSeats(defaults(), { members: 47, elders: 15 }), null);
   assert.equal(elderSeats(ranked(), { members: null, elders: 15 }), null);
+});
+
+test("a kept Elder takes no earned seat: 15 Elders, 1 kept, sit as 14", () => {
+  const kept = elderSeats(ranked(), { members: 47, elders: 15, kept: 1 });
+  const fourteen = elderSeats(ranked(), { members: 47, elders: 14 });
+  assert.deepEqual(kept, { ...fourteen, kept: 1 });
+  assert.deepEqual(kept, {
+    seats: 14,
+    elders: 14,
+    kept: 1,
+    open: 0,
+    full: true,
+  });
+  assert.deepEqual(elderSeats(ranked(), { members: 47, elders: 15, kept: 2 }), {
+    seats: 14,
+    elders: 13,
+    kept: 2,
+    open: 1,
+    full: false,
+  });
+  // More kept than Elders counts none, never fewer than none.
+  assert.equal(
+    elderSeats(ranked(), { members: 47, elders: 1, kept: 3 }).elders,
+    0,
+  );
+  // The fix and the check count the same Elders.
+  assert.equal(
+    seatShareFor(ranked(), { members: 47, elders: 16, kept: 1 }),
+    seatShareFor(ranked(), { members: 47, elders: 15 }),
+  );
+  assert.ok(
+    rulesCheck(ranked(), { members: 47, elders: 15 }).some(
+      (f) => f.kind === "seats_full",
+    ),
+  );
+  assert.ok(
+    !rulesCheck(ranked(), { members: 47, elders: 15, kept: 2 }).some(
+      (f) => f.kind === "seats_full",
+    ),
+    "two kept Elders open a seat the check would have called full",
+  );
 });
 
 test("the seat fix is the smallest whole percent that opens one seat", () => {

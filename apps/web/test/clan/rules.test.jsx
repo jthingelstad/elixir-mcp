@@ -73,9 +73,12 @@ const saveButton = () =>
 const sw = (name) => screen.getByRole("switch", { name });
 const number = (name) => screen.getByRole("spinbutton", { name });
 const pick = (name) => screen.getByRole("button", { name });
-const render = async (data = view) => {
+const render = async (data = view, exceptions = []) => {
   vi.spyOn(manageApi, "policy").mockResolvedValue(ok(data));
   vi.spyOn(api, "roster").mockResolvedValue(ok(roster));
+  vi.spyOn(manageApi, "exceptions").mockResolvedValue(
+    ok({ leader: true, exceptions }),
+  );
   const rendered = renderWithProviders(<Walk first="rules" />);
   await screen.findByRole("heading", { name: /What is your clan about/ });
   return rendered;
@@ -221,6 +224,51 @@ describe("Rules: six questions under Run", () => {
       /Room for 16 Elders\. You have 15, so 1 seat is open\./,
     );
     expect(check.textContent).toMatch(/Everything works/);
+  });
+
+  test("a kept Elder takes no earned seat, so the seats count only the rest", async () => {
+    await render(
+      {
+        ...view,
+        set: true,
+        current: {
+          set: true,
+          version: 3,
+          values: policyFromGoals(["war", "donations"], "standard"),
+        },
+      },
+      [
+        {
+          exception_id: "x1",
+          player_tag: "#0PLUG2V9",
+          player_name: "Kai",
+          role: "elder",
+          kind: "keep_as_elder",
+          until: "2026-12-20T00:00:00.000Z",
+          visibility: "leaders",
+        },
+        {
+          exception_id: "x2",
+          player_tag: "#0GRJCUV",
+          player_name: "Gil",
+          role: "member",
+          kind: "keep_as_elder",
+          until: "2026-12-20T00:00:00.000Z",
+          visibility: "leaders",
+        },
+      ],
+    );
+    const elder = question("elder");
+    // 15 Elders, one kept: 14 sit in the 14 seats. Gil is not an Elder.
+    await waitFor(() =>
+      expect(elder.textContent).toMatch(
+        /Room for 14 Elders\. You have 14, so the seats are full\. 1 more is kept as Elder and takes no seat\./,
+      ),
+    );
+    const check = screen
+      .getByRole("heading", { name: "Rules check" })
+      .closest("section");
+    expect(check.textContent).toMatch(/room for 14 and you have 14/);
   });
 
   test("a measure that counts for nothing is named, and its fix turns it off", async () => {

@@ -31,7 +31,7 @@ export const LEFT_CLAN_REASON = "They are no longer in the clan.";
  * before the leave in the membership this leave ends, and still proposed
  * or withdrawn by the leave itself. The latest such one, or null. A
  * removal marked Done explains the leave instead (departuresFrom), and
- * one withdrawn for any other reason (they played, a hold, a decline's
+ * one withdrawn for any other reason (they played, an exception, a decline's
  * wait) was not open at the leave.
  *
  * The membership starts at the member's last recorded join or leave
