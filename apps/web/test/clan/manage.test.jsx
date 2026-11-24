@@ -3,7 +3,6 @@ import { cleanup, screen, waitFor } from "@testing-library/react";
 import { renderWithProviders } from "./helpers.jsx";
 import { parseClanPath } from "../../src/clan/App.jsx";
 import { Standing } from "../../src/clan/views/Standing.jsx";
-import { Review } from "../../src/clan/views/Manage.jsx";
 import { manageApi } from "../../src/clan/api.js";
 
 afterEach(() => {
@@ -20,113 +19,6 @@ const poap = {
   role_label: "Leader",
   your_tags: ["#098R2R0PUL"],
 };
-
-test("Review counts all four removal triage readings, and lists only who is near an action", async () => {
-  const statuses = ["protected", "not_candidate", "evidence_held", "eligible"];
-  vi.spyOn(manageApi, "manage").mockResolvedValue({
-    ok: true,
-    status: 200,
-    data: {
-      evaluated_at: "2026-10-04T08:00:00Z",
-      policy_version: 1,
-      boundaries: [],
-      band: null,
-      policy: { ranks_elder: true, removal: true },
-      board: statuses.map((status, i) => ({
-        player_tag: `#SYNTH${i}`,
-        name: `Invented ${i}`,
-        role: i === 0 ? "elder" : "member",
-        bucket: i === 2 ? "held" : i === 3 ? "actionable" : "clear",
-        judgment: {
-          promotion:
-            i === 0
-              ? "not_applicable"
-              : i === 1
-                ? "unknown"
-                : i === 2
-                  ? "held"
-                  : "ready",
-          demotion: i === 0 ? "held" : "not_applicable",
-          removal: status === "eligible" ? "ready" : "held",
-        },
-        judgment_reasons: [],
-        promotion: { state: "none" },
-        demotion: { state: "none" },
-        removal: {
-          state: "none",
-          triage: { status, reason: `Explanation ${i}` },
-        },
-      })),
-    },
-  });
-  renderWithProviders(
-    <Review clan={poap} who={{ player_tag: poap.acting_as, role: "leader" }} />,
-  );
-  await waitFor(() => expect(screen.getByText("Invented 2")).toBeTruthy());
-  const page = document.body.textContent;
-  expect(page).toMatch(
-    /1 protected by their role, a hold or the wait after a decision, 1 not close, 1 with too little to go on, 1 past the removal day/,
-  );
-  expect(page).toMatch(/promotion 2, demotion 1/);
-  const sections = screen.getByRole("navigation", { name: "Review sections" });
-  expect(sections.querySelector('a[href="#board-held"]').textContent).toBe(
-    "Too little to go on · 1",
-  );
-  expect(sections.querySelector('a[href="#board-clear"]').textContent).toBe(
-    "Clear · 2",
-  );
-  // Nobody clear is listed: only the count, and the way to the Roster.
-  expect(screen.queryByText("Invented 0")).toBeNull();
-  expect(screen.getByText("Removal: Explanation 2")).toBeTruthy();
-  expect(screen.getByText("Removal: Explanation 3")).toBeTruthy();
-  expect(screen.queryByText("held · activity unknown")).toBeNull();
-});
-
-test("Review shows every held or unknown reason, including simultaneous dimensions", async () => {
-  const reasons = [
-    "Promotion: tenure unknown because the join predates the record.",
-    "Removal held: no recorded battle or observed join anchors the clock.",
-  ];
-  vi.spyOn(manageApi, "manage").mockResolvedValue({
-    ok: true,
-    status: 200,
-    data: {
-      evaluated_at: "2026-09-13T16:00:00Z",
-      policy_version: 0,
-      boundaries: [],
-      band: {
-        roster_size: 1,
-        open_slots: 49,
-        current_elders: 0,
-        floor: 0,
-        ceil: 0,
-        target: 0,
-        ranked_population: 1,
-      },
-      board: [
-        {
-          player_tag: "#HELD",
-          name: "Held member",
-          role: "member",
-          bucket: "held",
-          judgment: {
-            promotion: "unknown",
-            demotion: "not_applicable",
-            removal: "held",
-          },
-          judgment_reasons: reasons,
-          promotion: { state: "none" },
-          removal: { state: "none", days_idle: null },
-        },
-      ],
-    },
-  });
-  renderWithProviders(
-    <Review clan={poap} who={{ player_tag: poap.acting_as, role: "leader" }} />,
-  );
-  await waitFor(() => expect(screen.getByText("Held member")).toBeTruthy());
-  for (const reason of reasons) expect(screen.getByText(reason)).toBeTruthy();
-});
 
 describe("clan paths", () => {
   test("parse the tag, the section and the page", () => {

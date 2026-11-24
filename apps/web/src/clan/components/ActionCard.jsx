@@ -101,7 +101,7 @@ const ROLE = {
   member: "Member",
 };
 /** The record keeps the reason's key; the card says it in words. */
-const DECLINE_WORDS = {
+export const DECLINE_WORDS = {
   not_now: "Not now",
   knows_the_member: "Knows the member",
   evidence_wrong: "The numbers are wrong",

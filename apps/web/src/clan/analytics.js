@@ -50,6 +50,9 @@ export function analyticsLocation(
     // A member's page is one page, whoever it is; Members' own pages are not.
     if (rest[0] === "members" && rest[1] && !MEMBERS_PAGES.has(rest[1]))
       rest[1] = "detail";
+    // So is the leaders' member page in Run (2026-11-23).
+    if (rest[0] === "run" && rest[1] === "members" && rest[2])
+      rest[2] = "detail";
     page = `${CLAN}${rest.length ? `/${rest.join("/")}` : ""}`;
   } else if (
     (segments[0] === "feedback" && segments[1]) ||

@@ -132,7 +132,7 @@ as built [engineering, 2026-11-12, #766]:
 
 Run's side list:
 
-- **Actions:** Waiting, Decided, Review.
+- **Actions:** Waiting, Decided, Members (Review until 2026-11-23).
 - **Policy:** About.
 - **What counts:** Minimums, Clan Wars, Ranked, Donations, Trophy Road.
 - **People:** Elder, Inactivity, Arrivals, Departures.
@@ -142,7 +142,8 @@ Run's side list:
 Routes: `/clan/<TAG>/feed`, `/standings`, `/war`, `/members`
 (`?show=recruit` and `?show=scout` open the foot), `/members/map`,
 `/members/away`, `/members/<player>`, `/policy`, `/run/<section>`
-(`/run/actions` is Waiting, `/run/decided` Decided, `/run/review` Review).
+(`/run/actions` is Waiting, `/run/decided` Decided, `/run/members` Members,
+`/run/members/<player>` one member; `/run/review` forwards to Members).
 Since G6 (2026-11-12) `/members/standing` redirects to `/standings`,
 `/members/review` to `/run/review`, and `/members/recruit` and
 `/members/scout` to the roster's foot.

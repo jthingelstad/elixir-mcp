@@ -75,6 +75,11 @@ import { newId } from "@elixir-mcp/clan-state";
 import { createActionStore } from "./actions.mjs";
 import { createSharing } from "./sharing.mjs";
 import { createHash } from "node:crypto";
+import {
+  buildMemberHistory,
+  historyGaps,
+  memberHeader,
+} from "./member-history.mjs";
 
 export const EVALUATION_TTL_MS = 5 * 60_000;
 const PARTICIPATION_WEEKS = 8;
@@ -615,6 +620,24 @@ export function createManageService({
           (roster.members ?? []).map((m) => [m.player_tag, m.trophies ?? null]),
         )
       : null;
+
+  /**
+   * The exceptions in force for one member (today a hold: a leader's or
+   * the member's own away), each with who set it and when. The one place
+   * the member page reads them, so a new source swaps here.
+   */
+  async function exceptionsFor(clanTag, playerTag) {
+    return (await ledger.holds(clanTag))
+      .filter((h) => h.player_tag === playerTag)
+      .map((h) => ({
+        kind: h.kind ?? "leader",
+        until: h.until ?? null,
+        note: h.note ?? null,
+        by: h.by ?? null,
+        by_name: h.by_name ?? null,
+        set_at: h.set_at ?? null,
+      }));
+  }
 
   /** Tag -> name from what the ledger already holds: the latest verdict
    *  snapshot (everyone evaluated), every card that named its member or
@@ -1820,6 +1843,27 @@ export function createManageService({
           tenure_days: m.facts.tenure_days,
           tenure_known: m.facts.tenure_known,
           observed_days: m.facts.observed_days,
+          // The members list and member page (2026-11-23): the last
+          // battle, whether the rules' minimums are met, the war decks and
+          // donations the evaluation counted.
+          last_battle_time: m.facts.last_battle_time ?? null,
+          joined_observed_at: m.facts.joined_observed_at ?? null,
+          minimums: m.facts.minimums
+            ? {
+                weeks: m.facts.minimums.weeks,
+                passes: m.facts.minimums.passes,
+                unknown: m.facts.minimums.unknown,
+              }
+            : null,
+          war: m.facts.war
+            ? {
+                weeks: m.facts.war.weeks,
+                decks_played: m.facts.war.decks_played,
+                decks_asked: m.facts.war.decks_asked,
+                fidelity: m.facts.war.fidelity,
+              }
+            : null,
+          donations_average: m.facts.donations?.average ?? null,
         },
         bucket: bucketFor(m),
       }));
@@ -1836,12 +1880,80 @@ export function createManageService({
           ranks_elder: ranksElder(policy.values),
           removal: policy.values.removal_enabled,
           departures: policy.values.departures_enabled,
+          tenure_min_days: policy.values.tenure_min_days ?? null,
+          removal_day: policy.values.removal_enabled
+            ? removalDay(policy.values)
+            : null,
+          minimums_window_weeks: policy.values.minimums_window_weeks ?? null,
         },
         band: verdicts.band,
         roster: verdicts.roster ?? null,
         inbox,
         board,
         decline_reasons: DECLINE_REASONS,
+      };
+    },
+
+    /**
+     * One member's history in this clan, for the leaders' member page
+     * (2026-11-23): joins and leaves, role changes, their actions and
+     * how each was decided, the exception in force, River Race weeks,
+     * awards and notes. Leaders only; it needs no policy, because the
+     * record's part is there without one. Read only: nothing is written.
+     */
+    async memberHistory(clanTag, who, playerTag) {
+      requireLeader(who);
+      const part = await fetchParticipation(record, clanTag);
+      const roster = await fetchRoster(record, clanTag);
+      const [cards, exceptions, notes, grants, names] = await Promise.all([
+        ledger.cards(clanTag),
+        exceptionsFor(clanTag, playerTag),
+        ledger.notes(clanTag, playerTag),
+        ledger.grants(clanTag),
+        knownNames(clanTag),
+      ]);
+      const mine = cards.filter((c) => c.player_tag === playerTag);
+      const t = now();
+      const member = memberHeader({
+        part,
+        roster,
+        playerTag,
+        knownName:
+          names.get(playerTag) ??
+          mine.find((c) => c.player_name)?.player_name ??
+          null,
+        now: t,
+      });
+      if (!member && !mine.length && !notes.length)
+        throw new ManageError(404, "not_a_member");
+      return {
+        clan_tag: clanTag,
+        clan_name: part?.name ?? roster?.name ?? null,
+        member: member ?? {
+          player_tag: playerTag,
+          name: null,
+          role: null,
+          in_clan: false,
+          joined_observed_at: null,
+          first_joined_at: null,
+          left_observed_at: null,
+          tenure_known: false,
+          days_in_clan: null,
+          last_battle_time: null,
+        },
+        known_since: part?.first_roster_observed_at ?? null,
+        as_of: part?.meta?.as_of ?? null,
+        entries: buildMemberHistory({
+          playerTag,
+          part,
+          roster,
+          cards: mine,
+          exceptions,
+          notes,
+          grants,
+          now: t,
+        }),
+        gaps: historyGaps({ part, roster }),
       };
     },
 

@@ -12811,3 +12811,40 @@ button.kit-written__card:focus-visible {
   margin-top: var(--s-2);
   min-width: 0;
 }
+
+/* Run › Members and the member page (2026-11-23). Four tiles in a row,
+   two by two at phone width; a row's short reasons wrap under it. */
+.kit-stats--quad {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+@media (max-width: 600px) {
+  .kit-stats--quad {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+.clan-members__why {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-1);
+  margin-top: var(--s-1);
+}
+.clan-members__reason {
+  display: block;
+  font-size: var(--t-caption);
+  color: var(--ink-dim);
+}
+.clan-member__back {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-1);
+  justify-self: start;
+  min-height: 44px;
+}
+.clan-member__why {
+  display: grid;
+  gap: var(--s-1);
+  margin: var(--s-3) 0 0;
+  padding-left: var(--s-4);
+  font-size: var(--t-body-sm);
+  color: var(--ink-dim);
+}

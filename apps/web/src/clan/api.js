@@ -114,6 +114,11 @@ export const manageApi = {
       { text },
     ),
   removeNote: (tag, noteId) => del(`${clanBase(tag)}/notes/${noteId}`),
+  // One member's history in the clan, for the leaders' member page.
+  memberHistory: (tag, playerTag) =>
+    get(
+      `${clanBase(tag)}/members/${String(playerTag).replace(/^#/, "")}/history`,
+    ),
   standing: (tag) => get(`${clanBase(tag)}/standing`),
   // "You here": the member's own numbers and place in this clan.
   memberView: (tag) => get(`${clanBase(tag)}/me`),

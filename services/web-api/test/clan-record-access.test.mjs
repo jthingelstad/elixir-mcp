@@ -156,6 +156,12 @@ const ROUTES = [
     `/members/${TAGS[3].slice(1)}/activity`,
     "clans_roster, battles_query, elixir_coverage",
   ],
+  // One member's history (the leaders' member page, 2026-11-23).
+  [
+    "GET",
+    `/members/${TAGS[3].slice(1)}/history`,
+    "clans_participation, clans_roster",
+  ],
   ["GET", "/recruit", "live_fetch, clans_roster"],
   ["POST", "/scout", "players_profile, battles_query", { tag: TAGS[4] }],
 ];
@@ -164,6 +170,7 @@ const ROUTES = [
  *  Recruit and Scout (elders up). */
 const NOT_FOR_MEMBERS = new Set([
   "/history",
+  `/members/${TAGS[3].slice(1)}/history`,
   "/manage",
   "/policy/preview",
   "/recruit",

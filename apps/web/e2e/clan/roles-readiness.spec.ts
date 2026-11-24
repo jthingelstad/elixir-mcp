@@ -328,8 +328,13 @@ for (const size of ["wide", "@narrow"])
         await expect(page.getByRole("region", { name: "Scout" })).toHaveCount(
           role === "elder" ? 1 : 0,
         );
-        // Review is in Run, which stays the leaders'.
-        await page.goto(`${base}/run/review`);
+        // Members (Review until 2026-11-23) is in Run, which stays the
+        // leaders', and so is one member's page under it.
+        await page.goto(`${base}/run/members`);
+        await expect(page.getByRole("alert")).toContainText(
+          "Run is for the clan’s leader and co-leaders",
+        );
+        await page.goto(`${base}/run/members/02QQPCYQQ`);
         await expect(page.getByRole("alert")).toContainText(
           "Run is for the clan’s leader and co-leaders",
         );

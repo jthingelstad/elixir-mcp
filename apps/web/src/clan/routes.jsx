@@ -23,6 +23,12 @@ export function createClanRoutes(parent) {
       path: `${CLAN}/$tag/{-$section}/{-$tab}`,
       component: lazyRouteComponent(() => import("./App.jsx"), "ClanPage"),
     }),
+    // The leaders' member page: four segments, so a route of its own.
+    createRoute({
+      getParentRoute: () => route,
+      path: `${CLAN}/$tag/run/members/$player`,
+      component: lazyRouteComponent(() => import("./App.jsx"), "ClanPage"),
+    }),
     createRoute({
       getParentRoute: () => route,
       path: `${CLAN}/directory`,

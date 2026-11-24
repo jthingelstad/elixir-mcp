@@ -14,7 +14,7 @@
  *   on, Spread the word, and at its foot Recruit's pitch and Scout for
  *   elders and up (Jamie, 2026-11-12: members keep Standing; Recruit and
  *   Scout are leaders' and elders' tools). Standing is on Standings for
- *   every member; Review is in Run, the leaders'.
+ *   every member; the leaders' Members list and member pages are in Run.
  */
 import { appPath, clanPath, tagOf } from "./base.js";
 
@@ -70,11 +70,14 @@ export function clanTabs(me) {
 
 /** `/clan/<TAG>/<section>[/<tab>]` as its parts, or null. */
 function parts(path) {
-  const m = /^\/([^/]+)(?:\/([a-z]+)(?:\/([a-z0-9-]+))?)?\/?$/i.exec(
-    appPath(path) ?? "",
-  );
+  const m =
+    /^\/([^/]+)(?:\/([a-z]+)(?:\/([a-z0-9-]+)(?:\/([0-9a-z]{3,12}))?)?)?\/?$/i.exec(
+      appPath(path) ?? "",
+    );
   if (!m || !tagOf(m[1])) return null;
-  return { section: m[2] ?? null, tab: m[3] ?? null };
+  // Only Run's members list has a page a level further down.
+  if (m[4] && !(m[2] === "run" && m[3] === "members")) return null;
+  return { section: m[2] ?? null, tab: m[3] ?? null, sub: m[4] ?? null };
 }
 
 /** Which tab a path is on. An action's own page is under Feed, where it
@@ -107,6 +110,7 @@ export function pageOf(path) {
     if (!p.tab) return "roster";
     return MEMBER_PAGES.has(p.tab) ? p.tab : "member";
   }
-  if (p.section === "run") return p.tab ? `run/${p.tab}` : "run";
+  if (p.section === "run")
+    return p.sub ? "run/member" : p.tab ? `run/${p.tab}` : "run";
   return tabOf(path);
 }
