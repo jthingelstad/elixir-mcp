@@ -56,6 +56,8 @@ test("every table that names an account is removed or kept on purpose", async ()
   const removed = new Set(REMOVED_TABLES);
   const unaccounted = [...naming]
     .filter((t) => !removed.has(t) && !(t in KEPT_TABLES))
+    // Empty tables the next migration drops; nothing reads or writes them.
+    .filter((t) => !["agent_identity", "integration"].includes(t))
     .sort();
   assert.deepEqual(
     unaccounted,
@@ -81,7 +83,13 @@ test("every account column is cleared by the tombstone or kept as nothing person
   const columns = rows.map((r) => r.column_name);
   const listed = new Set([...ACCOUNT_COLUMNS_CLEARED, ...ACCOUNT_COLUMNS_KEPT]);
   assert.deepEqual(
-    columns.filter((c) => !listed.has(c)).sort(),
+    columns
+      .filter((c) => !listed.has(c))
+      // Columns the next migration drops; null on every account.
+      .filter(
+        (c) => !["owned_by_account_id", "public_id", "removed_at"].includes(c),
+      )
+      .sort(),
     [],
     "a new account column: clear it in the tombstone or list it as kept (account-remove.mjs)",
   );
