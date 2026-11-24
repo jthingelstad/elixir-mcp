@@ -67,14 +67,6 @@ before(async () => {
     "update account set email_hash = 'removed:' || account_id, email = null, status = 'disabled' where account_id = $1",
     [ids.removed],
   );
-  ids.agent = (
-    await db.query(
-      `insert into account (kind, owned_by_account_id, public_id, status, role)
-       values ('agent', $1, 'importagent1', 'approved', 'member')
-       returning account_id`,
-      [ids.fresh],
-    )
-  ).rows[0].account_id;
   await db.query(
     "update account set avatar_card_id = 28000006, avatar_set_at = now() - interval '1 day' where account_id = $1",
     [ids.chose],
@@ -91,7 +83,6 @@ const pairs = () => [
   { account_id: ids.chose, card_id: 26000000 },
   { account_id: ids.towerPick, card_id: 159000000 },
   { account_id: ids.gonePick, card_id: 26099999 },
-  { account_id: ids.agent, card_id: 26000000 },
   { account_id: ids.removed, card_id: 26000000 },
   { account_id: STRANGER, card_id: 26000000 },
   { account_id: ids.fresh, card_id: 28000006 },
@@ -103,11 +94,11 @@ test("a dry run reports what it would set and writes nothing", async () => {
   const out = await avatarImportOp(SCRATCH_URL, { pairs: pairs() });
   assert.deepEqual(out, {
     dry_run: true,
-    pairs: 11,
+    pairs: 10,
     set: 0,
     would_set: 2,
     already_had_one: 1,
-    unknown_account: 3,
+    unknown_account: 2,
     unknown_card: 2,
     malformed: 2,
     repeated: 1,
@@ -133,9 +124,9 @@ test("apply sets only accounts with no image, to cards that can be one; a rerun 
   assert.equal((await avatarOf(ids.second)).avatar_card_id, 28000006);
   // A choice made in Elixir stands, set_at and all.
   assert.deepEqual(await avatarOf(ids.chose), before);
-  // A tower troop, a card out of the catalog, an agent and a removed
-  // account's tombstone stay unset.
-  for (const id of [ids.towerPick, ids.gonePick, ids.agent, ids.removed])
+  // A tower troop, a card out of the catalog and a removed account's
+  // tombstone stay unset.
+  for (const id of [ids.towerPick, ids.gonePick, ids.removed])
     assert.equal((await avatarOf(id)).avatar_card_id, null);
 
   const again = await avatarImportOp(SCRATCH_URL, {

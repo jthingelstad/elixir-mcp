@@ -498,5 +498,4 @@ Removing your players stops their recording where nobody else follows
 them, and stopping deletes nothing recorded.
 
 A collector you run has to be revoked first, in Settings ›
-Collectors. An account that runs an integration is deleted by writing
-to admin@poapkings.com. The [privacy page](/docs/privacy) has the rest.
+Collectors. The [privacy page](/docs/privacy) has the rest.

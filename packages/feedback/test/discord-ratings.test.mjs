@@ -1,7 +1,7 @@
 /**
  * A rating of one Discord post (2026-10-11): feedback with a
  * discord_post ref, filed only about a post the filer may rate (their
- * own or their agent's timeline line; a clan's post, its leader checked
+ * own timeline line; a clan's post, its leader checked
  * by the caller), a second rating following the first, Jamie told of a
  * thumbs down or a note only, and the page kind never accepted from a
  * door's own refs. On a scratch database (golden rule 9).
@@ -26,7 +26,6 @@ const FP = "0123456789abcdef";
 const CLAN = "#J2RGCRVG";
 const POST = {
   mine: "aaaaaaaa-0000-4000-8000-000000000001",
-  agents: "aaaaaaaa-0000-4000-8000-000000000002",
   others: "aaaaaaaa-0000-4000-8000-000000000003",
   action: "aaaaaaaa-0000-4000-8000-000000000004",
   activity: "aaaaaaaa-0000-4000-8000-000000000005",
@@ -53,13 +52,6 @@ before(async () => {
     ).rows[0].account_id;
   person = { accountId: await make("ratings-person") };
   other = { accountId: await make("ratings-other") };
-  const agent = (
-    await db.query(
-      `insert into account (email_hash, status, kind, owned_by_account_id, public_id)
-       values (null, 'approved', 'agent', $1, 'rateagent01') returning account_id`,
-      [person.accountId],
-    )
-  ).rows[0].account_id;
   const row = (id, feature, accountId, clanTag) =>
     db.query(
       `insert into discord_post (post_id, feature, account_id, clan_tag,
@@ -70,7 +62,6 @@ before(async () => {
       [id, feature, accountId, clanTag, clanTag ?? accountId, FP],
     );
   await row(POST.mine, "timeline", person.accountId, null);
-  await row(POST.agents, "timeline", agent, null);
   await row(POST.others, "timeline", other.accountId, null);
   await row(POST.action, "clan_actions", null, CLAN);
   await row(POST.activity, "clan_activity", null, CLAN);
@@ -107,7 +98,7 @@ test("a door's own refs never carry a Discord post: only a page that checked it 
   assert.equal(out.dropped[0].reason, "unknown_kind");
 });
 
-test("a timeline line is the filer's to rate; another's, or an agent-kind account's, is not found", async () => {
+test("a timeline line is the filer's to rate; another's is not found", async () => {
   const told = [];
   const notifyOwner = async (spec) => told.push(spec);
   const up = await rateDiscordPost(db, {
@@ -138,16 +129,6 @@ test("a timeline line is the filer's to rate; another's, or an agent-kind accoun
   assert.match(downItem.message, /: It named the wrong deck\.$/);
   assert.equal(downItem.context.noted, true);
 
-  // An agent-kind account left from before 2026-11-23 is not the person's.
-  await refused(
-    rateDiscordPost(db, {
-      account: person,
-      feature: "timeline",
-      postId: POST.agents,
-      rating: "up",
-    }),
-    "not_found",
-  );
   await refused(
     rateDiscordPost(db, {
       account: person,

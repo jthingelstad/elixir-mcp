@@ -5,9 +5,7 @@
  *  door's token is refused at MCP. A first-party client (the family's own
  *  apps, Elixir Drop) is not metered; any other is, per person per hour.
  *
- *  The integration keys, the tool mirrors and the social reads that used
- *  to answer here went in JSON API 5.0.0 ("No integrations: Elixir has
- *  users and agents"). */
+ *  An account is a person (0317); nothing else signs in here. */
 import { randomUUID } from "node:crypto";
 import {
   validateAccessToken,
@@ -191,7 +189,7 @@ export async function signInApi(db, event, body) {
       throw new ApiError(400, "invalid_json");
     const token = bearer(event);
     // A person, by an OAuth grant for THIS door (audience /api/v1); any
-    // other credential, an old integration key included, is unknown here.
+    // other credential is unknown here.
     account = String(token ?? "").startsWith("eat_")
       ? await validateAccessToken(db, token, { resource: API_RESOURCE })
       : null;

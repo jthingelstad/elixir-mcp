@@ -87,16 +87,8 @@ async function person({ timezone = "UTC", status = "approved" } = {}) {
   return a.account_id;
 }
 
-async function agentOf(owner) {
-  const {
-    rows: [a],
-  } = await db.query(
-    `insert into account (status, role, kind, owned_by_account_id)
-     values ('approved', 'member', 'agent', $1) returning account_id`,
-    [owner],
-  );
-  return a.account_id;
-}
+/** An account id no row holds: nothing here is a person's. */
+const NOBODY = "00000000-0000-4000-8000-0000000000ff";
 
 const claim = (accountId, tag, rel, verified = false) =>
   db.query(
@@ -181,7 +173,7 @@ after(async () => {
   await dropScratch(NAME);
 });
 
-test("a person gets one opaque passport id; an agent gets none", async () => {
+test("a person gets one opaque passport id; an id that is no account gets none", async () => {
   const a = await person();
   const first = await ensurePassport(db, a);
   assert.match(first.passport_id, PASSPORT_ID);
@@ -190,9 +182,8 @@ test("a person gets one opaque passport id; an agent gets none", async () => {
   assert.deepEqual(again, { passport_id: first.passport_id, created: false });
   assert.notEqual(first.passport_id, a);
   assert.equal(await passportIdOf(db, a), first.passport_id);
-  const agent = await agentOf(a);
-  assert.equal(await ensurePassport(db, agent), null);
-  assert.equal(await passportIdOf(db, agent), null);
+  assert.equal(await ensurePassport(db, NOBODY), null);
+  assert.equal(await passportIdOf(db, NOBODY), null);
   // A race between two connections still makes one row.
   const b = await person();
   const [x, y] = await Promise.all([
@@ -207,13 +198,6 @@ test("a person gets one opaque passport id; an agent gets none", async () => {
     ),
     1,
   );
-  // The agents' public id is untouched.
-  const {
-    rows: [p],
-  } = await db.query(`select public_id from account where account_id = $1`, [
-    a,
-  ]);
-  assert.equal(p.public_id, null);
 });
 
 test("grants are idempotent, return only new levels and freeze their day", async () => {
@@ -317,18 +301,16 @@ test("concurrent grants insert each level once", async () => {
   );
 });
 
-test("an agent is refused a grant and a fact", async () => {
-  const owner = await person();
-  const agent = await agentOf(owner);
+test("an id that is no account is refused a grant and a fact", async () => {
   const now = "2026-11-14T12:00:00Z";
   assert.deepEqual(
-    await grantStamps(db, agent, [{ stamp_id: "linked", level: 1 }], { now }),
+    await grantStamps(db, NOBODY, [{ stamp_id: "linked", level: 1 }], { now }),
     { refused: "not_person" },
   );
   assert.deepEqual(
     await recordFact(
       db,
-      agent,
+      NOBODY,
       { stamp_id: "cheerleader", source: "cheer:1", event_at: now },
       { now },
     ),
@@ -524,8 +506,7 @@ test("the profile list is dismissed only after the older welcome, once, completi
     owner.owner.stamps.find((s) => s.stamp_id === "all_set").earned_level,
     0,
   );
-  const agent = await agentOf(a);
-  assert.deepEqual(await dismissProfileList(db, agent, { now: t1 }), {
+  assert.deepEqual(await dismissProfileList(db, NOBODY, { now: t1 }), {
     refused: "not_person",
   });
 });
@@ -590,9 +571,8 @@ test("profile latches keep their first instant; choices keep the latest", async 
     latchProfile(db, a, { map_choice: "city" }, { now: t1 }),
     TypeError,
   );
-  const agent = await agentOf(a);
   assert.equal(
-    await latchProfile(db, agent, { steps: ["picture"] }, { now: t1 }),
+    await latchProfile(db, NOBODY, { steps: ["picture"] }, { now: t1 }),
     null,
   );
 });

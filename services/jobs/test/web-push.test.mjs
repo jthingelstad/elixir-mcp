@@ -306,21 +306,6 @@ test("drain: settled cheers, then followers, counted; caps, switches, owed Actio
     assert.ok(told.cheers);
     assert.equal(told.followers, null);
 
-    // An agent with a device is never a candidate.
-    const agent = (
-      await db.query(
-        `insert into account (kind, owned_by_account_id, status, role)
-         values ('agent', $1, 'approved', 'member') returning account_id`,
-        [owner],
-      )
-    ).rows[0].account_id;
-    await db.query(
-      `insert into push_subscription (account_id, endpoint, p256dh, auth)
-       values ($1, 'https://fcm.googleapis.com/fcm/send/agent', repeat('B', 87), repeat('a', 22))`,
-      [agent],
-    );
-    assert.equal((await run({ accountId: agent })).candidates, 0);
-
     // The relay's receipts: a send stamps the device, a gone deletes it.
     const { subscription_id } = out[0].msg;
     assert.deepEqual(

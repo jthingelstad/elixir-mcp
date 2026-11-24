@@ -10,10 +10,9 @@
  * here scores, ranks or recommends.
  *
  * Who may see one is its type's `visibility` (Jamie, 2026-09-25):
- *   - `clan`: anyone whose verified player is in the clan, and an agent
- *     whose owner's is;
+ *   - `clan`: anyone whose verified player is in the clan;
  *   - `leaders`: a person whose verified player leads the clan (leader or
- *     co-leader). Never an agent, never mail;
+ *     co-leader). Never mail;
  *   - `player`: whoever has the player on their timeline (the player and
  *     those who follow them).
  *
@@ -21,7 +20,7 @@
  * chat everyone sees that the person was kicked. We then comment on it so
  * everyone knows why"). It shipped as `leaders` in 9.2.0 so that a kick
  * would never be narrated; the game already tells the whole clan, so
- * keeping it from the clan's own agent kept nothing from anyone.
+ * keeping it from the clan kept nothing from anyone.
  *
  * `app` among a clan fact's attesters (9.6.0) means Elixir writes it
  * itself (Clan's morning run), not a person: what Clan computed from the

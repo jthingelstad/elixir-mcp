@@ -23,7 +23,6 @@ import {
   accountRoleOp,
   accountEnrollOp,
   accountFollowOp,
-  integrationOp,
   serviceTokenLimitsOp,
 } from "./ops-accounts.mjs";
 import {
@@ -315,9 +314,6 @@ async function dispatch(event, context) {
     console.log(JSON.stringify(result));
     return result;
   }
-  if (event?.integration) {
-    return integrationOp(process.env.DATABASE_URL, event.integration);
-  }
   if (event?.service_token_limits) {
     const result = await serviceTokenLimitsOp(
       process.env.DATABASE_URL,
@@ -387,26 +383,6 @@ async function dispatch(event, context) {
     const result = await accountRemoveOp(
       process.env.DATABASE_URL,
       event.account_remove,
-    );
-    console.log(JSON.stringify(result));
-    return result;
-  }
-  if (event?.agent_accounts_remove) {
-    const { agentAccountsRemoveOp } =
-      await import("./ops-owned-accounts-remove.mjs");
-    const result = await agentAccountsRemoveOp(
-      process.env.DATABASE_URL,
-      event.agent_accounts_remove,
-    );
-    console.log(JSON.stringify(result));
-    return result;
-  }
-  if (event?.integration_accounts_remove) {
-    const { integrationAccountsRemoveOp } =
-      await import("./ops-owned-accounts-remove.mjs");
-    const result = await integrationAccountsRemoveOp(
-      process.env.DATABASE_URL,
-      event.integration_accounts_remove,
     );
     console.log(JSON.stringify(result));
     return result;

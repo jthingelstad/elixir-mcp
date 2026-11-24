@@ -19,17 +19,17 @@ test("Watching converts losslessly, without inventing follower activity; real fo
       alter table claim add constraint claim_relationship_check
         check (relationship in ('primary','alt','friend','watching'));
       alter table claim alter column relationship set default 'watching';`);
-    const account = async (key, kind = "person", owner = null) =>
+    const account = async (key) =>
       (
         await db.query(
-          "insert into account (email_hash,status,kind,owned_by_account_id) values ($1,'approved',$2,$3) returning account_id",
-          [key, kind, owner],
+          "insert into account (email_hash,status) values ($1,'approved') returning account_id",
+          [key],
         )
       ).rows[0].account_id;
     const owner = await account("friend-migration-owner");
     const watcher = await account("friend-migration-watcher");
     const friend = await account("friend-migration-friend");
-    const agent = await account("friend-migration-agent", "agent", watcher);
+    const lurker = await account("friend-migration-lurker");
     const tag = "#0JQ0JQ8";
     await db.query(
       "insert into player (player_tag,name) values ($1,'Invented Juniper')",
@@ -41,7 +41,7 @@ test("Watching converts losslessly, without inventing follower activity; real fo
              ($2,$5,'unverified',false,'watching',now()-interval '30 minutes',false),
              ($3,$5,'unverified',false,'friend',now()-interval '2 hours',true),
              ($4,$5,'unverified',false,'watching',now()-interval '15 minutes',true)`,
-      [owner, watcher, friend, agent, tag],
+      [owner, watcher, friend, lurker, tag],
     );
     await db.query(
       "insert into player_nickname (account_id,player_tag,nickname) values ($1,$2,'Private name')",
@@ -98,12 +98,14 @@ test("Watching converts losslessly, without inventing follower activity; real fo
       recordingsBefore,
     );
     assert.equal((await followsOf(db, watcher)).count, 0);
-    assert.equal((await followersOf(db, tag, owner)).count, 1);
+    // The friend and the converted lurker follow; the blocked watcher
+    // does not.
+    assert.equal((await followersOf(db, tag, owner)).count, 2);
     const dates = (
       await db.query("select account_id,created_at,followed_at from claim")
     ).rows;
     assert.equal(dates.find((r) => r.account_id === watcher).followed_at, null);
-    assert.equal(dates.find((r) => r.account_id === agent).followed_at, null);
+    assert.equal(dates.find((r) => r.account_id === lurker).followed_at, null);
     const prior = dates.find((r) => r.account_id === friend);
     assert.deepEqual(prior.followed_at, prior.created_at);
     const notices = await readFollowers(

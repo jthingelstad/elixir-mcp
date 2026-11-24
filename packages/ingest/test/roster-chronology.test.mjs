@@ -285,29 +285,15 @@ test("receipt-only clan admissions never supply the projected membership stamp o
 async function owner(
   db,
   suffix,
-  {
-    kind = "person",
-    status = "approved",
-    relationship = "alt",
-    verified = true,
-  } = {},
+  { status = "approved", relationship = "alt", verified = true } = {},
 ) {
-  const person = (
+  const account = (
     await db.query(
       "insert into account(email_hash,status)values($1,'approved')returning account_id",
       [`${suffix}-owner`],
     )
   ).rows[0].account_id;
-  const account =
-    kind === "person"
-      ? person
-      : (
-          await db.query(
-            "insert into account(email_hash,status,kind,owned_by_account_id)values($1,'approved','agent',$2)returning account_id",
-            [suffix, person],
-          )
-        ).rows[0].account_id;
-  if (kind === "person" && status !== "approved")
+  if (status !== "approved")
     await db.query("update account set status=$2 where account_id=$1", [
       account,
       status,
@@ -409,11 +395,10 @@ test("a verified alt's incidental roster retains automatic peers silently withou
   }
 });
 
-test("unverified, friend, agent and inactive claims do not expand incidental peer retention", async () => {
+test("unverified, friend and inactive claims do not expand incidental peer retention", async () => {
   for (const [label, options] of [
     ["unverified", { relationship: "primary", verified: false }],
     ["friend", { relationship: "friend", verified: false }],
-    ["agent", { kind: "agent" }],
     ["inactive", { status: "denied" }],
   ]) {
     const ctx = await scratchDb(`roster_incidental_${label}`);

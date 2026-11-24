@@ -231,13 +231,11 @@ export const KEPT = Object.freeze({
   account_push_pref: "a current push setting",
   push_subscription:
     "a current device; the relay deletes a gone one, and it goes with the account",
-  agent_identity: "a current agent",
   claim: "a current claim",
   recording: "what is being recorded now; the unfollowed trim reads it",
   service_token: "a credential, revoked rather than aged out",
   oauth_client: "a registered client",
   family_oauth_client: "a first-party client",
-  integration: "a connected app",
   player_nickname: "a current nickname",
   timeline_feed_link: "a current feed link",
   timeline_discord: "a current cross-post setting",

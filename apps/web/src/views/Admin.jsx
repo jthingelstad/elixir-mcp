@@ -55,43 +55,22 @@ import { AdminComments } from "./AdminComments.jsx";
  * endpoints on every one of them.
  */
 
-/**
- * How to name a principal in an admin table.
- *
- * These tables read `email_hash` because for a long time every account WAS a
- * person and always had one. Migration 0053 made the column nullable so that
- * agents and integrations -- which belong to a person and have no address of
- * their own -- could exist at all, and every one of these views kept calling
- * .slice() on it. The first agent created blanked EVERY admin page, because a
- * throw inside a render unmounts the whole tree.
- *
- * The guard alone would print a dash, which is worse than nothing in a table
- * whose job is telling you who did what. An agent has a name; use it.
- */
 /** A stored leader or family: a hand grant from before tiers were earned
  *  in the game (#530). It no longer counts; null when there is none. */
 function legacyGrant(a) {
   const g = a?.granted_role;
-  return (a?.kind ?? "person") === "person" &&
-    (g === "leader" || g === "family")
-    ? g
-    : null;
+  return g === "leader" || g === "family" ? g : null;
 }
 
+/** How to name an account in an admin table: its primary player, else
+ *  the start of its address hash (a test identity's or a tombstone's
+ *  included), else its id. Some accounts have no address, so nothing
+ *  here assumes one. */
 function principalLabel(a) {
   if (a.primary_tag)
     return a.primary_name
       ? `${a.primary_name} ${a.primary_tag}`
       : a.primary_tag;
-  // A PERSON is their email hash. Their tokens have names too, and reaching
-  // for one made the owner's own row read as "elixir-bot" -- a person
-  // labelled with a machine they happen to own.
-  if (a.kind && a.kind !== "person") {
-    // An agent's name lives on its service_token, not the account row; the
-    // slug is the stable fallback if the token was revoked.
-    if (a.principal_name) return a.principal_name;
-    if (a.public_id) return a.public_id;
-  }
   if (a.email_hash) return a.email_hash.slice(0, 10);
   return a.account_id ? a.account_id.slice(0, 8) : "unknown";
 }
@@ -213,14 +192,14 @@ function AdminCards() {
 
 /** Everything sent, every account (Jamie, 2026-09-19: "we can audit
  *  what we send without user feedback"). The same table the person's
- *  Activity → Emails is, with the recipient named by player and public
- *  id and the reports filed about each send counted. */
+ *  Activity → Emails is, with the recipient named by player and the
+ *  reports filed about each send counted. */
 function AdminEmails() {
   const { stamp: when } = useClock();
   const sends = useAdminEmailSends().data?.sends ?? [];
   const rows = sends.map((m) => [
     when(m.sent_at),
-    m.to_player ?? m.public_id ?? "—",
+    m.to_player ?? "—",
     m.label ?? m.kind,
     {
       text: m.subject ?? "—",
@@ -678,22 +657,14 @@ function AdminAccounts() {
   // A deleted account's tombstone stays a row (2026-11-23); hidden
   // unless asked for, so the list is the people who are here.
   const [showRemoved, setShowRemoved] = useState(false);
-  const removedCount = accounts.filter(
-    (a) => a.removed && !a.owned_by_account_id,
-  ).length;
+  const removedCount = accounts.filter((a) => a.removed).length;
 
   // Six columns became four, then five. The ops-lane overrides, the
   // collector flag and the tier prompt moved to the record page: a list
   // is for finding an account, and everything you can DO to one belongs
   // where you have opened it and can see what you are changing.
-  //
-  // PEOPLE ONLY (Jamie, 2026-09-10). An agent or an integration is an
-  // account in the schema (0053) but not a signup: they arrive when
-  // somebody creates one, they have no email and no tier of their own,
-  // and listing them beside their owners made the queue of actual humans
-  // impossible to read. They are counted here and named on the record.
   const rows = accounts
-    .filter((a) => !a.owned_by_account_id && (showRemoved || !a.removed))
+    .filter((a) => showRemoved || !a.removed)
     .map((a) => [
       {
         text: accountLabel(a),
@@ -706,7 +677,6 @@ function AdminAccounts() {
         tone: legacyGrant(a) ? "warn" : undefined,
       },
       `${a.players_tracked ?? 0} ${noun(a.players_tracked ?? 0, "player")} · ${a.clans_tracked ?? 0} ${noun(a.clans_tracked ?? 0, "clan")}`,
-      a.children ? String(a.children) : "—",
       a.last_active_at ? day(a.last_active_at) : "never",
     ]);
 
@@ -733,18 +703,17 @@ function AdminAccounts() {
         ["STATUS", "left"],
         ["ROLE", "left"],
         ["FOLLOWING", "left"],
-        ["AGENTS & INTEGRATIONS", "right"],
         ["LAST ACTIVE", "left"],
       ]}
       rows={rows}
-      monoCols={[0, 5]}
+      monoCols={[0, 4]}
       filters={[
         { key: "tier", label: "Role", col: 2 },
         { key: "status", label: "Status", col: 1 },
       ]}
       minWidth={620}
       empty="No accounts yet."
-      footnote="People only. An agent or an integration is an account too, owned by whoever created it — its column counts them, and the record page names them. Last active is the latest session or key use. A test identity reads Test: and its name; a deleted account is hidden until you ask for it. An account is named by the address it signs in with; open one to read its overrides or grant Partner. Member, Leader and Family are earned in the game and read live; a stored leader or family from before 2026-10-12 is flagged and no longer counts."
+      footnote="Every account is a person. Last active is the latest session or key use. A test identity reads Test: and its name; a deleted account is hidden until you ask for it. An account is named by the address it signs in with; open one to read its overrides or grant Partner. Member, Leader and Family are earned in the game and read live; a stored leader or family from before 2026-10-12 is flagged and no longer counts."
     />
   );
 }
@@ -756,7 +725,7 @@ function AdminUsage() {
   const { data: usage = null } = useAdminUsage();
 
   const rows = (usage?.accounts ?? []).map((a) => [
-    principalLabel(a) + (a.kind && a.kind !== "person" ? ` (${a.kind})` : ""),
+    principalLabel(a),
     String(a.calls_7d ?? 0),
     String(a.calls_today ?? 0),
     a.errors_7d ? String(a.errors_7d) : "0",
@@ -834,21 +803,9 @@ function AdminAccountDetail({ id, navigate }) {
       </div>
     );
 
-  // An agent or an integration is an account owned by the person who
-  // created it (0053). Both directions are useful here: what this
-  // account runs, and — if you opened one of those — whose it is.
-  const children = (accounts ?? []).filter(
-    (x) => x.owned_by_account_id === a.account_id,
-  );
-  const parent = a.owned_by_account_id
-    ? (accounts ?? []).find((x) => x.account_id === a.owned_by_account_id)
-    : null;
-
   const facts = [
     ["Email", a.email ?? "— (predates the address being kept)"],
     ["Account id", a.account_id],
-    ["Kind", a.kind ?? "person"],
-    ["Public id", a.public_id ?? "—"],
     [
       "Handle",
       a.handle ? (
@@ -875,7 +832,6 @@ function AdminAccountDetail({ id, navigate }) {
         "—"
       ),
     ],
-    ["Principal name", a.principal_name ?? "—"],
     ["Status", a.removed ? "deleted" : a.status],
     ["Test identity", a.test_name ?? "—"],
     ["Created", day(a.created_at)],
@@ -992,44 +948,7 @@ function AdminAccountDetail({ id, navigate }) {
         </div>
       </section>
 
-      {/* What this account RUNS. An agent or an integration is an account
-          of its own (0053) with its own door and its own connections, so
-          it needs to be reachable — it is simply not a signup, which is
-          why the list does not carry them. */}
-      {children.length > 0 && (
-        <section
-          className="panel"
-          style={{ maxWidth: "680px", marginTop: "14px" }}
-        >
-          <div className="panel__head">
-            <span className="panel-title">Agents and integrations</span>
-            <span className="caveat ml-auto">
-              {children.length} owned by this account
-            </span>
-          </div>
-          <dl className="fields" style={{ margin: 0 }}>
-            {children.map((c) => (
-              <Fragment key={c.account_id}>
-                <dt>{c.kind ?? "principal"}</dt>
-                <dd>
-                  <Link to={`${ADMIN}/accounts/${c.account_id}`}>
-                    {c.principal_name ??
-                      c.public_id ??
-                      c.account_id.slice(0, 8)}
-                  </Link>
-                  <span className="text-ink-faint">
-                    {" · "}
-                    {c.status}
-                    {c.public_id ? ` · ${c.public_id}` : ""}
-                  </span>
-                </dd>
-              </Fragment>
-            ))}
-          </dl>
-        </section>
-      )}
-
-      {!a.removed && !a.is_owner && (a.kind ?? "person") === "person" && (
+      {!a.removed && !a.is_owner && (
         <AdminDeleteAccount
           account={a}
           onDeleted={() => {
@@ -1037,16 +956,6 @@ function AdminAccountDetail({ id, navigate }) {
             navigate?.(`${ADMIN}/accounts`);
           }}
         />
-      )}
-
-      {parent && (
-        <p className="footnote" style={{ margin: "14px 0 0" }}>
-          This {a.kind ?? "principal"} belongs to{" "}
-          <Link to={`${ADMIN}/accounts/${parent.account_id}`}>
-            <TagText>{parent.email ?? principalLabel(parent)}</TagText>
-          </Link>{" "}
-          — it spends their entitlements and their daily budget.
-        </p>
       )}
     </>
   );
@@ -1121,7 +1030,6 @@ function AdminDeleteAccount({ account, onDeleted }) {
             </p>
             <p className="footnote">
               {[
-                `${preview.counts.agents ?? 0} ${noun(preview.counts.agents ?? 0, "agent")}`,
                 `${preview.counts.subjects ?? 0} followed ${noun(preview.counts.subjects ?? 0, "subject")} lose this reason to record`,
                 `${preview.counts.mail_archived ?? 0} sent mail ${noun(preview.counts.mail_archived ?? 0, "body", "bodies")}`,
               ].join(" · ")}
@@ -1165,11 +1073,7 @@ function AdminConnections() {
 
   const table = rows.map((c) => [
     {
-      text:
-        c.email ??
-        (c.kind && c.kind !== "person"
-          ? `${c.public_id ?? "principal"} (${c.kind})`
-          : (c.account_id ?? "").slice(0, 8)),
+      text: c.email ?? (c.account_id ?? "").slice(0, 8),
       title: c.account_id,
     },
     c.client_name ?? "—",
@@ -1182,7 +1086,7 @@ function AdminConnections() {
         // Somebody else's credential: the confirmation names whose, and
         // what stops working, because "Revoke" on a table row is the
         // easiest destructive click in the app to make by accident.
-        const whose = c.email ?? c.public_id ?? "this account";
+        const whose = c.email ?? "this account";
         if (
           !window.confirm(
             `Revoke ${c.client_name ?? "this connection"} for ${whose}? It stops reading on its next call, and they will have to connect it again.`,

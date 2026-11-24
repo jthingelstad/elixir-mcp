@@ -129,7 +129,7 @@ test("a person deletes their own account: the list hears, the mail goes, the coo
   );
   assert.deepEqual(
     events.map((e) => e.detail),
-    [{ via: "self", agents: 0 }],
+    [{ via: "self" }],
   );
   // The session went with the account.
   const again = await call(me, "GET", "/api/me");
@@ -262,7 +262,7 @@ test("Admin deletes an account for real, a test identity included", async () => 
   );
   assert.deepEqual(
     events.map((e) => e.detail),
-    [{ via: "admin", by: STAFF, agents: 0 }],
+    [{ via: "admin", by: STAFF }],
   );
 
   const gym = (

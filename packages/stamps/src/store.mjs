@@ -57,7 +57,7 @@ const isoOf = (now) => {
 /**
  * The account's passport id, made on first call for a person account.
  * Returns { passport_id, created }, or null for an account that is not a
- * person (agents and integrations never get one).
+ * person.
  * Idempotent and safe to race: one row per account.
  */
 export async function ensurePassport(db, accountId) {

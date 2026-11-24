@@ -1,11 +1,7 @@
 /**
- * The accounts list is a list of PEOPLE.
- *
- * An agent or an integration is an account in the schema (0053) — its own
- * door, its own connections — but it is not a signup: no email, no tier of
- * its own, and it arrives because somebody created it. Listing them beside
- * their owners made the queue of actual humans unreadable (Jamie,
- * 2026-09-10), so they are counted on the row and named on the record.
+ * The accounts list is a list of people: every account is one (0317).
+ * Test identities and deleted accounts are named for what they are, and
+ * the record's Delete account runs a dry run before it deletes.
  */
 import { test, expect, vi, beforeEach, afterEach } from "vitest";
 import {
@@ -25,35 +21,11 @@ const PERSON = {
   status: "approved",
   role: "owner",
   is_owner: true,
-  kind: "person",
-  owned_by_account_id: null,
-  children: 2,
   players_tracked: 3,
   clans_tracked: 1,
 };
-const AGENT = {
-  account_id: "acct-2",
-  email: null,
-  email_hash: null,
-  status: "approved",
-  role: "member",
-  kind: "agent",
-  public_id: "a_7f3d",
-  principal_name: "elixir-mcp-discord",
-  owned_by_account_id: "acct-1",
-  children: 0,
-  players_tracked: 0,
-  clans_tracked: 0,
-};
-const INTEGRATION = {
-  ...AGENT,
-  account_id: "acct-3",
-  kind: "integration",
-  public_id: "i_91aa",
-  principal_name: "elixir-drop",
-};
 
-const ACCOUNTS = [PERSON, AGENT, INTEGRATION];
+const ACCOUNTS = [PERSON];
 
 beforeEach(() => {
   vi.stubGlobal(
@@ -76,55 +48,15 @@ afterEach(() => {
   cleanup();
 });
 
-test("the list carries people, and counts what each one runs", async () => {
+test("the list carries people, and says so", async () => {
   renderWithProviders(
     <Admin me={{ is_admin: true }} page="accounts" navigate={vi.fn()} />,
   );
   await waitFor(() =>
     expect(screen.getByText("jamie@example.com")).toBeTruthy(),
   );
-
-  // The agent and the integration are not rows of their own.
-  expect(screen.queryByText("elixir-mcp-discord")).toBeNull();
-  expect(screen.queryByText("elixir-drop")).toBeNull();
-
-  const row = screen.getByText("jamie@example.com").closest("tr");
-  expect(within(row).getByText("2")).toBeTruthy();
-});
-
-test("the record names the children and navigates to each", async () => {
-  const navigate = vi.fn();
-  renderWithProviders(
-    <Admin
-      me={{ is_admin: true }}
-      page="accounts"
-      itemId="acct-1"
-      navigate={navigate}
-    />,
-  );
-  await waitFor(() =>
-    expect(screen.getByText("Agents and integrations")).toBeTruthy(),
-  );
-  expect(screen.getByText("agent")).toBeTruthy();
-  expect(screen.getByText("integration")).toBeTruthy();
-
-  fireEvent.click(screen.getByText("elixir-mcp-discord"));
-  expect(navigate).toHaveBeenCalledWith("/settings/admin/accounts/acct-2");
-});
-
-test("a child's record says whose it is, and leads back", async () => {
-  const navigate = vi.fn();
-  renderWithProviders(
-    <Admin
-      me={{ is_admin: true }}
-      page="accounts"
-      itemId="acct-2"
-      navigate={navigate}
-    />,
-  );
-  await waitFor(() => expect(screen.getByText(/belongs to/)).toBeTruthy());
-  fireEvent.click(screen.getByText("jamie@example.com"));
-  expect(navigate).toHaveBeenCalledWith("/settings/admin/accounts/acct-1");
+  expect(screen.getByText(/^Every account is a person\./)).toBeTruthy();
+  expect(screen.queryByText(/Agents|integrations/i)).toBeNull();
 });
 
 // Deleting accounts from Admin (2026-11-23).
@@ -135,7 +67,6 @@ const TEST_ID = {
   email_hash: "test:gym",
   role: "member",
   is_owner: false,
-  children: 0,
   test_name: "gym",
   removed: false,
   last_active_at: null,
@@ -147,7 +78,6 @@ const MEMBER = {
   email_hash: "0123456789abcdef",
   role: "member",
   is_owner: false,
-  children: 0,
   removed: false,
 };
 const TOMBSTONE = {
@@ -157,7 +87,6 @@ const TOMBSTONE = {
   email_hash: "removed:xyz",
   role: "member",
   is_owner: false,
-  children: 0,
   removed: true,
 };
 
@@ -202,7 +131,6 @@ test("the record's Delete account runs a dry run first, then deletes and goes ba
     ok: true,
     account_id: sent.account_id,
     dry_run: sent.dry_run,
-    agents: 0,
     removed: { session: 2, claim: 1, feedback: 0 },
     subjects: 1,
     mail_archived: 3,

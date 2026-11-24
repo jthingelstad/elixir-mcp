@@ -7,7 +7,7 @@
  * own transaction, so a removal is never hand-written SQL and never two
  * copies of the step list.
  *
- * What goes, for the person and every agent they own: the address, the
+ * What goes, for the person: the address, the
  * claims and watches (claim, account_clan, and the recordings only they
  * kept alive, stopped through the claims package's own reconcile), the
  * sessions, OAuth grants and codes and tokens, service tokens, the call
@@ -17,7 +17,7 @@
  * stored Home and bell weeks, the passport and Stamps, timeline read
  * pointers, the timeline's Discord cross-post (its sealed webhook, what
  * it told, and its posts in the quality ledger), Clan's remembered clan,
- * agent identities, and pending sign-in links. Removing an account
+ * and pending sign-in links. Removing an account
  * deletes the account, not the record (DECISIONS).
  *
  * What stays (KEPT_TABLES): canonical game data (lossless by policy;
@@ -30,10 +30,8 @@
  * The same address can sign up again and gets a new account.
  *
  * Refused, before anything is written (and reported by a dry run): not a
- * person (an agent goes with its owner), the owner account, an owner of
- * an integration (admin-provisioned: retire it first), a live collector
- * (revoke it first through the collector door's own revoke), and already
- * removed accounts.
+ * person, the owner account, a live collector (revoke it first through
+ * the collector door's own revoke), and already removed accounts.
  *
  * Outside the database, each caller does what its role can: the web-api
  * removes the address from the mailing list (an email-lane
@@ -252,10 +250,6 @@ const STEPS = [
     params: (c) => [c.ids.map((id) => `account#${id}`), c.ids.map(String)],
   },
   {
-    table: "agent_identity",
-    from: `agent_identity where account_id = any($1::uuid[])`,
-  },
-  {
     table: "account_discord",
     from: `account_discord where account_id = any($1::uuid[])`,
   },
@@ -297,8 +291,7 @@ export const REMOVED_TABLES = Object.freeze(STEPS.map((s) => s.table));
 
 /** Tables that name an account and keep their rows, and why. */
 export const KEPT_TABLES = Object.freeze({
-  // The tombstone itself; an agent's owned_by_account_id names it, and
-  // the agents become tombstones with their owner.
+  // The tombstone itself.
   account: "the anonymous tombstone the kept rows point at",
   // The game record's own bookkeeping: who first asked for a subject.
   // Stopping a recording deletes nothing it recorded.
@@ -307,8 +300,6 @@ export const KEPT_TABLES = Object.freeze({
   attested_fact: "a clan's fact stays the clan's",
   // A revoked collector's history (a live one refuses the removal).
   gateway: "a revoked collector's history, on the tombstone",
-  // An integration account's own row: owning one refuses the removal.
-  integration: "an integration is retired by staff before its owner goes",
 });
 
 /** The tombstone's account columns: what it clears or resets, and what
@@ -339,12 +330,9 @@ export const ACCOUNT_COLUMNS_CLEARED = Object.freeze([
 export const ACCOUNT_COLUMNS_KEPT = Object.freeze([
   "account_id",
   "kind",
-  "owned_by_account_id",
-  "public_id",
   "is_owner",
   "created_at",
   "decided_at",
-  "removed_at",
   "mcp_daily_quota",
   "max_player_recordings",
   "live_daily_quota",
@@ -395,15 +383,7 @@ export async function removeAccount(
   if (String(person.email_hash).startsWith("removed:"))
     return refuse("already_removed");
 
-  const { rows: owned } = await db.query(
-    `select account_id, kind from account
-      where owned_by_account_id = $1 order by account_id for update`,
-    [person.account_id],
-  );
-  const integrations = owned.filter((r) => r.kind === "integration").length;
-  if (integrations > 0) return refuse("owns_integration", { integrations });
-  const ids = [person.account_id, ...owned.map((r) => r.account_id)];
-  out.agents = owned.length;
+  const ids = [person.account_id];
 
   const { rows: gw } = await db.query(
     `select count(*) filter (where status <> 'revoked')::int as live,
@@ -515,8 +495,7 @@ export async function removeAccount(
     await db.query(
       `update account
           set email = null,
-              email_hash = case when kind = 'person'
-                                then 'removed:' || account_id::text end,
+              email_hash = 'removed:' || account_id::text,
               status = 'disabled', role = 'member', request_note = null,
               requested_player_tag = null, timezone = null,
               newsletter_opt_in = false, onboarded_at = null,
@@ -537,7 +516,6 @@ export async function removeAccount(
         JSON.stringify({
           via,
           ...(via === "admin" && actorAccountId ? { by: actorAccountId } : {}),
-          agents: owned.length,
         }),
       ],
     );

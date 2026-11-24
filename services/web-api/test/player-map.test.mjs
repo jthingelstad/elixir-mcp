@@ -7,7 +7,7 @@
  * owner's place); one player per person;
  * Near you is the reader's country and region, the reader's city first,
  * never the reader, their own players or anyone they follow or watch; a
- * reader with no place gets none; an agent reads nothing; and no answer
+ * reader with no place gets none; and no answer
  * carries anything finer than the picked place: the pin is the lists' own
  * point for that city or region. Invented names and tags throughout.
  */
@@ -41,16 +41,11 @@ const P = {
 let scratch;
 const acct = {};
 
-async function account(
-  key,
-  status = "approved",
-  kind = "person",
-  owner = null,
-) {
+async function account(key, status = "approved") {
   const { rows } = await scratch.db.query(
-    `insert into account(email_hash, kind, status, role, owned_by_account_id)
-     values ($1, $2, $3, 'member', $4) returning account_id`,
-    [`player-map-${key}`, kind, status, owner],
+    `insert into account(email_hash, status, role)
+     values ($1, $2, 'member') returning account_id`,
+    [`player-map-${key}`, status],
   );
   acct[key] = rows[0].account_id;
   return rows[0].account_id;
@@ -139,9 +134,8 @@ before(async () => {
     status: "unverified",
   });
   await place(P.unverified, TX, acct.unverified);
-  // A reader with no place, and an agent.
+  // A reader with no place.
   await account("noplace");
-  await account("agent", "approved", "agent", acct.reader);
 });
 after(async () => scratch?.drop());
 
@@ -172,22 +166,12 @@ test("the player map is everyone with a place, one player a person, and nobody e
     assert.ok(!tags(got.entries).includes(P[key]), key);
 });
 
-test("a reader with no place still sees the player map; an agent reads nothing", async () => {
+test("a reader with no place still sees the player map, and no Near you", async () => {
   const noplace = await playerMap(scratch.db, acct.noplace);
   assert.equal(noplace.on_map, 7);
   assert.ok(noplace.entries.every((e) => e.you === false));
-  assert.deepEqual(
-    await readPlayerMap(scratch.db, { accountId: acct.agent, kind: "agent" }),
-    { refused: "not_a_person" },
-  );
-  // An agent account named as a person reads no row either.
-  const posing = await readPlayerMap(scratch.db, {
-    accountId: acct.agent,
-    kind: "person",
-  });
-  assert.deepEqual(posing.entries, []);
   const near = await readNearYou(scratch.db, {
-    accountId: acct.agent,
+    accountId: acct.noplace,
     kind: "person",
   });
   assert.equal(near.place, null);

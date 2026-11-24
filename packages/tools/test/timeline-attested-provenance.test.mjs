@@ -11,23 +11,21 @@ const MEMBER = "#08U2";
 const LEADER = "#02YQ";
 const AT = "2026-11-18T10:00:00.000Z";
 const subjects = [{ kind: "clan", tag: CLAN }];
-let ctx, member, stranger, agent;
+let ctx, member, stranger;
 
 before(async () => {
   ctx = await scratchDb("timeline_attester");
   const db = ctx.db;
-  const account = async (key, kind = "person", owner = null) =>
+  const account = async (key) =>
     (
       await db.query(
-        `insert into account(email_hash,status,kind,owned_by_account_id)
-         values ($1,'approved',$2,$3) returning account_id`,
-        [key, kind, owner],
+        `insert into account(email_hash,status) values ($1,'approved') returning account_id`,
+        [key],
       )
     ).rows[0].account_id;
   member = await account("attester-member");
   const leader = await account("attester-leader");
   stranger = await account("attester-stranger");
-  agent = await account("attester-agent", "agent", member);
   await db.query("insert into clan(clan_tag,name) values ($1,'Example Clan')", [
     CLAN,
   ]);
@@ -123,8 +121,6 @@ test("authorized clan facts carry actor or app attester metadata required by the
 
 test("no attester metadata is returned without clan membership or an in-window fact", async () => {
   assert.deepEqual(await read(stranger), []);
-  // An agent-kind account left from before 2026-11-23 holds no seat.
-  assert.deepEqual(await read(agent), []);
   assert.deepEqual(await read(undefined), []);
   assert.deepEqual(
     await read(member, {

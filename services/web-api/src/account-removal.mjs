@@ -22,13 +22,10 @@ import { deleteSentMail } from "@elixir-mcp/mail/archive";
 /** What a refusal says, to a person or to staff. */
 export const REFUSAL_MESSAGES = {
   owner_account: "The owner's account can't be deleted here.",
-  owns_integration:
-    "This account runs an integration. Write to admin@poapkings.com to delete it.",
   collectors_live:
     "Revoke the collector first, in Settings › Collectors. Then come back here.",
   already_removed: "This account is already deleted.",
-  not_a_person:
-    "Only a person's account can be deleted. An agent goes with its owner.",
+  not_a_person: "Only a person's account can be deleted.",
 };
 
 /**
@@ -97,7 +94,6 @@ export async function runRemoval(
   console.info({
     event: "account_removed",
     via,
-    agents: rest.agents,
     mail_deleted: mail.deleted,
     mail_failed: mail.failed,
   });

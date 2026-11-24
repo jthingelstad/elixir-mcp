@@ -180,8 +180,7 @@ function cleanVia(via) {
   return Object.keys(out).length ? out : null;
 }
 
-/** An owner's own feedback (or that of an agent the owner runs) is not
- *  news to the owner. */
+/** An owner's own feedback is not news to the owner. */
 export function isOwnerOwned(account) {
   return (
     account?.isOwner === true ||
@@ -437,7 +436,7 @@ export async function listMine(
 
 /** One of the filer's own items, with the items that follow it. Opening it
  *  is reading its answer: the answer is marked seen, unless someone else
- *  is reading it (an owner on their agent's page: `seen: false`). */
+ *  is reading it (`seen: false`). */
 export async function itemMine(
   db,
   accountId,
@@ -818,7 +817,7 @@ const RATED = {
  * thumbs up or down and an optional note, filed as feedback with a
  * `discord_post` ref to the quality ledger's row (0222), so the one
  * queue reads it beside everything else. The door names the scope it
- * checked: a timeline post must be the filer's or one of their agents'
+ * checked: a timeline post must be the filer's own
  * (`feature: "timeline"`); a clan's must be that clan's, and the caller
  * has already checked the filer leads it (`clan_tag`). A post outside the
  * scope is `not_found`, whether or not it exists. A second rating of the

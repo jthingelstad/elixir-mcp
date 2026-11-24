@@ -877,7 +877,7 @@ const TAG_MENTIONS = [
  * endpoint where the table has one), the jsonb mentions in small tables,
  * the player row's identity stamps, what makes the tag tracked (any
  * recording with its status, claims, claim challenges, sign-up requests,
- * agent identities, nicknames, open jobs, open memberships and whether
+ * nicknames, open jobs, open memberships and whether
  * their clan is tracked), its battles and how many have a tracked player
  * on the other side, its MCP calls by tool, and for each receipt its lane,
  * record flag and whether the payload archive object exists (a HEAD; the
@@ -1027,7 +1027,6 @@ export async function tagFootprintCensus(databaseUrl, opts = {}, deps = {}) {
         `select (select count(*)::int from claim where player_tag = $1) as claims,
                 (select count(*)::int from claim_challenge where player_tag = $1) as claim_challenges,
                 (select count(*)::int from account where requested_player_tag = $1) as account_requests,
-                (select count(*)::int from agent_identity where player_tag = $1) as agent_identities,
                 (select count(*)::int from player_nickname where player_tag = $1) as nicknames,
                 (select count(*)::int from job where entity_key = $1
                     and status in ('queued', 'leased')) as open_jobs,

@@ -2,7 +2,7 @@
  * {account_remove} (#129): the privacy page promises an account and its
  * address can be removed on request, and until this op a removal would
  * have been hand-written SQL. A dry run reports and writes nothing; a
- * run removes the person and their agents' personal rows, stops only the
+ * run removes the person's personal rows, stops only the
  * recordings nobody else wants, keeps the game record, and leaves an
  * anonymous tombstone for the rows that must keep pointing somewhere.
  */
@@ -32,7 +32,7 @@ const ADDRESS = "leaving@example.com";
 
 let db;
 const ids = {};
-let agentKey;
+let personKey;
 let personAccess;
 
 const one = async (sql, params = []) => (await db.query(sql, params)).rows[0];
@@ -68,14 +68,6 @@ before(async () => {
       [emailHash("staying@example.com")],
     )
   ).account_id;
-  ids.agent = (
-    await one(
-      `insert into account (status, role, kind, owned_by_account_id, public_id)
-       values ('approved', 'member', 'agent', $1, 'leavingagent')
-       returning account_id`,
-      [ids.person],
-    )
-  ).account_id;
 
   // The game record: two players and a clan, recorded.
   await db.query(
@@ -97,7 +89,7 @@ before(async () => {
   await db.query(
     `insert into account_clan (account_id, clan_tag, is_primary)
      values ($1, '#0CP08QUC', false), ($2, '#028RJP2U', true), ($3, '#028RJP2U', false)`,
-    [ids.person, ids.agent, ids.other],
+    [ids.person, ids.person, ids.other],
   );
   await db.query(
     `insert into account_clan_declined (account_id, clan_tag) values ($1, '#0YP8L80P')`,
@@ -109,10 +101,10 @@ before(async () => {
             ('clan', '#0CP08QUC', $1, 'claim'), ('clan', '#028RJP2U', $2, 'claim')`,
     [ids.person, ids.other],
   );
-  // Credentials: the agent's key and the person's OAuth grant.
-  agentKey = await issueServiceToken(db, {
-    accountId: ids.agent,
-    name: "leaving-agent",
+  // Credentials: the person's key and their OAuth grant.
+  personKey = await issueServiceToken(db, {
+    accountId: ids.person,
+    name: "leaving-key",
   });
   const { clientId } = await registerClient(db, {
     clientName: "leaver-client",
@@ -130,7 +122,7 @@ before(async () => {
     [ids.person],
   );
   const tok = await one(`select token_id from service_token where name = $1`, [
-    "leaving-agent",
+    "leaving-key",
   ]);
 
   // The personal records.
@@ -148,17 +140,17 @@ before(async () => {
     `insert into mcp_call_audit (account_id, surface, tool, oauth_family_id)
      values ($1, 'mcp', 'players_summary', $2), ($1, 'web', 'explore', null),
             ($3, 'mcp', 'war_current', null)`,
-    [ids.person, fam.family_id, ids.agent],
+    [ids.person, fam.family_id, ids.person],
   );
   await db.query(
     `insert into mcp_call_audit (account_id, surface, tool, token_id)
      values ($1, 'mcp', 'war_current', $2), ($3, 'mcp', 'war_current', null)`,
-    [ids.agent, tok.token_id, ids.other],
+    [ids.person, tok.token_id, ids.other],
   );
   await db.query(
     `insert into credential_refusal (credential_hash, token_id, account_id, kind, reason)
      values ('h1', $1, $2, 'service_token', 'revoked_key')`,
-    [tok.token_id, ids.agent],
+    [tok.token_id, ids.person],
   );
   await db.query(
     `insert into feedback (account_id, surface, message) values ($1, 'web', 'bye'),
@@ -399,7 +391,7 @@ before(async () => {
     `mcpday#${ids.person}`,
     `firstread#${ids.person}`,
     `rest-hour:${ids.person}`,
-    `mcp#${ids.agent}`,
+    `mcp#${ids.person}`,
     `mcp#token#${tok.token_id}`,
     `auth#${emailHash(ADDRESS)}`,
     `mcpday#${ids.other}`,
@@ -431,7 +423,6 @@ test("a dry run is the default: it reports what would go and writes nothing", as
   const dry = await accountRemoveOp(SCRATCH_URL, { email: ADDRESS });
   assert.equal(dry.dry_run, true);
   assert.equal(dry.refused, undefined);
-  assert.equal(dry.agents, 1);
   assert.deepEqual(dry.removed, {
     mcp_call_audit: 4,
     credential_refusal: 1,
@@ -479,14 +470,13 @@ test("a dry run is the default: it reports what would go and writes nothing", as
     timeline_discord: 1,
     discord_post: 1,
     clan_state: 2,
-    agent_identity: 0,
     account_discord: 1,
     discord_login: 1,
     feedback: 1,
     collector_version_event: 0,
     email_send: 1,
     account_email_pref: 0,
-    account_event: 2, // signed_in, and agent_connected
+    account_event: 2, // signed_in, and agent_connected (their AI client's grant)
     rate_limit: 6,
   });
   assert.deepEqual(dry.kept, {
@@ -513,18 +503,18 @@ test("a dry run is the default: it reports what would go and writes nothing", as
       .email,
     ADDRESS,
   );
-  // The agent's key is never accepted (agents were removed 2026-11-23),
-  // but the dry run left its row where it was.
+  // The dry run left the person's key where it was.
   assert.equal(
     await count(
       `select count(*)::int as n from service_token where account_id = $1`,
-      [ids.agent],
+      [ids.person],
     ),
     1,
   );
+  assert.ok(await validateServiceToken(db, personKey));
 });
 
-test("refusals: the owner, an agent, an unknown address, an integration's owner", async () => {
+test("refusals: the owner and an unknown address", async () => {
   assert.equal(
     (
       await accountRemoveOp(SCRATCH_URL, {
@@ -535,42 +525,13 @@ test("refusals: the owner, an agent, an unknown address, an integration's owner"
     "owner_account",
   );
   assert.equal(
-    (
-      await accountRemoveOp(SCRATCH_URL, {
-        account_id: ids.agent,
-        dry_run: false,
-      })
-    ).refused,
-    "not_a_person",
-  );
-  assert.equal(
     (await accountRemoveOp(SCRATCH_URL, { email: "nobody@example.com" })).error,
     "not_found",
   );
   assert.ok((await accountRemoveOp(SCRATCH_URL, {})).error);
-
-  const partner = await one(
-    `insert into account (email_hash, status, role) values ($1, 'approved', 'partner')
-     returning account_id`,
-    [emailHash("partner@example.com")],
-  );
-  await db.query(
-    `insert into account (status, role, kind, owned_by_account_id)
-     values ('approved', 'partner', 'integration', $1)`,
-    [partner.account_id],
-  );
-  assert.equal(
-    (
-      await accountRemoveOp(SCRATCH_URL, {
-        account_id: partner.account_id,
-        dry_run: false,
-      })
-    ).refused,
-    "owns_integration",
-  );
 });
 
-test("the run removes the person and their agent, keeps the game record, and leaves a tombstone", async () => {
+test("the run removes the person, keeps the game record, and leaves a tombstone", async () => {
   const r = await accountRemoveOp(SCRATCH_URL, {
     email: ADDRESS,
     dry_run: false,
@@ -600,21 +561,15 @@ test("the run removes the person and their agent, keeps the game record, and lea
     request_note: null,
     timezone: null,
     newsletter_opt_in: false,
-    // Both places in the timeline are the account's: the agents' read
-    // pointer and the Console's own (0228).
+    // Both timeline read pointers are the account's (0228).
     activity_seen_at: null,
     console_timeline_seen_at: null,
     // The profile image is the account's (0268).
     avatar_card_id: null,
     avatar_set_at: null,
   });
-  assert.equal(
-    (await one(`select status from account where account_id = $1`, [ids.agent]))
-      .status,
-    "disabled",
-  );
 
-  // Every personal row of the person and the agent is gone.
+  // Every personal row of the person is gone.
   for (const table of [
     "claim",
     "account_clan",
@@ -660,7 +615,7 @@ test("the run removes the person and their agent, keeps the game record, and lea
     assert.equal(
       await count(
         `select count(*)::int as n from ${table} where account_id = any($1::uuid[])`,
-        [[ids.person, ids.agent]],
+        [[ids.person]],
       ),
       0,
       table,
@@ -715,11 +670,11 @@ test("the run removes the person and their agent, keeps the game record, and lea
         [ids.person],
       )
     ).rows,
-    [{ kind: "account_removed", detail: { via: "ops", agents: 1 } }],
+    [{ kind: "account_removed", detail: { via: "ops" } }],
   );
 
   // Credentials are dead.
-  assert.equal(await validateServiceToken(db, agentKey), null);
+  assert.equal(await validateServiceToken(db, personKey), null);
   assert.equal(
     await validateAccessToken(db, personAccess, { resource: RESOURCE }),
     null,

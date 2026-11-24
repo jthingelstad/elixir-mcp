@@ -63,12 +63,10 @@ export function accountRemoveRoutes({
       if (result.error) return json(404, { error: "not_found" });
       if (result.refused) {
         const message =
-          result.refused === "owns_integration"
-            ? "Your account runs an integration. Write to admin@poapkings.com to delete it."
-            : result.refused === "collectors_live"
-              ? "Revoke your collector first, in Settings › Collectors. Then come back here."
-              : (REFUSAL_MESSAGES[result.refused] ??
-                "This account can't be deleted here.");
+          result.refused === "collectors_live"
+            ? "Revoke your collector first, in Settings › Collectors. Then come back here."
+            : (REFUSAL_MESSAGES[result.refused] ??
+              "This account can't be deleted here.");
         return json(409, { error: "refused", code: result.refused, message });
       }
       return json(200, { ok: true }, { "set-cookie": sessionCookie("", 0) });

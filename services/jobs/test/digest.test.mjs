@@ -201,13 +201,6 @@ test("each delivery gate holds the answer mail; no once-a-day gate; a mail marks
     const off = await account("gate-off");
     const pending = await account("gate-disabled", { status: "disabled" });
     const owner = await account("gate-owner", { owner: true });
-    const agent = (
-      await db.query(
-        `insert into account (email_hash, status, kind, owned_by_account_id, public_id)
-         values ('gate-agent', 'approved', 'agent', $1, 'gateagent01') returning account_id`,
-        [person],
-      )
-    ).rows[0].account_id;
     await db.query(
       `insert into account_email_pref (account_id, kind, enabled, via)
        values ($1, 'feedback_answer', false, 'profile')`,
@@ -247,7 +240,6 @@ test("each delivery gate holds the answer mail; no once-a-day gate; a mail marks
       switchedOff: await answered(off),
       notApproved: await answered(pending),
       owner: await answered(owner),
-      agent: await answered(agent),
       noWords: await answered(person, { response: "  " }),
       noItem: await answered(person, { event: false }),
     };
