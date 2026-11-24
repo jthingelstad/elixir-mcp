@@ -18,8 +18,7 @@ export const READS = new Set([
 ]);
 
 /** The morning run reads as Elixir itself: no account, so no claims,
- *  nicknames or follows of anyone's, exactly what the `elixir-clan`
- *  integration it replaced could see. */
+ *  nicknames or follows of anyone's. */
 export const SYSTEM_READER = Object.freeze({
   accountId: null,
   kind: "system",

@@ -368,21 +368,16 @@ test("an overwrite needs the right to the fact already there, not only the one s
 
 test("a player fact Drop wrote on its key before 5.0.0 stays stored and labelled; nothing writes one now", async () => {
   // JSON API 5.0.0 removed the write (integration keys went); the rows a
-  // family app wrote stay, read as their type says (the timeline below).
-  const attester = (
-    await db.query(
-      "insert into account(kind,owned_by_account_id,status,role) values ('integration',$1,'approved','partner') returning account_id",
-      [accounts.leader],
-    )
-  ).rows[0].account_id;
+  // family app wrote stay, read as their type says (the timeline below),
+  // with no attester since the integration accounts were deleted.
   await db.query(
     `insert into attested_fact
        (subject_kind, player_tag, fact_type, detail, visibility, source,
         source_ref, attester_account_id, occurred_at)
      values ('player', $1, 'personal_record',
              '{"game":"Ranked","score":1840,"previous_best":1710}', 'player',
-             'elixir-drop', 'run-7', $2, now())`,
-    [MEMBER_TAG, attester],
+             'elixir-drop', 'run-7', null, now())`,
+    [MEMBER_TAG],
   );
   const [item] = await factItems(db, [{ kind: "player", tag: MEMBER_TAG }], {
     accountId: accounts.outsider,
@@ -493,16 +488,8 @@ test("the timeline shows each fact only to the reader its type allows; a departu
 });
 
 test("Clan's morning run records its computed award standing; a person cannot, and it cannot write a person's kind", async () => {
-  // The account Clan's facts were attested by when it wrote through an
-  // integration row; Elixir still writes under it (services/jobs clan.mjs).
-  const attester = (
-    await db.query(
-      "insert into account(email_hash,status,role,kind,owned_by_account_id) values ('clan-attester','approved','member','integration',$1) returning account_id",
-      [accounts.leader],
-    )
-  ).rows[0].account_id;
-  const system = (body) =>
-    answer(() => writeClanFactBySystem(db, attester, CLAN, body));
+  // Elixir itself writes it (services/jobs clan.mjs): no account attests.
+  const system = (body) => answer(() => writeClanFactBySystem(db, CLAN, body));
   const standing = {
     type: "award_standing",
     ref: "standing:136:war_champ:1",
@@ -565,7 +552,7 @@ test("Clan's morning run records its computed award standing; a person cannot, a
     404,
   );
   const gone = await answer(() =>
-    removeClanFactBySystem(db, attester, CLAN, standing.ref),
+    removeClanFactBySystem(db, CLAN, standing.ref),
   );
   assert.equal(gone.statusCode, 200, gone.body);
   assert.equal(data(gone).data.removed, true);

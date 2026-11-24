@@ -9,7 +9,7 @@
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
 import pg from "pg";
-import { agentAccountsRemoveOp } from "../src/ops-agent-accounts-remove.mjs";
+import { agentAccountsRemoveOp } from "../src/ops-owned-accounts-remove.mjs";
 import { issueServiceToken } from "../../../packages/auth/src/index.mjs";
 import {
   createScratch,

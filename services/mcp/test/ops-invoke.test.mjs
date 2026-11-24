@@ -76,6 +76,9 @@ test("op: reads are reads", () => {
     { agent_accounts_remove: true },
     { agent_accounts_remove: {} },
     { agent_accounts_remove: { dry_run: true } },
+    { integration_accounts_remove: true },
+    { integration_accounts_remove: {} },
+    { integration_accounts_remove: { dry_run: true } },
     { verified_tag_census: { dry_run: true } },
     { comment_delivery: { tag: "#0PYLQ2" } },
     { clan_maintenance: { lane: "actions", clan_tag: "#A" } },
@@ -124,6 +127,9 @@ test("op: everything else is a write, and takes the lock", () => {
     { agent_accounts_remove: { dry_run: false, history: "owner" } },
     { agent_accounts_remove: { history: "delete" } }, // a dry run, but not counted
     { agent_accounts_remove: { dry_run: true, history: "owner" } },
+    { integration_accounts_remove: { dry_run: false } },
+    { integration_accounts_remove: { dry_run: false, history: "owner" } },
+    { integration_accounts_remove: { history: "delete" } }, // a dry run, but not counted
     { verified_tag_census: { dry_run: false } },
     { verified_tag_census: {} },
     { clan_maintenance: { lane: "reconcile_removal", card_id: "c" } },

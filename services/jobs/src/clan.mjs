@@ -172,20 +172,10 @@ export async function runClanEvaluation({
 }) {
   const db = await openJobsClient(databaseUrl, { op: "clan_evaluate" });
   try {
-    // The account Clan's computed facts have always been attested by: the
-    // row Clan once wrote through, kept as provenance. Clan is part of
-    // Elixir (Jamie, 2026-11-12), so the run writes its facts and sends
-    // its mail as Elixir itself, never as that integration; no token of
-    // it is presented anywhere.
-    const row = (
-      await db.query(
-        "select account_id from integration where name='elixir-clan'",
-      )
-    ).rows[0];
-    if (!row) throw new Error("clan_attester_identity_missing");
-    const attester = row.account_id;
     // The record is read in process as Elixir itself (SYSTEM_READER): no
-    // account, so no one's claims or nicknames, as the integration saw.
+    // account, so no one's claims or nicknames. Clan writes its facts and
+    // sends its mail as Elixir itself too (Jamie, 2026-11-12), with no
+    // account behind them and no token presented anywhere.
     const record = createRecord({
       read: makeRecordReader({
         db,
@@ -196,9 +186,9 @@ export async function runClanEvaluation({
         deadlineMs: 75_000,
       }),
       writeFact: (tag, body) =>
-        answer(() => writeClanFactBySystem(db, attester, tag, body)),
+        answer(() => writeClanFactBySystem(db, tag, body)),
       removeFact: (tag, ref) =>
-        answer(() => removeClanFactBySystem(db, attester, tag, ref)),
+        answer(() => removeClanFactBySystem(db, tag, ref)),
       sendMail: (tag, body) =>
         answer(() =>
           sendActionsMail(db, tag, body, {

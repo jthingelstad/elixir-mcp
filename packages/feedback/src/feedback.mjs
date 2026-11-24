@@ -636,7 +636,6 @@ const QUEUE_FIELDS = `f.feedback_id, f.account_id, f.surface, f.area, f.category
   to_char(f.responded_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') as responded_at,
   f.response_seen_at, f.shipped_in, f.related_tools, f.created_at,
   f.request_id, f.send_id,
-  a.kind as account_kind, a.public_id as account_public_id,
   (select c.player_tag from claim c where c.account_id = f.account_id and c.is_primary) as from_player`;
 
 /**

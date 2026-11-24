@@ -495,12 +495,11 @@ const APP_CLAN_TYPES = Object.keys(ATTESTED_FACT_TYPES).filter(
     ATTESTED_FACT_TYPES[k].attesters.includes("app"),
 );
 
-/** The source key Clan's own computed facts are stored under: the name of
- *  the integration row Clan once wrote through, kept as an identifier so
- *  Clan still corrects and removes the facts it wrote then. */
+/** The source key Clan's own computed facts are stored under, so Clan
+ *  corrects and removes the facts it wrote on any earlier run. */
 export const CLAN_FACT_SOURCE = "elixir-clan";
 
-/** A clan fact Clan computed, stored under its source and account. */
+/** A clan fact Clan computed, stored under its source with no attester. */
 async function writeComputedClanFact(db, writer, clanInput, body) {
   const clanTag = tagOf(clanInput, "clan_tag");
   const type = String(body.type ?? "");
@@ -531,7 +530,7 @@ async function writeComputedClanFact(db, writer, clanInput, body) {
     visibility: t.visibility,
     source: writer.source,
     source_ref: ref,
-    attester_account_id: writer.accountId,
+    attester_account_id: null,
     attester_tag: null,
     attester_role: null,
     occurred_at: occurredAt,
@@ -555,28 +554,22 @@ async function removeComputedClanFact(db, writer, clanInput, refInput) {
 
 /** Clan's own computed clan fact (award standings), written by Elixir
  *  itself from the clan's rules on the morning run (Jamie, 2026-11-12:
- *  Clan is features inside Elixir, never an integration). Stored as it
- *  always was: under `CLAN_FACT_SOURCE`, attested by the account of the
- *  row Clan once wrote through (`attesterAccountId`), with no person. */
-export function writeClanFactBySystem(db, attesterAccountId, clanInput, body) {
+ *  Clan is features inside Elixir, never an integration). Stored under
+ *  `CLAN_FACT_SOURCE`, attested by no account and no person. */
+export function writeClanFactBySystem(db, clanInput, body) {
   return writeComputedClanFact(
     db,
-    { source: CLAN_FACT_SOURCE, accountId: attesterAccountId },
+    { source: CLAN_FACT_SOURCE },
     clanInput,
     body,
   );
 }
 
 /** Take back a fact Clan computed itself, by its ref. */
-export function removeClanFactBySystem(
-  db,
-  attesterAccountId,
-  clanInput,
-  refInput,
-) {
+export function removeClanFactBySystem(db, clanInput, refInput) {
   return removeComputedClanFact(
     db,
-    { source: CLAN_FACT_SOURCE, accountId: attesterAccountId },
+    { source: CLAN_FACT_SOURCE },
     clanInput,
     refInput,
   );

@@ -1,10 +1,8 @@
 /**
  * Clan is features inside Elixir (Jamie, 2026-11-12): the morning run
- * writes its facts and sends its mail as Elixir itself, never as the
- * `elixir-clan` integration, whose JSON API doors went in 4.0.0. What it
- * stores and sends is what the integration path stored and sent (proved
- * side by side before that path went, #879): the same source, attester,
- * labels and escaping, pinned here.
+ * writes its facts and sends its mail as Elixir itself, with no account
+ * attesting them. What it stores and sends (the source, labels and
+ * escaping) is pinned here.
  */
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
@@ -18,22 +16,11 @@ import { sendActionsMail } from "@elixir-mcp/mail/clan-mail";
 const CLAN = "#0PLYLQYQ";
 const MEMBER = "#09GY9RQ2";
 const OTHER = "#0PLQJ8UL";
-let scratch, db, attester;
+let scratch, db;
 
 before(async () => {
   scratch = await scratchDb("clan_inside");
   db = scratch.db;
-  const owner = (
-    await db.query(
-      "insert into account(email_hash,status,role) values ('owner','approved','admin') returning account_id",
-    )
-  ).rows[0].account_id;
-  attester = (
-    await db.query(
-      "insert into account(email_hash,status,role,kind,owned_by_account_id) values ('clan-attester','approved','member','integration',$1) returning account_id",
-      [owner],
-    )
-  ).rows[0].account_id;
   // A hostile clan name: the mail escapes it the same way on both paths.
   await db.query("insert into clan(clan_tag,name) values ($1,$2)", [
     CLAN,
@@ -87,8 +74,8 @@ async function storedFacts() {
   return rows.map(({ fact_id: _id, recorded_at: _at, ...rest }) => rest);
 }
 
-test("a fact Clan computes is stored under Clan's old source and attester, labelled as Clan", async () => {
-  const after = await writeClanFactBySystem(db, attester, CLAN, standing);
+test("a fact Clan computes is stored under Clan's source with no attester, labelled as Clan", async () => {
+  const after = await writeClanFactBySystem(db, CLAN, standing);
   const storedAfter = await storedFacts();
   assert.equal(storedAfter.length, 1);
   assert.deepEqual(storedAfter, [
@@ -101,7 +88,7 @@ test("a fact Clan computes is stored under Clan's old source and attester, label
       visibility: "clan",
       source: "elixir-clan",
       source_ref: standing.ref,
-      attester_account_id: attester,
+      attester_account_id: null,
       attester_tag: null,
       attester_role: null,
       occurred_at: new Date(standing.occurred_at),
@@ -116,29 +103,24 @@ test("a fact Clan computes is stored under Clan's old source and attester, label
   assert.equal(after.created, true);
   assert.equal(after.attested_by.app, "Clan");
 
-  // A correction lands on the same row, as the integration's did.
+  // A correction lands on the same row.
   const corrected = {
     ...standing,
     detail: { ...standing.detail, value: 3300 },
   };
-  const again = await writeClanFactBySystem(db, attester, CLAN, corrected);
+  const again = await writeClanFactBySystem(db, CLAN, corrected);
   assert.equal(again.id, after.id);
   assert.equal(again.created, false);
 
   // Removing answers the same shape, and only Clan's own source's row.
-  const removed = await removeClanFactBySystem(
-    db,
-    attester,
-    CLAN,
-    standing.ref,
-  );
+  const removed = await removeClanFactBySystem(db, CLAN, standing.ref);
   assert.deepEqual(Object.keys(removed), ["removed", "id", "ref"]);
   assert.equal(removed.ref, standing.ref);
   assert.deepEqual(await storedFacts(), []);
 
   // A person's kind of fact is refused on the system path too.
   await assert.rejects(
-    writeClanFactBySystem(db, attester, CLAN, {
+    writeClanFactBySystem(db, CLAN, {
       ...standing,
       type: "clan_message",
     }),
