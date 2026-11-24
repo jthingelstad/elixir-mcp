@@ -51,11 +51,7 @@ test("every table is in exactly one list, and every list names a real table", as
   ];
   const twice = named.filter((t, i) => named.indexOf(t) !== i);
   assert.deepEqual(twice, [], "a table classified twice");
-  // Empty tables the next migration drops; nothing reads or writes them.
-  const droppedNext = ["agent_identity", "integration"];
-  const unclassified = [...tables]
-    .filter((t) => !named.includes(t) && !droppedNext.includes(t))
-    .sort();
+  const unclassified = [...tables].filter((t) => !named.includes(t)).sort();
   assert.deepEqual(
     unclassified,
     [],
