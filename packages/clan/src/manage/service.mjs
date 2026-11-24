@@ -632,21 +632,24 @@ export function createManageService({
       : null;
 
   /**
-   * The exceptions in force for one member (today a hold: a leader's or
-   * the member's own away), each with who set it and when. The one place
-   * the member page reads them, so a new source swaps here.
+   * One member's exceptions for the leaders' member page: the ones
+   * running now, as leaders see them, and every event of every one
+   * (added, changed, ended, ran out), oldest first. The one place the
+   * member page reads them.
    */
   async function exceptionsFor(clanTag, playerTag) {
-    return (await ledger.holds(clanTag))
-      .filter((h) => h.player_tag === playerTag)
-      .map((h) => ({
-        kind: h.kind ?? "leader",
-        until: h.until ?? null,
-        note: h.note ?? null,
-        by: h.by ?? null,
-        by_name: h.by_name ?? null,
-        set_at: h.set_at ?? null,
-      }));
+    const t = now();
+    const all = await ledger.exceptions(clanTag, playerTag);
+    return {
+      running: all
+        .filter((e) => exceptionActiveAt(e, t))
+        .map((e) => ({
+          ...leaderFace(e),
+          by: e.set_by ?? null,
+          by_name: e.set_by_name ?? null,
+        })),
+      events: exceptionEvents(all, t),
+    };
   }
 
   /** Tag -> name from what the ledger already holds: the latest verdict
@@ -1937,7 +1940,7 @@ export function createManageService({
     /**
      * One member's history in this clan, for the leaders' member page
      * (2026-11-23): joins and leaves, role changes, their actions and
-     * how each was decided, the exception in force, River Race weeks,
+     * how each was decided, every exception event, River Race weeks,
      * awards and notes. Leaders only; it needs no policy, because the
      * record's part is there without one. Read only: nothing is written.
      */
@@ -1945,7 +1948,7 @@ export function createManageService({
       requireLeader(who);
       const part = await fetchParticipation(record, clanTag);
       const roster = await fetchRoster(record, clanTag);
-      const [cards, exceptions, notes, grants, names] = await Promise.all([
+      const [cards, excepted, notes, grants, names] = await Promise.all([
         ledger.cards(clanTag),
         exceptionsFor(clanTag, playerTag),
         ledger.notes(clanTag, playerTag),
@@ -1983,12 +1986,13 @@ export function createManageService({
         },
         known_since: part?.first_roster_observed_at ?? null,
         as_of: part?.meta?.as_of ?? null,
+        exceptions: excepted.running,
         entries: buildMemberHistory({
           playerTag,
           part,
           roster,
           cards: mine,
-          exceptions,
+          exceptionEvents: excepted.events,
           notes,
           grants,
           now: t,

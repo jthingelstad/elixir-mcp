@@ -92,7 +92,7 @@ function numbersFor(key, values) {
  *  - where everyone stands is on Standing when Elder is ranked and the
  *    policy shows it (`members_see_standing`; `standing()` always shows a
  *    leader), else only your own line;
- *  - your days without a battle, your clock and your hold or away are
+ *  - your days without a battle, your clock and your exceptions are
  *    yours and the leaders' (`standing().you`, `manageView`);
  *  - an open removal, promotion or demotion Action is the Leader's and
  *    Co-Leaders' only (`canAct`) and never goes to the clan's Discord

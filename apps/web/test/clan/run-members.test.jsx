@@ -48,7 +48,7 @@ const member = (i, over = {}) => ({
   demotion: { state: "none" },
   removal: { state: "none", triage: { status: "not_candidate" } },
   standing: { rank: i + 1, eligible: true },
-  hold: null,
+  exceptions: [],
   facts: {
     days_idle: 0.5,
     last_battle_time: "2026-11-22T18:00:00Z",
@@ -163,7 +163,7 @@ describe("Run › Members", () => {
     // Review's summary lines stay.
     const page = document.body.textContent;
     expect(page).toMatch(
-      /1 protected by their role, a hold or the wait after a decision, 1 not close, 1 with too little to go on, 1 past the removal day/,
+      /1 protected by their role, an exception or the wait after a decision, 1 not close, 1 with too little to go on, 1 past the removal day/,
     );
     expect(page).toMatch(/promotion 2, demotion 1/);
     expect(document.body.textContent).not.toMatch(/\bscore\b/i);
@@ -309,7 +309,7 @@ const history = {
         at: "2026-08-01T10:00:00Z",
       },
     ],
-    gaps: ["ended_exceptions", "war_window"],
+    gaps: ["war_window"],
   },
 };
 
@@ -385,9 +385,7 @@ describe("Run › Members › one member", () => {
       expect(list.querySelectorAll(".kit-row__title").length).toBe(1),
     );
     expect(list.textContent).toMatch(/Promoted to Elder/);
-    expect(document.body.textContent).toMatch(
-      /Race weeks go back 8 weeks; an exception that ended earlier is not kept\./,
-    );
+    expect(document.body.textContent).toMatch(/Race weeks go back 8 weeks\./);
   });
 
   test("a failed history read fails alone, and Try again reads it again", async () => {
@@ -476,9 +474,15 @@ describe("the words", () => {
     expect(inFilter(member(5), "needs", waiting)).toBe(true);
     expect(inFilter(member(4), "needs", waiting)).toBe(false);
     expect(inFilter(member(4, { bucket: "building" }), "close")).toBe(true);
-    expect(inFilter(member(4, { hold: { kind: "away" } }), "exception")).toBe(
-      true,
-    );
+    expect(
+      inFilter(
+        member(4, {
+          exceptions: [{ kind: "away", until: "2026-12-12T00:00:00Z" }],
+        }),
+        "exception",
+      ),
+    ).toBe(true);
+    expect(inFilter(member(4), "exception")).toBe(false);
     expect(didTheirPart(member(1))).toBe(true);
     expect(
       didTheirPart(member(1, { facts: { minimums: { unknown: true } } })),
@@ -493,7 +497,7 @@ describe("the words", () => {
     expect(
       whyChips(
         member(1, {
-          hold: { kind: "away", until: "2026-12-12T00:00:00Z" },
+          exceptions: [{ kind: "away", until: "2026-12-12T00:00:00Z" }],
           promotion: { state: "eligible", promotable_now: false },
         }),
         { policy, calendar: () => "Fri Dec 12" },
@@ -522,22 +526,40 @@ describe("the words", () => {
       historyLine(
         {
           kind: "exception",
+          event: "added",
           exception: "keep_as_elder",
           until: "2027-02-16T00:00:00Z",
+          visibility: "leaders",
+          note: "Runs our tournaments",
           by: { player_tag: "#0PLUG2V9", name: "Kai" },
         },
         { calendar },
       ),
     ).toEqual({
-      title: "Exception added: Keep as Elder",
-      detail: "By Kai · ends Feb 16",
+      title: "Keep as Elder added by Kai",
+      detail: "ends Feb 16 · Leaders only · Runs our tournaments",
     });
     expect(
       historyLine(
         {
           kind: "exception",
+          event: "expired",
+          exception: "keep_in_clan",
+          until: "2027-02-16T00:00:00Z",
+          visibility: "clan",
+          by: null,
+        },
+        { calendar },
+      ),
+    ).toEqual({ title: "Keep in clan ran out", detail: null });
+    expect(
+      historyLine(
+        {
+          kind: "exception",
+          event: "added",
           exception: "away",
           until: "2027-02-16T00:00:00Z",
+          visibility: "clan",
           by: { player_tag: "#SYNTH1", name: "Invented 1" },
         },
         { calendar, self: "#SYNTH1" },

@@ -25,6 +25,7 @@ import {
   didTheirPart,
   gapLine,
   historyLine,
+  kickPaused,
   median,
   quietDays,
 } from "../lib/members.js";
@@ -67,7 +68,7 @@ const leaderRole = (role) => role === "leader" || role === "coLeader";
 function kickClock(m, policy) {
   if (!policy?.removal) return "No kick clock in the rules";
   if (leaderRole(m.role)) return "Skipped by the rules";
-  if (m.hold) return "Kick clock paused";
+  if (kickPaused(m)) return "Kick clock paused";
   const r = m.removal ?? {};
   if (!r.state || r.state === "none") return "Kick clock not running";
   const days = quietDays(m);
@@ -239,7 +240,7 @@ function History({ clan, player, history }) {
 
 /**
  * Run › Members › one member, for the leader and co-leaders: who they are,
- * where they stand, their exception and notes, and their history in the
+ * where they stand, their notes and exceptions, and their history in the
  * clan. Each panel reads on its own and fails on its own.
  */
 export function RunMember({ clan, who, player, navigate }) {
@@ -323,9 +324,9 @@ export function RunMember({ clan, who, player, navigate }) {
       {m ? (
         <section aria-labelledby="member-sheet-title" className="grid gap-2">
           <h2 id="member-sheet-title" className="kit-panel__title m-0">
-            Exception and notes
+            Notes and exceptions
           </h2>
-          <p className="page-head__note m-0">Notes also show in the history.</p>
+          <p className="page-head__note m-0">Both also show in the history.</p>
           <MemberSheet
             clanTag={clan.clan_tag}
             member={m}
