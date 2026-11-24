@@ -1,4 +1,5 @@
-import { Link, ErrorState, Icon } from "@elixir-mcp/ui";
+import { Link, ErrorState, Icon, noun } from "@elixir-mcp/ui";
+import { rulesCheck } from "@elixir-mcp/clan-engine";
 import { useBlocker } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { clanPath } from "../lib/base.js";
@@ -9,15 +10,8 @@ import { ActivityDiscordSetting } from "./ActivityDiscordSetting.jsx";
 import { AwardsConfig } from "./Awards.jsx";
 import { DiscordSetting } from "./DiscordSetting.jsx";
 import { Model } from "./Model.jsx";
-import {
-  LEAVE_POLICY,
-  POLICY_SECTIONS,
-  PolicyFoot,
-  PolicyHead,
-  PolicySection,
-  policyStatus,
-  usePolicyDraft,
-} from "./Policy.jsx";
+import { LEAVE_POLICY, usePolicyDraft } from "./Policy.jsx";
+import { RunRules, changeLines } from "./RunRules.jsx";
 import { Sharing } from "./Sharing.jsx";
 import { SocialSetting } from "./SocialSetting.jsx";
 import { VoiceSetting } from "./VoiceSetting.jsx";
@@ -28,13 +22,7 @@ import { RunMembers } from "./RunMembers.jsx";
 /** Run's list, in the order a leader reads it. */
 const SIDE = [
   { head: "Actions", items: ["actions", "decided", "members"] },
-  { head: "Policy", items: ["about"] },
-  {
-    head: "What counts",
-    items: ["minimums", "clan-wars", "ranked", "donations", "trophy-road"],
-  },
-  { head: "People", items: ["elder", "inactivity", "arrivals", "departures"] },
-  { head: "Telling the clan", items: ["announcements"] },
+  { head: "How it runs", items: ["rules"] },
   {
     head: "Elsewhere",
     items: ["awards-setup", "discord", "model-voice", "settings"],
@@ -44,12 +32,13 @@ const ELSEWHERE = {
   actions: "Waiting",
   decided: "Decided",
   members: "Members",
+  rules: "Rules",
   "awards-setup": "Awards setup",
   discord: "Discord",
   "model-voice": "Model & voice",
   settings: "Clan settings",
 };
-const titleOf = (slug) => POLICY_SECTIONS[slug]?.title ?? ELSEWHERE[slug];
+const titleOf = (slug) => ELSEWHERE[slug];
 
 /** Asks before leaving Run with an unsaved draft: moving between its sections
  *  keeps the draft, so only a way out of Run asks. */
@@ -86,13 +75,13 @@ function Mark({ edited, wrong }) {
 /** The list of Run's sections, marked with what the draft holds. */
 function RunList({ e, base, current, navigate }) {
   const facts = (slug) => {
-    const s = POLICY_SECTIONS[slug];
-    if (!s || !e.view) return {};
-    const fields = e.fieldsOf(s);
+    if (slug !== "rules" || !e.view) return {};
     return {
-      state: e.stateOf(s),
-      edited: fields.some((k) => e.changed.includes(k)),
-      wrong: fields.some((k) => e.errors[k]),
+      state: e.view.set ? `v${e.view.current.version}` : "not set",
+      edited: e.changed.length > 0,
+      wrong:
+        Object.keys(e.errors).length > 0 ||
+        rulesCheck(e.draft).some((f) => f.kind === "invalid"),
     };
   };
   return (
@@ -150,7 +139,7 @@ function AwardsSetup({ clan }) {
   if (state.error === "no_policy")
     return (
       <p className="page__lede m-0">
-        Save the clan&rsquo;s policy first. Awards setup opens after that.
+        Save the clan&rsquo;s rules first. Awards setup opens after that.
       </p>
     );
   if (state.forbidden || (state.error && state.error !== "too_few_members"))
@@ -186,7 +175,7 @@ function AwardsSetup({ clan }) {
   );
 }
 
-/** What is not the policy: each saves on its own. */
+/** What is not the rules: each saves on its own. */
 function Elsewhere({ clan, who, slug, player, navigate }) {
   // The leaders' Actions (Today's Waiting and Decided until 2026-11-12).
   if (slug === "actions")
@@ -195,7 +184,7 @@ function Elsewhere({ clan, who, slug, player, navigate }) {
         <PageHead
           title="Waiting"
           fresh={<RefreshSuggestions clan={clan} />}
-          lede="What the clan's policy suggests you can do. The same actions are first in the Timeline."
+          lede="What the clan's rules suggest you can do. The same actions are first in the Timeline."
         />
         <ActionsNow clan={clan} who={who} navigate={navigate} />
       </div>
@@ -287,9 +276,9 @@ function Elsewhere({ clan, who, slug, player, navigate }) {
         </div>
       </section>
       <p className="page-head__note m-0">
-        Other clan settings live with what they change: the policy under Policy,
-        What counts and People; the recruiting pitch in Members › Spread the
-        word; Discord and Model &amp; voice above.
+        Other clan settings live with what they change: the rules under Rules;
+        the recruiting pitch in Members › Spread the word; Discord and Model
+        &amp; voice above.
       </p>
     </div>
   );
@@ -324,19 +313,19 @@ function useOldSettingsAnchor({ slug, base, navigate }) {
 }
 
 /** Run refused: a member, an unverified leader, or anyone the server said
- *  no to. How the clan runs is every member's, under Policy. */
+ *  no to. How the clan runs is every member's, under Rules. */
 function RunRefused({ clan, navigate }) {
-  const policy = `${clanPath(clan.clan_tag)}/policy`;
+  const rules = `${clanPath(clan.clan_tag)}/rules`;
   return (
     <div className="grid gap-4">
       <PageHead title="Run" />
       <div className="callout callout--warn" role="alert">
         <span>
           Run is for the clan&rsquo;s leader and co-leaders, verified in Elixir.
-          How the clan runs is under Policy, for every member.
+          How the clan runs is under Rules, for every member.
         </span>
-        <Link to={policy} navigate={navigate} className="btn btn--sm">
-          Open Policy
+        <Link to={rules} navigate={navigate} className="btn btn--sm">
+          Open Rules
         </Link>
       </div>
     </div>
@@ -368,8 +357,11 @@ function RunSections({ clan, who, section, player, navigate }) {
   const e = usePolicyDraft(clan);
   const base = `${clanPath(clan.clan_tag)}/run`;
   const slug = titleOf(section) ? section : "actions";
-  const go = (s) => navigate?.(`${base}/${s}`);
-  const isPolicy = Boolean(POLICY_SECTIONS[slug]);
+  // A save refused from the list opens Rules, where the problem is marked.
+  const go = () => {
+    if (slug !== "rules") navigate?.(`${base}/rules`);
+  };
+  const isPolicy = slug === "rules";
   const dirty = Boolean(e.view && e.dirty);
   useEffect(() => {
     // Review folded into Members on 2026-11-23; its address goes there.
@@ -380,10 +372,11 @@ function RunSections({ clan, who, section, player, navigate }) {
   const failed = e.policy.isError;
   const readError =
     e.policy.error?.status === 403
-      ? "Policy is unavailable for your current clan access."
+      ? "The rules are unavailable for your current clan access."
       : e.policy.error?.status === 401
         ? "Your session expired. Sign in again."
         : "Try again in a moment.";
+  const changes = e.view ? changeLines(e).length : 0;
   return (
     <div className={`clan-run${section ? "" : " clan-run--index"}`}>
       <LeaveGuard when={dirty} runPath={base} />
@@ -391,7 +384,9 @@ function RunSections({ clan, who, section, player, navigate }) {
       {dirty && e.view.can_edit ? (
         <div className="clan-run__listsave">
           <span className="page-head__note" role="status">
-            {policyStatus(e)}
+            {changes
+              ? `You changed ${changes} ${noun(changes, "thing")}.`
+              : "Your rules aren't saved yet."}
           </span>
           <button
             type="button"
@@ -399,7 +394,7 @@ function RunSections({ clan, who, section, player, navigate }) {
             disabled={e.busy || !e.canSave}
             onClick={() => e.save(go)}
           >
-            {e.view.set ? "Save as new version" : "Save this clan's policy"}
+            Save rules
           </button>
         </div>
       ) : null}
@@ -420,7 +415,7 @@ function RunSections({ clan, who, section, player, navigate }) {
           <>
             <PageHead title={titleOf(slug)} />
             <ErrorState
-              title="The policy could not be read just now"
+              title="The rules could not be read just now"
               onRetry={
                 e.policy.error?.status === 403 || e.policy.error?.status === 401
                   ? undefined
@@ -432,22 +427,9 @@ function RunSections({ clan, who, section, player, navigate }) {
             </ErrorState>
           </>
         ) : !e.view ? (
-          <p className="page__lede">Loading the policy…</p>
+          <p className="page__lede">Loading the rules…</p>
         ) : (
-          <>
-            <PageHead
-              title={
-                slug === "about" && !e.view.set
-                  ? "Set up how the clan runs"
-                  : titleOf(slug)
-              }
-            />
-            <PolicyHead e={e} slug={slug} clan={clan} />
-            <section className="panel" aria-label={titleOf(slug)}>
-              <PolicySection e={e} slug={slug} go={go} />
-            </section>
-            <PolicyFoot e={e} go={go} />
-          </>
+          <RunRules e={e} clan={clan} />
         )}
       </div>
     </div>

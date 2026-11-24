@@ -145,7 +145,7 @@ for (const suffix of ["", " @narrow"]) {
       await expect(
         page
           .locator(".clan-main")
-          .getByRole("link", { name: /Manage|Actions|Policy/ }),
+          .getByRole("link", { name: /Manage|Actions|Policy|Rules/ }),
       ).toHaveCount(0);
       if (knownAbsence) {
         await expect(page.getByText(/no clan seen/)).toContainText("Sep 1");

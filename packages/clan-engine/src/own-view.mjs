@@ -104,7 +104,18 @@ export function ownStandingLine({
       met: minimums.met,
       passes: minimums.passes,
       unknown: minimums.unknown,
-      ...(withNearest ? { nearest: nearestMinimum(minimums) } : {}),
+      ...(withNearest
+        ? {
+            nearest: nearestMinimum(minimums),
+            // Your own numbers, for "You: 14" beside each weekly goal.
+            have: {
+              war: minimums.war_decks ?? null,
+              ranked: minimums.ranked_battles ?? null,
+              donations: minimums.donations_average ?? null,
+              trophies: minimums.trophies ?? null,
+            },
+          }
+        : {}),
       rule: values.minimums_rule,
       window_weeks: values.minimums_window_weeks,
     },

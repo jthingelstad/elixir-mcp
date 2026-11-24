@@ -180,7 +180,7 @@ describe("the page", () => {
   });
   test("a filter counts what fits, and an empty fit clears", () => {
     render(<Directory state={ready} />);
-    const strict = screen.getByRole("group", { name: "How strict" });
+    const strict = screen.getByRole("group", { name: "How serious" });
     fireEvent.click(strict.querySelector("button:last-child"));
     expect(screen.getByText(/^1 of 3 listed clans fit/)).toBeTruthy();
     fireEvent.change(screen.getByLabelText("Search"), {
@@ -199,7 +199,7 @@ describe("the page", () => {
     const more = document.getElementById(toggle.getAttribute("aria-controls"));
     // Search stays outside the fold; every other filter is inside it.
     expect(more.contains(screen.getByLabelText("Search"))).toBe(false);
-    for (const name of ["Clan Wars", "How strict", "Room"])
+    for (const name of ["Clan Wars", "How serious", "Room"])
       expect(more.contains(screen.getByRole("group", { name }))).toBe(true);
     expect(more.contains(screen.getByLabelText("Your trophies"))).toBe(true);
     expect(more.hasAttribute("data-open")).toBe(false);
@@ -211,7 +211,7 @@ describe("the page", () => {
       target: { value: "a" },
     });
     expect(toggle.textContent).toBe("Filters");
-    const strict = screen.getByRole("group", { name: "How strict" });
+    const strict = screen.getByRole("group", { name: "How serious" });
     fireEvent.click(strict.querySelector("button:last-child"));
     fireEvent.change(screen.getByLabelText("Your trophies"), {
       target: { value: "9000" },

@@ -131,7 +131,7 @@ describe("the clan's activity in Discord", () => {
     expect(screen.getByLabelText("Members").checked).toBe(true);
     expect(screen.getByLabelText("Milestones").checked).toBe(false);
     fireEvent.click(
-      screen.getByRole("button", { name: /Use the policy’s default \(on\)/ }),
+      screen.getByRole("button", { name: /Use the rules’ default \(on\)/ }),
     );
     await waitFor(() =>
       expect(save).toHaveBeenCalledWith("#0QC8RCGY", {
@@ -466,7 +466,7 @@ test.each(["policy", "categories"])(
     expect(
       screen.getByText(
         blocked === "policy"
-          ? "Not posting · Policy needed"
+          ? "Not posting · Rules needed"
           : "Not posting · No categories on",
       ),
     ).toBeTruthy();

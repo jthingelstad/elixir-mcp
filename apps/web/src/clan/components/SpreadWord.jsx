@@ -37,18 +37,16 @@ export function SmallClan({ clan, members, min = MIN_MEMBERS, navigate }) {
   // not sent to it.
   const recruiter = eldersUp(clan);
   const recruit = `${base}/members?show=recruit`;
-  const policy = `${base}/run/about`;
+  const policy = `${base}/run/rules`;
   return (
     <Panel as="div" title={`Clan management starts at ${min} members`}>
       <div className="panel__body grid gap-2">
         <p className="m-0">
           This clan has {members}. The roster and everyone&rsquo;s numbers are
-          here now. The policy, actions, standing and awards start at {min}, and
-          a saved policy picks up again then.
+          here now. The rules, actions, standing and awards start at {min}, and
+          saved rules pick up again then.
         </p>
-        {lead ? (
-          <p className="m-0">Leaders can prepare and save the policy now.</p>
-        ) : null}
+        {lead ? <p className="m-0">Leaders can set the rules now.</p> : null}
         {recruiter ? (
           <div className="flex flex-wrap gap-2">
             <Link to={recruit} navigate={navigate} className="btn btn--sm">
@@ -56,7 +54,7 @@ export function SmallClan({ clan, members, min = MIN_MEMBERS, navigate }) {
             </Link>
             {lead ? (
               <Link to={policy} navigate={navigate} className="btn btn--sm">
-                Prepare the policy
+                Set the rules
               </Link>
             ) : null}
           </div>
@@ -68,14 +66,14 @@ export function SmallClan({ clan, members, min = MIN_MEMBERS, navigate }) {
 
 /** A leader's way in: nothing runs until a policy. */
 export function SetupPolicy({ clan, navigate }) {
-  const to = `${clanPath(clan.clan_tag)}/run/about`;
+  const to = `${clanPath(clan.clan_tag)}/run/rules`;
   return (
     <Panel as="div" title="Set up how the clan runs">
       <div className="panel__body grid gap-2">
         <p className="m-0">
-          Nothing in clan management runs until a leader saves a policy. Start
-          from what the clan is for (a war clan, a social clan and so on) and
-          tune from there. Saving it turns on:
+          Nothing in clan management runs until a leader saves the clan&rsquo;s
+          rules. Start from a quick start (a war clan, a social clan and so on)
+          and change it from there. Saving them turns on:
         </p>
         <ul className="m-0 pl-[18px]">
           {TURNS_ON.map((t) => (
@@ -83,7 +81,7 @@ export function SetupPolicy({ clan, navigate }) {
           ))}
         </ul>
         <Link to={to} navigate={navigate} className="btn btn--primary w-fit">
-          Set up the policy
+          Set up the rules
         </Link>
       </div>
     </Panel>

@@ -339,16 +339,16 @@ for (const size of ["wide", "@narrow"])
           "Run is for the clan’s leader and co-leaders",
         );
         // Run is the leaders' (slice 8, #766): a member who types its
-        // address is told so, with nothing to change, and sent to Policy.
-        await page.goto(`${base}/run/about`);
+        // address is told so, with nothing to change, and sent to Rules.
+        await page.goto(`${base}/run/rules`);
         await expect(page.getByRole("alert")).toContainText(
           "Run is for the clan’s leader and co-leaders",
         );
         await expect(
-          page.getByRole("button", { name: "Save this clan's policy" }),
+          page.getByRole("button", { name: "Save rules" }),
         ).toHaveCount(0);
-        await page.getByRole("link", { name: "Open Policy" }).click();
-        await expect(page).toHaveURL(/\/clan\/0QC8RCGY\/policy$/);
+        await page.getByRole("link", { name: "Open Rules" }).click();
+        await expect(page).toHaveURL(/\/clan\/0QC8RCGY\/rules$/);
       });
       test("standing and member navigation", async ({ page }) => {
         // Standing is on Standings, open to every member as before.
@@ -445,7 +445,7 @@ for (const size of ["wide", "@narrow"])
       await page.goto(`${base}/standings`);
       await expect(page.getByText(/starts at 10 members/)).toBeVisible();
       await expect(clanTab(page, "Run")).toHaveCount(0);
-      for (const name of [/^Timeline/, "Standings", "War", "Members", "Policy"])
+      for (const name of [/^Timeline/, "Standings", "War", "Members", "Rules"])
         await expect(clanTab(page, name)).toBeVisible();
       await clanTab(page, "Members").click();
       await expect(

@@ -27,13 +27,13 @@ const STATUS = {
   holding: {
     label: "Holding Elder",
     chip: "chip--ok",
-    says: "Elders the policy keeps.",
+    says: "Elders the rules keep.",
     shown: 5,
   },
   slipping: {
     label: "Slipping",
     chip: "chip--warn",
-    says: "Elders falling short of what the policy keeps.",
+    says: "Elders falling short of what the rules keep.",
     shown: 5,
   },
   rising: {
@@ -182,7 +182,7 @@ function Group({ status, rows, you, war, clan, navigate }) {
  *  policy's own sentences (and what Elder weighs, as bars, when Elder is
  *  ranked). A leader can open the policy itself. */
 function How({ d, clan, who, navigate }) {
-  const policy = `${clanPath(clan.clan_tag)}/run/about`;
+  const policy = `${clanPath(clan.clan_tag)}/run/rules`;
   return (
     <Panel aria-labelledby="standing-how">
       <div className="panel__head">
@@ -190,7 +190,7 @@ function How({ d, clan, who, navigate }) {
           How it works here
         </h3>
         {d.policy_version ? (
-          <span className="chip chip--info">policy v{d.policy_version}</span>
+          <span className="chip chip--info">rules v{d.policy_version}</span>
         ) : null}
       </div>
       <div className="panel__body">
@@ -199,7 +199,7 @@ function How({ d, clan, who, navigate }) {
       {LEADERS.has(who?.role) ? (
         <div className="panel__foot">
           <Link to={policy} navigate={navigate} className="btn">
-            Read the policy in full, in Run
+            Change the rules in Run
           </Link>
         </div>
       ) : null}
@@ -233,7 +233,7 @@ function WhyHere({ you, how, clan, navigate }) {
   const key = ruleFor(you);
   const section = key ? (how ?? []).find((s) => s.key === key) : null;
   if (!section?.lines?.length) return null;
-  const to = `${clanPath(clan.clan_tag)}/policy`;
+  const to = `${clanPath(clan.clan_tag)}/rules`;
   return (
     <div className="kit-why">
       <span className="kit-why__label">The rule behind this</span>
@@ -386,7 +386,7 @@ export function Standing({ clan, who, navigate, fromRun = false }) {
     return (
       <>
         {head}
-        <Empty title="No policy yet">
+        <Empty title="No rules yet">
           This clan&rsquo;s leaders have not set up how the clan runs here.
           Standing starts when they do.
         </Empty>
@@ -420,7 +420,7 @@ export function Standing({ clan, who, navigate, fromRun = false }) {
       {head}
       {you}
       <Disclosure
-        title={`How it works here${d.policy_version ? ` · Policy v${d.policy_version}` : ""}`}
+        title={`How it works here${d.policy_version ? ` · Rules v${d.policy_version}` : ""}`}
         open={fromRun}
       >
         {how}
@@ -447,7 +447,7 @@ export function Standing({ clan, who, navigate, fromRun = false }) {
       {groups.length ? (
         <p className="page-head__note mt-4 mb-0">
           A group compares each member&rsquo;s part in what this clan counts,
-          over the windows its policy sets.
+          over the windows its rules set.
           {war
             ? " Bars are war decks played in each finished race in the war window, out of the decks asked."
             : ""}
@@ -461,7 +461,7 @@ export function Standing({ clan, who, navigate, fromRun = false }) {
           wrong, the policy version rides along (2026-10-08). */}
       <div className="mt-3">
         <ReportThis
-          about={`Standing in ${clan.name ?? clan.clan_tag}${d.policy_version ? `, policy v${d.policy_version}` : ""}. Name the member and what reads wrong.`}
+          about={`Standing in ${clan.name ?? clan.clan_tag}${d.policy_version ? `, rules v${d.policy_version}` : ""}. Name the member and what reads wrong.`}
           refs={[
             { kind: "clan", ref: clan.clan_tag },
             ...(d.policy_version

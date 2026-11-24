@@ -42,7 +42,7 @@ export const waitingFor = (me) =>
   policyActive(me) ? Number(me.open_actions ?? 0) : 0;
 
 /** The tabs' keys, in order, the leaders' Run last. */
-const TAB_KEYS = ["feed", "standings", "war", "members", "policy", "run"];
+const TAB_KEYS = ["feed", "standings", "war", "members", "rules", "run"];
 
 /** The tabs, in order, for the selected clan. Feed's count is attention: the
  *  actions waiting for you, which the feed shows first. */
@@ -62,7 +62,7 @@ export function clanTabs(me) {
     { key: "standings", label: "Standings", href: `${base}/standings` },
     { key: "war", label: "War", href: `${base}/war` },
     { key: "members", label: "Members", href: `${base}/members` },
-    { key: "policy", label: "Policy", href: `${base}/policy` },
+    { key: "rules", label: "Rules", href: `${base}/rules` },
   ];
   if (leads(clan)) tabs.push({ key: "run", label: "Run", href: `${base}/run` });
   return tabs;

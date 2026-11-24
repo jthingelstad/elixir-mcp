@@ -1,12 +1,12 @@
 ---
 slug: clan-settings
 title: "Clan settings"
-description: "Clan settings: the clan's Discord, its model key and spend cap, and what else leaders set apart from the policy."
+description: "Clan settings: the clan's Discord, its model key and spend cap, and what else leaders set apart from the rules."
 section: clan
 order: 12
 navTitle: "Clan settings"
 icon: settings
-lede: "The clan's own settings, apart from its policy."
+lede: "The clan's own settings, apart from its rules."
 guide: clan-policy
 ---
 
@@ -17,7 +17,7 @@ guide: clan-policy
 **Run › Clan settings**, **Run › Discord** and **Run › Model & voice** hold
 what belongs to the whole clan, with or without a policy, and each setting
 saves on its own. Only the leader and co-leaders open Run, once verified; anyone else who
-follows a link to it is told so, with a way to the clan's **Policy**, and
+follows a link to it is told so, with a way to the clan's **Rules**, and
 Elixir refuses Run's pages to them:
 
 - **Recording and visibility**, under Clan settings: the kinds of facts shared

@@ -44,7 +44,7 @@ export function Away({ clan }) {
         lede={`Tell your leaders when you will be back. It keeps you off the removal list while it's on. The days keep counting, and war decks still count.${
           state.allowed
             ? ` Up to ${state.max_days} ${noun(state.max_days, "day")} at a time.`
-            : " This clan's policy does not offer it; tell a leader instead."
+            : " This clan's rules don't offer it; tell a leader instead."
         }`}
       />
       {hold ? (

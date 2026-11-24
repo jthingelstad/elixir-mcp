@@ -176,8 +176,8 @@ export function Model({ clan }) {
         <p className="page__lede m-0">
           Clan pays for no model. With your clan&rsquo;s own Anthropic key, a
           model drafts the recruiting pitch in Recruit and messages on Actions:
-          welcomes, promotions, demotions, awards, policy announcements and a
-          chat line after a removal decision. It never decides what should
+          welcomes, promotions, demotions, awards, rule-change announcements and
+          a chat line after a removal decision. It never decides what should
           happen to a member. It is told what Elixir records: the clan (its
           name, its own words, what it is for, its members and last war weeks),
           the Action&rsquo;s own evidence and the member it is about, by name,

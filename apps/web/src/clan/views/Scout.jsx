@@ -158,13 +158,13 @@ export function Scout({ clan }) {
       {r && !r.pending ? (
         <Panel
           as="div"
-          title={a ? "Against this clan's policy, today" : "Recent battles"}
+          title={a ? "Against this clan's rules, today" : "Recent battles"}
           titleAs="div"
         >
           <div className="panel__body" style={{ display: "grid", gap: "8px" }}>
             {!a ? (
               <div className="page-head__note">
-                This clan has no policy yet, so there is nothing of the
+                This clan has no rules yet, so there is nothing of the
                 clan&rsquo;s to check an applicant against.
               </div>
             ) : a.minimums ? (
@@ -191,7 +191,7 @@ export function Scout({ clan }) {
               </div>
             ) : (
               <div className="page-head__note">
-                This clan&rsquo;s policy sets no minimums.
+                This clan&rsquo;s rules set no minimums.
               </div>
             )}
             {a?.inactivity ? (

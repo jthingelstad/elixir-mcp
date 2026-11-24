@@ -57,6 +57,7 @@ export { Fresh, FreshChip } from "./Fresh.tsx";
 export { PageHead } from "./PageHead.tsx";
 export { Tabs, type TabItem } from "./Tabs.tsx";
 export { Chip, Chips, type ChipOption } from "./Chips.tsx";
+export { SplitBar, Stepper, Switch } from "./Controls.tsx";
 export { useScrollHint } from "./scrollHint.ts";
 export { Panel, Row, Rows } from "./Panel.tsx";
 export { Table, type TableColumn, type TableGroup } from "./Table.tsx";

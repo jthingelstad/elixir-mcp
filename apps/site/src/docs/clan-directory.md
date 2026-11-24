@@ -7,7 +7,7 @@ order: 15
 navTitle: "Clan directory"
 icon: layout-grid
 lede: "Every clan that saved its rules in Elixir, as a grid you can filter by those rules."
-reviewed: "2026-11-23 your own agent reads it as you; 2026-11-13; signed-in people, listed by name, the policy's public part, opened from Find"
+reviewed: "2026-11-23; How serious is Chill, Steady or Hardcore; 2026-11-23 your own agent reads it as you; 2026-11-13; signed-in people, listed by name, the policy's public part, opened from Find"
 ---
 
 # Clan directory
@@ -15,9 +15,9 @@ reviewed: "2026-11-23 your own agent reads it as you; 2026-11-13; signed-in peop
 ## What it lists
 
 The [clan directory](/clan/directory) lists every clan whose leaders have
-saved a policy in Clan ([Clan policy](/docs/clan-policy#saving)). Saving a
-policy is how a clan joins the directory; there is no other step and no
-separate switch. A clan with no saved policy is not listed. Elixir lists a
+saved its rules in Clan ([the clan's rules](/docs/clan-policy#saving)). Saving
+the rules is how a clan joins the directory; there is no other step and no
+separate switch. A clan with no saved rules is not listed. Elixir lists a
 clan only once it records it, and it does not crawl the game for clans.
 
 Open it from **Find**, under **Clan directory**, or from search. Any
@@ -35,12 +35,12 @@ clan and what its leaders saved as its rules:
   description, all as Elixir last recorded them. A fact Elixir has not
   recorded says so.
 - **Its rules:** whether the clan plays Clan Wars (or has not said), how
-  strict it is (relaxed, standard or strict), whether it is a clan for
-  playing together, what counts toward its minimums and Elder, and, when
-  the clan uses removals, how many days without a battle bring a removal
-  Action for its leaders.
+  serious it is (Chill, Steady or Hardcore), whether it is a clan for
+  playing together, what counts toward its weekly goals and Elder, and,
+  when the clan kicks quiet members, how many days without a battle bring
+  a kick Action for its leaders.
 
-A tile never shows who saved the policy, the note on a save, a minimum, a
+A tile never shows who saved the rules, the note on a save, a goal, a
 member's standing or any Action. The clan's Recruit pitch is not on it.
 
 The tile's name opens your own clan in Clan. Elixir has no page of its
@@ -53,7 +53,7 @@ The filters use only those facts:
 - **Search** over the name, the tag and the in-game description. The
   rules themselves are the filters below.
 - **Clan Wars:** plays, or does not. A clan that has not said fits neither.
-- **How strict:** relaxed, standard or strict.
+- **How serious:** Chill, Steady or Hardcore.
 - **Days with no battle before a removal:** no removal rule, or at least
   14 or 30 days.
 - **Room:** fewer than 50 members, by the last recorded size.

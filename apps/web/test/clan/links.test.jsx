@@ -43,14 +43,14 @@ test("a Clan link follows a plain click in the app and leaves the rest to the br
   renderWithProviders(
     <SetupPolicy clan={{ clan_tag: "#0QC8RCGY" }} navigate={navigate} />,
   );
-  const link = screen.getByRole("link", { name: "Set up the policy" });
-  expect(link.getAttribute("href")).toBe("/clan/0QC8RCGY/run/about");
+  const link = screen.getByRole("link", { name: "Set up the rules" });
+  expect(link.getAttribute("href")).toBe("/clan/0QC8RCGY/run/rules");
   for (const modifier of ["metaKey", "ctrlKey", "shiftKey", "altKey"])
     expect(fireEvent.click(link, { [modifier]: true })).toBe(true);
   expect(fireEvent.click(link, { button: 1 })).toBe(true);
   expect(navigate).not.toHaveBeenCalled();
   expect(fireEvent.click(link)).toBe(false);
-  expect(navigate).toHaveBeenCalledWith("/clan/0QC8RCGY/run/about");
+  expect(navigate).toHaveBeenCalledWith("/clan/0QC8RCGY/run/rules");
 });
 
 /** Each opening `<a ...>` tag in `text`, braces balanced, so a handler's

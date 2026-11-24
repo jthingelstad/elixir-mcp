@@ -162,7 +162,7 @@ const ROSTER = {
   ],
 };
 
-/** One of Clan's tabs: Feed, Standings, War, Members, Policy and Run. */
+/** One of Clan's tabs: Feed, Standings, War, Members, Rules and Run. */
 export const clanTab = (page: Page, name: string | RegExp) =>
   page
     .getByRole("tablist", { name: "Clan" })

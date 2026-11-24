@@ -10719,6 +10719,487 @@ a.kit-bell__hit:focus-visible::after {
   color: var(--ok);
   font-weight: 600;
 }
+/* The kit's switch row: the words, then the switch; the row is one target. */
+.kit-switch {
+  display: flex;
+  gap: var(--s-3);
+  align-items: center;
+  justify-content: space-between;
+  min-height: var(--hit);
+}
+.kit-switch__words {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.kit-switch__label {
+  color: var(--ink);
+  font-weight: 600;
+}
+.kit-switch__hint {
+  color: var(--ink-dim);
+  font-size: var(--t-body-sm);
+}
+.kit-switch .switch {
+  flex: none;
+  width: 44px;
+  height: 26px;
+}
+.kit-switch .switch::after {
+  top: 3px;
+  left: 3px;
+  width: 20px;
+  height: 20px;
+}
+.kit-switch .switch[aria-checked="true"]::after {
+  left: 21px;
+}
+/* A number with a 44px − and + either side. */
+.kit-stepper {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-1);
+  border-radius: var(--r-control);
+  background: var(--ground-sunken);
+}
+.kit-stepper__step {
+  display: grid;
+  place-items: center;
+  width: var(--hit);
+  height: var(--hit);
+  padding: 0;
+  border: 0;
+  border-radius: var(--r-control);
+  background: var(--control);
+  color: var(--ink);
+  font: inherit;
+  font-size: var(--t-h2);
+  cursor: pointer;
+}
+.kit-stepper__step:hover:not(:disabled) {
+  background: var(--control-hover);
+}
+.kit-stepper__step:disabled {
+  cursor: default;
+  opacity: 0.4;
+}
+.kit-stepper__n {
+  width: 4.5ch;
+  min-height: var(--hit);
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  appearance: textfield;
+}
+.kit-stepper__n::-webkit-inner-spin-button,
+.kit-stepper__n::-webkit-outer-spin-button {
+  margin: 0;
+  appearance: none;
+}
+.kit-stepper__unit {
+  padding-right: var(--s-1);
+  color: var(--ink-dim);
+  font-size: var(--t-body-sm);
+}
+/* A bar split into shares of a whole, its legend under it. */
+.kit-split {
+  display: grid;
+  gap: var(--s-2);
+}
+.kit-split__bar {
+  display: block;
+  width: 100%;
+  height: 14px;
+  overflow: hidden;
+  border-radius: var(--r-pill);
+  background: var(--ground-sunken);
+}
+.kit-split__part[data-part="0"] {
+  fill: var(--series-1);
+}
+.kit-split__part[data-part="1"] {
+  fill: var(--series-2);
+}
+.kit-split__part[data-part="2"] {
+  fill: var(--series-3);
+}
+.kit-split__part[data-part="3"] {
+  fill: var(--series-4);
+}
+.kit-split__legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-1) var(--s-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: var(--ink-dim);
+  font-size: var(--t-body-sm);
+}
+.kit-split__legend li {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+}
+.kit-split__legend li::before {
+  content: "";
+  width: 10px;
+  height: 10px;
+  border-radius: var(--r-round);
+  background: var(--series-1);
+}
+.kit-split__legend li[data-part="1"]::before {
+  background: var(--series-2);
+}
+.kit-split__legend li[data-part="2"]::before {
+  background: var(--series-3);
+}
+.kit-split__legend li[data-part="3"]::before {
+  background: var(--series-4);
+}
+.kit-split__legend b {
+  color: var(--ink);
+}
+
+/* The clan's Rules in Run: the questions, with the clan list preview and
+   the Rules check beside them on a wide screen and on top on a phone. */
+.rules {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: var(--s-6);
+  align-items: start;
+}
+.rules__side {
+  position: sticky;
+  top: 12px;
+  display: grid;
+  gap: var(--s-4);
+}
+.rules__questions {
+  display: grid;
+  gap: var(--s-4);
+  min-width: 0;
+}
+.rules-q {
+  display: grid;
+  gap: var(--s-4);
+  padding: var(--s-4);
+  border-radius: var(--r-control);
+  background: var(--panel);
+  scroll-margin-top: 72px;
+}
+.rules-q[data-wrong="true"] {
+  box-shadow: inset 3px 0 0 var(--bad);
+}
+.rules-q__head {
+  display: flex;
+  gap: var(--s-3);
+  align-items: center;
+  margin: 0;
+  font-size: var(--t-body);
+}
+.rules-q__n {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--r-round);
+  background: var(--accent-deep);
+  color: var(--ink);
+  font-size: var(--t-body-sm);
+  font-weight: 700;
+}
+.rules-q__sub {
+  margin: 0;
+  color: var(--ink-dim);
+  font-size: var(--t-body-sm);
+}
+.rules-q__more > summary {
+  min-height: var(--hit);
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  color: var(--ink-link);
+  font-size: var(--t-body-sm);
+}
+.rules-q__more[open] > summary {
+  margin-bottom: var(--s-3);
+}
+.rules-q__more > div {
+  display: grid;
+  gap: var(--s-4);
+}
+.rules-pick {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: var(--s-2);
+}
+.rules-pick__opt {
+  display: grid;
+  gap: 2px;
+  min-height: var(--hit);
+  padding: 10px var(--s-3);
+  border: 1px solid transparent;
+  border-radius: var(--r-control);
+  background: var(--control);
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.rules-pick__opt span {
+  color: var(--ink-dim);
+  font-size: var(--t-body-sm);
+}
+.rules-pick__opt[aria-pressed="true"] {
+  border-color: var(--accent);
+  background: var(--accent-deep);
+}
+.rules-pick__opt[aria-pressed="true"] span {
+  color: var(--ink);
+}
+.rules-pick__opt:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+/* One weekly measure: its switch, then its number when it is on. */
+.rules-measure {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2) var(--s-4);
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--s-2) 0;
+  box-shadow: inset 0 -1px 0 var(--line-row);
+}
+.rules-measure:last-of-type {
+  box-shadow: none;
+}
+.rules-measure .kit-switch {
+  flex: 1 1 200px;
+}
+.rules-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2) var(--s-4);
+  align-items: center;
+  justify-content: space-between;
+}
+.rules-row__label {
+  display: grid;
+  gap: 2px;
+  color: var(--ink);
+  font-weight: 600;
+}
+.rules-row__label span {
+  color: var(--ink-dim);
+  font-size: var(--t-body-sm);
+  font-weight: 400;
+}
+.rules-was {
+  padding: 2px 9px;
+  border-radius: var(--r-pill);
+  background: var(--gold-wash);
+  color: var(--gold);
+  font-size: var(--t-caption);
+  font-weight: 600;
+}
+.rules-error {
+  margin: 0;
+  color: var(--bad);
+  font-size: var(--t-body-sm);
+}
+.rules-seats {
+  margin: 0;
+  padding: 10px var(--s-3);
+  border-radius: var(--r-control);
+  background: var(--ok-fill);
+  color: var(--ink);
+  font-size: var(--t-body-sm);
+}
+.rules-seats[data-full="true"] {
+  background: var(--warn-fill);
+}
+/* Quiet, warning and kick on one line of days. */
+.rules-days {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--s-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.rules-days__step {
+  display: grid;
+  gap: var(--s-2);
+  justify-items: start;
+  padding: var(--s-3);
+  border-radius: var(--r-control);
+  background: var(--ground-sunken);
+  box-shadow: inset 0 3px 0 var(--line-strong);
+}
+.rules-days__step[data-step="warning"] {
+  box-shadow: inset 0 3px 0 var(--warn);
+}
+.rules-days__step[data-step="kick"] {
+  box-shadow: inset 0 3px 0 var(--bad);
+}
+.rules-days__name {
+  color: var(--ink-dim);
+  font-size: var(--t-caption);
+  font-weight: 700;
+  text-transform: uppercase;
+}
+/* The Rules check. */
+.rules-check {
+  display: grid;
+  gap: var(--s-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.rules-check__item {
+  display: grid;
+  gap: var(--s-2);
+  padding: 10px var(--s-3);
+  border-radius: var(--r-control);
+  background: var(--warn-fill);
+  box-shadow: inset 3px 0 0 var(--warn);
+  font-size: var(--t-body-sm);
+}
+.rules-check__item[data-kind="invalid"] {
+  background: var(--bad-fill);
+  box-shadow: inset 3px 0 0 var(--bad);
+}
+.rules-check__ok {
+  margin: 0;
+  color: var(--ok);
+  font-size: var(--t-body-sm);
+}
+.rules-preview {
+  display: grid;
+  gap: var(--s-2);
+}
+.rules-preview .clan-dir__tile {
+  list-style: none;
+}
+.rules-preview ul {
+  margin: 0;
+  padding: 0;
+}
+/* The sticky save bar: what changed, Undo all, Save rules. */
+.rules-save {
+  position: sticky;
+  bottom: 12px;
+  z-index: 3;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2) var(--s-4);
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--s-3) var(--s-4);
+  border-radius: var(--r-control);
+  background: var(--panel-raised);
+  box-shadow:
+    inset 3px 0 0 var(--gold),
+    var(--shadow-lift);
+}
+.rules-save__what {
+  flex: 1 1 220px;
+  min-width: 0;
+  display: grid;
+  gap: var(--s-1);
+}
+.rules-save__count {
+  margin: 0;
+  color: var(--ink);
+  font-weight: 600;
+}
+.rules-save__list {
+  margin: 0;
+  padding-left: 18px;
+  color: var(--ink-dim);
+  font-size: var(--t-body-sm);
+}
+.rules-save__buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+}
+.rules-save__buttons .btn {
+  min-height: var(--hit);
+}
+/* The members' Rules: the clan's showcase. */
+.rules-show {
+  display: grid;
+  gap: var(--s-4);
+}
+.rules-show__head {
+  display: grid;
+  gap: var(--s-2);
+}
+.rules-show__goals {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: var(--s-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.rules-show__goal {
+  display: grid;
+  gap: 2px;
+  padding: var(--s-3);
+  border-radius: var(--r-control);
+  background: var(--ground-sunken);
+}
+.rules-show__goal b {
+  color: var(--ink);
+  font-size: var(--t-h2);
+  font-variant-numeric: tabular-nums;
+}
+.rules-show__goal span {
+  color: var(--ink-dim);
+  font-size: var(--t-body-sm);
+}
+.rules-show__you {
+  color: var(--ink-body);
+  font-size: var(--t-caption);
+  font-weight: 600;
+}
+.rules-show__you[data-met="true"] {
+  color: var(--ok);
+}
+.rules-show__share {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+}
+@media (max-width: 700px) {
+  .rules {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .rules__side {
+    position: static;
+    order: -1;
+  }
+  .rules-days {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .rules-save {
+    bottom: 0;
+  }
+  .rules-save__buttons,
+  .rules-save__buttons .btn {
+    flex: 1 1 auto;
+  }
+}
 @media (max-width: 700px) {
   .clan-run {
     grid-template-columns: minmax(0, 1fr);

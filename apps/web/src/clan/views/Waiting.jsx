@@ -103,7 +103,7 @@ function YouCard({ clan, base, navigate }) {
     );
   const chip = d.clan?.status ? statusChip(d.clan.status) : null;
   const own = `${base}/members/${String(clan.acting_as).slice(1)}`;
-  const how = `${base}/policy`;
+  const how = `${base}/rules`;
   const away = `${base}/members/away`;
   return (
     <Panel aria-labelledby="today-you">
@@ -502,7 +502,7 @@ function Waiting({ d, clan, who, navigate, state, load }) {
         // under it is what the Feed is for.
         <p className="page-head__note m-0">
           <span>Nothing waiting for you</span>: an action appears here when the
-          clan&rsquo;s policy suggests something you can do.
+          clan&rsquo;s rules suggest something you can do.
           {state ? (
             <>
               {" "}

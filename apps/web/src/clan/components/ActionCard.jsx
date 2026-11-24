@@ -910,7 +910,7 @@ export function ActionLog({ action, clan, onChanged }) {
             ) : null}
             {e.kind === "raised" && e.detail?.policy_version != null ? (
               <div className="page-head__note">
-                policy v{e.detail.policy_version}
+                rules v{e.detail.policy_version}
               </div>
             ) : null}
             {e.kind === "raised" && e.detail?.prior?.length ? (
@@ -981,7 +981,7 @@ function messageTitle(action, grouped) {
 function whatItComesFrom({ action, raised, restsOn, zone }) {
   const lines = [];
   if (raised?.detail?.policy_version != null)
-    lines.push(`Raised under policy v${raised.detail.policy_version}.`);
+    lines.push(`Raised under rules v${raised.detail.policy_version}.`);
   if (restsOn) lines.push(<RestsOn key="rests" fact={restsOn} zone={zone} />);
   if (action.evidence?.as_of)
     lines.push(
@@ -1095,8 +1095,8 @@ function Reason({ action, zone, grouped, departureCopy }) {
       ) : action.type === "rules_announcement" ? (
         <div>
           {ev.changes?.length
-            ? `Policy version ${ev.version} changed: ${ev.changes.join(", ")}.`
-            : `Policy version ${ev.version}: the clan's first.`}{" "}
+            ? `Rules version ${ev.version} changed: ${ev.changes.join(", ")}.`
+            : `Rules version ${ev.version}: the clan's first.`}{" "}
           Tell the clan in chat or by Leader Message, then mark it done.
         </div>
       ) : (

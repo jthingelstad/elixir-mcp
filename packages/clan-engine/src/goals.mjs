@@ -43,15 +43,15 @@ export const GOAL_KEYS = Object.keys(GOALS);
 /** How hard the clan holds itself to its goals. */
 export const POSTURES = {
   relaxed: {
-    label: "Relaxed",
+    label: "Chill",
     about: "Real life first: long clocks, low minimums.",
   },
   standard: {
-    label: "Standard",
+    label: "Steady",
     about: "Show up most weeks; inactive members make room after two weeks.",
   },
   strict: {
-    label: "Strict",
+    label: "Hardcore",
     about: "Every week counts: high minimums, short clocks.",
   },
 };

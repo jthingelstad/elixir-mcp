@@ -10,9 +10,9 @@ export function TooFew({ members, min = 10 }) {
       {members != null
         ? `This clan has ${members}. `
         : "This clan is below that for now. "}
-      Like Clan Wars, the policy, actions, standing and awards start at {min}.
+      Like Clan Wars, the rules, actions, standing and awards start at {min}.
       Until then you get the roster and everyone&rsquo;s numbers, and elders and
-      up can use Recruit and Scout. A saved policy is kept until then.
+      up can use Recruit and Scout. Saved rules are kept until then.
     </Empty>
   );
 }

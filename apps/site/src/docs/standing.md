@@ -7,19 +7,19 @@ order: 4
 navTitle: "Standing"
 icon: chart-no-axes-column
 lede: "Standing is taking part in what your clan counts, compared across its members. Everyone sees how it works and where they stand; nobody below co-leader sees a removal action or anyone else's clock."
-reviewed: "2026-11-12; Standing is on Standings; 2026-11-12; Today is the Feed; 2026-10-12; inactivity runs from the battle log and raises removal Actions again; 2026-10-01 against contract 9.17.1"
+reviewed: "2026-11-23; the clan's rules; 2026-11-12; Standing is on Standings; 2026-11-12; Today is the Feed; 2026-10-12; inactivity runs from the battle log and raises removal Actions again; 2026-10-01 against contract 9.17.1"
 callout: ["Open it at Clan › Standings", "/clan", "Open Standing"]
 ---
 
 # Standing and the Elder band
 
 A clan on Clan writes down what it counts, in its
-[policy](/docs/clan-policy), and **Standing** reads every member against
+[rules](/docs/clan-policy), and **Standing** reads every member against
 it. It is participation, not skill: wins, win rates and trophies won are
 not weighed. Inactivity is the days since a member's last recorded battle
 (a rise in their profile's battle count counts as play), and a member past
-the policy's removal day becomes a removal Action for the leaders
-([Actions](/docs/inactivity-clock#the-inactivity-clock)). Standing appears once the clan has a policy and at least
+the rules' kick day becomes a removal Action for the leaders
+([Actions](/docs/inactivity-clock#the-inactivity-clock)). Standing appears once the clan has saved rules and at least
 10 members.
 
 ## What a clan can count
@@ -52,7 +52,7 @@ inactivity clock runs.
 
 ## How Elder is earned
 
-The policy says how Elders are chosen: **by the leaders, by hand**,
+The rules say how Elders are chosen: **by the leaders, by hand**,
 which is where every clan starts, or **by participation in what the
 clan counts**. By hand, Clan raises no promotions or demotions and
 draws no band.
@@ -96,10 +96,10 @@ the game.
 ## What everyone sees
 
 Your own standing comes first, followed by the clan's groups. **How it
-works here** expands the explanation of the current policy. It does
+works here** expands the explanation of the current rules. It does
 not change which members or evidence your role may read.
 
-Once the clan has a policy, every member's **Standing** page shows:
+Once the clan has saved rules, every member's **Standing** page shows:
 
 - **How it works here**: what the clan counts and the weights, the
   minimums, how Elder works and how big the band is, the inactivity
@@ -111,7 +111,7 @@ Once the clan has a policy, every member's **Standing** page shows:
   What the clan counts and the minimums, each met or not, are on the Timeline and
   their own page.
 
-When the clan ranks Elder and the policy lets members see where everyone
+When the clan ranks Elder and the rules let members see where everyone
 stands (on unless the leaders turn it off), the page also lists every
 member and Elder in one of five groups, each with their own evidence
 and, when the clan counts war, their war decks in each race of the
@@ -134,10 +134,10 @@ inactivity clock.** A member sees only their own activity clock and its uncertai
 
 ## When it is read
 
-Clan reads every clan with a policy each morning from 11:00 UTC. Opening
+Clan reads every clan with saved rules each morning from 11:00 UTC. Opening
 Standing or the leaders' Run › Members reads it again when the last reading is
 more than five minutes old. The Timeline and Run › Waiting open the last reading, and read
-again when someone chooses **Refresh suggestions** or the policy has a
+again when someone chooses **Refresh suggestions** or the rules have a
 new version. A reading can raise or withdraw
-[actions](/docs/clan-actions). A new version of the policy is read
+[actions](/docs/clan-actions). A new version of the rules is read
 afresh.

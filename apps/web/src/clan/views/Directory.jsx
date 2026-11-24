@@ -107,7 +107,7 @@ export function Directory({
       <div className="clan-dir">
         {head}
         <Empty title="No clan has saved its rules yet">
-          A clan is listed here once its leaders save a policy in Clan.
+          A clan is listed here once its leaders save its rules in Clan.
         </Empty>
       </div>
     );
@@ -157,9 +157,9 @@ export function Directory({
             />
           </div>
           <div className="clan-dir__field">
-            <span className="clan-dir__label">How strict</span>
+            <span className="clan-dir__label">How serious</span>
             <Chips
-              label="How strict"
+              label="How serious"
               className="kit-chips--seg"
               options={FILTERS.posture}
               value={f.posture}
@@ -272,7 +272,7 @@ function sessionExpired() {
   window.location.assign(`${CLAN}?error=session_expired`);
 }
 
-function ClanTile({ clan }) {
+export function ClanTile({ clan }) {
   const facts = policyFacts(clan.policy);
   const counted = countedWords(clan.policy.counted);
   const name = clan.name ?? clan.clan_tag;

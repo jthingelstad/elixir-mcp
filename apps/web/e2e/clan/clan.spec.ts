@@ -453,9 +453,7 @@ test.describe("signed in", () => {
     await expect(
       standing.getByRole("heading", { name: "Standing" }),
     ).toBeVisible();
-    await expect(
-      page.getByText(/^How it works here · Policy v1/),
-    ).toBeVisible();
+    await expect(page.getByText(/^How it works here · Rules v1/)).toBeVisible();
     // Each group its own panel; war decks per race in words for a reader;
     // a leader is not banded, so their own line carries their role.
     await expect(
@@ -469,10 +467,8 @@ test.describe("signed in", () => {
     const yours = page.getByRole("region", { name: "You" });
     await expect(yours).toContainText("Leader");
     await expect(yours).toContainText("44 of 44");
-    await page.getByText(/^How it works here · Policy v1/).click();
-    await expect(
-      page.getByText("Read the policy in full, in Run"),
-    ).toBeVisible();
+    await page.getByText(/^How it works here · Rules v1/).click();
+    await expect(page.getByText("Change the rules in Run")).toBeVisible();
     await expect(
       page.getByText(/Leaders and co-leaders have no group/).first(),
     ).toBeVisible();
@@ -523,7 +519,7 @@ test.describe("signed in", () => {
     await expect(clanTab(page, "Run")).toHaveCount(0);
   });
 
-  test("a clan with no policy yet keeps its tabs, and Today says what waits on one", async ({
+  test("a clan with no rules yet keeps its tabs, and Today says what waits on one", async ({
     page,
   }) => {
     await mockApi(
@@ -536,13 +532,13 @@ test.describe("signed in", () => {
       ),
     );
     await page.goto("/clan/0QC8RCGY");
-    for (const name of ["Standings", "War", "Members", "Policy", "Run"])
+    for (const name of ["Standings", "War", "Members", "Rules", "Run"])
       await expect(clanTab(page, name)).toBeVisible();
     await expect(clanTab(page, /^Timeline/)).toBeVisible();
-    await expect(page.locator(".clan-today")).toContainText(/policy/i);
+    await expect(page.locator(".clan-today")).toContainText(/rules/i);
   });
 
-  test("a clan below 10 members is a statistics view: the policy editor says so", async ({
+  test("a clan below 10 members is a statistics view: the Rules editor says so", async ({
     page,
   }) => {
     await mockApi(
@@ -572,18 +568,16 @@ test.describe("signed in", () => {
         { policy: { set: false, active: false, members: 6 } },
       ),
     );
-    await page.goto("/clan/0QC8RCGY/run/about");
-    await expect(page).toHaveURL(/\/run\/about$/);
-    await expect(
-      page.getByText(/Leaders can prepare and save its policy now/),
-    ).toBeVisible();
+    await page.goto("/clan/0QC8RCGY/run/rules");
+    await expect(page).toHaveURL(/\/run\/rules$/);
+    await expect(page.getByText(/You can set its rules now/)).toBeVisible();
     await expect(page.getByText(/This clan has 6 members/)).toBeVisible();
     await expect(
-      page.getByRole("button", { name: "Save this clan's policy" }),
+      page.getByRole("button", { name: "Save rules" }),
     ).toBeEnabled();
   });
 
-  test("the policy is separated sections: one at a time, each switched on or off", async ({
+  test("the Rules are six questions, with the clan list card and a save bar", async ({
     page,
   }) => {
     await mockApi(
@@ -594,29 +588,85 @@ test.describe("signed in", () => {
     await clanTab(page, "Run").click();
     await expect(page).toHaveURL(/\/run$/);
     const list = page.getByRole("navigation", { name: "Run" });
-    await expect(list.getByRole("link", { name: /^Clan Wars/ })).toContainText(
-      "On",
+    await expect(list.getByRole("link", { name: /^Rules/ })).toContainText(
+      "v1",
     );
-    await expect(list.getByRole("link", { name: /^Ranked/ })).toContainText(
-      "Off",
-    );
-    // About first; nothing from another section on the page.
-    await expect(page.getByLabel(/War rate window/)).toHaveCount(0);
-    await list.getByRole("link", { name: /^Clan Wars/ }).click();
-    await expect(page).toHaveURL(/\/run\/clan-wars$/);
-    await expect(page.getByLabel(/Minimum war decks/)).toHaveValue("8");
-    await list.getByRole("link", { name: /^Ranked/ }).click();
-    await page.getByLabel("Count ranked play").check();
-    await expect(page.getByLabel(/Minimum ranked battles/)).toHaveValue("5");
-    await expect(list.getByRole("link", { name: /^Ranked/ })).toContainText(
-      "changed",
-    );
+    await list.getByRole("link", { name: /^Rules/ }).click();
+    await expect(page).toHaveURL(/\/run\/rules$/);
+    for (const n of [1, 2, 3, 4, 5, 6])
+      await expect(
+        page.locator(".rules-q__n", { hasText: String(n) }),
+      ).toHaveCount(1);
     await expect(
-      page
-        .locator(".clan-save")
-        .getByText(/settings? changed: Count ranked play/),
+      page.getByRole("heading", { name: "What players see in the clan list" }),
     ).toBeVisible();
-    await accessible(page, "policy sections");
+    await expect(
+      page.getByRole("spinbutton", { name: "War decks goal" }),
+    ).toHaveValue("8");
+    // Turning a measure on asks for its goal, and the save bar counts it.
+    await expect(
+      page.getByRole("spinbutton", { name: "Ranked battles goal" }),
+    ).toHaveCount(0);
+    await page.getByRole("switch", { name: "Ranked battles" }).click();
+    await expect(
+      page.getByRole("spinbutton", { name: "Ranked battles goal" }),
+    ).toBeVisible();
+    const bar = page.getByRole("region", { name: "Save rules" });
+    const count = bar.getByRole("button", {
+      name: /^You changed \d+ things?\.$/,
+    });
+    await expect(count).toBeVisible();
+    await count.click();
+    const changes = bar.locator(".rules-save__list");
+    await expect(changes).toContainText("Ranked battles: Off to On");
+    await expect(changes).toContainText("Ranked battles goal: 0 to 5");
+    await expect(changes).toContainText(/What makes a best player: .+ to .+/);
+    await expect(list.getByRole("link", { name: /^Rules/ })).toContainText(
+      "v1",
+    );
+    await accessible(page, "rules editor");
+    await bar.getByRole("button", { name: "Undo all" }).click();
+    await expect(bar).toContainText("No changes.");
+    await expect(
+      page.getByRole("spinbutton", { name: "Ranked battles goal" }),
+    ).toHaveCount(0);
+  });
+
+  test("@narrow the Rules editor on a phone: the card first, the save bar in reach", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await mockApi(
+      page,
+      signedIn({ "GET /api/clan/clans/0QC8RCGY/policy": [200, POLICY_VIEW] }),
+    );
+    await page.goto("/clan/0QC8RCGY/run/rules");
+    const card = page.getByRole("heading", {
+      name: "What players see in the clan list",
+    });
+    const first = page.locator(".rules-q").first();
+    await expect(card).toBeVisible();
+    await expect(first).toBeVisible();
+    // On a phone the card sits above the questions.
+    const cardBox = await card.boundingBox();
+    const firstBox = await first.boundingBox();
+    expect(cardBox!.y).toBeLessThan(firstBox!.y);
+    await page.getByRole("switch", { name: "Ranked battles" }).click();
+    const bar = page.getByRole("region", { name: "Save rules" });
+    const save = bar.getByRole("button", { name: "Save rules" });
+    await expect(save).toBeInViewport();
+    const box = await save.boundingBox();
+    expect(box!.height).toBeGreaterThanOrEqual(44);
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= window.innerWidth,
+      ),
+    ).toBe(true);
+    await accessible(page, "narrow rules editor");
+    await page.screenshot({
+      path: "/tmp/elixir-clan-rules-editor-narrow.png",
+      fullPage: true,
+    });
   });
 
   test("clan settings hold the clan's own model, for leaders", async ({
@@ -1015,7 +1065,7 @@ test.describe("signed in", () => {
     await expect(clanTab(page, /^Timeline/)).toHaveAccessibleName(
       /^Timeline 2 waiting for you$/,
     );
-    for (const name of ["Standings", "War", "Members", "Policy", "Run"])
+    for (const name of ["Standings", "War", "Members", "Rules", "Run"])
       await expect(clanTab(page, name)).toBeAttached();
     expect(
       await page.evaluate(
@@ -1070,9 +1120,11 @@ test.describe("signed in", () => {
     const list = page.getByRole("navigation", { name: "Run" });
     await expect(list).toBeVisible();
     await expect(page.locator(".clan-run__section")).toBeHidden();
-    await list.getByRole("link", { name: /^Clan Wars/ }).click();
+    await list.getByRole("link", { name: /^Rules/ }).click();
     await expect(list).toBeHidden();
-    await expect(page.getByLabel(/Minimum war decks/)).toHaveValue("8");
+    await expect(
+      page.getByRole("spinbutton", { name: "War decks goal" }),
+    ).toHaveValue("8");
     expect(
       await page.evaluate(
         () => document.documentElement.scrollWidth <= window.innerWidth,
