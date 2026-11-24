@@ -724,7 +724,7 @@ test("a post about nothing in the record never reaches the record's timeline, wh
     .filter(Boolean)
     .filter(
       (f) =>
-        !/^(db\/|docs\/|packages\/posts\/src\/|services\/web-api\/(src|test)\/|services\/migrate\/(src|test)\/ops-(account-remove|agent-accounts-remove|comment-delivery)|packages\/auth\/src\/account-remove\.mjs|services\/jobs\/src\/index|packages\/record\/src\/retention|apps\/web\/|services\/jobs\/test\/)/.test(
+        !/^(db\/|docs\/|packages\/posts\/src\/|services\/web-api\/(src|test)\/|services\/migrate\/(src|test)\/ops-(account-remove|owned-accounts-remove|comment-delivery)|packages\/auth\/src\/account-remove\.mjs|services\/jobs\/src\/index|packages\/record\/src\/retention|apps\/web\/|services\/jobs\/test\/)/.test(
           f,
         ),
     )

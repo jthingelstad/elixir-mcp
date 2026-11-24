@@ -393,10 +393,20 @@ async function dispatch(event, context) {
   }
   if (event?.agent_accounts_remove) {
     const { agentAccountsRemoveOp } =
-      await import("./ops-agent-accounts-remove.mjs");
+      await import("./ops-owned-accounts-remove.mjs");
     const result = await agentAccountsRemoveOp(
       process.env.DATABASE_URL,
       event.agent_accounts_remove,
+    );
+    console.log(JSON.stringify(result));
+    return result;
+  }
+  if (event?.integration_accounts_remove) {
+    const { integrationAccountsRemoveOp } =
+      await import("./ops-owned-accounts-remove.mjs");
+    const result = await integrationAccountsRemoveOp(
+      process.env.DATABASE_URL,
+      event.integration_accounts_remove,
     );
     console.log(JSON.stringify(result));
     return result;

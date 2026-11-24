@@ -122,6 +122,8 @@ const MIGRATE_READS = {
   // Dry run by default: true, {} or an explicit dry run reads.
   agent_accounts_remove: (v) =>
     v === true || exactly(v, {}) || exactly(v, { dry_run: true }),
+  integration_accounts_remove: (v) =>
+    v === true || exactly(v, {}) || exactly(v, { dry_run: true }),
   account_follow: (v) => isObject(v) && v.dry_run === true,
   // A dry run is the default; the pairs alone, with no apply key, read.
   avatar_import: (v) => exactly(v, { pairs: Array.isArray }),

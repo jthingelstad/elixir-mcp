@@ -501,7 +501,6 @@ export async function validateAccessToken(db, token, { resource } = {}) {
        and f.revoked_at is null and f.absolute_expires_at > now()
        and c.expires_at > now()
        and f.resource = $2
-       and not exists (select 1 from integration i where i.account_id = a.account_id)
        and a.status = 'approved'
        and ${PERSON_ONLY}`,
     [sha256hex(raw), audience],
@@ -663,8 +662,7 @@ export async function validateServiceToken(db, token) {
     `${SERVICE_ACCOUNT_SELECT}
      where t.token_hash = $1 and t.revoked_at is null and a.status = 'approved'
        and ${PERSON_ONLY}
-       and t.audience = 'mcp'
-       and not exists (select 1 from integration i where i.account_id = a.account_id)`,
+       and t.audience = 'mcp'`,
     [sha256hex(raw)],
   );
   const row = rows[0];
@@ -691,7 +689,6 @@ export async function serviceTokenAccountByName(db, name) {
      where t.name = $1 and t.revoked_at is null and a.status = 'approved'
        and ${PERSON_ONLY}
        and t.audience = 'mcp'
-       and not exists (select 1 from integration i where i.account_id = a.account_id)
      order by (a.test_name is not null) desc, t.token_id limit 1`,
     [String(name)],
   );

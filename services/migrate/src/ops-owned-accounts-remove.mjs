@@ -1,31 +1,39 @@
 /**
- * {agent_accounts_remove: {...}}: delete every agent account (DECISIONS,
- * "The old agent accounts are deleted"; Jamie, 2026-11-23: "Delete the
- * old agent accounts.").
+ * Deleting the accounts a person owned, by kind: an account is a person
+ * and nothing else (DECISIONS, "The old agent accounts are deleted" and
+ * "An account is a person; the integration accounts are deleted").
  *
- *   {agent_accounts_remove: true} or {}          dry run: what would happen
+ *   {agent_accounts_remove: true} or {}                dry run
  *   {agent_accounts_remove: {dry_run: false,
- *                            history: "owner"}}  delete them
+ *                            history: "owner"}}        delete the agents
+ *   {integration_accounts_remove: true} or {}          dry run
+ *   {integration_accounts_remove: {dry_run: false,
+ *                                  history: "owner"}}  delete the integrations
  *
- * Elixir has people, not agents: nothing has minted, authenticated or
- * served an agent since the one MCP endpoint (#1219), and the migration
- * that narrows `account.kind` to person and integration refuses to run
- * while any agent row is left. This op is how those rows go, so the
- * removal is never hand-written SQL. It touches rows of `kind = 'agent'`
- * accounts and nothing else: every statement is scoped to the ids its
- * first read selected by kind, so a person (a test account included) or
- * an integration is never read for writing.
+ * Jamie, 2026-11-23: "Delete the old agent accounts." and "Approved:
+ * delete the three integration accounts and remove the integration
+ * account kind from Elixir". Nothing has minted, authenticated or served
+ * an agent since the one MCP endpoint (#1219), nor an integration since
+ * JSON API 5.0.0 (every integration key revoked by 2026-11-13), and the
+ * migration that narrows `account.kind` to person refuses to run while
+ * any such row is left. These ops are how those rows go, so the removal
+ * is never hand-written SQL. Each touches rows of accounts of its one
+ * kind and nothing else: every statement is scoped to the ids its first
+ * read selected by kind, so a person (a test account included), or an
+ * account of the other kind, is never read for writing.
  *
  * Per table, by what the schema allows:
  *
- * - Deleted, the agent's own machinery: service tokens, OAuth grants,
+ * - Deleted, the account's own machinery: service tokens (an
+ *   integration's `integration_api` keys among them), OAuth grants,
  *   tokens and codes, sessions, claims and clan follows (the recordings
  *   only they kept alive are stopped through the claims package's own
  *   reconcile), nicknames, read pointers, the timeline's Discord
  *   cross-post (its sealed webhook and what it told), agent identities,
  *   Clan's remembered clan, rate counters and every social row (cheers,
- *   comments, posts, blocks, follows, passport, push), which an agent
- *   never had a door to write but which the op clears all the same.
+ *   comments, posts, blocks, follows, passport, push), which neither kind
+ *   had a door to write but which the op clears all the same; and, for an
+ *   integration, its `integration` row (its name).
  * - Kept and detached, history whose pointer may be null: the call log
  *   (`mcp_call_audit`) and the refusal log (`credential_refusal`) keep
  *   their rows with account, key and grant set to null, and age out on
@@ -33,25 +41,28 @@
  *   and loses a stale owner stamp. An attested fact keeps its fact and
  *   loses its attester through its foreign key's own ON DELETE SET NULL,
  *   so the op neither names nor counts that table (only the record's read
- *   and write name it, services/mcp/test/attested-readers.test.mjs).
- * - Re-pointed to the agent's owner: a recording's `requested_by`
- *   (not null; the recording is the record's, and the owner's pooled
- *   slots were what an agent followed in).
+ *   and write name it, services/mcp/test/attested-readers.test.mjs). Clan's
+ *   award standings were attested by the `elixir-clan` integration; Clan
+ *   writes them as Elixir itself, with no attester, so they read the same.
+ * - Re-pointed to the owner: a recording's `requested_by` (not null; the
+ *   recording is the record's).
  * - Kept untouched: `discord_post`, the cross-post quality ledger, which
  *   names an account without a foreign key.
  * - History that cannot outlive its account (`feedback` and
  *   `account_event`, both `account_id not null`): the operator chooses.
- *   `history: "owner"` re-points the rows to the agent's owner (the
+ *   `history: "owner"` re-points the rows to the account's owner (the
  *   feedback, its answer and its thread stay, and read as the owner's);
  *   `history: "delete"` deletes them (a feedback's refs go with it, a
  *   later item that followed it keeps its words and loses the link). A
  *   run with such rows and no choice is refused, writing nothing.
  *
  * Refused, before anything is written (and reported by a dry run): an
- * agent that owns an account, a collector or an integration row, none of
- * which an agent could have. Dry run by default: `dry_run` must be false
- * to write. One transaction; a real run that detached call-log rows
- * vacuums `mcp_call_audit` after it commits.
+ * account that owns an account, a collector or (an agent) an integration
+ * row, none of which either kind could have; an owner who is not a
+ * person; and (integrations) an integration row on an account that is
+ * not of the integration kind. Dry run by default: `dry_run` must be false to write. One
+ * transaction; a real run that detached call-log rows vacuums
+ * `mcp_call_audit` after it commits.
  */
 
 import pg from "pg";
@@ -60,7 +71,57 @@ import { vacuumAnalyze } from "./vacuum.mjs";
 
 const HISTORY = new Set(["owner", "delete"]);
 
-export async function agentAccountsRemoveOp(databaseUrl, spec = {}) {
+/** What differs between the two kinds: how each is listed, what only it
+ *  holds, and the event its owner is left. */
+const KINDS = {
+  agent: {
+    list: "agents",
+    event: "agent_accounts_removed",
+    select: `(select st.name from service_token st
+               where st.account_id = a.account_id
+               order by st.created_at, st.token_id limit 1) as name,
+             a.removed_at is not null as removed_from_view`,
+    shape: (a) => ({ removed_from_view: a.removed_from_view }),
+    blockers: `(select count(*)::int from integration
+                 where account_id = any($1::uuid[])) as integrations`,
+    own: [],
+  },
+  integration: {
+    list: "integrations",
+    event: "integration_accounts_removed",
+    select: `(select i.name from integration i
+               where i.account_id = a.account_id) as name,
+             (select max(st.last_used_at) from service_token st
+               where st.account_id = a.account_id) as last_key_use_at,
+             (select count(*)::int from service_token st
+               where st.account_id = a.account_id
+                 and st.revoked_at is null) as live_keys,
+             (select count(*)::int from service_token st
+               where st.account_id = a.account_id
+                 and st.revoked_at is not null) as revoked_keys`,
+    shape: (a) => ({
+      last_key_use_at: a.last_key_use_at,
+      keys: { live: a.live_keys, revoked: a.revoked_keys },
+    }),
+    // An integration row on an account of another kind is not this op's
+    // to delete.
+    blockers: `(select count(*)::int from integration i join account x using (account_id)
+                 where x.kind <> 'integration') as integration_rows_on_other_kinds`,
+    // Its name, the one row only an integration has; it goes before the
+    // account it points at.
+    own: [["integration", `integration where account_id = any($1::uuid[])`]],
+  },
+};
+
+export function agentAccountsRemoveOp(databaseUrl, spec = {}) {
+  return ownedAccountsRemoveOp(databaseUrl, "agent", spec);
+}
+
+export function integrationAccountsRemoveOp(databaseUrl, spec = {}) {
+  return ownedAccountsRemoveOp(databaseUrl, "integration", spec);
+}
+
+async function ownedAccountsRemoveOp(databaseUrl, kind, spec) {
   const args = spec === true || spec == null ? {} : spec;
   const dryRun = args.dry_run !== false;
   const history = args.history ?? null;
@@ -73,7 +134,7 @@ export async function agentAccountsRemoveOp(databaseUrl, spec = {}) {
     await db.query("begin");
     let result;
     try {
-      result = await removeAgents(db, { dryRun, history });
+      result = await removeOwned(db, KINDS[kind], kind, { dryRun, history });
       await db.query(dryRun || result.refused ? "rollback" : "commit");
     } catch (err) {
       await db.query("rollback").catch(() => {});
@@ -87,31 +148,29 @@ export async function agentAccountsRemoveOp(databaseUrl, spec = {}) {
   }
 }
 
-async function removeAgents(db, { dryRun, history }) {
-  const { rows: agents } = await db.query(
-    `select a.account_id, a.status, a.created_at, a.removed_at,
+async function removeOwned(db, k, kind, { dryRun, history }) {
+  const { rows: found } = await db.query(
+    `select a.account_id, a.status, a.created_at,
             a.owned_by_account_id as owner_id,
             left(coalesce(o.email_hash, ''), 10) as owner_ref,
-            o.kind as owner_kind,
-            (select st.name from service_token st
-              where st.account_id = a.account_id
-              order by st.created_at, st.token_id limit 1) as name,
+            ${k.select},
             (select max(c.created_at) from mcp_call_audit c
               where c.account_id = a.account_id) as last_call_at
        from account a
        left join account o on o.account_id = a.owned_by_account_id
-      where a.kind = 'agent'
+      where a.kind = $1
       order by a.created_at, a.account_id
       for update of a`,
+    [kind],
   );
-  const ids = agents.map((a) => a.account_id);
+  const ids = found.map((a) => a.account_id);
   const out = {
     dry_run: dryRun,
-    agents: agents.map((a) => ({
+    [k.list]: found.map((a) => ({
       account_ref: a.account_id.slice(0, 8),
       name: a.name,
       status: a.status,
-      removed_from_view: a.removed_at !== null,
+      ...k.shape(a),
       owner_ref: a.owner_ref,
       created_at: a.created_at,
       last_call_at: a.last_call_at,
@@ -119,7 +178,7 @@ async function removeAgents(db, { dryRun, history }) {
   };
   if (ids.length === 0) return { ...out, nothing_to_do: true };
 
-  // What an agent could never have; if one does, a person decides.
+  // What neither kind could have; if one does, a person decides.
   const { rows: block } = await db.query(
     `select
        (select count(*)::int from account
@@ -128,11 +187,10 @@ async function removeAgents(db, { dryRun, history }) {
          where owner_account_id = any($1::uuid[])) as owns_collectors,
        (select count(*)::int from collector_version_event
          where account_id = any($1::uuid[])) as collector_events,
-       (select count(*)::int from integration
-         where account_id = any($1::uuid[])) as integrations,
+       ${k.blockers},
        (select count(*)::int from account a
          where a.account_id = any($2::uuid[]) and a.kind <> 'person') as owners_not_people`,
-    [ids, [...new Set(agents.map((a) => a.owner_id))]],
+    [ids, [...new Set(found.map((a) => a.owner_id))]],
   );
   const blockers = Object.fromEntries(
     Object.entries(block[0]).filter(([, n]) => n > 0),
@@ -140,9 +198,9 @@ async function removeAgents(db, { dryRun, history }) {
   if (Object.keys(blockers).length)
     return {
       ...out,
-      refused: "agent_holds_more_than_agent_rows",
+      refused: `${kind}_holds_more_than_${kind}_rows`,
       blockers,
-      hint: "Each blocker is something no agent could make; look at it before deleting anything.",
+      hint: `Each blocker is something no ${kind} could make; look at it before deleting anything.`,
     };
 
   // History whose account_id is not null: the operator's choice.
@@ -162,7 +220,7 @@ async function removeAgents(db, { dryRun, history }) {
     return {
       ...out,
       refused: "history_choice_required",
-      hint: 'Add "history": "owner" to re-point feedback and account events to each agent\'s owner, or "history": "delete" to delete them.',
+      hint: `Add "history": "owner" to re-point feedback and account events to each ${kind}'s owner, or "history": "delete" to delete them.`,
     };
 
   const { rows: tokens } = await db.query(
@@ -179,7 +237,7 @@ async function removeAgents(db, { dryRun, history }) {
   // its own ceiling counts under mcp#token#<id>.
   const counterKeys = tokenIds.map((t) => `mcp#token#${t}`);
 
-  // What the agents were a reason to record, in the claims package's
+  // What the accounts were a reason to record, in the claims package's
   // subject-lock order.
   const { rows: subjects } = await db.query(
     `select 'player' as kind, player_tag as tag from claim
@@ -344,6 +402,7 @@ async function removeAgents(db, { dryRun, history }) {
          or bucket = any($2::text[])`,
       [ids, counterKeys],
     ],
+    ...k.own,
   ];
   const deleted = {};
   for (const [table, from, params = [ids]] of steps)
@@ -385,27 +444,27 @@ async function removeAgents(db, { dryRun, history }) {
   let accountsDeleted = 0;
   if (!dryRun) {
     recordingsStopped = 0;
-    for (const { kind, tag } of subjects) {
-      const r = await reconcileRecording(db, kind, tag, null);
+    for (const { kind: subject, tag } of subjects) {
+      const r = await reconcileRecording(db, subject, tag, null);
       if (r.stopped) recordingsStopped += 1;
     }
     // One event on each owner's account, so their history says so.
     const owners = new Map();
-    for (const a of agents)
+    for (const a of found)
       owners.set(a.owner_id, (owners.get(a.owner_id) ?? 0) + 1);
     for (const [owner, n] of owners)
       await db.query(
         `insert into account_event (account_id, kind, detail)
-         values ($1, 'agent_accounts_removed', $2)`,
-        [owner, JSON.stringify({ via: "ops", agents: n, history })],
+         values ($1, $2, $3)`,
+        [owner, k.event, JSON.stringify({ via: "ops", [k.list]: n, history })],
       );
     accountsDeleted = (
       await db.query(
         `with w as (delete from account
-                     where account_id = any($1::uuid[]) and kind = 'agent'
+                     where account_id = any($1::uuid[]) and kind = $2
                     returning 1)
          select count(*)::int as n from w`,
-        [ids],
+        [ids, kind],
       )
     ).rows[0].n;
   }
@@ -417,9 +476,9 @@ async function removeAgents(db, { dryRun, history }) {
     detached,
     repointed,
     kept: { discord_post: kept[0].n },
-    // A dry run names how many subjects an agent was a reason to record;
-    // which stop depends on who else wants each, which only the run's
-    // reconcile can say.
+    // A dry run names how many subjects the accounts were a reason to
+    // record; which stop depends on who else wants each, which only the
+    // run's reconcile can say.
     subjects: subjects.length,
     recordings_stopped: recordingsStopped,
   };

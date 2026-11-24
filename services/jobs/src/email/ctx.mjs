@@ -7,7 +7,7 @@ export async function loadRecipients(db, kind, { accountId = null } = {}) {
   const { rows } = await db.query(
     `select a.account_id, a.email, a.email_hash, a.timezone,
             ${tierSql("a")} as role, a.kind,
-            a.mcp_daily_quota, a.live_daily_quota, a.public_id
+            a.mcp_daily_quota, a.live_daily_quota
        from account a
       where a.kind = 'person' and a.status = 'approved' and a.email is not null
         and ($2::uuid is null or a.account_id = $2)
@@ -32,7 +32,6 @@ function projectAccount(row) {
     isAdmin: row.role === "owner" || row.role === "admin",
     mcpDailyQuota: row.mcp_daily_quota,
     liveDailyQuota: row.live_daily_quota,
-    publicId: row.public_id,
     credentialType: "mail",
   };
 }

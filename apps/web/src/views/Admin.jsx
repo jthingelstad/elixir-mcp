@@ -1260,8 +1260,7 @@ function AdminFeedback() {
       href: `${ADMIN}/feedback/${f.feedback_id}`,
     },
     day(f.created_at),
-    f.from_player ??
-      (f.account_kind === "agent" ? `agent ${f.account_public_id}` : "—"),
+    f.from_player ?? "—",
     FEEDBACK_AREA_LABEL[f.area] ?? f.area ?? "",
     f.category ?? "",
     {
@@ -1707,15 +1706,13 @@ function AttachedEmail({ sendId }) {
   );
 }
 
-/** Who filed it through what (0204): the principal, the client, and an
- *  agent's person when it relayed theirs. */
+/** Who filed it through what (0204): the person's player, the client,
+ *  and, on an item an agent relayed before agents were removed, the
+ *  person it relayed for. */
 function viaLine(item) {
   const v = item.via ?? {};
   return [
-    item.from_player ??
-      (item.account_kind === "agent"
-        ? `agent ${item.account_public_id}`
-        : "unknown filer"),
+    item.from_player ?? "unknown filer",
     `via ${item.surface}`,
     v.client_name ? v.client_name : null,
     v.on_behalf_of
