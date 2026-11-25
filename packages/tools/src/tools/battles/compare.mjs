@@ -12,6 +12,7 @@ import {
   resolveSeasonWindow,
   subject,
 } from "../shared.mjs";
+import { unratedRankedNote, unratedRankedSql } from "../../controls.mjs";
 import { modeClause, ownBattlesClause } from "./common.mjs";
 
 export const battles_compare = {
@@ -87,6 +88,8 @@ export const battles_compare = {
                   count(*) filter (where bp.outcome = 'win')::int wins,
                   count(*) filter (where bp.outcome = 'loss')::int losses,
                   coalesce(sum(bp.trophy_change), 0)::int net_trophies,
+                  coalesce(sum(bp.trophy_change) filter (where ${unratedRankedSql("b.type", "b.event_tag", "b.league_number")}), 0)::int
+                    unrated_ranked_trophies,
                   (select json_object_agg(g, json_build_object(
                             'battles', n, 'wins', w, 'losses', l))
                      from (select ${modeGroupSql("b.type", "b.event_tag")} as g,
@@ -122,6 +125,7 @@ export const battles_compare = {
           ? "Each window pools every mode group it played (window.modes says which): modes are different games with different matchmaking, so compare players within a mode; pass mode to read one."
           : null,
         win.seasonNotes,
+        unratedRankedNote(players.map((p) => p.window)),
         "window covers RECORDED battles only, and recording start dates differ per player; net_trophies sums recorded trophy changes, not the full ladder delta.",
       ),
       docs: docsRef("freshness-and-gaps", "completeness"),

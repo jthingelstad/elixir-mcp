@@ -2074,3 +2074,65 @@ test("#556: elixir_follow_player refuses a primary or alt on a tag another accou
   assert.deepEqual(rows, [{ is_primary: false, relationship: "friend" }]);
   await call("elixir_follow_player", { player_tag: TAG, action: "remove" });
 });
+
+test("feedback #391: net_trophies says how much of it is Ranked's unrated +30 a win", async () => {
+  // One week: three Ranked wins in Master III (+30 each, a loss there
+  // reports nothing), a rated Ultimate Champion win and loss, and one
+  // Trophy Road win. Only the first three are unrated.
+  const base = Date.parse("2026-03-03T12:00:00Z");
+  const mk = async (i, type, outcome, change, league = null) => {
+    const at = new Date(base + i * 5 * 60_000).toISOString();
+    await db.query(
+      `insert into battle (battle_id, battle_time, type, type_class, created_at, league_number, deck_selection)
+       values ($1, $2, $3, 'pvp', $2, $4, 'collection')`,
+      [`f391-${i}`, at, type, league],
+    );
+    await db.query(
+      `insert into battle_participant (battle_id, player_tag, battle_time, side, outcome, trophy_change, type, type_class)
+       values ($1, $2, $3, 0, $4, $5, $6, 'pvp')`,
+      [`f391-${i}`, OBSERVER, at, outcome, change, type],
+    );
+  };
+  for (let i = 0; i < 3; i++) await mk(i, "pathOfLegend", "win", 30, 3);
+  await mk(3, "pathOfLegend", "loss", null, 3);
+  await mk(4, "pathOfLegend", "win", 8, 7);
+  await mk(5, "pathOfLegend", "loss", -7, 7);
+  await mk(6, "PvP", "win", 12);
+  const window = { from: "2026-03-02", to: "2026-03-08" };
+
+  const perf = await call("battles_performance", window);
+  assert.equal(perf.isError, false, JSON.stringify(perf.body));
+  assert.equal(perf.body.window.net_trophies, 103);
+  assert.equal(perf.body.window.unrated_ranked_trophies, 90);
+  assert.match(
+    perf.body.notes.join(" "),
+    /net_trophies includes unrated_ranked_trophies \(90 here\)/,
+  );
+
+  const weekly = await call("battles_performance", {
+    ...window,
+    group_by: "week",
+  });
+  assert.equal(weekly.body.weekly.length, 1);
+  assert.equal(weekly.body.weekly[0].net_trophies, 103);
+  assert.equal(weekly.body.weekly[0].unrated_ranked_trophies, 90);
+  assert.match(weekly.body.notes.join(" "), /unrated_ranked_trophies \(90/);
+
+  // Trophy Road alone holds none: the field is 0 and no note fires.
+  const ladder = await call("battles_performance", {
+    ...window,
+    mode: "ladder",
+  });
+  assert.equal(ladder.body.window.net_trophies, 12);
+  assert.equal(ladder.body.window.unrated_ranked_trophies, 0);
+  assert.doesNotMatch(ladder.body.notes.join(" "), /unrated_ranked/);
+
+  const cmp = await call("battles_compare", {
+    ...window,
+    player_tags: [OBSERVER, OBSERVER],
+  });
+  assert.equal(cmp.isError, false, JSON.stringify(cmp.body));
+  assert.equal(cmp.body.players[0].window.net_trophies, 103);
+  assert.equal(cmp.body.players[0].window.unrated_ranked_trophies, 90);
+  assert.match(cmp.body.notes.join(" "), /unrated_ranked_trophies/);
+});

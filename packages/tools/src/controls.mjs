@@ -12,7 +12,11 @@
  * detected: signal, not boilerplate.
  */
 
-import { modeGroupOf as modeGroupFor } from "@elixir-mcp/contracts";
+import {
+  modeGroupOf as modeGroupFor,
+  modeGroupSql,
+} from "@elixir-mcp/contracts";
+import { ULTIMATE_CHAMPION } from "@elixir-mcp/record/ranked-leagues";
 
 /** The mode group a battle folds into; the API's own odd values
  *  ('unknown', 'casual1v1', 'None') are 'casual', as in the rollups
@@ -427,6 +431,32 @@ export function trophiesAreStanding(type, eventTag, gameModeName) {
   const group = modeGroupOf(type, eventTag);
   if (group === "event") return gameModeName === "Ladder";
   return group !== "challenge" && group !== "tournament";
+}
+
+/**
+ * SQL for "a Ranked battle below Ultimate Champion" (feedback #391).
+ * There only a win reports a trophy change, always +30, and a loss
+ * reports none (cr-agent-api-docs `game-modes.md`): league progress no
+ * loss takes back, not a rating. A sitting leaves it out of its nets
+ * (`sessionsOf`, 2026-11-16), and a row with no league is read as rated
+ * there and here.
+ */
+export const unratedRankedSql = (typeCol, tagCol, leagueCol) =>
+  `(${modeGroupSql(typeCol, tagCol)} = 'ranked' and ${leagueCol} is not null and ${leagueCol} <> ${ULTIMATE_CHAMPION})`;
+
+/**
+ * Fires when a served window or week holds Ranked wins below Ultimate
+ * Champion (feedback #391): `net_trophies` summed their +30 each beside
+ * Trophy Road's real changes, and the same battles read as no net on a
+ * Timeline sitting. `records` carry `unrated_ranked_trophies`.
+ */
+export function unratedRankedNote(records) {
+  const total = records.reduce(
+    (n, r) => n + (r?.unrated_ranked_trophies ?? 0),
+    0,
+  );
+  if (total <= 0) return null;
+  return `net_trophies includes unrated_ranked_trophies (${total.toLocaleString("en-US")} here): below Ultimate Champion, Ranked reports +30 for a win and nothing for a loss, so that part counts wins only. It is league progress, not a trophy net, and a Timeline sitting leaves it out of its nets. Subtract it for the trophies that moved a standing, or pass mode to read one game.`;
 }
 
 /** Fires when a weekly row holds trophy-mode battles that reported no

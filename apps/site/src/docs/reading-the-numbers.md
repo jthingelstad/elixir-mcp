@@ -162,4 +162,11 @@ denominator:
   trophy-mode battles played, and only losses drop out. `net_trophies` sums
   `trophy_battles`. Divide by `trophy_mode_battles` for a ladder record; a
   note names the weeks where the two differ.
+- `net_trophies` on `battles_performance` and `battles_compare` sums every
+  trophy change the window's battles reported. Below Ultimate Champion,
+  Ranked reports +30 for a win and nothing for a loss, so that part counts
+  wins only: it is league progress, not a trophy net.
+  `unrated_ranked_trophies` beside it says how much of the sum that is
+  (0 when the window holds none), and a note fires when it is above 0.
+  A [session](/docs/timeline-kinds) leaves it out of its nets.
 
