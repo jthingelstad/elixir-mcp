@@ -503,8 +503,12 @@ test("all normal signed-in Timeline surfaces carry canonical social identity and
   const arrival = clan.items.find((it) => it.kind === "member_joined");
   assert.equal(arrival.item_ref.item_id, arrival.id);
   assert.deepEqual(arrival.cheers, {});
-  const session = items.find((it) =>
-    ["battle_session", "session_standout"].includes(it.kind),
+  // The 2v2 sitting is two items that tie on time, PLAYER's and the
+  // teammate's, and a tie is ordered by id: ask for PLAYER's own (#1245).
+  const session = items.find(
+    (it) =>
+      ["battle_session", "session_standout"].includes(it.kind) &&
+      it.subject_tag === PLAYER,
   );
   assert.ok(session);
   const page = await call(stranger, "GET", "/api/player/session", undefined, {
