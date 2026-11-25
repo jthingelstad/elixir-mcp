@@ -1064,7 +1064,7 @@ const OLD = [
   },
   {
     name: "a window's battles (battles_performance)",
-    re: /cross join lateral \(\s*select b\.type_class, b\.type, b\.event_tag from battle b\s+where b\.battle_id = bp\.battle_id limit 1\) b/,
+    re: /cross join lateral \(\s*select b\.type_class, b\.type, b\.event_tag, b\.league_number from battle b\s+where b\.battle_id = bp\.battle_id limit 1\) b/,
     old: "join battle b on b.battle_id = bp.battle_id",
   },
   {

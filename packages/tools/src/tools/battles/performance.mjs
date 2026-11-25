@@ -23,6 +23,8 @@ import {
   trophyBattlesNote,
   trophyFloor,
   trophyFloorNote,
+  unratedRankedNote,
+  unratedRankedSql,
 } from "../../controls.mjs";
 import { DENOMINATOR_DOCS, modeClause, ownBattlesClause } from "./common.mjs";
 import {
@@ -94,7 +96,7 @@ export const battles_performance = {
       } = await ctx.db.query(
         `with sample as materialized (
              select bp.outcome, bp.crowns, bp.trophy_change, bp.battle_time, bp.battle_id,
-                    b.type_class, b.type, b.event_tag,
+                    b.type_class, b.type, b.event_tag, b.league_number,
                     -- A duel by type or by its round rows (13.1.0): an
                     -- event's multi-deck duel sums its crowns too.
                     ${duelSql("b.type", "bp.battle_id")} as duel,
@@ -105,7 +107,7 @@ export const battles_performance = {
              -- hash every battle in the record for a long window (Stats'
              -- season list reads from the first recorded battle).
              cross join lateral (
-               select b.type_class, b.type, b.event_tag from battle b
+               select b.type_class, b.type, b.event_tag, b.league_number from battle b
                 where b.battle_id = bp.battle_id limit 1) b
              where ${where.join(" and ")}
              order by bp.battle_time desc, bp.battle_id desc
@@ -137,6 +139,10 @@ export const battles_performance = {
                   coalesce(sum(crowns),0)::int as crowns_for,
                   coalesce(sum(opp_crowns),0)::int as crowns_against,
                   coalesce(sum(trophy_change),0)::int as net_trophies,
+                  -- The part of that sum that is no standing (feedback
+                  -- #391): Ranked's +30 a win below Ultimate Champion.
+                  coalesce(sum(trophy_change) filter (where ${unratedRankedSql("type", "event_tag", "league_number")}),0)::int
+                    as unrated_ranked_trophies,
                   count(*) filter (where outcome in ('win','loss') and type_class = 'pvp'
                                    and not duel)::int as head_to_head,
                   count(*) filter (where crowns = 3 and type_class = 'pvp'
@@ -311,7 +317,9 @@ export const battles_performance = {
                   ${decidedLossesSql("bp.outcome", "bp.type_class")}::int as decided_losses,
                   count(*) filter (where b.type = any(${trophyModes}) or bp.trophy_change is not null)::int as trophy_mode_battles,
                   count(*) filter (where bp.trophy_change is not null)::int as trophy_battles,
-                  coalesce(sum(bp.trophy_change), 0)::int as net_trophies
+                  coalesce(sum(bp.trophy_change), 0)::int as net_trophies,
+                  coalesce(sum(bp.trophy_change) filter (where ${unratedRankedSql("b.type", "b.event_tag", "b.league_number")}), 0)::int
+                    as unrated_ranked_trophies
            from battle_participant bp join battle b on b.battle_id = bp.battle_id
            where ${where.join(" and ")}
            group by date_trunc('week', bp.battle_time)
@@ -333,6 +341,7 @@ export const battles_performance = {
           trophy_mode_battles: r.trophy_mode_battles,
           trophy_battles: r.trophy_battles,
           net_trophies: r.net_trophies,
+          unrated_ranked_trophies: r.unrated_ranked_trophies,
           win_rate: winRate(r.decided_wins, r.decided_wins + r.decided_losses),
         })),
         { from, to },
@@ -420,6 +429,13 @@ export const battles_performance = {
       ...(floor ? { trophy_floor: floor } : {}),
       notes: notes(
         trophyFloorNote(floor),
+        unratedRankedNote([
+          result.window,
+          result.compare_window,
+          result.before,
+          result.after,
+          ...(result.weekly ?? []),
+        ]),
         pooled.length > 0
           ? `win_rate pools ${[...new Set(pooled.flatMap((w) => Object.keys(w.modes)))].join(", ")}: game modes are different games with different matchmaking, so modes carries each one's record; pass mode to read one.`
           : null,

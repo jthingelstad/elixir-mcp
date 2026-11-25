@@ -370,6 +370,11 @@ const PERF_WINDOW = {
     crowns_for: COUNT,
     crowns_against: COUNT,
     net_trophies: COUNT,
+    unrated_ranked_trophies: {
+      ...COUNT,
+      description:
+        "The part of net_trophies that moved no standing: Ranked's +30 a win below Ultimate Champion, where a loss reports nothing. 0 when the window holds none.",
+    },
     current_streak: COUNT,
     decided_wins: COUNT,
     decided_losses: COUNT,
@@ -2316,6 +2321,11 @@ export const OUTPUT_SCHEMAS = {
                 "Trophy-mode battles that reported a trophy delta; a loss standing on an arena floor reports none and is outside this count.",
             },
             net_trophies: COUNT,
+            unrated_ranked_trophies: {
+              ...COUNT,
+              description:
+                "The part of this week's net_trophies that moved no standing: Ranked's +30 a win below Ultimate Champion.",
+            },
             partial: {
               type: "boolean",
               description:
