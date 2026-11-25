@@ -456,7 +456,7 @@ export function unratedRankedNote(records) {
     0,
   );
   if (total <= 0) return null;
-  return `net_trophies includes unrated_ranked_trophies (${total.toLocaleString("en-US")} here): below Ultimate Champion, Ranked reports +30 for a win and nothing for a loss, so that part counts wins only. It is league progress, not a trophy net, and a Timeline sitting leaves it out of its nets. Subtract it for the trophies that moved a standing, or pass mode to read one game.`;
+  return `net_trophies includes unrated_ranked_trophies (${total.toLocaleString("en-US")} here): below Ultimate Champion, Ranked reports +30 for a win and nothing for a loss, so that part counts wins only. It is league progress, not a trophy net, and a Timeline sitting leaves it out of its nets. The rest of net_trophies still pools every other mode's reported changes; pass mode to read one game.`;
 }
 
 /** Fires when a weekly row holds trophy-mode battles that reported no

@@ -373,7 +373,7 @@ const PERF_WINDOW = {
     unrated_ranked_trophies: {
       ...COUNT,
       description:
-        "The part of net_trophies that moved no standing: Ranked's +30 a win below Ultimate Champion, where a loss reports nothing. 0 when the window holds none.",
+        "The part of net_trophies that is Ranked's +30 a win below Ultimate Champion, where a loss reports nothing: league progress, not a rating. 0 when the window holds none.",
     },
     current_streak: COUNT,
     decided_wins: COUNT,
@@ -2324,7 +2324,7 @@ export const OUTPUT_SCHEMAS = {
             unrated_ranked_trophies: {
               ...COUNT,
               description:
-                "The part of this week's net_trophies that moved no standing: Ranked's +30 a win below Ultimate Champion.",
+                "The part of this week's net_trophies that is Ranked's +30 a win below Ultimate Champion.",
             },
             partial: {
               type: "boolean",

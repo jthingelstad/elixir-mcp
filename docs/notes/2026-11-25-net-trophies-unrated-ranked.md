@@ -27,6 +27,9 @@ Neither side said so.
   mode group, with a league below 7. A row with no league is read as
   rated on both sides.
 - `net_trophies` itself is unchanged. No caller's number moved.
+- The note does not call the remainder a standing-only net: a window
+  that also holds challenge wins still sums their win counter (Codex on
+  #1243). It says the rest pools every other mode and points at `mode`.
 
 ## Left open
 
