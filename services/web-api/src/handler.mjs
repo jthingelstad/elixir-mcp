@@ -232,6 +232,10 @@ export function makeHandler({
    *  player page, its games' read and its session reads, signed in or out,
    *  try the player's stored stories first. False = always computed. */
   storyRead = false,
+  /** The stored week's build on read (stage 4 of the stored Timeline,
+   *  2026-11-25; home-feed.mjs buildHomeWeek): the stack's
+   *  TimelineStoryBuild, `off`, `shadow` or `on`. */
+  storyBuild = "off",
   /** ({ fromMs, toMs }) => the What's new entries marked for everyone's
    *  Timeline inside a window, as Home's feed items (product-updates.mjs
    *  readProductUpdates, 2026-11-23); null = none. */
@@ -442,6 +446,7 @@ export function makeHandler({
       comments: comments?.enabled === true,
       posts: postsOn,
       productUpdates,
+      storyBuild,
     }),
     ...playerRoutes({
       resolveAccount,

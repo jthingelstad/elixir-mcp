@@ -393,6 +393,62 @@ test("a Home week's wake builds it and deletes its object; a failed build is log
   assert.ok(lines.includes("home_feed_failed"));
 });
 
+test("a Home week built with stored stories logs its comparison as a line of its own, with no account, tag or content", async () => {
+  const key = `timeline-sync/home.${ACCOUNT}.story.json`;
+  const objects = new Map([
+    [key, JSON.stringify({ v: 1, home_feed: ACCOUNT })],
+  ]);
+  const story = {
+    mode: "shadow",
+    players_stored: 3,
+    players_computed: { unwritten: 1 },
+    read_ms: 4,
+    computed_ms: 40,
+    mixed_ms: 12,
+    diff: {
+      only_computed: 1,
+      ids: { only_computed: ["tl_00000000000000000001"] },
+      groups: [
+        {
+          kind: "battle_session",
+          bucket: "only_computed",
+          cause: "settled",
+          n: 1,
+        },
+      ],
+    },
+  };
+  const handler = makeHandler({
+    connect: async () => ({ end: async () => {} }),
+    sync: async () => assert.fail("not an account sync"),
+    homeFeed: async () => ({ items: 3, build_ms: 40, story }),
+    readObject: async (obj) => objects.get(obj.key) ?? null,
+    deleteObject: async (obj) => objects.delete(obj.key),
+  });
+  const lines = [];
+  const log = console.log;
+  console.log = (...a) => lines.push(a);
+  try {
+    await handler({ Records: [record("a", key)] });
+  } finally {
+    console.log = log;
+  }
+  const built = lines.find((l) => l[0] === "home_feed_built");
+  assert.deepEqual(JSON.parse(built[2]), { items: 3, build_ms: 40 });
+  const own = lines
+    .filter((l) => l.length === 1)
+    .map((l) => JSON.parse(l[0]))
+    .find((l) => l.at === "home_feed_story_build");
+  assert.deepEqual(own, {
+    at: "home_feed_story_build",
+    door: "home_sync",
+    ...story,
+  });
+  const text = JSON.stringify(own);
+  assert.ok(!text.includes(ACCOUNT));
+  assert.ok(!/#[0289PYLQGRJCUV]{3,}/.test(text));
+});
+
 test("a Home week's wake passes on a landed read's time, and drops one that is not a time", async () => {
   const seen = [];
   const SINCE = "2026-11-14T12:00:00.000Z";

@@ -1575,6 +1575,29 @@ test("the private sealing secret is limited to the web API, the morning run, the
   );
 });
 
+test("TimelineStoryBuild: Home's two builders read it, shadow by default, and a deploy keeps it", async () => {
+  const template = await readFile(templateUrl, "utf8");
+  const functions = [
+    ...template.matchAll(/^  (\w+(?:Function|Revision)):\n/gm),
+  ];
+  const holding = (re) =>
+    functions
+      .filter((entry, index) =>
+        re.test(template.slice(entry.index, functions[index + 1]?.index)),
+      )
+      .map((entry) => entry[1]);
+  // The web API builds a week on read; the timeline-sync lane on a wake.
+  assert.deepEqual(
+    holding(/TIMELINE_STORY_BUILD: !Ref TimelineStoryBuild/).sort(),
+    ["TimelineSyncFunction", "WebApiWebRevision"],
+  );
+  assert.match(
+    template,
+    /^  TimelineStoryBuild:\n {4}Type: String\n {4}Default: shadow\n {4}AllowedValues: \["off", "shadow", "on"\]$/m,
+  );
+  assert.ok(PRESERVED_PARAMETERS.includes("TimelineStoryBuild"));
+});
+
 test("Turnstile: only the relay holds the secret, only once the app secret carries it; the doors and relay share one mode", async () => {
   const template = await readFile(templateUrl, "utf8");
   const functions = [

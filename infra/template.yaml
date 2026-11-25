@@ -145,6 +145,16 @@ Parameters:
       page, its games' read and its session reads serve the player's stored
       stories when they are proved current, and compute otherwise. off -
       always computed. A deploy never resets it.
+  TimelineStoryBuild:
+    Type: String
+    Default: shadow
+    AllowedValues: ["off", "shadow", "on"]
+    Description: >-
+      The stored Timeline's build of Home's week (2026-11-25, stage 4).
+      off - every followed player is built. shadow - the week is built as
+      off and stored, then built again with followed players from their
+      stored stories, and one line of differences is logged. on - that
+      second build is stored. A deploy never resets it.
   DiscordClientId:
     Type: String
     Default: ""
@@ -1586,6 +1596,8 @@ Resources:
           # The stored Timeline's shadow on the player page (2026-11-23).
           TIMELINE_STORY_SHADOW: !Ref TimelineStoryShadow
           TIMELINE_STORY_READ: !Ref TimelineStoryRead
+          # Home's week from stored stories, on a build on read (2026-11-25).
+          TIMELINE_STORY_BUILD: !Ref TimelineStoryBuild
           # Web push (2026-11-16): the VAPID PUBLIC key only, which every
           # browser is handed to subscribe; not a secret. The private key
           # stays in the secret and is read by the relay at runtime.
@@ -1977,6 +1989,8 @@ Resources:
           DROP_GAMES_QUEUE_ARN: !GetAtt DropGamesQueue.Arn
           PGAPPNAME: elixir-mcp-timeline-sync
           PGOPTIONS: "-c statement_timeout=50s -c idle_in_transaction_session_timeout=60s"
+          # Home's week from stored stories, on the lane's build (2026-11-25).
+          TIMELINE_STORY_BUILD: !Ref TimelineStoryBuild
           OUTBOX_BUCKET: !Ref OutboxBucket
           ARCHIVE_BUCKET: !Ref ArchiveBucket
           # Seals a clan's rewrite request and opens its reply; the

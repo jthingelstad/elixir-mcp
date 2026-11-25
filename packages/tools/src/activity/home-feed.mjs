@@ -38,6 +38,12 @@ import {
   windowHighlights,
 } from "./entries.mjs";
 import { TIMELINE_LOOKBACK_MS } from "./lookback.mjs";
+import {
+  changedFields,
+  finishedHash,
+  plainItem,
+  readPlayersStories,
+} from "./story-store.mjs";
 
 /** The week Home shows: the Timeline's one look-back (lookback.mjs). */
 export const HOME_WEEK_MS = TIMELINE_LOOKBACK_MS;
@@ -170,11 +176,17 @@ export async function buildHomeWeek(
     now = Date.now(),
     readAt = null,
     perf = null,
+    // Stage 4 of the stored Timeline (TIMELINE_STORY_BUILD, storyBuildOf):
+    // `off` builds every player, `shadow` stores that and then builds again
+    // with followed players from their stored rows and compares the two,
+    // `on` stores the second build.
+    storyBuild = "off",
+    // The wall clock the stored rows are judged against (tests pin it).
+    storyNow = Date.now(),
   },
 ) {
   const fromMs = now - HOME_WEEK_MS;
-  const started = Date.now();
-  const built = await buildTimeline(db, subjects, {
+  const options = {
     fromMs,
     toMs: now,
     timezone,
@@ -188,7 +200,16 @@ export async function buildHomeWeek(
     // players you follow: a verified player, a Stamp, a place (0277).
     people: { accounts, players: true },
     perf,
-  });
+  };
+  const mixed = () =>
+    buildTimeline(db, subjects, {
+      ...options,
+      storedPlayers: { read: readPlayersStories, now: storyNow },
+    });
+  const started = Date.now();
+  const built = await (storyBuild === "on"
+    ? mixed()
+    : buildTimeline(db, subjects, options));
   const buildMs = Date.now() - started;
   const items = built.timeline ?? [];
   const more = built.timeline_more ?? 0;
@@ -222,7 +243,187 @@ export async function buildHomeWeek(
       readAt === null ? null : new Date(readAt),
     ],
   );
-  return { fromMs, toMs: now, items, more, builtMs: now, buildMs };
+  const week = { fromMs, toMs: now, items, more, builtMs: now, buildMs };
+  if (storyBuild === "on")
+    week.story = {
+      mode: "on",
+      ...storyCounts(built.stored_players),
+      build_ms: buildMs,
+    };
+  else if (storyBuild === "shadow") {
+    // After the computed week is stored, and never its failure: a shadow
+    // that throws is a count of its own.
+    const shadowStarted = Date.now();
+    try {
+      const other = await mixed();
+      week.story = {
+        mode: "shadow",
+        ...storyCounts(other.stored_players),
+        computed_ms: buildMs,
+        mixed_ms: Date.now() - shadowStarted,
+        diff: compareWeeks(built, other, { fromMs, basis: "observed" }),
+      };
+    } catch (err) {
+      week.story = {
+        mode: "shadow",
+        computed_ms: buildMs,
+        mixed_ms: Date.now() - shadowStarted,
+        failed: err?.code ?? err?.name ?? "error",
+      };
+    }
+  }
+  return week;
+}
+
+/** TIMELINE_STORY_BUILD as a mode: `off` unless it says `shadow` or
+ *  `on`. */
+export const storyBuildOf = (v) => (v === "shadow" || v === "on" ? v : "off");
+
+/** The one log line of a stage-4 build: counts, ms and story ids only,
+ *  never a tag, a name or an item's content. `door` says which build:
+ *  `home_sync` (the timeline-sync lane) or `home_read` (a read's own). */
+export function logStoryBuild(log, door, story) {
+  try {
+    log(JSON.stringify({ at: "home_feed_story_build", door, ...story }));
+  } catch {
+    // A log that fails never fails the week.
+  }
+}
+
+/** A mixed build's counts as the log carries them: no tag. */
+const storyCounts = (c) => ({
+  players_stored: c?.stored ?? 0,
+  players_computed: c?.computed ?? {},
+  read_ms: c?.ms ?? 0,
+  ...(c?.error ? { read_error: c.error } : {}),
+});
+
+/** Ids one comparison names per class, at most. */
+const DIFF_SAMPLE = 5;
+/** A story this close to the window's start can differ by the window
+ *  alone (compareStories' WINDOW_EDGE_MS). */
+const DIFF_WINDOW_EDGE_MS = 2 * 86_400_000;
+/** Kinds whose observed instant a row keeps differently from an observed
+ *  build's select (the note, "Observed basis"). */
+const OBSERVED_EDGE_KINDS = new Set(["member_role_changed", "returned"]);
+
+/**
+ * Two finished builds of one reader's week, by item id: the computed one
+ * (every player built) and the mixed one (followed players from their
+ * stored rows). Counts and at most DIFF_SAMPLE ids per class, never an
+ * item's content or a tag:
+ *
+ *  - `only_computed`, `only_mixed`: an id one build tells and not the
+ *    other;
+ *  - `revision`: both tell it at other revisions;
+ *  - `content`: one revision, other content (finishedHash: the whole
+ *    finished item, reader's fields included);
+ *  - `order_same`: whether the ids both tell come in one order.
+ *
+ * Each difference has a cause: `cap_edge` (the other build's cap left it
+ * out), `computed` (no stored player is its subject: a copy merged with a
+ * stored one moved), `unwritten` (learned after the player's write),
+ * `said_gate` (a quiet crossing the build's said gate and saidStories
+ * judge apart), `observed_basis` (the row's instant is not what the
+ * observed select read: it sorts before the window, or is a kind the
+ * note names), `window` (within two days of the window's start) or
+ * `settled` (none of these: what the next stage must explain). `groups`
+ * counts them by kind, class, cause and, for content, field.
+ */
+export function compareWeeks(computed, mixed, { fromMs, basis }) {
+  const storedWritten = mixed.stored_written ?? new Map();
+  const a = new Map((computed.timeline ?? []).map((it) => [it.id, it]));
+  const b = new Map((mixed.timeline ?? []).map((it) => [it.id, it]));
+  const droppedA = new Set(
+    (computed.timeline_dropped ?? []).map((it) => it.id),
+  );
+  const droppedB = new Set((mixed.timeline_dropped ?? []).map((it) => it.id));
+  const out = {
+    computed: a.size,
+    mixed: b.size,
+    only_computed: 0,
+    only_mixed: 0,
+    revision: 0,
+    content: 0,
+    order_same: true,
+    ids: { only_computed: [], only_mixed: [], revision: [], content: [] },
+    groups: [],
+  };
+  const counted = new Map();
+  const count = (kind, bucket, cause, field = null) => {
+    const key = JSON.stringify([kind, bucket, cause, field]);
+    const g = counted.get(key) ?? { kind, bucket, cause, field, n: 0 };
+    g.n += 1;
+    counted.set(key, g);
+  };
+  const note = (bucket, id) => {
+    out[bucket] += 1;
+    if (out.ids[bucket].length < DIFF_SAMPLE) out.ids[bucket].push(id);
+  };
+  const storedTag = (it) =>
+    storedWritten.has(it.subject_tag)
+      ? it.subject_tag
+      : ((it.subjects ?? []).find(
+          (s) => s.kind === "player" && storedWritten.has(s.tag),
+        )?.tag ?? null);
+  const causeOf = (it, bucket) => {
+    if (
+      (bucket === "only_computed" && droppedB.has(it.id)) ||
+      (bucket === "only_mixed" && droppedA.has(it.id))
+    )
+      return "cap_edge";
+    const tag = storedTag(it);
+    if (tag === null) return "computed";
+    const learned = Date.parse(it.observed_at ?? it.at);
+    if (learned > storedWritten.get(tag)) return "unwritten";
+    if (bucket === "only_computed" && it.kind === "quiet_crossed")
+      return "said_gate";
+    const sortMs = Date.parse(it.sort_at ?? it.at);
+    if (
+      basis === "observed" &&
+      (sortMs <= fromMs || OBSERVED_EDGE_KINDS.has(it.kind))
+    )
+      return "observed_basis";
+    if (Math.min(Date.parse(it.at), sortMs) <= fromMs + DIFF_WINDOW_EDGE_MS)
+      return "window";
+    return "settled";
+  };
+  for (const [id, it] of a) {
+    const other = b.get(id);
+    if (!other) {
+      note("only_computed", id);
+      count(it.kind, "only_computed", causeOf(it, "only_computed"));
+    } else if ((it.revision ?? 1) !== (other.revision ?? 1)) {
+      note("revision", id);
+      count(it.kind, "revision", causeOf(it, "revision"));
+    } else if (finishedHash(it) !== finishedHash(other)) {
+      note("content", id);
+      const cause = causeOf(it, "content");
+      const fields = changedFields(plainItem(it), plainItem(other));
+      for (const f of fields.length ? fields : ["unread"])
+        count(it.kind, "content", cause, f);
+    }
+  }
+  for (const [id, it] of b)
+    if (!a.has(id)) {
+      note("only_mixed", id);
+      count(it.kind, "only_mixed", causeOf(it, "only_mixed"));
+    }
+  const common = (m, other) => [...m.keys()].filter((id) => other.has(id));
+  const ca = common(a, b);
+  const cb = common(b, a);
+  out.order_same = ca.every((id, i) => id === cb[i]);
+  out.groups = [...counted.values()]
+    .sort(
+      (x, y) =>
+        y.n - x.n ||
+        JSON.stringify([x.kind, x.bucket, x.cause, x.field]).localeCompare(
+          JSON.stringify([y.kind, y.bucket, y.cause, y.field]),
+        ),
+    )
+    .slice(0, 25);
+  out.groups_cut = Math.max(0, counted.size - 25);
+  return out;
 }
 
 /** The stored row, or null. */
@@ -305,7 +506,19 @@ export async function countHomeNew(db, accountId, sinceMs) {
 export async function readHomeWeek(
   db,
   accountId,
-  { timezone, now = Date.now(), wake = null, window = null, perf = null },
+  {
+    timezone,
+    now = Date.now(),
+    wake = null,
+    window = null,
+    perf = null,
+    // A build on read follows TIMELINE_STORY_BUILD when it is `on`
+    // (buildHomeWeek), and logs its home_feed_story_build line through
+    // `log`. `shadow` is the lane's alone: a person's read never waits
+    // for a second build that only compares.
+    storyBuild = "off",
+    log = console.info,
+  },
 ) {
   const subjects = await subjectsFor(db, accountId);
   const accounts = await followedAccountIds(db, accountId);
@@ -356,6 +569,7 @@ export async function readHomeWeek(
           now,
           readAt: now,
           perf,
+          storyBuild: storyBuild === "on" ? "on" : "off",
         })),
         stored: false,
       }),
@@ -367,6 +581,7 @@ export async function readHomeWeek(
       },
     });
   }
+  if (week.story) logStoryBuild(log, "home_read", week.story);
   // Read live over the stored items, a statement each: highlights, so a
   // post, an edit or a removal shows at once; attested facts, because who
   // may see a clan or leaders' fact is decided at the read (factItems),
@@ -552,7 +767,7 @@ const fromRow = (row) => ({
 export async function refreshHomeWeek(
   db,
   accountId,
-  { now = Date.now(), since = null } = {},
+  { now = Date.now(), since = null, storyBuild = "off" } = {},
 ) {
   const row = await storedWeek(db, accountId);
   // The bell's week rides the same wake (bell_week, 0247): built here
@@ -571,7 +786,13 @@ export async function refreshHomeWeek(
   const accounts = await followedAccountIds(db, accountId);
   const week = await buildOnce(db, "home_feed", accountId, {
     build: () =>
-      buildHomeWeek(db, accountId, { subjects, accounts, timezone, now }),
+      buildHomeWeek(db, accountId, {
+        subjects,
+        accounts,
+        timezone,
+        now,
+        storyBuild,
+      }),
     // A read built it meanwhile: nothing left to do.
     reuse: async () => {
       const stored = await storedWeek(db, accountId);
@@ -582,6 +803,8 @@ export async function refreshHomeWeek(
     items: week.items.length,
     build_ms: week.buildMs,
     ...(bell ? { bell } : {}),
+    // The lane logs it as its own line (logStoryBuild), not in this one.
+    ...(week.story ? { story: week.story } : {}),
   };
 }
 

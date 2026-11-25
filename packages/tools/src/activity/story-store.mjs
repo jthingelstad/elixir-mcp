@@ -26,7 +26,10 @@
  * stores every recorded player (RECORDED_PLAYERS_SQL, the tools' own
  * set) and serves the rows to the player page, its games' read and its
  * session read when readSubjectStories proves them current
- * (docs/notes/2026-11-24-timeline-story-read.md).
+ * (docs/notes/2026-11-24-timeline-story-read.md). Stage 4 (2026-11-25)
+ * reads many players at once (readPlayersStories) for Home's week, through
+ * buildTimeline's `storedPlayers` seam
+ * (docs/notes/2026-11-25-timeline-story-build.md).
  */
 import { createHash } from "node:crypto";
 import {
@@ -97,6 +100,18 @@ export function storyForm(it) {
     content_hash: createHash("sha256").update(canonical(stored)).digest("hex"),
   };
 }
+
+/** A finished item's whole content as one hash, reader's fields included
+ *  (its text, its zone, `late`): what two builds of one reader's week
+ *  compare (home-feed.mjs compareWeeks). Key order never counts. */
+export const finishedHash = (it) =>
+  createHash("sha256")
+    .update(canonical(plainItem(it)))
+    .digest("hex");
+
+/** An item as plain JSON, its server-only fields as keys: what
+ *  changedFields reads when two finished items differ. */
+export const plainItem = (it) => JSON.parse(JSON.stringify(storedItem(it)));
 
 /** The kinds a stored row can be: what timelineNews is asked about when
  *  the sweep and the staleness op look for news since a write. */
@@ -328,6 +343,8 @@ const STORY_READ_STALE_MS = STORY_FLOOR_MS + STORY_READ_MARGIN_MS;
  *  - `unwritten`: no timeline_story_subject marker (a player outside the
  *    stored set, or never written).
  *  - `stale`: the marker is older than the floor and STORY_READ_MARGIN_MS.
+ *  - `span` (2026-11-25): `fromMs` is older than the STORY_SPAN_DAYS the
+ *    write covered.
  *  - `news`: the record learned something the stored kinds can tell
  *    since the write (subjectNews), so a read right after a live fetch or
  *    an admission computes rather than serve rows a minute behind.
@@ -352,39 +369,194 @@ export async function readSubjectStories(
 ) {
   if (kind !== "player")
     throw new Error(`timeline_story serves players only, not ${kind}`);
-  const writtenMs = await writtenAt(db, kind, tag);
-  if (writtenMs === null) return { ok: false, reason: "unwritten" };
-  if (now - writtenMs > STORY_READ_STALE_MS)
-    return { ok: false, reason: "stale" };
-  if (await subjectNews(db, tag, writtenMs, now))
-    return { ok: false, reason: "news" };
+  // A session's window can end days ago (the session read): the page
+  // serves its rows as the store told them, so `past` is not asked.
+  const answers = await readStories(db, [tag], {
+    fromMs,
+    toMs,
+    visibilities,
+    now,
+    pastOk: true,
+  });
+  return answers.get(tag);
+}
+
+/** How far before `now` a batched read's window may end: past it the
+ *  window is not the store's present, and the read computes (`past`). */
+const STORY_PAST_MS = 60_000;
+/** A batched read's news probes' total time (readPlayersStories). */
+const STORY_PROBES_MS = 1_500;
+
+/**
+ * Several players' stored stories for one window (stage 4 of the stored
+ * Timeline, 2026-11-25; docs/notes/2026-11-25-timeline-story-build.md):
+ * a Map of tag to readSubjectStories' answer, `{ ok: true, items,
+ * written_at }` or `{ ok: false, reason }`. The same
+ * refusals (one implementation, readStories) and two more:
+ *
+ *  - `past`: `toMs` is more than STORY_PAST_MS before `now`. The rows are
+ *    the store's present; a window that ended earlier is a build's.
+ *  - `span`: `fromMs` is older than the span the write covered.
+ *  - `budget`: the news probes ran out of `probesMs` before this player.
+ *
+ * `basis` picks the rows as a build of that basis picks its items:
+ * `occurred`, sort_at in (fromMs, toMs]; `observed`, observed_at in
+ * (fromMs, toMs] (the note lists where that differs from a build).
+ * `omitSections` are sections the caller reads live (Home: `people` and
+ * `attested`). With `statementMs`, every statement runs under that
+ * statement_timeout (withStatementTimeout). One marker statement and one
+ * row select for all the tags; the news probe is one per player, one at
+ * a time.
+ */
+export async function readPlayersStories(
+  db,
+  tags,
+  {
+    fromMs,
+    toMs,
+    basis = "occurred",
+    visibilities = ["public"],
+    omitSections = ["people"],
+    now = Date.now(),
+    statementMs = null,
+    probesMs = STORY_PROBES_MS,
+  },
+) {
+  const read = () =>
+    readStories(db, tags, {
+      fromMs,
+      toMs,
+      basis,
+      visibilities,
+      omitSections,
+      now,
+      probesMs,
+    });
+  return statementMs === null
+    ? read()
+    : withStatementTimeout(db, statementMs, read);
+}
+
+/**
+ * Runs `fn` with statement_timeout at `ms`, then puts it back. Outside a
+ * transaction it opens one (begin, a local setting, commit); inside the
+ * caller's, it works under a savepoint, so a statement it cancels rolls
+ * back to that savepoint and leaves the caller's transaction usable.
+ * transaction_timestamp() equals statement_timestamp() only for a
+ * transaction's first statement, so an autocommit statement reads them
+ * equal and one inside an open transaction reads them apart.
+ */
+export async function withStatementTimeout(db, ms, fn) {
+  const {
+    rows: [t],
+  } = await db.query(
+    `select transaction_timestamp() <> statement_timestamp() as open,
+            current_setting('statement_timeout') as was`,
+  );
+  const set = (v) =>
+    db.query("select set_config('statement_timeout', $1, true)", [v]);
+  if (!t.open) {
+    await db.query("begin");
+    try {
+      await set(String(ms));
+      const out = await fn();
+      await db.query("commit");
+      return out;
+    } catch (err) {
+      await db.query("rollback").catch(() => {});
+      throw err;
+    }
+  }
+  await db.query("savepoint story_read");
+  try {
+    await set(String(ms));
+    const out = await fn();
+    await set(t.was);
+    await db.query("release savepoint story_read");
+    return out;
+  } catch (err) {
+    // The rollback undoes the local setting too.
+    await db.query("rollback to savepoint story_read").catch(() => {});
+    await db.query("release savepoint story_read").catch(() => {});
+    throw err;
+  }
+}
+
+/** The one implementation of both reads. */
+async function readStories(
+  db,
+  tags,
+  {
+    fromMs,
+    toMs,
+    basis = "occurred",
+    visibilities,
+    omitSections = ["people"],
+    now,
+    pastOk = false,
+    probesMs = Infinity,
+  },
+) {
+  const out = new Map();
+  const wanted = [...new Set(tags)];
+  if (!wanted.length) return out;
+  const { rows: markers } = await db.query(
+    `select subject_tag, written_at from timeline_story_subject
+      where subject_kind = 'player' and subject_tag = any($1::text[])`,
+    [wanted],
+  );
+  const written = new Map(
+    markers.map((m) => [m.subject_tag, new Date(m.written_at).getTime()]),
+  );
+  const refuse = (tag, reason) => out.set(tag, { ok: false, reason });
+  const started = Date.now();
+  const serve = [];
+  for (const tag of wanted) {
+    const writtenMs = written.get(tag);
+    if (writtenMs === undefined) refuse(tag, "unwritten");
+    else if (now - writtenMs > STORY_READ_STALE_MS) refuse(tag, "stale");
+    else if (fromMs < writtenMs - STORY_SPAN_DAYS * DAY_MS) refuse(tag, "span");
+    else if (!pastOk && now - toMs > STORY_PAST_MS) refuse(tag, "past");
+    else if (Date.now() - started >= probesMs) refuse(tag, "budget");
+    else if (await subjectNews(db, tag, writtenMs, now)) refuse(tag, "news");
+    else serve.push(tag);
+  }
+  if (!serve.length) return out;
+  const at = basis === "observed" ? "observed_at" : "sort_at";
   const { rows } = await db.query(
-    `select item from timeline_story
-      where subject_kind = $1 and subject_tag = $2
-        and sort_at > $3 and sort_at <= $4
-        and visibility = any($5::text[])
-        and section <> 'people'
-      order by sort_at desc, story_id`,
+    `select subject_tag, item from timeline_story
+      where subject_kind = 'player' and subject_tag = any($1::text[])
+        and ${at} > $2 and ${at} <= $3
+        and visibility = any($4::text[])
+        and section <> all($5::text[])
+      order by subject_tag, sort_at desc, story_id`,
     [
-      kind,
-      tag,
+      serve,
       new Date(fromMs).toISOString(),
       new Date(toMs).toISOString(),
       visibilities,
+      omitSections,
     ],
   );
-  for (const { item } of rows)
-    if (
-      item.kind === "battle_session" &&
-      item.facts?.open === true &&
-      now - Date.parse(item.facts.ended_at ?? item.sort_at) > SITTING_QUIET_MS
-    )
-      return { ok: false, reason: "open" };
-  return {
-    ok: true,
-    items: rows.map((r) => restoredItem(r.item)),
-    written_at: new Date(writtenMs).toISOString(),
-  };
+  const byTag = new Map(serve.map((tag) => [tag, []]));
+  for (const r of rows) byTag.get(r.subject_tag)?.push(r.item);
+  for (const [tag, items] of byTag) {
+    const open = items.some(
+      (item) =>
+        item.kind === "battle_session" &&
+        item.facts?.open === true &&
+        now - Date.parse(item.facts.ended_at ?? item.sort_at) >
+          SITTING_QUIET_MS,
+    );
+    if (open) refuse(tag, "open");
+    else
+      out.set(tag, {
+        ok: true,
+        items: items.map(restoredItem),
+        written_at: new Date(written.get(tag)).toISOString(),
+      });
+  }
+  return out;
 }
 
 /** Every recorded player (RECORDED_PLAYERS_SQL: a direct recording, or

@@ -12,7 +12,10 @@ import { makeHandler } from "./handler.mjs";
 import { MODERATION_WAIT_MS } from "./comment-check.mjs";
 import { makeCaptureStore } from "@elixir-mcp/tools/capture";
 import { makeOutbox, countStuck } from "@elixir-mcp/outbox";
-import { homeWeekWake } from "@elixir-mcp/tools/activity/home-feed";
+import {
+  homeWeekWake,
+  storyBuildOf,
+} from "@elixir-mcp/tools/activity/home-feed";
 import { makeCardArt, makeSiteShell, shareAssetsIn } from "./routes/battle.mjs";
 import { makeSiteMiss } from "./routes/site-miss.mjs";
 import { makeShareImage } from "./share-image.mjs";
@@ -188,6 +191,9 @@ const handler = makeHandler({
   // unless switched off; the player page and its session reads try the
   // stored stories first.
   storyRead: process.env.TIMELINE_STORY_READ === "on",
+  // The stored week's build on read (2026-11-25): the stack's
+  // TimelineStoryBuild; anything but shadow or on is off.
+  storyBuild: storyBuildOf(process.env.TIMELINE_STORY_BUILD),
   // Product updates in Home's Timeline (2026-11-23): the What's new
   // entries marked for everyone, carried in this bundle from the build.
   productUpdates: readProductUpdates,
