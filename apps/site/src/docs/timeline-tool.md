@@ -450,6 +450,14 @@ Followed players with nothing in the window get no entry; they are listed
 under `quiet` with `days_quiet` and `days_since_poll`. A clan always gets an
 entry: a clan's silence is the clan's activity.
 
+A followed player's `quiet_crossed` item is told only beside something
+else of theirs in the window. A read reaches back one week, so that is
+the 5-day rung: their last battle is still inside the week. By the 10-day
+and 20-day rungs the last battle is older than the week, the player is
+listed under `quiet`, and `days_quiet` says how long. A clan's timeline
+tells its members' crossings at every rung (an activity-scope clan records
+no member battles, so it tells none).
+
 ## A routine that uses it
 
 1. Read `game_clock` once; if you care about war, schedule yourself from
