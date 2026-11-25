@@ -34,6 +34,7 @@ import {
   buildTimeline,
   itemVisibility,
   restoredItem,
+  saidStories,
   storedItem,
   timelineNews,
 } from "./entries.mjs";
@@ -611,13 +612,16 @@ export async function compareStories(
   items,
   { fromMs, toMs, visibilities, now = Date.now() },
 ) {
-  const { rows } = await db.query(
-    `select story_id, kind, revision, content_hash, at, sort_at, observed_at,
-            max(built_at) over () as newest_built_at
+  // The window's rows as a read serves them: no people item (`unstored`),
+  // and no quiet crossing the window's build would drop (saidStories).
+  const { rows: held } = await db.query(
+    `select story_id, kind, section, revision, content_hash, at, sort_at,
+            observed_at, max(built_at) over () as newest_built_at
        from timeline_story
       where subject_kind = $1 and subject_tag = $2
         and sort_at > $3 and sort_at <= $4
-        and visibility = any($5::text[])`,
+        and visibility = any($5::text[])
+        and section <> 'people'`,
     [
       kind,
       tag,
@@ -626,6 +630,7 @@ export async function compareStories(
       visibilities,
     ],
   );
+  const rows = saidStories(held);
   const writtenMs = await writtenAt(db, kind, tag);
   const stored = new Map(rows.map((r) => [r.story_id, r]));
   const out = {
@@ -636,8 +641,8 @@ export async function compareStories(
     revision: 0,
     content: 0,
     ids: { only_computed: [], only_stored: [], revision: [], content: [] },
-    newest_built_at: rows[0]?.newest_built_at
-      ? new Date(rows[0].newest_built_at).toISOString()
+    newest_built_at: held[0]?.newest_built_at
+      ? new Date(held[0].newest_built_at).toISOString()
       : null,
     written_at: writtenMs === null ? null : new Date(writtenMs).toISOString(),
     lag_s: writtenMs === null ? null : Math.round((now - writtenMs) / 1000),

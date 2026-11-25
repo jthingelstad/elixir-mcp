@@ -15,6 +15,7 @@ import { scratchDb } from "../../ingest/test/helpers.mjs";
 import {
   STORY_FLOOR_MS,
   STORY_READ_MARGIN_MS,
+  compareStories,
   readSubjectStories,
   storiesToWake,
   storySpan,
@@ -35,6 +36,7 @@ const NEVER = "#0RQ8PY"; // recorded, never written
 const BACK = "#0RQ8PG"; // recorded, away eleven days mid-span
 const MEMBER = "#0RQ8PC"; // a comprehensive clan's member, no recording
 const ROSTER = "#0RQ8PU"; // an activity clan's member, no recording
+const GONE = "#0RQ8LL"; // recorded, last played twelve days ago
 const FULL = "#0RQ8PV"; // the clan recorded at comprehensive scope
 const ACTIVITY = "#0RQ8L2"; // the clan recorded at activity scope
 const MIN = 60_000;
@@ -100,11 +102,11 @@ before(async () => {
     `insert into account (email_hash, status) values ('story-read', 'approved')
      returning account_id`,
   );
-  for (const tag of [READ, NEVER, BACK, MEMBER, ROSTER])
+  for (const tag of [READ, NEVER, BACK, MEMBER, ROSTER, GONE])
     await db.query(`insert into player (player_tag, name) values ($1, 'Ash')`, [
       tag,
     ]);
-  for (const tag of [READ, NEVER, BACK])
+  for (const tag of [READ, NEVER, BACK, GONE])
     await db.query(
       `insert into recording (subject_type, subject_tag, requested_by, origin)
        values ('player', $1, $2, 'claim')`,
@@ -141,6 +143,9 @@ before(async () => {
   await battle(BACK, "back-b", NOW - 30 * DAY + 5 * MIN);
   await battle(BACK, "back-c", NOW - 19 * DAY);
   await battle(BACK, "back-d", NOW - 19 * DAY + 5 * MIN);
+  // GONE plays twelve days ago: ten quiet days are crossed two days ago.
+  await battle(GONE, "gone-a", NOW - 12 * DAY);
+  await battle(GONE, "gone-b", NOW - 12 * DAY + 5 * MIN);
   await writeSubjectStories(db, "player", READ, storySpan(NOW));
 });
 
@@ -247,8 +252,8 @@ test("the store holds a comprehensive clan's members, never an activity clan's",
   assert.equal(await wakeStories(db, ROSTER, { outbox, now: NOW }), 0);
   assert.deepEqual(sent, [MEMBER]);
   const before = await storyStaleness(db, { now: NOW + MIN });
-  // READ, NEVER, BACK and MEMBER.
-  assert.equal(before.players_recorded, 4, JSON.stringify(before));
+  // READ, NEVER, BACK, GONE and MEMBER.
+  assert.equal(before.players_recorded, 5, JSON.stringify(before));
   await writeSubjectStories(db, "player", MEMBER, storySpan(NOW));
   const after = await storyStaleness(db, { now: NOW + MIN });
   assert.equal(after.players_with_rows, before.players_with_rows + 1);
@@ -260,7 +265,7 @@ test("the store holds a comprehensive clan's members, never an activity clan's",
   );
   assert.equal(
     (await storyStaleness(db, { now: NOW + MIN })).players_recorded,
-    3,
+    4,
   );
   assert.equal(await wakeStories(db, MEMBER, { outbox, now: NOW }), 0);
 });
@@ -288,4 +293,54 @@ test("a return mid-span is told by the 35-day build as a 7-day read tells it", a
       .map((it) => ({ id: it.id, at: it.at, facts: it.facts })),
     told,
   );
+});
+
+test("a quiet crossing alone in the window is dropped, as a week's build drops it", async () => {
+  await writeSubjectStories(db, "player", GONE, storySpan(NOW));
+  const crossings = (items) =>
+    items.filter((it) => it.kind === "quiet_crossed");
+  const people = { accounts: [], players: true };
+  // The span's build holds the sitting, so the row holds the crossing.
+  const held = await read(GONE, { fromMs: NOW - 7 * DAY });
+  assert.equal(held.ok, true, JSON.stringify(held));
+  assert.deepEqual(
+    held.items.map((it) => [it.kind, it.facts.rung]),
+    [["quiet_crossed", 10]],
+  );
+  // A week's build says nothing else, lists the player quiet and tells no
+  // crossing; the rows serve the same.
+  const week = { fromMs: NOW - 7 * DAY, toMs: NOW };
+  const computed = await page(GONE, week.fromMs, week.toMs);
+  assert.deepEqual(computed.timeline, []);
+  const stored = await storedTimeline(db, GONE, held.items, {
+    ...week,
+    timezone: "America/Chicago",
+    people,
+  });
+  assert.deepEqual(stored.timeline, computed.timeline);
+  // The comparison reads the rows the same way: nothing differs.
+  const diff = await compareStories(db, "player", GONE, computed.timeline, {
+    ...week,
+    visibilities: VIS,
+    now: NOW + MIN,
+  });
+  for (const k of [
+    "stored",
+    "only_computed",
+    "only_stored",
+    "revision",
+    "content",
+  ])
+    assert.equal(diff[k], 0, `${k}: ${JSON.stringify(diff)}`);
+  // A window that holds the sitting tells the crossing, built or stored.
+  const wide = { fromMs: NOW - 30 * DAY, toMs: NOW };
+  const built = await page(GONE, wide.fromMs, wide.toMs);
+  const all = await read(GONE);
+  const served = await storedTimeline(db, GONE, all.items, {
+    ...wide,
+    timezone: "America/Chicago",
+    people,
+  });
+  assert.equal(crossings(built.timeline).length, 1);
+  assert.deepEqual(served.timeline, built.timeline);
 });

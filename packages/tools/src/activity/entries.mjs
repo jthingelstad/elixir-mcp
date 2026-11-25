@@ -5431,6 +5431,8 @@ export async function buildTimeline(
     // player whose window held only a season's finish, a maxed card or a
     // deck switch was listed quiet and their item dropped (found 13.8.0).
     // A promotion or a war week alone is something said too (13.10.0).
+    // The one item an entry builds while saying nothing is a quiet
+    // crossing; saidStories says the same of a player's stored rows.
     const said =
       built.items.some(
         (it) =>
@@ -5655,6 +5657,23 @@ async function finishTimeline(
 }
 
 /**
+ * One player's stored stories as a build of the same window tells them.
+ * buildTimeline lists a player quiet, and drops what their entry built,
+ * when the entry says nothing in the window (its `said`). The one item an
+ * entry builds while saying nothing is a quiet crossing, so a crossing is
+ * told only beside another story of the entry's. The store's 35-day build
+ * holds battles a week's read does not, so a row can hold a crossing a
+ * week's build would drop: this drops it. An attested fact is not the
+ * entry's (factItems). Takes items or rows: it reads `kind` and `section`.
+ */
+export function saidStories(stories) {
+  const said = stories.some(
+    (s) => s.kind !== "quiet_crossed" && s.section !== "attested",
+  );
+  return said ? stories : stories.filter((s) => s.kind !== "quiet_crossed");
+}
+
+/**
  * One player's timeline from their stored stories (stage 3 of the stored
  * Timeline, 2026-11-24): what buildTimeline answers for that one player
  * subject, from `stored` (story-store.mjs readSubjectStories' items, as
@@ -5662,7 +5681,8 @@ async function finishTimeline(
  * holds is read live, as the builder reads it: with `people.players`, the
  * player's verification (peopleItems: an account's claim, which can be
  * removed at any time); with `pageGameReader`, the player's completed
- * Drop games that reader may see. Then the builder's own tail
+ * Drop games that reader may see. A crossing the window's build would
+ * not tell is dropped (saidStories). Then the builder's own tail
  * (finishTimeline): the caller's filter, sort_at, newest first in its one
  * total order, the cap and the reader's zone. `entries` and `quiet` are
  * empty: the store keeps items only. A battle_highlight is never stored
@@ -5710,7 +5730,7 @@ export async function storedTimeline(
         onlyDrop: true,
       })),
     );
-  return finishTimeline(db, [...stored, ...tellItems(live)], {
+  return finishTimeline(db, [...saidStories(stored), ...tellItems(live)], {
     subjects,
     filter,
     fromMs,
