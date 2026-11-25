@@ -79,6 +79,25 @@ current, and compute exactly as before when it cannot. Players only.
 | `open` | A stored sitting in the window says `open` and its last battle is over 31 minutes old: the clock closed it and no write has yet. |
 | `error` | The read failed or ran past 500 ms. The line carries the error's class (`57014` is the timeout), never its message. |
 
+## A quiet crossing alone (2026-11-25)
+
+The first day's shadow found one difference on a page served from rows: a
+`quiet_crossed` story the page's own build does not tell. `buildTimeline`
+lists a player quiet, and drops what their entry built, when the entry
+says nothing in the window (`said`), and the one item an entry builds
+while saying nothing is a quiet crossing. The store's 35-day build holds a
+sitting from twelve days back, so it is said and its row holds the
+ten-day crossing; a week's build holds no sitting and drops it.
+`saidStories` (`entries.mjs`) applies the same gate to a player's rows: a
+crossing is served only beside another story of the entry's in the read's
+window. `storedTimeline` and the shadow's comparison both read rows
+through it, so the product tells what it told before stage 3.
+
+Since the Timeline's look-back became one week (2026-11-23), a followed
+player's ten-day and twenty-day crossings are never told on their own, by
+a build or by rows; a clan's timeline still tells its members'. Whether
+they should be is a product question, not this change's.
+
 ## Accepted as stored
 
 - **The stored telling is canonical.** Rows are taken by `sort_at` as the
