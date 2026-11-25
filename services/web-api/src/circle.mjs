@@ -208,7 +208,7 @@ async function withFaces(db, rows) {
 export async function readCircle(
   db,
   account,
-  { timezone, wake = null, now = Date.now() },
+  { timezone, wake = null, now = Date.now(), storyBuild = "off" },
 ) {
   const fromMs = gameWeekStartMs(now);
   const from = new Date(fromMs).toISOString();
@@ -231,6 +231,7 @@ export async function readCircle(
     timezone,
     now,
     wake,
+    storyBuild,
   });
   const told = circleItems(
     week?.items ?? [],

@@ -109,6 +109,9 @@ export const PRESERVED_PARAMETERS = [
   // The stored Timeline's read on the player page and its session reads
   // (2026-11-24): on by default, switched off only by hand.
   "TimelineStoryRead",
+  // The stored Timeline's build of Home's week (2026-11-25): shadow by
+  // default, moved to on or off only by hand.
+  "TimelineStoryBuild",
 ];
 
 /**

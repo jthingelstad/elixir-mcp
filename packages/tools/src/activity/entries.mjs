@@ -5374,6 +5374,14 @@ export async function buildTimeline(
     // few per person, reads further (DIGEST_TIMELINE_CAP), so a busy
     // week's sittings never push a highlight out of the mail.
     cap = TIMELINE_CAP,
+    // Followed players' stories from their stored rows (stage 4 of the
+    // stored Timeline, 2026-11-25): `{ read, now }`, where `read` is
+    // story-store.mjs readPlayersStories (passed in, so this module does
+    // not import the store that imports it). A player whose rows are
+    // proven current is not built; the rest are, as today. For items-only
+    // callers (Home's week): `entries` and `quiet` leave the stored
+    // players out. Null: every player is built.
+    storedPlayers = null,
   },
 ) {
   const entries = [];
@@ -5383,18 +5391,38 @@ export async function buildTimeline(
   // Every item a cap left out, so the caller can say where a reader must
   // continue from (Gym #120) and count only what its filters would show.
   const dropped = [];
-  // Two players or more read their battles, profiles and names in one
-  // batch (G1, 2026-11-12); one player reads alone, as it always did.
   const playerTags = [
     ...new Set(subjects.filter((s) => s.kind !== "clan").map((s) => s.tag)),
   ];
+  const fromStore = storedPlayers
+    ? await storedPlayerStories(db, playerTags, storedPlayers, {
+        fromMs,
+        toMs,
+        basis,
+      })
+    : null;
+  const builtTags = fromStore
+    ? playerTags.filter((t) => !fromStore.items.has(t))
+    : playerTags;
+  // Two players or more read their battles, profiles and names in one
+  // batch (G1, 2026-11-12); one player reads alone, as it always did.
   const batch =
-    batchPlayers && playerTags.length > 1
+    batchPlayers && builtTags.length > 1
       ? await timed(perf, "players.batch", () =>
-          prefetchPlayers(db, playerTags, { fromMs, toMs, basis }),
+          prefetchPlayers(db, builtTags, { fromMs, toMs, basis }),
         )
       : null;
   for (const s of subjects) {
+    const stored = s.kind !== "clan" ? fromStore?.items.get(s.tag) : null;
+    if (stored) {
+      // Where buildPlayerEntry puts the reader's nickname: on every item.
+      items.push(
+        ...saidStories(stored).map((it) =>
+          s.nickname ? { ...it, nickname: s.nickname } : { ...it },
+        ),
+      );
+      continue;
+    }
     if (s.kind === "clan") {
       const built = await buildClanEntry(db, {
         tag: s.tag,
@@ -5511,7 +5539,7 @@ export async function buildTimeline(
       basis,
     })),
   );
-  return finishTimeline(db, tellItems(items), {
+  const finished = await finishTimeline(db, tellItems(items), {
     subjects,
     accountId,
     clanStories,
@@ -5526,6 +5554,70 @@ export async function buildTimeline(
     entries,
     quiet,
   });
+  if (fromStore) {
+    finished.stored_players = fromStore.counts;
+    // Which players were served from rows, and when each was written:
+    // the shadow's causes (home-feed.mjs compareWeeks). Never logged.
+    finished.stored_written = fromStore.written;
+  }
+  return finished;
+}
+
+/** Where a stored read's own time and statements end (stage 4). */
+const STORED_READ_STATEMENT_MS = 500;
+
+/**
+ * The stored rows of `tags` for one window, through `read`
+ * (readPlayersStories) under a statement budget. Answers
+ * `{ items: Map(tag -> items), written: Map(tag -> ms), counts }`, the
+ * counts `{ stored, computed: { <reason>: n }, ms }` and, when the read
+ * failed, `error` (its class, never its message). A failed read serves
+ * nothing: every player is built, under reason `error`.
+ */
+async function storedPlayerStories(
+  db,
+  tags,
+  { read, now = Date.now(), statementMs = STORED_READ_STATEMENT_MS },
+  { fromMs, toMs, basis },
+) {
+  const started = Date.now();
+  const out = {
+    items: new Map(),
+    written: new Map(),
+    counts: { stored: 0, computed: {}, ms: 0 },
+  };
+  const computed = (reason) => {
+    out.counts.computed[reason] = (out.counts.computed[reason] ?? 0) + 1;
+  };
+  if (!tags.length) return out;
+  try {
+    const answers = await read(db, tags, {
+      fromMs,
+      toMs,
+      basis,
+      // Entry items are public; people items and attested facts are read
+      // live by buildTimeline (peopleItems, factItems), never from a row.
+      visibilities: ["public"],
+      omitSections: ["people", "attested"],
+      now,
+      statementMs,
+    });
+    for (const tag of tags) {
+      const a = answers.get(tag);
+      if (a?.ok) {
+        out.items.set(tag, a.items);
+        out.written.set(tag, Date.parse(a.written_at));
+        out.counts.stored += 1;
+      } else computed(a?.reason ?? "missing");
+    }
+  } catch (err) {
+    out.items.clear();
+    out.written.clear();
+    out.counts = { stored: 0, computed: { error: tags.length }, ms: 0 };
+    out.counts.error = err?.code ?? err?.name ?? "error";
+  }
+  out.counts.ms = Date.now() - started;
+  return out;
 }
 
 /** The story fields of a built item, first on it: its id and revision

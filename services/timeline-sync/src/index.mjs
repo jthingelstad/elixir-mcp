@@ -29,7 +29,10 @@ import { createDiscordBridge } from "@elixir-mcp/clan/discord-bridge.mjs";
 import { createDiscordService } from "@elixir-mcp/clan/manage/discord.mjs";
 import { clanDiscordWake } from "@elixir-mcp/clan/discord-wake.mjs";
 import { modelStorage } from "@elixir-mcp/clan/model-storage.mjs";
-import { refreshHomeWeek } from "@elixir-mcp/tools/activity/home-feed";
+import {
+  refreshHomeWeek,
+  storyBuildOf,
+} from "@elixir-mcp/tools/activity/home-feed";
 import { applyPushReceipt } from "@elixir-mcp/tools/activity/push";
 import { refreshSubjectStories } from "@elixir-mcp/tools/activity/story-store";
 import { makeHandler } from "./handler.mjs";
@@ -165,8 +168,14 @@ export const handler = makeHandler({
   },
   // The relay's web push receipts (2026-11-16).
   pushReceipts: (db, msg) => applyPushReceipt(db, msg),
-  // Home's stored week (0245, #649), as the account reads it.
-  homeFeed: (db, accountId, opts = {}) => refreshHomeWeek(db, accountId, opts),
+  // Home's stored week (0245, #649), as the account reads it; its
+  // followed players from their stored rows by the stack's
+  // TimelineStoryBuild (stage 4, 2026-11-25).
+  homeFeed: (db, accountId, opts = {}) =>
+    refreshHomeWeek(db, accountId, {
+      ...opts,
+      storyBuild: storyBuildOf(process.env.TIMELINE_STORY_BUILD),
+    }),
   // A recorded player's stored stories (stage 2, 2026-11-23).
   stories: (db, playerTag, opts) =>
     refreshSubjectStories(db, "player", playerTag, opts),

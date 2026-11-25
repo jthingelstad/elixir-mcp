@@ -35,7 +35,9 @@
  * row is past fresh and the jobs' five-minute run writes for the
  * accounts that read Home lately. A build that fails is logged and
  * dropped, never retried: the next wake builds it, and a read whose row
- * is too old builds it itself.
+ * is too old builds it itself. With TIMELINE_STORY_BUILD at `shadow` or
+ * `on` (stage 4 of the stored Timeline, 2026-11-25) the build also logs
+ * one `home_feed_story_build` line of counts.
  *
  * A recorded player's stored stories (timeline_story, stage 2 of the
  * stored Timeline, 2026-11-23) are rewritten by `{ v: 1, story_player,
@@ -145,7 +147,18 @@ export function makeHandler({
             msg.home_feed,
             since ? { since } : {},
           );
-          console.log("home_feed_built", msg.home_feed, JSON.stringify(out));
+          // Stage 4's comparison is a line of its own, with no account,
+          // tag, name or content (home-feed.mjs logStoryBuild).
+          const { story = null, ...built } = out ?? {};
+          console.log("home_feed_built", msg.home_feed, JSON.stringify(built));
+          if (story)
+            console.log(
+              JSON.stringify({
+                at: "home_feed_story_build",
+                door: "home_sync",
+                ...story,
+              }),
+            );
         } catch (err) {
           console.error(
             "home_feed_failed",
