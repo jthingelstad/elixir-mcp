@@ -226,13 +226,13 @@ test("each side's towers read Princess, King, Princess, the King in the middle",
   );
 });
 
-test("a battle's cards are just their art: no form ribbon, no number on the card", () => {
+test("a battle's cards keep their level and drop the form ribbon", () => {
   const { container } = view(readOf({ games: null }));
   const decks = container.querySelectorAll(".battle-deck .deck-grid");
   expect(decks).toHaveLength(2);
   expect(container.querySelectorAll(".card-art__form")).toHaveLength(0);
-  expect(container.querySelectorAll(".card-art__level")).toHaveLength(0);
-  // The form and level stay in each card's name for a screen reader.
+  expect(container.querySelectorAll(".card-art__level")).toHaveLength(16);
+  // The form stays in each card's name for a screen reader.
   expect(
     screen.getAllByRole("link", { name: "Evo Card 0, level 14" }),
   ).toHaveLength(1);
