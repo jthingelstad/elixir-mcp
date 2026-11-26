@@ -113,7 +113,15 @@ test("Home with its suggested follows: the ticks, Follow these and Not now", asy
         {
           first: {
             ...HOME.first,
-            setup: { following: 0, digest: null },
+            setup: {
+              following: 0,
+              emails: {
+                chosen_at: null,
+                daily: false,
+                weekly: true,
+                season: true,
+              },
+            },
             starter_hidden_until: null,
           },
         },

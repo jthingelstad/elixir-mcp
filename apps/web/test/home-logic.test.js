@@ -1,7 +1,7 @@
 import { describe, expect, test } from "vitest";
 import {
   clanStepLine,
-  digestLine,
+  emailsLine,
   feedShown,
   gameLine,
   lastRaceLine,
@@ -305,17 +305,14 @@ test("step 3 names a player only when there is one", () => {
   expect(clanStepLine("Clan", false)).toBe("Clan, a clan you follow.");
 });
 
-describe("The digest's line", () => {
-  test("the digest's line is the person's own setting", () => {
-    expect(digestLine(null)).toBeNull();
-    expect(digestLine({ enabled: false, cadence: "daily" })).toBe(
-      "Your digest is off.",
+describe("The email step's line", () => {
+  test("it names the emails that come, or says they are off", () => {
+    expect(emailsLine(null)).toBeNull();
+    expect(emailsLine({ daily: true, weekly: false, season: true })).toBe(
+      "You get: Daily, Season.",
     );
-    expect(digestLine({ enabled: true, cadence: "daily" })).toBe(
-      "Your digest comes daily.",
-    );
-    expect(digestLine({ enabled: true, cadence: "weekly" })).toBe(
-      "Your digest comes weekly.",
+    expect(emailsLine({ daily: false, weekly: false, season: false })).toBe(
+      "Your emails are off.",
     );
   });
 });

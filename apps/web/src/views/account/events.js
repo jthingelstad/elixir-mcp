@@ -68,8 +68,11 @@ export const eventGroup = (kind) => GROUP[kind] ?? "access";
  *  event carried. Empty when it carried neither. */
 export function eventDetail(e) {
   const d = e.detail ?? {};
+  // A how-often choice is history: the one digest had one until it became
+  // three emails with their own switches (2026-11-26).
+  if (e.kind === "email_pref" && d.cadence) return `Digest: ${d.cadence}`;
   if (e.kind === "email_pref")
-    return `${upper(d.label ?? d.kind ?? "")}: ${d.cadence ?? (d.enabled ? "on" : "off")}`;
+    return `${upper(d.label ?? d.kind ?? "")}: ${d.enabled ? "on" : "off"}`;
   const tag = d.player_tag ?? d.clan_tag ?? null;
   if (tag) return d.subject_name ? `${d.subject_name} ${tag}` : tag;
   return d.username ?? d.client_name ?? d.role ?? d.name ?? "";

@@ -18,13 +18,21 @@ test("an email choice reads as what changed, in the page's words", () => {
   expect(
     eventDetail({
       kind: "email_pref",
+      detail: { kind: "digest_daily", enabled: true, label: "Daily brief" },
+    }),
+  ).toBe("Daily brief: on");
+  // A how-often choice from before the three emails (2026-11-26) still
+  // reads as what it was.
+  expect(
+    eventDetail({
+      kind: "email_pref",
       detail: {
         kind: "tracking_report",
         cadence: "daily",
-        label: "Your digest",
+        label: "Weekly recap",
       },
     }),
-  ).toBe("Your digest: daily");
+  ).toBe("Digest: daily");
 });
 
 test("a kind nobody named reads as its own words", () => {

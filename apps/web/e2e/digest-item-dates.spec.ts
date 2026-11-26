@@ -29,7 +29,6 @@ for (const width of [320, 390, 1280]) {
     });
     const facts = {
       ...base,
-      cadence: "daily",
       window: { from: "2026-11-17T10:00:00Z", to: "2026-11-18T11:00:00Z" },
       followed_activity: { posters: 1, posts: 1, players: 1, battles: 2 },
       people: [
@@ -68,7 +67,7 @@ for (const width of [320, 390, 1280]) {
       you: null,
       more_people: 0,
     };
-    const mail = renderMail("tracking_report", facts, {
+    const mail = renderMail("digest_daily", facts, {
       timezone: "America/Chicago",
       now: Date.parse("2026-12-01T12:00:00Z"),
       unsubscribe: "https://elixir.test/off",

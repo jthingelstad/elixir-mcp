@@ -37,7 +37,7 @@ export function ProfileList({ first, player }) {
   const place = useMyPlace(Boolean(mapStep) && mapStep.state !== "done");
   const view = profileView(profile, {
     playerName: body?.passport?.player?.name ?? player?.name ?? null,
-    digest: first?.setup?.digest ?? null,
+    emails: first?.setup?.emails ?? null,
     placeAllowed: place.state.forbidden
       ? false
       : place.state.data
