@@ -231,13 +231,18 @@ async function foldedOff(db, accountIds) {
 
 /** When each recipient last had a scheduled mail of this digest kind (a
  *  manual send, with its ~m suffix, never moves the window). Each kind
- *  keeps its own: a weekly recap never skips what a daily brief told. */
-async function lastDigests(db, kind, accountIds) {
+ *  keeps its own: a weekly recap never skips what a daily brief told.
+ *  Before 2026-11-26 a daily digest was a tracking_report issue whose
+ *  facts said cadence "daily"; those are not weekly recaps, so they never
+ *  move the weekly window either. */
+export async function lastDigests(db, kind, accountIds) {
   const { rows } = await db.query(
     `select s.account_id, max(s.enqueued_at) as at
        from email_send s join email_issue i on i.issue_id = s.issue_id
       where i.kind = $1 and i.period_key not like '%~m%'
         and s.account_id = any($2::uuid[])
+        and not (i.kind = 'tracking_report'
+                 and coalesce(i.facts->>'cadence', '') = 'daily')
       group by s.account_id`,
     [kind, accountIds],
   );
