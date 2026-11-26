@@ -129,6 +129,64 @@ export function keepMode(who, mode) {
   }
 }
 
+/**
+ * The Timeline's clanmate notice, "A clanmate who plays your cards"
+ * (Jamie, 2026-11-26: it "needs a way to 'Dismiss' / 'close' it"). It
+ * features the best match only: the one sharing the most cards, an exact
+ * deck first, then the card you both play most, then the tag. Dismissing
+ * it remembers that clanmate, per account, in this browser, as the feed's
+ * Show and mode are (no server table for one notice). A dismissed best
+ * match shows nothing rather than the next best, so the notice comes back
+ * only when a clanmate not dismissed becomes the best match. Find › Your
+ * clan still lists every match.
+ */
+const SPOTLIGHT_KEY = "elixir.home.spotlight-dismissed:";
+/** How many dismissed clanmates are kept: a clan is 50 at most. */
+const SPOTLIGHT_KEPT = 50;
+
+/** The best match among clanmates with shared play, or null. */
+export function spotlightMatch(players) {
+  const matches = (players ?? []).filter((p) => p.shared_play);
+  const both = (p) =>
+    Math.min(p.shared_play.card?.mine ?? 0, p.shared_play.card?.theirs ?? 0);
+  matches.sort(
+    (a, b) =>
+      b.shared_play.shared - a.shared_play.shared ||
+      Number(b.shared_play.exact) - Number(a.shared_play.exact) ||
+      both(b) - both(a) ||
+      a.player_tag.localeCompare(b.player_tag),
+  );
+  return matches[0] ?? null;
+}
+
+/** The clanmates this reader dismissed from the notice here. */
+export function spotlightDismissed(who) {
+  if (!who) return [];
+  try {
+    const v = JSON.parse(
+      window.localStorage.getItem(SPOTLIGHT_KEY + who) ?? "[]",
+    );
+    return Array.isArray(v) ? v.filter((t) => typeof t === "string") : [];
+  } catch {
+    return [];
+  }
+}
+
+/** Remember a dismissed clanmate; the list it keeps, newest last. Never
+ *  throws: with storage blocked the notice stays away for this visit. */
+export function dismissSpotlight(who, tag) {
+  const kept = [...spotlightDismissed(who).filter((t) => t !== tag), tag].slice(
+    -SPOTLIGHT_KEPT,
+  );
+  if (!who) return kept;
+  try {
+    window.localStorage.setItem(SPOTLIGHT_KEY + who, JSON.stringify(kept));
+  } catch {
+    // Storage blocked: dismissed for this visit only.
+  }
+  return kept;
+}
+
 /** The address with this mode in it, every other part kept. */
 export function withMode(pathname, search, mode) {
   const q = new URLSearchParams(search ?? "");

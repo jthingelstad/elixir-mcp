@@ -9179,6 +9179,21 @@ a.kit-scard:focus-visible {
 .kit-bell__head h2:focus {
   outline: none;
 }
+/* The Timeline's clanmate notice's Dismiss (2026-11-26): an icon, a full
+   tap target, at the panel head's right. */
+.kit-spotlight .kit-panel__head {
+  flex-wrap: nowrap;
+  align-items: center;
+}
+.kit-spotlight .kit-panel__action {
+  flex: none;
+}
+.kit-spotlight__dismiss {
+  min-width: var(--hit);
+  min-height: var(--hit);
+  padding: 0;
+  margin: calc(-1 * var(--s-2)) calc(-1 * var(--s-2)) calc(-1 * var(--s-2)) 0;
+}
 /* Mark all read (2026-11-26): beside Close, a full tap target. */
 .kit-bell__read-all {
   margin-left: auto;

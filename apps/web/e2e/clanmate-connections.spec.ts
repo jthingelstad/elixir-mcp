@@ -447,3 +447,90 @@ test("the Timeline automatically introduces a clanmate through the cards both pl
     }),
   ).toBeVisible();
 });
+
+test("Dismiss puts the clanmate notice away until another clanmate is the best match; Find keeps every match", async ({
+  page,
+}) => {
+  // Jamie, 2026-11-26: the notice "needs a way to 'Dismiss' / 'close' it".
+  await page.setViewportSize({ width: 320, height: 900 });
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  const play = (shared: number) => ({
+    own_name: "Ash",
+    mode: "Ranked",
+    shared,
+    exact: false,
+    card: null,
+    own_cards: ["Fireball"],
+    peer_cards: ["Poison"],
+  });
+  let cedar = 5;
+  const CEDAR = "#02G2PJC0";
+  await mockApi(
+    page,
+    homeApi({
+      "GET /api/me": [
+        200,
+        {
+          ...ME,
+          claims: [
+            {
+              player_tag: HOME.first.player.player_tag,
+              is_primary: true,
+              status: "verified",
+              relationship: "primary",
+            },
+          ],
+        },
+      ],
+      "GET /api/me/people/clan": () => [
+        200,
+        {
+          ok: true,
+          clans: [SHARED],
+          players: [
+            { ...MATE, player_tag: MATE.tag, shared_play: play(7) },
+            {
+              ...MATE,
+              tag: CEDAR,
+              player_tag: CEDAR,
+              name: "Cedar",
+              shared_play: play(cedar),
+            },
+          ],
+          used: 3,
+          limit: 50,
+        },
+      ],
+    }),
+  );
+  await page.goto("/timeline");
+  const notice = page.locator("section.kit-spotlight");
+  await expect(notice).toContainText("A clanmate who plays your cards");
+  await expect(notice).toContainText(ADA.player.name);
+  const dismiss = notice.getByRole("button", { name: "Dismiss" });
+  await target(dismiss);
+  await accessible(page, "section.kit-spotlight");
+  await noSideways(page);
+  if (shots) await notice.screenshot({ path: `${shots}/spotlight-320.png` });
+  await dismiss.click();
+  await expect(notice).toHaveCount(0);
+  // Kept across a reload, and the next best match does not take its place.
+  const people = page.waitForResponse(/\/api\/me\/people\/clan/);
+  await page.reload();
+  await people;
+  await expect(page.locator(".kit-feed").first()).toBeVisible();
+  await expect(
+    page.getByText("A clanmate who plays your cards", { exact: true }),
+  ).toHaveCount(0);
+  // Find › Your clan still lists every match.
+  await page.goto("/home/find");
+  await page.getByRole("tab", { name: "Your clan", exact: true }).click();
+  const list = page.locator(".kit-clanpeople-list");
+  await expect(list).toContainText(ADA.player.name);
+  await expect(list).toContainText("Cedar");
+  // Another clanmate becomes the best match: the notice is back, for them.
+  cedar = 8;
+  await page.goto("/timeline");
+  await expect(notice).toContainText("Cedar");
+  await expect(notice).not.toContainText(ADA.player.name);
+});
