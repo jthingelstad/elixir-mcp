@@ -22,7 +22,7 @@ const build = (who = "reader", extra = {}) =>
   buildDigest({
     db: ctx.db,
     account: account(who),
-    cadence: "daily",
+    kind: "digest_daily",
     window: { fromMs: from.getTime(), toMs: to.getTime() },
     posts: true,
     ...extra,
@@ -179,18 +179,18 @@ test("own visible posts use You, while hidden own content is never mailed", asyn
   assert.equal(await build("author"), null);
 });
 
-test("the existing cadence, off switch and send ledger still govern a post-only digest", async () => {
+test("the daily brief's switch and send ledger still govern a post-only digest", async () => {
   await people.post({ at });
   await ctx.db.query(
-    `insert into account_email_pref (account_id, kind, enabled, cadence, via)
-    values ($1, 'tracking_report', true, 'daily', 'profile')`,
+    `insert into account_email_pref (account_id, kind, enabled, via)
+    values ($1, 'digest_daily', true, 'profile')`,
     [people.reader],
   );
   const messages = [];
   const run = () =>
     runEmail({
       db: ctx.db,
-      kind: "tracking_report",
+      kind: "digest_daily",
       now: to,
       secret: "test",
       posts: true,
@@ -198,22 +198,18 @@ test("the existing cadence, off switch and send ledger still govern a post-only 
     });
   const first = await run();
   assert.equal(first.sent, 1);
-  assert.equal(
-    messages.length,
-    1,
-    "weekly readers do not receive an extra Tuesday mail",
-  );
+  assert.equal(messages.length, 1, "one daily brief a day");
   assert.equal((await run()).already_sent, 1);
   assert.equal(messages.length, 1);
   await ctx.db.query(
-    `update account_email_pref set enabled = false where account_id = $1 and kind = 'tracking_report'`,
+    `update account_email_pref set enabled = false where account_id = $1 and kind = 'digest_daily'`,
     [people.reader],
   );
   const nextDay = new Date(to.getTime() + 86400_000);
   await people.post({ at: new Date(nextDay.getTime() - 1000) });
   const off = await runEmail({
     db: ctx.db,
-    kind: "tracking_report",
+    kind: "digest_daily",
     now: nextDay,
     secret: "test",
     posts: true,

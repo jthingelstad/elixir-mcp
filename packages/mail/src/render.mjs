@@ -11,16 +11,7 @@
  *  the send are one string. */
 import shell from "@elixir-mcp/ui/shell.json" with { type: "json" };
 import { pixelPath, pixelTag } from "./pixel.mjs";
-import {
-  SITE,
-  FONT,
-  MONO,
-  M,
-  esc,
-  mailShell,
-  mailParts,
-  digestWhyLine,
-} from "./shell.mjs";
+import { SITE, FONT, MONO, M, esc, mailShell, mailParts } from "./shell.mjs";
 import { monthDayAt, whenAt } from "@elixir-mcp/ui/time";
 import { cardImg } from "./cards.mjs";
 import { deckDisplayCards } from "@elixir-mcp/ui/deck-display";
@@ -44,7 +35,9 @@ import { MAIL_PATHS } from "./paths.mjs";
 export const KIND_LABELS = {
   clan_report: "Clan report",
   arena_week: "Your week in the Arena",
-  tracking_report: "Your digest",
+  digest_daily: "Daily brief",
+  tracking_report: "Weekly recap",
+  digest_season: "Season recap",
   collector_activity: "Collector activity",
   milestone: "Milestones",
   clan_actions_waiting: "Clan actions waiting",
@@ -562,14 +555,24 @@ function digestYou(you, c) {
     .join("")}`;
 }
 
-/** The digest of the people you follow (tracking_report, #767): who
- *  played and posted, what they reached, the clans around the reader and
- *  their own stretch, for a week or a day. An issue stored by the
- *  friends mail before 2026-11-12 is served from its archived HTML
+/** How each digest names its stretch (2026-11-26, three emails): the
+ *  word for the span, and the mail's title. */
+const DIGEST_SPAN = {
+  digest_daily: { span: "day", title: "Your day in Elixir" },
+  tracking_report: { span: "week", title: "Your week in Elixir" },
+  digest_season: { span: "season", title: "Your season in Elixir" },
+};
+
+/** The three digests of the people you follow (#767; three emails since
+ *  2026-11-26): who played and posted, what they reached, the clans
+ *  around the reader and their own stretch, for a day, a week or a
+ *  season. One composition; the kind names the stretch. An issue stored
+ *  by the friends mail before 2026-11-12 is served from its archived HTML
  *  (send records), never re-rendered here. */
-function digest(f, c) {
-  const daily = f.cadence === "daily";
-  const span = daily ? "day" : "week";
+const digestOf = (kind) => (f, c) => digest(kind, f, c);
+
+function digest(kind, f, c) {
+  const { span, title: spanTitle } = DIGEST_SPAN[kind];
   const people = f.people ?? [];
   const activity = f.followed_activity ?? digestActivity(people);
   const parts = [];
@@ -631,8 +634,10 @@ function digest(f, c) {
       ? `${lead.slice(0, 139)}…`
       : lead
     : `Your ${span} in Elixir.`;
-  const title = daily ? "Your day in Elixir" : "Your week in Elixir";
+  const title = spanTitle;
   const since = c.date(f.window?.from);
+  // The season recap names the season it closes (the game's own number).
+  const seasonName = f.season?.id ? `Season ${n(f.season.id)}` : "";
   // With no one you follow in it, a clan's news names the clan (its
   // name is the clan's, never a person's); otherwise "your week".
   const clansOnly = !people.length && !you && (f.clans ?? []).length;
@@ -641,14 +646,15 @@ function digest(f, c) {
     preheader,
     html: (links) =>
       c.shell({
-        kind: "tracking_report",
+        kind,
         title,
-        subtitle: people.length
-          ? `${summaryHtml}${since ? `<br>Since ${esc(since)}` : ""}`
-          : `${since ? `Since ${esc(since)} · ` : ""}your ${span}`,
+        subtitle: `${seasonName ? `${esc(seasonName)}<br>` : ""}${
+          people.length
+            ? `${summaryHtml}${since ? `<br>Since ${esc(since)}` : ""}`
+            : `${since ? `Since ${esc(since)} · ` : ""}your ${span}`
+        }`,
         preheader,
         body,
-        why: digestWhyLine(daily ? "daily" : "weekly", c.timezone),
         links,
       }),
   };
@@ -1028,7 +1034,9 @@ function activityToday(f, c) {
 }
 
 const RENDERERS = {
-  tracking_report: digest,
+  digest_daily: digestOf("digest_daily"),
+  tracking_report: digestOf("tracking_report"),
+  digest_season: digestOf("digest_season"),
   collector_activity: collector,
   clan_actions_waiting: clanActions,
   feedback_answer: feedbackAnswer,

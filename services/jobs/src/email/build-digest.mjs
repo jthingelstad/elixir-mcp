@@ -1,5 +1,9 @@
-/** The digest (social slice 9, #767): Elixir's one scheduled mail, under
- *  the friends mail's kind, `tracking_report`. Since 2026-11-12 it is also
+/** The digests (social slice 9, #767): since 2026-11-26 three emails,
+ *  each its own kind (Jamie: "three unique emails at three different
+ *  frequencies"): the daily brief (`digest_daily`), the weekly recap
+ *  (`tracking_report`, the friends mail's kind) and the season recap
+ *  (`digest_season`). One composition; the kind sets the window and
+ *  what a clan's news alone can send. Since 2026-11-12 it is also
  *  the clan's week and your own: Jamie, "One digest email and merging clan
  *  and those you follow is really needed since it will be common for
  *  someone to follow all members of their clan." The Monday clan report,
@@ -10,12 +14,8 @@
  *  changes. A clan's battle count and gone-quiet list are its members'
  *  play, so they are left to the people and to Clan.
  *
- *  The first ruling (slice 9):
- *  Jamie, 2026-11-12, asked "Slice 9, the digest: should a digest of the
- *  people you follow replace the friends (tracking) mail, so there are
- *  still seven mail kinds? And what cadence?", answered "Weekly default
- *  (Recommended)": "Replaces friends mail. Weekly by default, daily or
- *  off by choice, never an empty week."
+ *  The first ruling (slice 9), Jamie, 2026-11-12: "Replaces friends
+ *  mail. ... never an empty week."
  *
  *  Its frame is the reader's own timeline for the window (buildTimeline,
  *  in-process, as Home's feed and elixir_timeline read it): for each
@@ -65,12 +65,22 @@ const DIGEST_KINDS = new Set([
   "returned",
 ]);
 
-/** How far back each cadence looks: a week, or a day. The window also
- *  starts no earlier than the reader's last digest, so a switch between
- *  cadences never tells the same item twice. [engineering, 2026-11-12] */
+/** How far back the daily brief and the weekly recap look: a day, a
+ *  week. The season recap looks back to the start of the season that
+ *  just closed (digestWindow). Each window also starts no earlier than
+ *  the reader's last mail of the same kind, so no kind tells an item
+ *  twice; a weekly never skips what a daily already told (2026-11-26).
+ *  [engineering, 2026-11-12] */
 const DIGEST_SPAN_MS = {
-  weekly: 7 * 86400_000,
-  daily: 86400_000,
+  digest_daily: 86400_000,
+  tracking_report: 7 * 86400_000,
+};
+
+/** The word each digest uses for its stretch. */
+export const DIGEST_SPAN_WORD = {
+  digest_daily: "day",
+  tracking_report: "week",
+  digest_season: "season",
 };
 
 /** Items a person shows, newest plain/battle posts first; the rest counted. */
@@ -159,11 +169,24 @@ export function clanNews(e, first = new Set()) {
   };
 }
 
-/** The window a digest covers for one reader. */
-export function digestWindow(now, cadence, lastSentAt = null) {
+/** The window a digest of `kind` covers for one reader: a day or a week
+ *  back for the brief and the recap; for the season recap, from the
+ *  start of the season before the one `now` is in (`seasonStartMs`, the
+ *  season clock's, passed in by the run) to now. It starts no earlier
+ *  than this kind's last scheduled send. */
+export function digestWindow(
+  now,
+  kind,
+  lastSentAt = null,
+  seasonStartMs = null,
+) {
   const toMs = now.getTime();
-  const span = DIGEST_SPAN_MS[cadence] ?? DIGEST_SPAN_MS.weekly;
-  const floor = toMs - span;
+  const floor =
+    kind === "digest_season"
+      ? seasonStartMs
+      : toMs - (DIGEST_SPAN_MS[kind] ?? DIGEST_SPAN_MS.tracking_report);
+  if (!Number.isFinite(floor))
+    throw new Error(`digestWindow: no floor for ${kind}`);
   const last = lastSentAt ? new Date(lastSentAt).getTime() : null;
   const fromMs = last && last > floor && last < toMs ? last : floor;
   return { fromMs, toMs };
@@ -303,8 +326,9 @@ const FOLD_ALL = { clan: true, arena: true };
 export async function buildDigest({
   db,
   account,
-  cadence,
+  kind,
   window,
+  season = null,
   fold = FOLD_ALL,
   posts = process.env.POSTS_ENABLED === "true",
 }) {
@@ -581,11 +605,11 @@ export async function buildDigest({
     you && (you.battles > 0 || you.items.length > 0 || alts.length > 0),
   );
   // A clan's news sends a digest of its own only where the clan report
-  // would have come: the reader kept it on, and for a daily reader only a
-  // finished race (once a week), so no one gets more mail than the
-  // Monday report gave them. [engineering, 2026-11-12]
+  // would have come: the reader kept it on, and for the daily brief only a
+  // finished race (once a week), so a brief never comes for a join alone.
+  // [engineering, 2026-11-12]
   const clanSends =
-    fold.clan && clans.some((k) => cadence !== "daily" || k.race);
+    fold.clan && clans.some((k) => kind !== "digest_daily" || k.race);
   // Never an empty week (Jamie, 2026-11-12): no one followed played or
   // posted, neither did the reader, and no clan has news, so no mail.
   if (followed.length === 0 && !youHas && !clanSends) return null;
@@ -603,7 +627,8 @@ export async function buildDigest({
     player_verifications: Object.fromEntries(
       tags.map((tag) => [tag, identities.has(tag)]),
     ),
-    cadence,
+    // The season the recap closes, by the game's number.
+    ...(kind === "digest_season" && season ? { season: { id: season } } : {}),
     ...(accountPosts ? { account_follow_posts: true } : {}),
     window: {
       from: new Date(window.fromMs).toISOString(),
@@ -625,14 +650,14 @@ export async function buildDigest({
     following,
     coverage: accountPosts
       ? "This digest includes posts from accounts you follow. A gap in the game record means unknown. It does not mean they didn’t play."
-      : coverageOf(following, followed.length, cadence),
+      : coverageOf(following, followed.length, kind),
   };
 }
 
 /** What the digest could see: how many people the reader follows and
  *  how many had something recorded. A gap is unknown. */
-function coverageOf(following, told, cadence) {
-  const span = cadence === "daily" ? "day" : "week";
+function coverageOf(following, told, kind) {
+  const span = DIGEST_SPAN_WORD[kind] ?? "week";
   const gap = "A gap means unknown. It does not mean they didn’t play.";
   if (!following)
     return `You follow nobody yet, so this ${span} is yours alone. ${gap}`;

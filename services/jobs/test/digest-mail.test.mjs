@@ -20,6 +20,7 @@ import {
   clanNews,
   digestWindow,
 } from "../src/email/build-digest.mjs";
+import { digestSlot } from "../src/email/index.mjs";
 import { renderMail } from "../../../packages/mail/src/render.mjs";
 import { htmlToText } from "@elixir-mcp/mail";
 import { readMemberItemPath } from "@elixir-mcp/ui/item-link";
@@ -237,7 +238,7 @@ test("a leader's digest holds no attested kind, and the facts do not crowd out t
   const mail = await buildDigest({
     db,
     account: { accountId, timezone: "UTC" },
-    cadence: "weekly",
+    kind: "tracking_report",
     window,
   });
   assert.ok(mail?.you, "the leader has their own week");
@@ -255,7 +256,7 @@ test("digest posts and non-post updates show their original local time and exact
   const facts = await buildDigest({
     db,
     account: { accountId, timezone: "America/Chicago" },
-    cadence: "weekly",
+    kind: "tracking_report",
     window,
   });
   const update = facts.you.items.find((it) => it.kind === "career_wins_step");
@@ -287,7 +288,7 @@ test("a followed friend's post about a battle comes with their words and the bat
   const mail = await buildDigest({
     db,
     account: { accountId, timezone: "UTC" },
-    cadence: "weekly",
+    kind: "tracking_report",
     window,
   });
   const friend = mail.people.find((p) => p.tag === FRIEND);
@@ -335,28 +336,69 @@ test("a window where nothing happened is no mail", async () => {
   const mail = await buildDigest({
     db,
     account: { accountId, timezone: "UTC" },
-    cadence: "daily",
-    window: digestWindow(new Date("2026-07-01T00:00:00Z"), "daily"),
+    kind: "digest_daily",
+    window: digestWindow(new Date("2026-07-01T00:00:00Z"), "digest_daily"),
   });
   assert.equal(mail, null);
 });
 
-test("the window: a week or a day back, starting no earlier than the last digest", () => {
+test("the window: a day, a week or the closed season back, starting no earlier than that email's last send", () => {
   const now = new Date("2026-11-18T14:30:00Z");
   const day = 86400_000;
-  assert.deepEqual(digestWindow(now, "weekly"), {
+  assert.deepEqual(digestWindow(now, "tracking_report"), {
     fromMs: now.getTime() - 7 * day,
     toMs: now.getTime(),
   });
-  assert.equal(digestWindow(now, "daily").fromMs, now.getTime() - day);
-  // Yesterday's daily digest bounds today's weekly one: nothing twice.
+  assert.equal(digestWindow(now, "digest_daily").fromMs, now.getTime() - day);
+  // The weekly recap's own last send bounds it: nothing twice.
   const last = new Date(now.getTime() - day + 60_000);
-  assert.equal(digestWindow(now, "weekly", last).fromMs, last.getTime());
-  // A digest older than the span leaves the span.
   assert.equal(
-    digestWindow(now, "daily", new Date(now.getTime() - 3 * day)).fromMs,
+    digestWindow(now, "tracking_report", last).fromMs,
+    last.getTime(),
+  );
+  // A send older than the span leaves the span.
+  assert.equal(
+    digestWindow(now, "digest_daily", new Date(now.getTime() - 3 * day)).fromMs,
     now.getTime() - day,
   );
+  // The season recap reaches back to the closed season's start.
+  const start = Date.parse("2026-10-05T10:00:00Z");
+  assert.equal(
+    digestWindow(now, "digest_season", undefined, start).fromMs,
+    start,
+  );
+  assert.throws(() => digestWindow(now, "digest_season"));
+});
+
+test("each digest's slot: the daily brief any day, the weekly recap on Monday, the season recap on a season's first day", () => {
+  const scheduled = { scheduled: true };
+  const thu = new Date("2026-10-08T11:00:00Z");
+  const mon = new Date("2026-10-12T11:00:00Z");
+  const rollover = new Date("2026-11-02T11:00:00Z");
+  assert.deepEqual(digestSlot("digest_daily", thu, scheduled), {
+    due: true,
+    periodKey: "2026-10-08",
+  });
+  assert.equal(digestSlot("tracking_report", thu, scheduled).due, false);
+  assert.deepEqual(digestSlot("tracking_report", mon, scheduled), {
+    due: true,
+    periodKey: "2026-10-12",
+  });
+  assert.equal(digestSlot("digest_season", mon, scheduled).due, false);
+  assert.deepEqual(digestSlot("digest_season", rollover, scheduled), {
+    due: true,
+    periodKey: "S137",
+    season: 137,
+    seasonStartMs: Date.parse("2026-10-05T10:00:00Z"),
+  });
+  // An ops run (one account, or force) sends any day.
+  assert.equal(
+    digestSlot("digest_season", mon, { scheduled: false }).due,
+    true,
+  );
+  // On a rollover Monday all three are due.
+  for (const kind of ["digest_daily", "tracking_report", "digest_season"])
+    assert.equal(digestSlot(kind, rollover, scheduled).due, true, kind);
 });
 
 // Readers of their own, so the leader's counts above stay as they are.
@@ -415,7 +457,7 @@ test("a followed player who only posted is told: a post about an older battle, w
   const mail = await buildDigest({
     db,
     account: { accountId: id, timezone: "UTC" },
-    cadence: "weekly",
+    kind: "tracking_report",
     window: W2,
   });
   assert.ok(mail, "a post alone is a digest");
@@ -463,7 +505,7 @@ test("an alt that played makes the reader's own stretch when the primary was qui
   const mail = await buildDigest({
     db,
     account: { accountId: id, timezone: "UTC" },
-    cadence: "weekly",
+    kind: "tracking_report",
     window: W2,
   });
   assert.ok(mail, "an alt's battles are a digest");
@@ -547,7 +589,7 @@ test("each player once: a followed clanmate is told under themselves, the clan p
   const mail = await buildDigest({
     db,
     account: { accountId: mergeReader, timezone: "UTC" },
-    cadence: "weekly",
+    kind: "tracking_report",
     window: W2,
   });
   assert.ok(mail);
@@ -583,7 +625,7 @@ test("the clan part turned off: no clan part, and the moves are told under the p
   const mail = await buildDigest({
     db,
     account: { accountId: mergeReader, timezone: "UTC" },
-    cadence: "weekly",
+    kind: "tracking_report",
     window: W2,
     fold: { clan: false, arena: true },
   });
@@ -606,7 +648,7 @@ test("the clan part turned off: a followed clanmate's role change is told under 
   const args = {
     db,
     account: { accountId: mergeReader, timezone: "UTC" },
-    cadence: "weekly",
+    kind: "tracking_report",
     window: W2,
   };
   const off = await buildDigest({
@@ -660,7 +702,7 @@ test("the clan part turned off: a followed clanmate promoted with nothing else t
   const mail = await buildDigest({
     db,
     account: { accountId: id, timezone: "UTC" },
-    cadence: "weekly",
+    kind: "tracking_report",
     window: W2,
     fold: { clan: false, arena: true },
   });
@@ -681,7 +723,7 @@ test("a clan's news alone sends a weekly digest, never one for a reader who had 
     account: { accountId: clanOnlyReader, timezone: "UTC" },
     window: W2,
   };
-  const weekly = await buildDigest({ ...args, cadence: "weekly" });
+  const weekly = await buildDigest({ ...args, kind: "tracking_report" });
   assert.ok(weekly, "the clan's week is a digest");
   assert.deepEqual(weekly.people, []);
   assert.equal(weekly.clans[0].tag, C2);
@@ -696,13 +738,13 @@ test("a clan's news alone sends a weekly digest, never one for a reader who had 
   assert.equal(
     await buildDigest({
       ...args,
-      cadence: "weekly",
+      kind: "tracking_report",
       fold: { clan: false, arena: true },
     }),
     null,
   );
   // A daily reader is not mailed every day for roster moves alone.
-  assert.equal(await buildDigest({ ...args, cadence: "daily" }), null);
+  assert.equal(await buildDigest({ ...args, kind: "digest_daily" }), null);
 });
 
 test("an alt is a name and a count for a reader who had Arena week off", async () => {
@@ -716,7 +758,7 @@ test("an alt is a name and a count for a reader who had Arena week off", async (
   const base = {
     db,
     account: { accountId: id, timezone: "UTC" },
-    cadence: "weekly",
+    kind: "tracking_report",
     window: W2,
   };
   const on = await buildDigest(base);
@@ -742,7 +784,7 @@ test("a finished race is a daily reader's clan news; the clan line names its pla
   const mail = await buildDigest({
     db,
     account: { accountId: clanOnlyReader, timezone: "UTC" },
-    cadence: "daily",
+    kind: "digest_daily",
     window: W2,
   });
   assert.ok(mail);
@@ -818,7 +860,7 @@ test("digest ownership proof is batched for shown players and does not come from
   const args = {
     db,
     account: { accountId, timezone: "UTC" },
-    cadence: "weekly",
+    kind: "tracking_report",
     window,
   };
   const mail = await buildDigest(args);
