@@ -147,7 +147,6 @@ Royale because they play it with Elixir.
 
 - The cost of each followed player, and the limits that keep about 1,000
   people affordable.
-- The digest's cadence: weekly, daily, or the person's choice.
 - The fixed set of reactions.
 - How far comments reach: replies, mentions, the digest. They came on
   2026-11-16, checked by a small model before they post (DECISIONS

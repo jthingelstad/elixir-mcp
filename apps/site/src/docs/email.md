@@ -1,25 +1,30 @@
 ---
 slug: email
 title: "Email"
-description: "Elixir's email: one digest of the people you follow and your clan's week, weekly or daily, with each player told once; Clan's note when an action is yours to do; cheers and new followers you have not seen, at most once a day; your collector's week if you run one; and the answer to feedback you filed. Every one is a switch in Settings; every issue carries a turn-off link; opens and clicks are counted per issue, never per reader."
+description: "Elixir's email: three digests of the people you follow and your clan, a daily brief, a weekly recap and a season recap, each its own switch, with each player told once; Clan's note when an action is yours to do; cheers and new followers you have not seen, at most once a day; your collector's week if you run one; and the answer to feedback you filed. Every one is a switch in Settings; every issue carries a turn-off link; opens and clicks are counted per issue, never per reader."
 section: friends
 order: 4
 navTitle: "Email"
 icon: mail
-lede: "One digest of the people you follow and your clan, weekly or daily. Besides it, only mail with something for you to do or read: clan actions waiting, cheers on your play, your collector's week, and answers to your feedback."
-reviewed: "2026-11-17 close friends' play, a notification when a friend you starred finishes a session; 2026-11-17 the digest tells each friend's sessions, and every session opens its own page; 2026-11-16 notifications on your phone or computer; 2026-11-16 Cheers on your play, at most once a day; 2026-11-13 the digest's clan news is its own switch; 2026-11-13 the digest is Weekly, Daily or Off; 2026-11-12 one digest: the clan report, Arena week and milestone mails folded into it; 2026-11-12 your digest, weekly or daily by your choice; 2026-10-12 the collector week is Saturday to Saturday; 2026-10-12 no email is composed by a model"
+lede: "Three digests of the people you follow and your clan: a daily brief, a weekly recap and a season recap. Pick any of them, all or none. Besides them, only mail with something for you to do or read: clan actions waiting, cheers on your play, your collector's week, and answers to your feedback."
+reviewed: "2026-11-26 three digests, daily, weekly and season, each its own switch; 2026-11-17 close friends' play, a notification when a friend you starred finishes a session; 2026-11-17 the digest tells each friend's sessions, and every session opens its own page; 2026-11-16 notifications on your phone or computer; 2026-11-16 Cheers on your play, at most once a day; 2026-11-13 the digest's clan news is its own switch; 2026-11-13 the digest is Weekly, Daily or Off; 2026-11-12 one digest: the clan report, Arena week and milestone mails folded into it; 2026-11-12 your digest, weekly or daily by your choice; 2026-10-12 the collector week is Saturday to Saturday; 2026-10-12 no email is composed by a model"
 ---
 
 # Email
 
-Elixir sends **one digest**: the people you follow and your clan's week,
-in one email, weekly by default. It is the only scheduled email most
-people get. Besides it, Elixir mails you only when there is something for
+Elixir sends **three digests** of the people you follow and your clan:
+
+- **Daily brief:** yesterday, every day. Off until you turn it on.
+- **Weekly recap:** the week, on Monday after the weekly reset. On.
+- **Season recap:** the season, when a new one starts. On.
+
+Pick any of them, all or none. On the first Monday of a season, with all
+three on, you get all three. Besides them, Elixir mails you only when there is something for
 you: a clan action that is yours to do, cheers and new followers you
 have not seen yet, your collector's week if you run one, and an answer to
 feedback you filed.
 
-Your digest counts how many players posted and how many played. A question or
+A digest counts how many players posted and how many played. A question or
 a post about a battle counts as a post. A friend who did both counts once in
 each group. Their words come first, with a battle record when they played. A gold check beside a linked player name marks a
 player verified in Elixir, even if they have not chosen an image.
@@ -29,14 +34,16 @@ The text and links still work with custom fonts or images blocked.
 
 | Kind | When | What it is |
 |---|---|---|
-| **Your digest** | Mondays at 11:00 UTC, right after the weekly reset, or daily, or off: your choice | The people you follow and your clan's week in one story, each player once: [below](#your-digest). Skipped when nothing happened. |
+| **Daily brief** | Every day at 11:00 UTC | Yesterday: the people you follow, and your clan's race when one finished. Off until you turn it on: [below](#the-digests). Skipped when nothing happened. |
+| **Weekly recap** | Mondays at 11:00 UTC, right after the weekly reset | The people you follow and your clan's week in one story, each player once: [below](#the-digests). Skipped when nothing happened. |
+| **Season recap** | At 11:00 UTC on the first Monday of the month, when a new season starts | The season that just ended, the same way: [below](#the-digests). Skipped when nothing happened. |
 | **Clan actions waiting** | When an action becomes yours | From [Clan](/clan), when something new in your clan is yours to do (promote, welcome, answer a departure, say whether you are away), with everything waiting for you and a link to act. Clan checks each morning, after its daily read, and mails only when something new is yours since your last one: nothing waiting, nothing sent, and at most one a day per clan. Only if you can act on it, only to the account that verified the player. Clan writes the words and Elixir sends them, so the app needs no address to mail you. |
 | **Collector activity** | Sundays at 14:00 UTC | Only if you run an [Elixir Collector](/docs/operators): each collector by its card, its full reported version and the collector page's security status (signed, dev build, unverified or mismatch), whether it is checking in, silent or stopped, its fetches this week and how many of them added new facts to the record; how much was blocked as already recorded, and your limits: an active collector raises them to [Family](/docs/roles#upgrades). One mail per account, every collector you run pooled. Covers Saturday 00:00 UTC to the next Saturday 00:00 UTC, the week that closed the night before. |
 | **Cheers on your play** | At most once a day, around 6 pm in your account's time zone | When people cheered your players' battles and posts, or started following your players, and you have not seen it in Elixir yet: how many cheers on each item and how many new followers, never who. Each line opens the session, the battle or the player. Nothing new, nothing sent. What you already saw in the bell, or in your last one of these, is not told again. Only about the players you verified. |
 | **Answers to your feedback** | When answered | When Elixir's maintainer answers [feedback](/docs/your-account#feedback) you filed and you have not read the answer yet: what you wrote, the answer, its status and the version it shipped in, with a link to the item. One mail per answer, sent after ten quiet minutes, so a correction made straight away is one mail. Getting the email does not count as reading the answer: opening the item does. |
 
-All of them start **on** for an active person account, and each is **a
-switch** ([Settings › Emails](/settings/emails)), with a *turn off* link
+All of them but the daily brief start **on** for an active person
+account, and each is **a switch** ([Settings › Emails](/settings/emails)), with a *turn off* link
 in every issue and one-click unsubscribe in mail clients that support it.
 Sign-in codes and account notices are service mail and arrive whatever
 you choose here.
@@ -49,18 +56,22 @@ Clan actions waiting carries Clan's own words, the lines its Feed shows,
 and an answer to your feedback is the maintainer's answer as it was
 written.
 
-## Your digest
+## The digests
 
-Your digest is your [timeline](/docs/timeline) for your inbox: the
+A digest is your [timeline](/docs/timeline) for your inbox: the
 people you follow and the clans you follow, told as one story. The email
-chooses what to say, and the timeline keeps everything.
+chooses what to say, and the timeline keeps everything. The three are
+told the same way; each covers its own stretch.
 
-- **When:** weekly, on Mondays at 11:00 UTC, by default: an hour after
-  the game's weekly reset, so the week and its River Race are done. In
-  [Settings › Emails](/settings/emails) it is three choices, **Weekly**,
-  **Daily** (every day at 11:00 UTC) or **Off**: tap one.
-- **What it covers:** the week (or the day) before it comes, starting no
-  earlier than your last digest, so nothing is told twice. It tells what
+- **When:** the daily brief every day at 11:00 UTC. The weekly recap on
+  Mondays at 11:00 UTC, an hour after the game's weekly reset, so the
+  week and its River Race are done. The season recap at 11:00 UTC on a
+  season's first day, the first Monday of the month, an hour after the
+  season rolls over. Each is its own switch in
+  [Settings › Emails](/settings/emails) and on your Timeline.
+- **What each covers:** the day, the week, or the season that just
+  ended, starting no earlier than your last one of the same email, so
+  that email never tells a thing twice. It tells what
   the record learned in that time, so a battle recorded late is never
   skipped. A session Elixir only learned about a day or more after it
   was played isn't news, so the mail leaves it out; it's on the
@@ -99,17 +110,19 @@ chooses what to say, and the timeline keeps everything.
 - **Your clan:** each clan you follow with news of its own: a river race
   that finished (its place and fame), who joined and departed, and role
   changes, as a headline and at most three facts with the rest counted.
-  It's yours to turn off: **Clan news** under the digest on
-  [Emails](/settings/emails). Off, the digest has no clan part, and a
+  The daily brief tells only a finished race. It's yours to turn off:
+  **Clan news** under the digests on [Emails](/settings/emails), one
+  switch for all three. Off, a digest has no clan part, and a
   clanmate you follow who joined, left or changed role is told under
   them instead.
-- **You:** your own week, posts, firsts, your cards and badges counted, and
+- **You:** your own stretch, posts, firsts, your cards and badges counted, and
   each alt that played, with its firsts.
-- **Never an empty week:** when no one you follow played or posted,
-  neither did you, and no clan you follow has news, no digest comes.
+- **Never an empty one:** when no one you follow played or posted,
+  neither did you, and no clan you follow has news, that digest doesn't
+  come.
 
-**Each player once.** Following everyone in your clan is common, so the
-digest never tells a player's week twice: their battles, firsts and
+**Each player once.** Following everyone in your clan is common, so a
+digest never tells a player twice: their battles, firsts and
 posts are told under them, and the clan's part keeps to the clan's
 own news. A clanmate you follow who left the clan is told in the clan's
 part, not again under them. A clan's battle count and who went quiet are
@@ -120,7 +133,7 @@ Drop's personal records) stays out of the digest; the timeline still
 carries them to their readers. Anything a person typed, a name, a
 nickname or a post's words, is shown as text.
 
-A post appears once, in the digest covering when it was created. Editing
+A post appears once in each digest, the one covering when it was created. Editing
 it does not send it again. Deleted or hidden posts, posts you reported,
 and posts from someone blocked in either direction are left out when the
 digest is built. A copy already prepared or delivered by email cannot be
@@ -167,11 +180,12 @@ counts what it leaves out and links the rest.
 ## Turning one off
 
 Each kind has its own switch on [Emails](/settings/emails)
-(Settings › Emails). The digest shows its local day and time and its
-cadence beside its switch, and its **Clan news** switch under it. The other kinds follow below, then the
+(Settings › Emails). The three digests come first, each with its local
+time beside its switch, then **Clan news** for all three. The other kinds follow below, then the
 latest sent records. **Every email** turns them all off, or all back on. Every issue's
 footer has a
-*turn off* link for that kind, which opens a page with one button to
+*turn off* link for that kind alone (a daily brief's link turns off
+only the daily brief), which opens a page with one button to
 confirm; mail clients that support one-click unsubscribe show their own
 button, which needs no confirming. Turning a kind off is immediate and
 yours to reverse.

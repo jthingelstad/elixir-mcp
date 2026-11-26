@@ -1,12 +1,12 @@
 ---
 slug: quickstart
 title: "Get started with Elixir"
-description: "Four steps from a new account to a feed of your friends and your clan: sign in, add your player tag, follow a few people and choose your digest. Connecting an AI is optional."
+description: "Four steps from a new account to a feed of your friends and your clan: sign in, add your player tag, follow a few people and choose your emails. Connecting an AI is optional."
 section: start
 order: 2
 navTitle: "Quickstart"
 icon: rocket
-lede: "Sign in, add your player tag, follow a few people and choose your digest. That's it."
+lede: "Sign in, add your player tag, follow a few people and choose your emails. That's it."
 reviewed: "2026-11-17 against the Timeline's profile list and People you know"
 ---
 
@@ -78,17 +78,18 @@ your player slots when Elixir records that player because of you
 ([Roles and quotas](/docs/roles#followed-means-recorded)). Settings ›
 Players & following shows how many slots you have.
 
-## 4. Choose your digest
+## 4. Choose your emails
 
-Your digest is one email with the people you follow, your clan's news and
-your own week. It's the only email Elixir sends on a schedule.
+Elixir's digests bring the people you follow, your clan's news and you to
+your inbox. There are three, each its own switch:
 
-- **Weekly**, on Mondays right after the weekly reset. That's the default.
-- **Daily**, if you want more.
-- **Off**, if you'd rather not.
+- **Daily brief**: yesterday, every day. Off to start.
+- **Weekly recap**: the week, on Mondays right after the weekly reset.
+- **Season recap**: the season, when a new one starts.
 
-Pick one in [Settings › Emails](/settings/emails). Any choice, even off,
-finishes this step. Nothing happened? No digest. [Email](/docs/email#your-digest)
+Turn on any of them, all or none, on your Timeline or in
+[Settings › Emails](/settings/emails). Moving any switch, even to off,
+finishes this step. Nothing happened? No digest. [Email](/docs/email#the-digests)
 has the details.
 
 ## See how you play

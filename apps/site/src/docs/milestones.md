@@ -1,21 +1,21 @@
 ---
 slug: milestones
 title: "Milestones"
-description: "Firsts: which moments count and at what steps, why a move down or a repeat never counts, and where they reach you: your timeline as the record learns them, and your one digest email. There is no milestone email of its own since 2026-11-12."
+description: "Firsts: which moments count and at what steps, why a move down or a repeat never counts, and where they reach you: your timeline as the record learns them, and your digest emails. There is no milestone email of its own."
 section: friends
 order: 5
 navTitle: "Milestones"
 icon: sparkles
 lede: "A big first (a new arena, a promotion, a new best, a legendary badge) is told on your timeline and in your digest, for you and for the people you follow. Never a move down."
 reviewed: "2026-11-12 the milestone email folded into the one digest; 2026-10-08 for legendary badges as milestones, contract 11.5.2"
-callout: ["Choose your digest at Settings › Emails", "/settings/emails", "Open Emails"]
+callout: ["Choose your emails at Settings › Emails", "/settings/emails", "Open Emails"]
 ---
 
 # Milestones
 
 A milestone is something a player did for the first time on record. Your
 [timeline](/docs/timeline) shows it as soon as the record learns it, and
-your [digest](/docs/email#your-digest) tells it once, with the rest of
+your [digest](/docs/email#the-digests) tells it once, with the rest of
 the people you follow and your clan's week.
 
 ## Whose moments
@@ -49,6 +49,6 @@ battle's own page](/docs/battles#a-battles-page).
 ## In your digest
 
 Firsts have no email of their own: yours and your alts' lead your part
-of [the digest](/docs/email#your-digest). To hear sooner, make the
-digest daily on [Settings › Emails](/settings/emails); to hear at once,
+of [the digests](/docs/email#the-digests). To hear sooner, turn on the
+daily brief on [Settings › Emails](/settings/emails); to hear at once,
 open your timeline.

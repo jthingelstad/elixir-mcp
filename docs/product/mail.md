@@ -38,12 +38,15 @@ and hit milestones, and you text him "wow, great job this week". [Jamie,
 
 ## The mail set
 
-One scheduled mail to members, and mail to a role when there is
+Three scheduled digests to members, each its own switch (Jamie,
+2026-11-26), and mail to a role when there is
 something for that role to do.
 
 | Mail | Who gets it | When |
 | --- | --- | --- |
-| **The digest** ("Your digest", kind `tracking_report`) | Every person account, on by default | Weekly on Wednesday by default, daily or off by choice; never an empty one |
+| **Daily brief** (`digest_daily`) | A person who turns it on; off by default | Every day at 11:00 UTC, covering the day before; never an empty one |
+| **Weekly recap** (`tracking_report`) | Every person account, on by default | Mondays at 11:00 UTC, after the weekly reset; never an empty one |
+| **Season recap** (`digest_season`) | Every person account, on by default | At 11:00 UTC on the day a season starts, covering the season that closed; never an empty one |
 | **Collector activity**, with its upgrade notices | The people running a collector | Sunday, covering Saturday to Saturday UTC; an upgrade notice when an installed release moves up |
 | **Actions waiting** (`clan_actions_waiting`) | A clan's verified leaders with an Action that became theirs | When an Action waits, at most once a day per clan |
 | **An answer to your feedback** | The person who filed it | When it is answered, one mail per answer |
@@ -150,5 +153,5 @@ own key in Clan, or in a person's own AI. [Jamie, 2026-10-12]
   in #823.
 - Whether the bell should carry your own firsts, which reach you on the
   timeline and in the digest (#823).
-- The digest's cadence default (weekly, daily, or the person's choice) is
-  open in VISION; weekly by default stands until Jamie revisits it.
+- The digest's cadence is settled: three digests, any combination
+  (Jamie, 2026-11-26; DECISIONS, Email).

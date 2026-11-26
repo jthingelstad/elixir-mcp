@@ -332,8 +332,9 @@ all six:
    Good**.
 4. **Follow someone who plays**: one player who has played in the last 7
    days. One friend is enough.
-5. **Choose your email**: Weekly, Daily or Off for your
-   [digest](/docs/email). Off counts too.
+5. **Choose your emails**: turn the daily brief, weekly recap or season
+   recap [digest](/docs/email) on or off. Any switch you move counts, off
+   too.
 6. **Your place on the clan map**: tap **Set a place** and pick your
    country, region or city right there on your Timeline, or tap **Not now**. The
    picker says who sees it: your clan's verified members on the clan map,
@@ -739,7 +740,7 @@ channels tells it twice.
   it: the digest tells only the big firsts (a legendary badge among
   them), counts card unlocks and badge levels rather than listing them,
   tells each player once, and draws a clan's own news as a headline and
-  its next three facts ([Email](/docs/email#your-digest)). The timeline itself keeps every item, newest
+  its next three facts ([Email](/docs/email#the-digests)). The timeline itself keeps every item, newest
   first.
 
 When friends play the same event run, the Timeline groups their sessions and any visible posts about their battles in that run. Rotating events appear ahead of familiar weekly fixtures. From a session you played with a followed friend, **Your games with…** opens Together for the player you used. Together can tell when you teamed up one day and faced each other another.

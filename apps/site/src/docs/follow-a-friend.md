@@ -92,7 +92,7 @@ While that player's Notifications switch is on, their sessions and moments
 appear in your Timeline. Their player page opens Stats, and your connected
 app names them under **Friends you follow**.
 
-Your [digest](/docs/email#your-digest) includes friends who played or posted,
+Your [digest](/docs/email#the-digests) includes friends who played or posted,
 up to twelve people with the rest counted. It is weekly on Mondays, or daily
 by your choice. Anyone who neither played nor posted is left out.
 
