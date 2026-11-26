@@ -315,3 +315,38 @@ test("the reports' week name is the season and which of its weeks", () => {
   assert.equal(fourth.season, 136);
   assert.equal(fourth.war_week, 4);
 });
+
+test("the weekly recap's last send skips a daily digest from before the three emails", async () => {
+  // Before 2026-11-26 a daily digest was a tracking_report issue whose
+  // facts said so. A reader who turns the weekly recap on afterwards gets
+  // their whole week, not the stretch since their last daily mail.
+  const { lastDigests } = await import("../src/email/index.mjs");
+  const reader = await person(
+    "daily",
+    "#0QGRJCUV2",
+    "2026-01-01T00:00:00Z",
+    "UTC",
+  );
+  const sent = async (key, facts, at) => {
+    const {
+      rows: [{ issue_id }],
+    } = await db.query(
+      `insert into email_issue (kind, period_key, subject_key, facts, status)
+       values ('tracking_report', $1, $2, $3::jsonb, 'queued') returning issue_id`,
+      [key, reader, JSON.stringify(facts)],
+    );
+    await db.query(
+      `insert into email_send (send_id, issue_id, account_id, enqueued_at) values (gen_random_uuid(), $1, $2, $3)`,
+      [issue_id, reader, at],
+    );
+  };
+  const weekly = new Date("2026-11-16T11:00:00Z");
+  await sent("2026-11-16", { cadence: "weekly" }, weekly);
+  await sent(
+    "2026-11-25",
+    { cadence: "daily" },
+    new Date("2026-11-25T11:00:00Z"),
+  );
+  const last = await lastDigests(db, "tracking_report", [reader]);
+  assert.equal(new Date(last.get(reader)).getTime(), weekly.getTime());
+});
