@@ -429,10 +429,12 @@ test("setup: All Set needs a verified primary; Off and Not now count; completion
      on conflict do nothing`,
     [RIVAL],
   );
-  await settlePassport(db, me, {
-    now: AUG30,
-    latch: { digest_choice: "off" },
-  });
+  await db.query(
+    `insert into account_email_pref (account_id, kind, enabled, via)
+     values ($1, 'tracking_report', false, 'profile')`,
+    [me],
+  );
+  await settlePassport(db, me, { now: AUG30 });
   await settlePassport(db, me, {
     now: AUG30,
     latch: { map_choice: "not_now" },
@@ -504,7 +506,7 @@ test("setup: reconciliation repairs a place save whose hook failed", async () =>
   assert.ok(out.granted.some((g) => g.stamp_id === "on_the_map"));
 });
 
-test("the default weekly digest is not a choice; an explicit one is", async () => {
+test("the default emails are not a choice; a switch the person moves is", async () => {
   const me = await person();
   await ensurePassport(db, me);
   await settlePassport(db, me, { now: AUG30 });
@@ -513,10 +515,12 @@ test("the default weekly digest is not a choice; an explicit one is", async () =
     read.owner.profile.steps.find((s) => s.id === "digest").state,
     "done",
   );
-  await settlePassport(db, me, {
-    now: AUG30,
-    latch: { digest_choice: "weekly" },
-  });
+  await db.query(
+    `insert into account_email_pref (account_id, kind, enabled, via)
+     values ($1, 'digest_daily', true, 'profile')`,
+    [me],
+  );
+  await settlePassport(db, me, { now: AUG30 });
   read = await readOwnerPassport(db, me, { now: AUG30 });
   assert.equal(
     read.owner.profile.steps.find((s) => s.id === "digest").state,

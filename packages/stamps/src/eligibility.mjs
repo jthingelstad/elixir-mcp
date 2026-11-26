@@ -18,7 +18,8 @@
  *   has_alt         boolean   an own alt claim (relationship 'alt'), any status
  *   picture_chosen  boolean   an explicit non-null profile picture
  *   discord_linked  boolean   a Discord connection
- *   digest_choice   'weekly' | 'daily' | 'off' | null   an explicit choice
+ *   email_chosen    boolean   a digest email switch the person moved
+ *                   (daily, weekly or season; not an operator's)
  *   map             { choice: 'place' | 'not_now' | null, place_saved: boolean }
  *   follows         [{ last_battle_at, battle_log_read_at }] | null
  *                   the OTHER players followed (own primary/alts already
@@ -33,7 +34,6 @@ import {
   ACTIVE_WINDOW_DAYS,
   CATALOG_VERSION,
   COUNTING,
-  DIGEST_CHOICES,
   MAP_CHOICES,
   PROFILE_LIST_VERSION,
   PROFILE_STEPS,
@@ -129,10 +129,7 @@ export function profileList(snapshot, now) {
           : activity.unknown > 0
             ? null
             : false,
-    digest:
-      s.digest_choice === undefined
-        ? null
-        : DIGEST_CHOICES.includes(s.digest_choice),
+    digest: s.email_chosen === undefined ? null : s.email_chosen === true,
     map:
       s.map === undefined || s.map === null
         ? null

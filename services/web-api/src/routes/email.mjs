@@ -1,14 +1,14 @@
 /** Product email routes (docs/EMAIL.md).
  *
  *  GET  /api/me/email          every switch (absent row = the kind's
- *       default, on for every kind today), with
- *       each kind's product, its send time in the account's zone and
- *       the last one sent to this account
+ *       default: on, but the daily brief off), with each kind's
+ *       product, its send time in the account's zone and the last one
+ *       sent to this account; `clan_part` is the three digests' clan
+ *       news switch
  *  PUT  /api/me/email          {kind, enabled}; kind "all" is the
  *       page's Every email switch: every kind at once, the flip an
- *       "all" unsubscribe token makes. The digest (tracking_report)
- *       also takes {cadence: "weekly" | "daily"} (0242), with or
- *       without enabled; a turn-off keeps the cadence
+ *       "all" unsubscribe token makes. {clan_part: boolean}, with no
+ *       kind, is the digests' clan news switch (2026-11-13)
  *  GET  /api/me/email/sends    every product email sent to me, newest
  *       first (the Activity page's Emails view)
  *  GET  /api/me/email/sends/<send_id>  one of them with its archived
@@ -26,6 +26,7 @@ import {
   DISCLAIMER,
   ACTIVE_PRODUCT_EMAIL_KINDS,
   emailKindDefault,
+  isDigestEmailKind,
   isProductEmailKind,
   isRetiredEmailKind,
 } from "@elixir-mcp/contracts";
@@ -34,7 +35,6 @@ import {
   KIND_LABELS,
   MAIL_SOURCE,
   mailSendTime,
-  DIGEST_CADENCES,
 } from "@elixir-mcp/mail";
 import { MAIL_PATHS } from "@elixir-mcp/mail/paths";
 import {
@@ -181,51 +181,6 @@ async function setPref(
     });
 }
 
-/** The digest's cadence (0242): set on its pref row, a row made on (the
- *  default) when the person has none, so choosing daily never turns the
- *  digest on or off by itself. */
-/** The person's own cadence choice. It records `via = 'profile'` even on a
- *  row an operator made, so the profile list's digest step (packages/stamps
- *  readSnapshot) knows the person chose (Codex on #811). */
-async function setCadence(db, accountId, cadence) {
-  await db.query(
-    `insert into account_email_pref (account_id, kind, enabled, via, changed_at, cadence)
-     values ($1, 'tracking_report', true, 'profile', now(), $2)
-     on conflict (account_id, kind) do update set cadence = excluded.cadence, via = excluded.via, changed_at = now()`,
-    [accountId, cadence],
-  );
-  await db
-    .query(
-      `insert into account_event (account_id, kind, detail) values ($1, 'email_pref', $2)`,
-      [accountId, JSON.stringify({ kind: "tracking_report", cadence })],
-    )
-    .catch(() => {});
-}
-
-/** The digest choice as now stored, latched for the profile list. */
-async function settleDigest(db, accountId) {
-  let choice = null;
-  try {
-    const { rows } = await db.query(
-      `select enabled, coalesce(cadence, 'weekly') as cadence
-         from account_email_pref
-        where account_id = $1::uuid and kind = 'tracking_report'`,
-      [accountId],
-    );
-    if (rows[0]) choice = rows[0].enabled === false ? "off" : rows[0].cadence;
-  } catch {
-    // The next settle reads the same row: the step is not lost.
-  }
-  await settleAfter(
-    db,
-    accountId,
-    "digest",
-    ["weekly", "daily", "off"].includes(choice)
-      ? { digest_choice: choice }
-      : null,
-  );
-}
-
 /** The labels read as names ("Milestones", "every Elixir email"); a
  *  sentence that opens with one starts with a capital. */
 const upper = (s) => s.charAt(0).toUpperCase() + s.slice(1);
@@ -278,7 +233,7 @@ export function emailRoutes({
       const account = await resolveAccount(db, event);
       if (!account) return json(401, { error: "unauthenticated" });
       const { rows } = await db.query(
-        `select kind, enabled, changed_at, via, cadence from account_email_pref where account_id = $1`,
+        `select kind, enabled, changed_at, via from account_email_pref where account_id = $1`,
         [account.accountId],
       );
       const { rows: ops } = await db.query(
@@ -319,18 +274,6 @@ export function emailRoutes({
           // emailKindDefault: the activity mail's is one constant).
           enabled: by.get(kind)?.enabled ?? emailKindDefault(kind),
           changed_at: by.get(kind)?.changed_at ?? null,
-          // The digest's how-often; null for every other kind.
-          cadence:
-            kind === "tracking_report"
-              ? (by.get(kind)?.cadence ?? "weekly")
-              : null,
-          // The digest's clan part: the clan report's stored switch, the
-          // row the digest reads (jobs `foldedOff`); null on every other
-          // kind.
-          clan_part:
-            kind === "tracking_report"
-              ? (by.get("clan_report")?.enabled ?? true)
-              : null,
           applies:
             kind === "collector_activity"
               ? Boolean(ops[0]?.operator)
@@ -340,6 +283,9 @@ export function emailRoutes({
                   ? Boolean(ops[0]?.own_verified)
                   : true,
         })),
+        // The digests' clan news: the clan report's stored switch, the
+        // row all three digests read (jobs `foldedOff`).
+        clan_part: by.get("clan_report")?.enabled ?? true,
         recent: recent.map(sendRow),
       });
     },
@@ -373,40 +319,15 @@ export function emailRoutes({
         requireContractHeader: true,
       });
       if (!account) return json(401, { error: "unauthenticated" });
-      const kind = String(body?.kind ?? "");
-      if (kind !== "all" && !isProductEmailKind(kind))
-        return json(400, { error: "bad_kind" });
-      const cadence = body?.cadence;
-      if (cadence !== undefined) {
-        if (kind !== "tracking_report")
-          return json(400, { error: "no_cadence" });
-        if (!DIGEST_CADENCES.includes(cadence))
-          return json(400, { error: "bad_cadence" });
-      }
-      // The digest's clan part (2026-11-13): written to the clan report's
-      // row, which the digest reads; that kind stays retired as a mail.
+      // The digests' clan news (2026-11-13): written to the clan report's
+      // row, which all three digests read; that kind stays retired as a
+      // mail. It names no kind.
       const clanPart = body?.clan_part;
       if (clanPart !== undefined) {
-        if (kind !== "tracking_report")
-          return json(400, { error: "no_clan_part" });
+        if (body?.kind !== undefined || body?.enabled !== undefined)
+          return json(400, { error: "clan_part_alone" });
         if (typeof clanPart !== "boolean")
           return json(400, { error: "bad_clan_part" });
-      }
-      if (
-        cadence === undefined &&
-        clanPart === undefined &&
-        typeof body?.enabled !== "boolean"
-      )
-        return json(400, { error: "bad_enabled" });
-      if (body.enabled !== undefined && typeof body.enabled !== "boolean")
-        return json(400, { error: "bad_enabled" });
-      if (body.enabled && isRetiredEmailKind(kind))
-        return json(410, { error: "kind_retired" });
-      if (cadence !== undefined)
-        await setCadence(db, account.accountId, cadence);
-      if (typeof body.enabled === "boolean")
-        await setPref(db, account.accountId, kind, body.enabled, "profile");
-      if (clanPart !== undefined)
         await setPref(
           db,
           account.accountId,
@@ -414,21 +335,22 @@ export function emailRoutes({
           clanPart,
           "profile",
         );
-      // The digest step (#1015): a cadence chosen, the digest turned on
-      // or off, or every email turned off. The default weekly digest (no
-      // row) is never a choice, and Stamps never turn mail on.
-      if (
-        (kind === "tracking_report" &&
-          (cadence !== undefined || typeof body.enabled === "boolean")) ||
-        (kind === "all" && body.enabled === false)
-      )
-        await settleDigest(db, account.accountId);
-      return json(200, {
-        kind,
-        ...(typeof body.enabled === "boolean" ? { enabled: body.enabled } : {}),
-        ...(cadence !== undefined ? { cadence } : {}),
-        ...(clanPart !== undefined ? { clan_part: clanPart } : {}),
-      });
+        return json(200, { clan_part: clanPart });
+      }
+      const kind = String(body?.kind ?? "");
+      if (kind !== "all" && !isProductEmailKind(kind))
+        return json(400, { error: "bad_kind" });
+      if (typeof body?.enabled !== "boolean")
+        return json(400, { error: "bad_enabled" });
+      if (body.enabled && isRetiredEmailKind(kind))
+        return json(410, { error: "kind_retired" });
+      await setPref(db, account.accountId, kind, body.enabled, "profile");
+      // The email step (#1015): any digest switch moved, or every email
+      // at once. The defaults (no row) are never a choice, and Stamps
+      // never turn mail on.
+      if (kind === "all" || isDigestEmailKind(kind))
+        await settleAfter(db, account.accountId, "digest");
+      return json(200, { kind, enabled: body.enabled });
     },
     "GET /api/email/unsubscribe": async (db, event) => {
       const c = claim(event);

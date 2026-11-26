@@ -19,11 +19,11 @@
  * through ::int, and every parameter is cast where it is used.
  */
 import { visibleFriendSql } from "@elixir-mcp/claims";
+import { DIGEST_EMAIL_KINDS } from "@elixir-mcp/contracts";
 import { createHash, randomInt } from "node:crypto";
 import {
   CATALOG_VERSION,
   COUNTING,
-  DIGEST_CHOICES,
   FACT_CAPS,
   MAP_CHOICES,
   PROFILE_STEPS,
@@ -339,7 +339,6 @@ const LATCH_COLUMNS = Object.freeze({
 /**
  * Latch profile-list state after a successful write (later slices' hooks):
  *   { steps: ['picture', ...],         latch these steps done
- *     digest_choice: 'weekly'|'daily'|'off',  an explicit digest choice
  *     map_choice: 'place'|'not_now',   an explicit map choice
  *     place_saved: true,               a place save that succeeded
  *     complete: true }                 the list finished (set once)
@@ -351,13 +350,9 @@ export async function latchProfile(db, accountId, patch, { now }) {
   const steps = new Set(patch?.steps ?? []);
   for (const s of steps)
     if (!(s in LATCH_COLUMNS)) throw new TypeError(`unknown step: ${s}`);
-  const digest = patch?.digest_choice ?? null;
-  if (digest !== null && !DIGEST_CHOICES.includes(digest))
-    throw new TypeError(`bad digest choice: ${digest}`);
   const map = patch?.map_choice ?? null;
   if (map !== null && !MAP_CHOICES.includes(map))
     throw new TypeError(`bad map choice: ${map}`);
-  if (digest) steps.add("digest");
   if (map) steps.add("map");
   const placeSaved = patch?.place_saved === true;
   const complete = patch?.complete === true;
@@ -365,34 +360,32 @@ export async function latchProfile(db, accountId, patch, { now }) {
   const { rows } = await db.query(
     `insert into account_profile_list as l
        (account_id, add_player_at, verify_player_at, picture_at,
-        follow_active_at, digest_choice, digest_at, map_choice, map_at,
+        follow_active_at, digest_at, map_choice, map_at,
         map_place_saved_at, completed_at, updated_at)
      select a.account_id,
-            case when $2::boolean then $12::timestamptz end,
-            case when $3::boolean then $12::timestamptz end,
-            case when $4::boolean then $12::timestamptz end,
-            case when $5::boolean then $12::timestamptz end,
+            case when $2::boolean then $11::timestamptz end,
+            case when $3::boolean then $11::timestamptz end,
+            case when $4::boolean then $11::timestamptz end,
+            case when $5::boolean then $11::timestamptz end,
+            case when $6::boolean then $11::timestamptz end,
             $8::text,
-            case when $6::boolean then $12::timestamptz end,
-            $9::text,
-            case when $7::boolean then $12::timestamptz end,
-            case when $10::boolean then $12::timestamptz end,
-            case when $11::boolean then $12::timestamptz end,
-            $12::timestamptz
+            case when $7::boolean then $11::timestamptz end,
+            case when $9::boolean then $11::timestamptz end,
+            case when $10::boolean then $11::timestamptz end,
+            $11::timestamptz
        from account a where a.account_id = $1::uuid and a.kind = 'person'
      on conflict (account_id) do update set
        add_player_at = coalesce(l.add_player_at, excluded.add_player_at),
        verify_player_at = coalesce(l.verify_player_at, excluded.verify_player_at),
        picture_at = coalesce(l.picture_at, excluded.picture_at),
        follow_active_at = coalesce(l.follow_active_at, excluded.follow_active_at),
-       digest_choice = coalesce(excluded.digest_choice, l.digest_choice),
        digest_at = coalesce(l.digest_at, excluded.digest_at),
        map_choice = coalesce(excluded.map_choice, l.map_choice),
        map_at = coalesce(l.map_at, excluded.map_at),
        map_place_saved_at = coalesce(l.map_place_saved_at, excluded.map_place_saved_at),
        completed_at = coalesce(l.completed_at, excluded.completed_at),
        updated_at = excluded.updated_at
-     returning list_version, digest_choice, map_choice,
+     returning list_version, map_choice,
                (map_place_saved_at is not null) as place_saved,
                (completed_at is not null) as complete`,
     [
@@ -403,7 +396,6 @@ export async function latchProfile(db, accountId, patch, { now }) {
       latch("follow_active"),
       latch("digest"),
       latch("map"),
-      digest,
       map,
       placeSaved,
       complete,
@@ -586,13 +578,12 @@ export async function readSnapshot(db, accountId, { now }) {
     `select a.kind, a.avatar_card_id, a.welcome_finished_at,
             exists (select 1 from account_discord d
                      where d.account_id = a.account_id) as discord_linked,
-            (select json_build_object('enabled', enabled,
-                                      'cadence', coalesce(cadence, 'weekly'))
-               from account_email_pref
-              where account_id = a.account_id and kind = 'tracking_report'
-                and via <> 'ops') as digest
+            exists (select 1 from account_email_pref
+                     where account_id = a.account_id
+                       and kind = any($2::text[])
+                       and via <> 'ops') as email_chosen
        from account a where a.account_id = $1::uuid`,
-    [accountId],
+    [accountId, [...DIGEST_EMAIL_KINDS]],
   );
   if (!acct) return null;
   const {
@@ -656,14 +647,6 @@ export async function readSnapshot(db, accountId, { now }) {
   );
   const earned = await readEarned(db, accountId);
   const iso = (v) => (v ? new Date(v).toISOString() : null);
-  const pref = acct.digest;
-  const prefChoice = pref
-    ? pref.enabled === false
-      ? "off"
-      : DIGEST_CHOICES.includes(pref.cadence)
-        ? pref.cadence
-        : "weekly"
-    : null;
   const factCount = Object.fromEntries(
     Object.keys(FACT_CAPS).map((id) => [
       id,
@@ -683,9 +666,9 @@ export async function readSnapshot(db, accountId, { now }) {
     has_alt: own.has_alt === true,
     picture_chosen: acct.avatar_card_id != null || Boolean(list?.picture_at),
     discord_linked: acct.discord_linked === true,
-    // The person's own latest choice; an older digest setting of their
-    // own (not an operator's) counts, as Home's welcome reads it.
-    digest_choice: list?.digest_choice ?? prefChoice,
+    // Any digest switch the person moved themselves (not an operator's);
+    // a choice stored before the three emails (2026-11-26) still counts.
+    email_chosen: acct.email_chosen === true || list?.digest_choice != null,
     map: {
       choice: list?.map_choice ?? null,
       place_saved: Boolean(list?.map_place_saved_at),

@@ -13,7 +13,7 @@
  *    Roster, Linked, Inner Circle, Mutual, All Set): the account is
  *    evaluated once as it stood at launch (readLaunchSnapshot), by its
  *    rows' own instants: a claim made and verified before launch, a
- *    picture set before it, a Discord link, a digest choice and a place
+ *    picture set before it, a Discord link, an email choice and a place
  *    saved before it, follows made before it and their battles in the
  *    seven days before it. Those levels are written as legacy rows, then
  *    legacy_settled_at is set (settleLegacy). The settle that follows
@@ -31,10 +31,10 @@
  */
 import { visibleFriendSql } from "@elixir-mcp/claims";
 import { readOwnedPlaces } from "@elixir-mcp/auth/clan-context";
+import { DIGEST_EMAIL_KINDS } from "@elixir-mcp/contracts";
 import {
   ACTIVE_WINDOW_DAYS,
   COUNTING,
-  DIGEST_CHOICES,
   FACT_CAPS,
   levelFor,
   stampById,
@@ -110,13 +110,13 @@ export async function readLaunchSnapshot(db, accountId, at) {
             exists (select 1 from account_discord d
                      where d.account_id = a.account_id
                        and d.linked_at < $2::timestamptz) as discord,
-            (select json_build_object('enabled', enabled,
-                                      'cadence', coalesce(cadence, 'weekly'))
-               from account_email_pref
-              where account_id = a.account_id and kind = 'tracking_report'
-                and via <> 'ops' and changed_at < $2::timestamptz) as digest
+            exists (select 1 from account_email_pref
+                     where account_id = a.account_id
+                       and kind = any($3::text[])
+                       and via <> 'ops' and changed_at < $2::timestamptz)
+              as email_chosen
        from account a where a.account_id = $1::uuid`,
-    [accountId, at],
+    [accountId, at, [...DIGEST_EMAIL_KINDS]],
   );
   if (!acct) return null;
   // Own claims made before launch; verified before it when the proof's
@@ -177,14 +177,6 @@ export async function readLaunchSnapshot(db, accountId, at) {
     [accountId, at],
   );
   const placed = await placeSavedBefore(db, verifiedTags, at);
-  const pref = acct.digest;
-  const digest = pref
-    ? pref.enabled === false
-      ? "off"
-      : DIGEST_CHOICES.includes(pref.cadence)
-        ? pref.cadence
-        : "weekly"
-    : null;
   return {
     person: acct.kind === "person",
     primary: primary ? { verified: primary.verified === true } : null,
@@ -192,7 +184,7 @@ export async function readLaunchSnapshot(db, accountId, at) {
     has_alt: own.some((c) => c.alt),
     picture_chosen: acct.picture === true,
     discord_linked: acct.discord === true,
-    digest_choice: digest,
+    email_chosen: acct.email_chosen === true,
     map: { choice: placed ? "place" : null, place_saved: placed },
     follows: follows.map((f) => ({
       last_battle_at: iso(f.last_battle_at),

@@ -331,8 +331,8 @@ test("the public passport carries the whitelist alone, for each kind of account"
     [ids.verified],
   );
   await db.query(
-    `insert into account_profile_list (account_id, digest_choice, digest_at, map_choice, map_at)
-     values ($1, 'off', now(), 'not_now', now())`,
+    `insert into account_profile_list (account_id, digest_at, map_choice, map_at)
+     values ($1, now(), 'not_now', now())`,
     [ids.verified],
   );
   const passports = {};

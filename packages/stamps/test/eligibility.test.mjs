@@ -22,7 +22,7 @@ const fresh = (patch = {}) => ({
   has_alt: false,
   picture_chosen: false,
   discord_linked: false,
-  digest_choice: null,
+  email_chosen: false,
   map: { choice: null, place_saved: false },
   follows: [],
   mutual_count: 0,
@@ -146,13 +146,13 @@ test("Full Roster is an own alt claim, not a friend or the primary", () => {
   );
 });
 
-test("All Set: the six steps, with digest off and map Not now counting", () => {
+test("All Set: the six steps, with an email choice (all off included) and map Not now counting", () => {
   const done = fresh({
     primary: { verified: true },
     own_verified: true,
     picture_chosen: true,
     follows: [active()],
-    digest_choice: "off",
+    email_chosen: true,
     map: { choice: "not_now", place_saved: false },
   });
   const ev = evaluatePassport(done, NOW);
@@ -163,8 +163,8 @@ test("All Set: the six steps, with digest off and map Not now counting", () => {
     "looking_good:1",
     "player_verified:1",
   ]);
-  // Without an explicit digest choice (the default weekly is not one).
-  const noDigest = evaluatePassport({ ...done, digest_choice: null }, NOW);
+  // Without an explicit email choice (the defaults are not one).
+  const noDigest = evaluatePassport({ ...done, email_chosen: false }, NOW);
   assert.equal(noDigest.profile.complete, false);
   assert.equal(step(noDigest.profile, "digest"), "todo");
   // An alt verified while the primary is not: the verify step is the
