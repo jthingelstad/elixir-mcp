@@ -329,8 +329,28 @@ const OBSERVED_EDGE_KINDS = new Set(["member_role_changed", "returned"]);
  * note names), `window` (within two days of the window's start) or
  * `settled` (none of these: what the next stage must explain). `groups`
  * counts them by kind, class, cause and, for content, field.
+ *
+ * A clan's shadow (stage 5, 2026-11-26; story-clans.mjs) compares a build
+ * with the window cut from its rows: `other` names the second side
+ * (`stored`: its count and `only_stored`), `edgeKinds` are the kinds
+ * labelled `observed_basis` whatever their instant (none: a clan row
+ * keeps each kind's observed instant), and `saidGate: false` (a clan's
+ * entry has no said gate). `storedOf` names the stored subject of an
+ * item (a clan's: the clan, whatever member the item is about).
  */
-export function compareWeeks(computed, mixed, { fromMs, basis }) {
+export function compareWeeks(
+  computed,
+  mixed,
+  {
+    fromMs,
+    basis,
+    other = "mixed",
+    edgeKinds = OBSERVED_EDGE_KINDS,
+    saidGate = true,
+    storedOf = null,
+  },
+) {
+  const onlyOther = `only_${other}`;
   const storedWritten = mixed.stored_written ?? new Map();
   const a = new Map((computed.timeline ?? []).map((it) => [it.id, it]));
   const b = new Map((mixed.timeline ?? []).map((it) => [it.id, it]));
@@ -340,13 +360,13 @@ export function compareWeeks(computed, mixed, { fromMs, basis }) {
   const droppedB = new Set((mixed.timeline_dropped ?? []).map((it) => it.id));
   const out = {
     computed: a.size,
-    mixed: b.size,
+    [other]: b.size,
     only_computed: 0,
-    only_mixed: 0,
+    [onlyOther]: 0,
     revision: 0,
     content: 0,
     order_same: true,
-    ids: { only_computed: [], only_mixed: [], revision: [], content: [] },
+    ids: { only_computed: [], [onlyOther]: [], revision: [], content: [] },
     groups: [],
   };
   const counted = new Map();
@@ -361,28 +381,27 @@ export function compareWeeks(computed, mixed, { fromMs, basis }) {
     if (out.ids[bucket].length < DIFF_SAMPLE) out.ids[bucket].push(id);
   };
   const storedTag = (it) =>
-    storedWritten.has(it.subject_tag)
-      ? it.subject_tag
-      : ((it.subjects ?? []).find(
-          (s) => s.kind === "player" && storedWritten.has(s.tag),
-        )?.tag ?? null);
+    storedOf
+      ? storedOf(it)
+      : storedWritten.has(it.subject_tag)
+        ? it.subject_tag
+        : ((it.subjects ?? []).find(
+            (s) => s.kind === "player" && storedWritten.has(s.tag),
+          )?.tag ?? null);
   const causeOf = (it, bucket) => {
     if (
       (bucket === "only_computed" && droppedB.has(it.id)) ||
-      (bucket === "only_mixed" && droppedA.has(it.id))
+      (bucket === onlyOther && droppedA.has(it.id))
     )
       return "cap_edge";
     const tag = storedTag(it);
     if (tag === null) return "computed";
     const learned = Date.parse(it.observed_at ?? it.at);
     if (learned > storedWritten.get(tag)) return "unwritten";
-    if (bucket === "only_computed" && it.kind === "quiet_crossed")
+    if (saidGate && bucket === "only_computed" && it.kind === "quiet_crossed")
       return "said_gate";
     const sortMs = Date.parse(it.sort_at ?? it.at);
-    if (
-      basis === "observed" &&
-      (sortMs <= fromMs || OBSERVED_EDGE_KINDS.has(it.kind))
-    )
+    if (basis === "observed" && (sortMs <= fromMs || edgeKinds.has(it.kind)))
       return "observed_basis";
     if (Math.min(Date.parse(it.at), sortMs) <= fromMs + DIFF_WINDOW_EDGE_MS)
       return "window";
@@ -406,8 +425,8 @@ export function compareWeeks(computed, mixed, { fromMs, basis }) {
   }
   for (const [id, it] of b)
     if (!a.has(id)) {
-      note("only_mixed", id);
-      count(it.kind, "only_mixed", causeOf(it, "only_mixed"));
+      note(onlyOther, id);
+      count(it.kind, onlyOther, causeOf(it, onlyOther));
     }
   const common = (m, other) => [...m.keys()].filter((id) => other.has(id));
   const ca = common(a, b);

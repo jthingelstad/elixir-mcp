@@ -10,10 +10,15 @@
  * stores what it tells, less what a reader adds (FINISHED below). Nothing
  * here decides what a story says.
  *
- * Players only. A clan's timeline depends on its reader: the account's
- * scope (comprehensive or activity) chooses what buildClanEntry reads,
- * and its standouts count only a crossing learned inside the window. So
- * clan rows wait for the stage that settles both.
+ * A clan's timeline depends on its reader: the account's scope
+ * (comprehensive or activity) chooses what buildClanEntry reads, and its
+ * standouts count only a crossing learned inside the window. Stage 5
+ * (2026-11-26) stores each clan a Timeline reads (TIMELINE_CLANS_SQL)
+ * once, at comprehensive over STORY_CLAN_SPAN_DAYS, with what a window
+ * selects each item by kept server-only, and cuts a reader's window from
+ * the rows (entries.mjs clanWindowItems). Nothing serves clan rows yet:
+ * the lane compares (story-clans.mjs), and every read here stays
+ * players-only (docs/notes/2026-11-26-timeline-story-clans.md).
  *
  * Stage 1 writes from {timeline_story_backfill} and compares on the
  * player page (compareStories). Stage 2 (2026-11-23) keeps the rows
@@ -34,6 +39,7 @@
 import { createHash } from "node:crypto";
 import {
   ITEM_KINDS,
+  NEWS_SOURCES,
   SESSION_GAP_MS,
   buildTimeline,
   itemVisibility,
@@ -42,7 +48,10 @@ import {
   storedItem,
   timelineNews,
 } from "./entries.mjs";
-import { RECORDED_PLAYERS_SQL } from "../recorded-players.mjs";
+import {
+  RECORDED_PLAYERS_SQL,
+  TIMELINE_CLANS_SQL,
+} from "../recorded-players.mjs";
 
 const DAY_MS = 86_400_000;
 
@@ -51,6 +60,13 @@ const DAY_MS = 86_400_000;
  *  through the same stored read; its list reads the Timeline's week,
  *  lookback.mjs) and a margin. */
 export const STORY_SPAN_DAYS = 35;
+/** A clan's span (stage 5, 2026-11-26): the Timeline's week and a day,
+ *  so a story an observed week tells that was played or occurred up to a
+ *  day before the week is held (a return learned a day or more late is
+ *  never told). A read reaching further back is refused `span`. */
+export const STORY_CLAN_SPAN_DAYS = 8;
+const spanDays = (kind) =>
+  kind === "clan" ? STORY_CLAN_SPAN_DAYS : STORY_SPAN_DAYS;
 
 /** Items the store never holds. A Drop game is a signed-in follower's
  *  alone (pageGameReader); a post about a battle is the post's, edited
@@ -118,33 +134,72 @@ export const plainItem = (it) => JSON.parse(JSON.stringify(storedItem(it)));
  *  the sweep and the staleness op look for news since a write. */
 export const STORED_KINDS = ITEM_KINDS.filter((k) => !UNSTORED_KINDS.has(k));
 
-/** The span a write with none covers: STORY_SPAN_DAYS to `now`. */
-export const storySpan = (now = Date.now()) => ({
-  fromMs: now - STORY_SPAN_DAYS * DAY_MS,
+/** The span a write with none covers: the kind's span days to `now`. */
+export const storySpan = (now = Date.now(), kind = "player") => ({
+  fromMs: now - spanDays(kind) * DAY_MS,
   toMs: now,
 });
 
-/** The stories the builder tells about one player over the span, as rows:
- *  the player page's read (occurred, the public game record), with no
- *  reader, no people items (`unstored`) and no cap. */
-export async function buildSubjectStories(db, kind, tag, span = storySpan()) {
-  if (kind !== "player")
-    throw new Error(`timeline_story stores players only, not ${kind}`);
-  const built = await buildTimeline(
-    db,
-    [{ kind: "player", tag, relationship: null, nickname: null }],
-    {
-      fromMs: span.fromMs,
-      toMs: span.toMs,
-      timezone: "UTC",
-      accountId: null,
-      basis: "occurred",
-      lateCounts: false,
-      cap: Number.MAX_SAFE_INTEGER,
-    },
-  );
+/**
+ * A clan row's observed_at column (stage 5): the latest instant an
+ * observed window could select the story by, so `observed_at > from`
+ * holds for every observed window that tells it, and a read by that
+ * column takes a superset that clanWindowItems then cuts exactly. The
+ * served `observed_at` stays the build's. A ledger row's window_end (its
+ * observed select); a standout's latest learned crossing (it is told in a
+ * window that learned any of them); a return's learned instant. Its
+ * sort_at (a sitting's last battle, any other item's `at`) is likewise a
+ * superset for an occurred window: a crossing or a moment in the window
+ * is at or before it, and after `from`.
+ */
+function clanObservedAt(item) {
+  const sup = item._superset;
+  if (sup?.window_end) return sup.window_end;
+  if (sup?.learned_at) return sup.learned_at;
+  if (sup?.crossings?.length)
+    return new Date(
+      Math.max(
+        ...sup.crossings.map((c) => Date.parse(c.learned_at ?? c.at)),
+        Date.parse(item.observed_at ?? item.at),
+      ),
+    ).toISOString();
+  return item.observed_at ?? item.at;
+}
+
+/** The subject as buildTimeline takes it: a player with no reader, or a
+ *  clan at comprehensive (every reader's scope is cut from it). */
+const builtSubject = (kind, tag) =>
+  kind === "clan"
+    ? { kind: "clan", tag, scope: "comprehensive" }
+    : { kind: "player", tag, relationship: null, nickname: null };
+
+/** The stories the builder tells about one subject over the span, as rows:
+ *  occurred (the public game record), with no reader, no people items
+ *  (`unstored`) and no cap. A player is the player page's read. A clan
+ *  (stage 5) is buildClanEntry's stored telling (`clanStored`: every
+ *  member moment, and what a window selects each item by), with no
+ *  account lines and no attested fact (an account's own). */
+export async function buildSubjectStories(
+  db,
+  kind,
+  tag,
+  span = storySpan(Date.now(), kind),
+) {
+  if (kind !== "player" && kind !== "clan")
+    throw new Error(`timeline_story stores players and clans, not ${kind}`);
+  const clan = kind === "clan";
+  const built = await buildTimeline(db, [builtSubject(kind, tag)], {
+    fromMs: span.fromMs,
+    toMs: span.toMs,
+    timezone: "UTC",
+    accountId: null,
+    basis: "occurred",
+    lateCounts: false,
+    cap: Number.MAX_SAFE_INTEGER,
+    ...(clan ? { accountLines: false, clanStored: true } : {}),
+  });
   return built.timeline
-    .filter((it) => !unstored(it))
+    .filter((it) => !unstored(it) && !(clan && it.section === "attested"))
     .map((it) => {
       const { item, content_hash } = storyForm(it);
       return {
@@ -154,7 +209,9 @@ export async function buildSubjectStories(db, kind, tag, span = storySpan()) {
         revision: it.revision ?? 1,
         at: item.at,
         sort_at: item.sort_at,
-        observed_at: item.observed_at ?? item.at,
+        observed_at: clan
+          ? clanObservedAt(item)
+          : (item.observed_at ?? item.at),
         visibility: itemVisibility(it),
         content_hash,
         item,
@@ -163,12 +220,14 @@ export async function buildSubjectStories(db, kind, tag, span = storySpan()) {
 }
 
 /**
- * Builds one subject's stories over `span` ({fromMs, toMs}; the last
- * STORY_SPAN_DAYS when omitted) and stores them: a row is written when
- * it is new or its revision or content hash moved, and a stored row whose
- * sort_at lies inside the span that the build no longer tells is
- * deleted. Rows outside the span are left alone. Safe to run again: a
- * second run over the same record writes nothing.
+ * Builds one subject's stories over `span` ({fromMs, toMs}; the kind's
+ * span when omitted) and stores them: a row is written when it is new or
+ * its revision or content hash moved, and a stored row whose sort_at
+ * lies inside the span that the build no longer tells is deleted. A
+ * player's rows outside the span are left alone; a clan's older ones go
+ * too (its span is a week and a day, and the daily trim's 35 days are
+ * the table's one window). Safe to run again: a second run over the same
+ * record writes nothing.
  *
  * The subject's timeline_story_subject row (0315) records when the build
  * began. Two writes of one subject take turns (a transaction-scoped
@@ -178,7 +237,12 @@ export async function buildSubjectStories(db, kind, tag, span = storySpan()) {
  * Returns counts: `{ stories, written, deleted }`, and `superseded: true`
  * when a newer write was already in.
  */
-export async function writeSubjectStories(db, kind, tag, span = storySpan()) {
+export async function writeSubjectStories(
+  db,
+  kind,
+  tag,
+  span = storySpan(Date.now(), kind),
+) {
   const started = Date.now();
   const rows = await buildSubjectStories(db, kind, tag, span);
   await db.query("begin");
@@ -235,7 +299,7 @@ export async function writeSubjectStories(db, kind, tag, span = storySpan()) {
       [
         kind,
         tag,
-        new Date(span.fromMs).toISOString(),
+        new Date(kind === "clan" ? 0 : span.fromMs).toISOString(),
         new Date(span.toMs).toISOString(),
         rows.map((r) => r.story_id),
       ],
@@ -278,6 +342,34 @@ export async function writtenAt(db, kind, tag) {
 }
 
 /**
+ * A clan's stored rows for an observed window from `fromMs` (stage 5,
+ * 2026-11-26): only the shadow comparison reads them, and no door yet.
+ * Rows by their observed_at column, a superset that clanWindowItems cuts
+ * (clanObservedAt). Answers `{ ok: true, items, written_at }`, each item
+ * as stored (restoredItem it before a cut, which finishes it in place),
+ * or `{ ok: false,
+ * reason }`: `unwritten`, or `span` when `fromMs` is older than the
+ * STORY_CLAN_SPAN_DAYS the write covered.
+ */
+export async function readClanRows(db, tag, { fromMs }) {
+  const written = await writtenAt(db, "clan", tag);
+  if (written === null) return { ok: false, reason: "unwritten" };
+  if (fromMs < written - STORY_CLAN_SPAN_DAYS * DAY_MS)
+    return { ok: false, reason: "span" };
+  const { rows } = await db.query(
+    `select item from timeline_story
+      where subject_kind = 'clan' and subject_tag = $1
+        and observed_at > $2`,
+    [tag, new Date(fromMs).toISOString()],
+  );
+  return {
+    ok: true,
+    items: rows.map((r) => r.item),
+    written_at: written,
+  };
+}
+
+/**
  * A wake's write (the timeline-sync lane, stage 2): `since` is when the
  * wake was written (ISO), after whatever it announces was committed. A
  * write whose build began at or after it already holds that, so the wake
@@ -296,7 +388,12 @@ export async function refreshSubjectStories(
     const at = await writtenAt(db, kind, tag);
     if (at !== null && at >= sinceMs) return { skipped: "fresh" };
   }
-  return writeSubjectStories(db, kind, tag, span ?? storySpan());
+  return writeSubjectStories(
+    db,
+    kind,
+    tag,
+    span ?? storySpan(Date.now(), kind),
+  );
 }
 
 /** Has the record learned anything the stored stories can tell since
@@ -313,6 +410,30 @@ export async function subjectNews(db, tag, sinceMs, nowMs = Date.now()) {
   return any;
 }
 
+/** The kinds a clan's stored rows can be, by the news sources that tell
+ *  them: the ledger, member moments, member battles and quiet rungs.
+ *  Attested facts are an account's, never stored for a clan. */
+export const CLAN_NEWS_KINDS = [
+  ...new Set(
+    ["clan_ledger", "clan_member_moments", "clan_member_battles", "clan_quiet"]
+      .flatMap((k) => NEWS_SOURCES[k])
+      .filter((k) => !UNSTORED_KINDS.has(k)),
+  ),
+];
+
+/** Has the record learned anything a clan's stored stories can tell since
+ *  `sinceMs`? timelineNews over the clan sources (CLAN_NEWS_KINDS) and a
+ *  lifecycle occasion bound since: one statement. */
+export async function clanNews(db, tag, sinceMs, nowMs = Date.now()) {
+  if (sinceMs >= nowMs) return false;
+  const { any } = await timelineNews(
+    db,
+    [{ kind: "clan", tag, scope: "comprehensive" }],
+    { fromMs: sinceMs, toMs: nowMs, kinds: CLAN_NEWS_KINDS, lifecycle: true },
+  );
+  return any;
+}
+
 /** A sitting is closed once its last battle is SESSION_GAP_MS (30 min)
  *  old. A read refuses a stored open sitting from that instant, as a
  *  build would call it closed (2026-11-26: a minute's margin served
@@ -326,6 +447,13 @@ export const STORY_FLOOR_MS = 6 * 3_600_000;
 /** Wakes one sweep writes at most, and the time its news probes take. */
 export const SWEEP_WAKES = 25;
 const SWEEP_BUDGET_MS = 20_000;
+/** Clans one sweep wakes at most (stage 5). A clan's wake is its 8-day
+ *  build and the shadow's two week builds, on the timeline-sync lane
+ *  (180 s a run, ten messages a batch, two runs at once) beside the
+ *  players' and Home's wakes; the heaviest clan's three builds are
+ *  seconds each, so three a five-minute sweep leaves a batch room and
+ *  rewrites every clan at least each STORY_FLOOR_MS at a few hundred. */
+export const SWEEP_CLANS = 3;
 /** A player written this recently is not probed for news. */
 const JUST_WRITTEN_MS = 2 * 60_000;
 
@@ -579,6 +707,23 @@ const RECORDED_PLAYERS = `
       on m.subject_kind = 'player' and m.subject_tag = r.tag
    order by m.written_at nulls first, md5(r.tag)`;
 
+/** Every clan the stored Timeline holds (TIMELINE_CLANS_SQL) with its
+ *  write's time, never written first, then oldest write. */
+async function timelineClans(db) {
+  const { rows } = await db.query(
+    `select c.clan_tag as tag, m.written_at, m.build_ms
+       from (${TIMELINE_CLANS_SQL}) c
+       left join timeline_story_subject m
+         on m.subject_kind = 'clan' and m.subject_tag = c.clan_tag
+      order by m.written_at nulls first, md5(c.clan_tag)`,
+  );
+  return rows.map((r) => ({
+    tag: r.tag,
+    writtenMs: r.written_at ? new Date(r.written_at).getTime() : null,
+    buildMs: r.build_ms ?? null,
+  }));
+}
+
 async function recordedPlayers(db, now) {
   const { rows } = await db.query(RECORDED_PLAYERS, [
     new Date(now - STORY_SPAN_DAYS * DAY_MS).toISOString(),
@@ -602,11 +747,21 @@ async function recordedPlayers(db, now) {
  * STORY_FLOOR_MS). News is probed one player at a time, oldest write
  * first, within SWEEP_BUDGET_MS.
  *
- * Returns `{ tags, counts }`; the counts carry no tag.
+ * Then the clans (stage 5), after the players and inside what is left of
+ * the same budget, at most `clanLimit`: `unwritten`, `news` (clanNews, one
+ * statement a clan, oldest write first) and `floor`.
+ *
+ * Returns `{ tags, counts, clans: { tags, counts } }`; the counts carry
+ * no tag.
  */
 export async function storiesToWake(
   db,
-  { now = Date.now(), limit = SWEEP_WAKES, budgetMs = SWEEP_BUDGET_MS } = {},
+  {
+    now = Date.now(),
+    limit = SWEEP_WAKES,
+    budgetMs = SWEEP_BUDGET_MS,
+    clanLimit = SWEEP_CLANS,
+  } = {},
 ) {
   const started = Date.now();
   const players = await recordedPlayers(db, now);
@@ -639,6 +794,41 @@ export async function storiesToWake(
   for (const p of players)
     if (!p.taken && p.writtenMs !== null && p.writtenMs < now - STORY_FLOOR_MS)
       take(p, "floor");
+  return {
+    tags,
+    counts,
+    clans: await clansToWake(db, started, now, { budgetMs, clanLimit }),
+  };
+}
+
+/** The sweep's clans (storiesToWake). */
+async function clansToWake(db, started, now, { budgetMs, clanLimit }) {
+  const clans = await timelineClans(db);
+  const counts = {
+    set: clans.length,
+    unwritten: 0,
+    news: 0,
+    floor: 0,
+    probed: 0,
+  };
+  const tags = [];
+  const take = (c, reason) => {
+    if (tags.length >= clanLimit) return;
+    tags.push(c.tag);
+    counts[reason] += 1;
+    c.taken = true;
+  };
+  for (const c of clans) if (c.writtenMs === null) take(c, "unwritten");
+  for (const c of clans) {
+    if (tags.length >= clanLimit || Date.now() - started >= budgetMs) break;
+    if (c.taken || c.writtenMs === null) continue;
+    if (c.writtenMs > now - JUST_WRITTEN_MS) continue;
+    counts.probed += 1;
+    if (await clanNews(db, c.tag, c.writtenMs, now)) take(c, "news");
+  }
+  for (const c of clans)
+    if (!c.taken && c.writtenMs !== null && c.writtenMs < now - STORY_FLOOR_MS)
+      take(c, "floor");
   return { tags, counts };
 }
 
@@ -686,6 +876,7 @@ export async function storyStaleness(
     probed: 0,
     complete: true,
     ms: 0,
+    clans: null,
   };
   for (const p of players) {
     if (p.openQuiet) out.open_quiet += 1;
@@ -711,7 +902,43 @@ export async function storyStaleness(
       out.oldest_gap_s = Math.max(out.oldest_gap_s ?? 0, gap);
     }
   }
+  out.clans = await clanStaleness(db, started, now, budgetMs);
+  if (!out.clans.complete) out.complete = false;
   out.ms = Date.now() - started;
+  return out;
+}
+
+/** The clans' half of storyStaleness (stage 5): the set's size, how many
+ *  are written, unwritten and stale (clanNews since the write, within
+ *  what is left of the budget, `probed` of them), the oldest write, and
+ *  the clans' build time (average and most, in ms). */
+async function clanStaleness(db, started, now, budgetMs) {
+  const clans = await timelineClans(db);
+  const written = clans.filter((c) => c.writtenMs !== null);
+  const builds = written.map((c) => c.buildMs).filter((n) => n !== null);
+  const out = {
+    set: clans.length,
+    written: written.length,
+    unwritten: clans.length - written.length,
+    stale: 0,
+    oldest_write_s: written.length
+      ? Math.max(...written.map((c) => Math.round((now - c.writtenMs) / 1000)))
+      : null,
+    build_ms_avg: builds.length
+      ? Math.round(builds.reduce((a, b) => a + b, 0) / builds.length)
+      : null,
+    build_ms_max: builds.length ? Math.max(...builds) : null,
+    probed: 0,
+    complete: true,
+  };
+  for (const c of written) {
+    if (Date.now() - started >= budgetMs) {
+      out.complete = false;
+      break;
+    }
+    out.probed += 1;
+    if (await clanNews(db, c.tag, c.writtenMs, now)) out.stale += 1;
+  }
   return out;
 }
 

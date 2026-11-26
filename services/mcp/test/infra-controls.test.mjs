@@ -1598,6 +1598,28 @@ test("TimelineStoryBuild: Home's two builders read it, shadow by default, and a 
   assert.ok(PRESERVED_PARAMETERS.includes("TimelineStoryBuild"));
 });
 
+test("TimelineStoryClans: only the timeline-sync lane reads it, shadow by default, and a deploy keeps it", async () => {
+  const template = await readFile(templateUrl, "utf8");
+  const functions = [
+    ...template.matchAll(/^  (\w+(?:Function|Revision)):\n/gm),
+  ];
+  const holding = (re) =>
+    functions
+      .filter((entry, index) =>
+        re.test(template.slice(entry.index, functions[index + 1]?.index)),
+      )
+      .map((entry) => entry[1]);
+  // Clans are written and compared on the lane alone; no door reads them.
+  assert.deepEqual(holding(/TIMELINE_STORY_CLANS: !Ref TimelineStoryClans/), [
+    "TimelineSyncFunction",
+  ]);
+  assert.match(
+    template,
+    /^  TimelineStoryClans:\n {4}Type: String\n {4}Default: shadow\n {4}AllowedValues: \["off", "shadow"\]$/m,
+  );
+  assert.ok(PRESERVED_PARAMETERS.includes("TimelineStoryClans"));
+});
+
 test("Turnstile: only the relay holds the secret, only once the app secret carries it; the doors and relay share one mode", async () => {
   const template = await readFile(templateUrl, "utf8");
   const functions = [

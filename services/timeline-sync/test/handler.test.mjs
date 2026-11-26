@@ -583,3 +583,80 @@ test("a player's stored stories (stage 2) are written by their wake; a failure i
     batchItemFailures: [{ itemIdentifier: "e" }],
   });
 });
+
+test("a clan's stored stories (stage 5) are written by their wake with one shadow line; a failure is logged without the tag and dropped", async () => {
+  // An invented tag (docs/invented-tags.json): this repository is public.
+  const C = "#0QRPUY8L";
+  const SINCE = "2026-11-26T12:35:00.000Z";
+  const good = "timeline-sync/story-clan.aa.1.json";
+  const skipped = "timeline-sync/story-clan.bb.1.json";
+  const failing = "timeline-sync/story-clan.cc.1.json";
+  const bad = "timeline-sync/story-clan.dd.1.json";
+  const objects = new Map([
+    [good, JSON.stringify({ v: 1, story_clan: C, since: SINCE })],
+    [skipped, JSON.stringify({ v: 1, story_clan: C, since: SINCE })],
+    [failing, JSON.stringify({ v: 1, story_clan: C })],
+    [bad, JSON.stringify({ v: 1, story_clan: "not a tag" })],
+  ]);
+  const shadow = {
+    clan: "0123456789",
+    stories: 9,
+    written: 2,
+    deleted: 0,
+    write_ms: 40,
+    comprehensive: { computed: 7, stored: 7 },
+    activity: { computed: 5, stored: 5 },
+  };
+  const seen = [];
+  const deleted = [];
+  const handler = makeHandler({
+    connect: async () => ({ end: async () => {} }),
+    sync: async () => assert.fail("not an account sync"),
+    stories: async () => assert.fail("not a player's write"),
+    clanStories: async (_db, tag, opts) => {
+      seen.push([tag, opts]);
+      if (seen.length === 1)
+        return { stories: 9, written: 2, deleted: 0, write_ms: 40, shadow };
+      if (seen.length === 2) return { skipped: "off" };
+      throw Object.assign(new Error(`timeout for ${C}`), { code: "57014" });
+    },
+    readObject: async (obj) => objects.get(obj.key) ?? null,
+    deleteObject: async (obj) => {
+      deleted.push(obj.key);
+      objects.delete(obj.key);
+    },
+  });
+  const lines = [];
+  const [log, error] = [console.log, console.error];
+  console.log = (...a) => lines.push(a);
+  console.error = (...a) => lines.push(a);
+  try {
+    const out = await handler({
+      Records: [
+        record("a", good),
+        record("b", skipped),
+        record("c", failing),
+        record("d", bad),
+      ],
+    });
+    assert.deepEqual(out, { batchItemFailures: [{ itemIdentifier: "d" }] });
+  } finally {
+    [console.log, console.error] = [log, error];
+  }
+  assert.deepEqual(seen, [
+    [C, { since: SINCE }],
+    [C, { since: SINCE }],
+    [C, { since: null }],
+  ]);
+  assert.deepEqual(deleted, [good, skipped, failing]);
+  assert.deepEqual(lines, [
+    [
+      "timeline_story_clan_written",
+      JSON.stringify({ stories: 9, written: 2, deleted: 0, write_ms: 40 }),
+    ],
+    [JSON.stringify({ at: "timeline_story_clan_shadow", ...shadow })],
+    ["timeline_story_clan_written", JSON.stringify({ skipped: "off" })],
+    ["timeline_story_clan_failed", "57014"],
+  ]);
+  assert.ok(!JSON.stringify(lines).includes(C));
+});

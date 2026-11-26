@@ -9,11 +9,14 @@
  *
  * The answer: `{players_recorded, players_with_rows, players_written,
  * players_unwritten, players_stale, oldest_gap_s, oldest_write_s,
- * open_quiet, build_ms_avg, build_ms_max, probed, complete, ms}`.
+ * open_quiet, build_ms_avg, build_ms_max, probed, complete, clans, ms}`.
  * `players_stale` counts the written players whose record learned
  * something after their write; `oldest_gap_s` is the longest of those
  * gaps, in seconds (null when none). Probes run oldest write first, and
- * `complete: false` says the budget stopped them.
+ * `complete: false` says the budget stopped them. `clans` (stage 5,
+ * 2026-11-26) answers the same for the clans some Timeline reads:
+ * `{set, written, unwritten, stale, oldest_write_s, build_ms_avg,
+ * build_ms_max, probed, complete}`.
  */
 import pg from "pg";
 import { storyStaleness } from "@elixir-mcp/tools/activity/story-store";

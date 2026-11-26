@@ -17,3 +17,12 @@ export const RECORDED_PLAYERS_SQL = `select subject_tag as player_tag from recor
          and cm.left_observed_at is null
       where r.subject_type = 'clan' and r.status = 'active'
         and r.scope = 'comprehensive'`;
+
+/** Clans some account's Timeline reads as a subject: an added clan with
+ *  notify on (subjectsFor), one row per clan (`clan_tag`). The stored
+ *  Timeline writes these clans' stories (stage 5, 2026-11-26;
+ *  activity/story-store.mjs). A clan's members are not subjects; its
+ *  scope is the reader's, so the store tells every clan at comprehensive
+ *  and a reader's scope is applied when a window is cut. */
+export const TIMELINE_CLANS_SQL = `select distinct clan_tag from account_clan
+      where notify`;

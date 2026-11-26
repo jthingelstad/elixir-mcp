@@ -42,6 +42,29 @@ export function storyWake(outbox) {
   };
 }
 
+/** The outbox id of a clan's wake in `minute` (stage 5, 2026-11-26). */
+export const storyClanWakeId = (tag, minute) =>
+  `story-clan.${createHash("md5").update(tag).digest("hex")}.${minute}`;
+
+/** A clan's wake writer (stage 5): `{ v: 1, story_clan, since }`, which
+ *  only the jobs' sweep writes (no admission wakes a clan). The lane
+ *  writes and compares the clan when TIMELINE_STORY_CLANS says `shadow`. */
+export function storyClanWake(outbox) {
+  if (!outbox) return null;
+  return (tag, now = Date.now()) => {
+    const minute = Math.floor(now / MINUTE_MS);
+    return outbox(
+      "timeline-sync",
+      {
+        v: 1,
+        story_clan: tag,
+        since: new Date((minute + 1) * MINUTE_MS).toISOString(),
+      },
+      { id: storyClanWakeId(tag, minute), once: true },
+    );
+  };
+}
+
 /** After an admission about `tag`: wake its stories when it is a
  *  recorded player (RECORDED_PLAYERS_SQL: the store holds only those).
  *  One statement; the tag is pushed into both branches of the set, each

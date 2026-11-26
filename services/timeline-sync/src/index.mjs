@@ -35,6 +35,10 @@ import {
 } from "@elixir-mcp/tools/activity/home-feed";
 import { applyPushReceipt } from "@elixir-mcp/tools/activity/push";
 import { refreshSubjectStories } from "@elixir-mcp/tools/activity/story-store";
+import {
+  refreshClanStories,
+  storyClansOf,
+} from "@elixir-mcp/tools/activity/story-clans";
 import { makeHandler } from "./handler.mjs";
 
 const s3 = new S3Client({});
@@ -179,6 +183,12 @@ export const handler = makeHandler({
   // A recorded player's stored stories (stage 2, 2026-11-23).
   stories: (db, playerTag, opts) =>
     refreshSubjectStories(db, "player", playerTag, opts),
+  // A clan's stored stories, compared in shadow (stage 5, 2026-11-26).
+  clanStories: (db, clanTag, opts) =>
+    refreshClanStories(db, clanTag, {
+      ...opts,
+      mode: storyClansOf(process.env.TIMELINE_STORY_CLANS),
+    }),
   async readObject(obj) {
     if (obj.bucket !== bucket) throw new Error("unknown bucket");
     try {
