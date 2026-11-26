@@ -4,14 +4,16 @@ The kinds and delivery behavior are documented publicly at `/docs/email`;
 this file is the design, not the description (AGENTS.md). Composition is
 structured from recorded facts, without model generation.
 
-Five product kinds are active (`ACTIVE_PRODUCT_EMAIL_KINDS` in
-`packages/contracts/src/queue.ts`): two scheduled (`tracking_report`,
-the one digest, weekly or daily by the reader's choice, and
-`collector_activity` weekly, only for collector operators) and three that
+Seven product kinds are active (`ACTIVE_PRODUCT_EMAIL_KINDS` in
+`packages/contracts/src/queue.ts`): four scheduled (the three digests,
+`DIGEST_EMAIL_KINDS`: `digest_daily` the daily brief, `tracking_report`
+the weekly recap and `digest_season` the season recap, each its own
+switch since 2026-11-26; and `collector_activity` weekly, only for
+collector operators) and three that
 come when something happens (`clan_actions_waiting`, `feedback_answer`,
 and since 2026-11-16 `activity_today`, the activity mail).
-The collector upgrade notice is part of `collector_activity`. The digest
-is the one scheduled mail to members; `collector_activity` (to the
+The collector upgrade notice is part of `collector_activity`. The digests
+are the scheduled mail to members; `collector_activity` (to the
 people running a collector) and `clan_actions_waiting` (to leaders with
 an Action waiting, at most once a day per clan) are operational mail to
 a role and stand outside it (DECISIONS "The digest is the one scheduled
@@ -153,13 +155,15 @@ The validator refuses a bulk message without `unsubscribe.url`.
 
 ### Preferences
 
-`account_email_pref (account_id, kind, enabled, changed_at, via, cadence)` with
-`via ∈ {profile, one_click, ops}`; absent row means enabled. `cadence`
-(0242) is the digest's how-often, `weekly` or `daily`, null meaning
-weekly and on no other kind; off is still `enabled = false`, so choosing
-a cadence never turns the digest on, and turning it off keeps the
-cadence. `PUT /api/me/email` takes `{kind: "tracking_report", cadence}`
-with or without `enabled`. Every change
+`account_email_pref (account_id, kind, enabled, changed_at, via)` with
+`via ∈ {profile, one_click, ops}`; an absent row is the kind's default
+(`emailKindDefault`: on, but `digest_daily` off). The `cadence` column
+(0242) is retired since 0320, which moved each choice onto the three
+digest switches (Weekly: weekly and season on; Daily: daily and season
+on, weekly off; Off: all three off); nothing reads or writes it, and a
+later contract migration drops it. `PUT /api/me/email` takes
+`{kind, enabled}`, and `{clan_part}` alone for the digests' clan news
+(the `clan_report` row, read by all three). Every change
 writes an `account_event`. Person principals only: agents have
 no inbox. The ops op is the test path; there is no
 "send me this now" button. `collector_activity` can be flipped only by an
@@ -220,7 +224,8 @@ under `/settings`, battles at
 ### Schedule and plumbing
 
 EventBridge rules invoke the jobs Lambda (reserved concurrency one):
-`collector_activity` on Sundays at 14:00 UTC and the digest every day at
+`collector_activity` on Sundays at 14:00 UTC, `digest_daily` every day
+at 11:00 UTC, and `tracking_report` and `digest_season` on Mondays at
 11:00 UTC (`MAIL_SCHEDULE` in `packages/mail/src/shell.mjs`, pinned to
 the crons by test), and the collector upgrade and feedback-answer drain
 every minute. The clan report, Arena week and milestone rules were
@@ -245,28 +250,45 @@ was sent (`mail/sent/`), so nothing renders a retired kind again. The
 kind names stay in the label tables, `RETIRED_EMAIL_KINDS` and
 `foldedOff()`; the `email_milestone*` tables went in migration 0256.
 
-### `tracking_report`: the digest, Monday or daily ("Your digest")
+### The three digests: `digest_daily`, `tracking_report`, `digest_season`
 
 The digest of the people you follow replaced the friends mail on
 2026-11-12 (social slice 9, #767; Jamie's ruling is quoted in
 `docs/DECISIONS.md`, "The digest is the one scheduled mail; leaders'
-Actions mail stays apart"). It keeps the kind key, so
-the switch, every opt-out and every old unsubscribe link carry over; the
-HMAC covers the kind.
+Actions mail stays apart"). On 2026-11-26 it became three emails at three
+frequencies, each its own kind and switch (Jamie: "it is actually three
+unique emails at three different frequencies ... I should be able to
+select all or none of them"; `docs/notes/2026-11-26-three-digest-emails.md`):
+the daily brief ("Daily brief", off by default), the weekly recap
+("Weekly recap", the old digest's key, so its switch, opt-outs and old
+unsubscribe links carry over; the HMAC covers the kind) and the season
+recap ("Season recap"). One builder and one renderer serve all three;
+the kind sets the span, title, footer and why-line.
 
-**When.** One rule, every day at 11:00 UTC (`MAIL_SCHEDULE`,
-`daily: true`), an hour after the game's 10:00 UTC reset (Jamie,
-2026-11-13: "right after the weekly reset"; a river race closes about
-09:40 UTC, before it). A scheduled run takes readers whose cadence is
-weekly only on a UTC Monday (`DIGEST_WEEKLY_DAY`), and daily readers every
-day; an ops run for one account, or a forced one, ignores the day. The
-period key is the UTC date, so the ledger allows one digest a day per
-account (`~m<ms>` on a manual send, as elsewhere).
+**When** (`digestSlot` in `services/jobs/src/email/index.mjs`). Each kind
+has its own EventBridge rule at 11:00 UTC, an hour after the game's
+10:00 UTC reset (Jamie, 2026-11-13: "right after the weekly reset"; a
+river race closes about 09:40 UTC, before it):
+
+- `digest_daily`: every day; period key the UTC date.
+- `tracking_report`: Mondays; a scheduled run on another UTC day sends
+  nothing. Period key the UTC date.
+- `digest_season`: its rule fires every Monday, and a scheduled run sends
+  only within a day of a season's start (`seasonFromDate`,
+  `@elixir-mcp/record/war-clock`: the first Monday at 10:00 UTC). Period
+  key `S<id>` of the season that just closed.
+
+An ops run for one account, or a forced one, ignores the day. The ledger
+allows one issue per kind per period per account (`~m<ms>` on a manual
+send, as elsewhere). On a rollover Monday a reader with all three on gets
+all three: intended.
 
 **The window** (`digestWindow` in `services/jobs/src/email/build-digest.mjs`)
-is the week or the day before the run, starting no earlier than the last
-scheduled digest (`email_send.enqueued_at`, manual sends excluded), so a
-switch from daily to weekly never tells an item twice.
+is the day or week before the run, or the closed season from its start,
+starting no earlier than that kind's last scheduled send
+(`email_send.enqueued_at`, manual sends excluded; `lastDigests` per
+kind), so no email tells an item twice. The three kinds are independent:
+the weekly recap tells what the daily brief told.
 
 **What it reads.** `buildTimeline` in-process over the reader's subjects
 (`subjectsFor`: claims and clans with notify on), basis `observed` (what
@@ -347,11 +369,12 @@ Regression: `services/jobs/test/digest-posts.test.mjs`.
   first, with its items and progress.
 - **Never empty:** null (no mail) when no one followed played or posted,
   the reader has nothing, and no clan part would send. A clan part alone
-  sends a weekly digest; a daily one only when a race finished.
+  sends a weekly or season recap; a daily brief only when a race finished.
 - **The fold (`foldedOff`).** A reader who had turned `clan_report` off
   never gets a digest for clan news alone; one who had turned
   `arena_week` off gets alts as a name and battle count, as before. No
-  one gets more mail than before the merge; digest off stays off.
+  one gets more mail than before the merge; a digest off stays off. The
+  clan news switch is one for all three digests.
 - Names link to the player page (`playerDoor`, `/home/player/<tag>`),
   for every reader.
 - Everything a person typed (names, nicknames, words) is escaped at the
@@ -541,19 +564,21 @@ no tool returns is left out, not estimated.
 ## The Settings page
 
 Settings › Emails (`apps/web/src/views/account/EmailPage.jsx`):
-the two scheduled kinds (the digest with its cadence, and collector
-activity) as rows showing the day each arrives in the account's zone,
+the scheduled kinds (the three digests, each its own switch, then their
+Clan news switch, then collector activity) as rows showing when each
+arrives in the account's zone,
 the three event kinds below them, the last
 four sends beside them, and an Every email switch at the top. The page
 computes no schedule of its own: `GET /api/me/email` returns, per active
-kind, `product` (`MAIL_SOURCE`), `sends` (`{weekday, time, zone}` from
-`mailSendTime`, the footer's function; null for the event kinds),
+kind, `product` (`MAIL_SOURCE`), `sends` (`{weekday, time, zone, every}` from
+`mailSendTime`, the footer's function, `every` one of day, week or
+season; null for the event kinds),
 `last_send_id` and `applies` (the activity mail applies with a verified
 own player). An absent row is the kind's default (`emailKindDefault`).
-Every email is on only when all five are,
+and a top-level `clan_part`. Every email is on only when all of them are,
 and writes `"all"`.
 
 ## Not built
 
-- Local-morning delivery: the digest sends at 11:00 UTC and collector
+- Local-morning delivery: the digests send at 11:00 UTC and collector
   activity at 14:00 UTC.

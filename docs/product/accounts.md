@@ -87,7 +87,7 @@ built, linking each choice to the page that owns it.
    never a referral id; a Follow me link carries player tags and nothing
    else. [Jamie, 2026-09-19, 2026-10-08, 2026-11-11]
 6. **The person owns the switches.** Settings holds them: players and
-   follows, every mail kind and the digest's cadence, time zone,
+   follows, every mail kind (the three digests among them), time zone,
    connections and their grants, the RSS link, Discord, feedback
    and its answers. Every mail has its own off switch and a stop is never
    undone. The app tells time in the account's zone, named. [Jamie,

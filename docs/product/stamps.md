@@ -119,7 +119,7 @@ The full list can expand. Completed users get the feed immediately.
 2. Verify your main player.
 3. Pick your picture.
 4. Follow one player who has played in the last seven days.
-5. Choose the digest: weekly, daily or off.
+5. Choose your emails: daily, weekly or season (any choice counts).
 6. Choose for the clan map: set a place or choose Not now.
 
 One active friend is enough; a parent need not follow strangers.

@@ -28,11 +28,11 @@ Elixir fixes that.
   own words.
 - **Keep up with your clan.** Follow it to see its week. Lead it? Run it on
   your clan's rules in [Clan](/clan).
-- **Get your digest.** One email with your friends and your clan's news,
-  weekly or daily, so you keep up even when you don't open Elixir.
+- **Get your digests.** Your friends and your clan's news by email, daily,
+  weekly or each season, so you keep up even when you don't open Elixir.
 
 **Getting started:** sign in, add your player tag, follow a few people and
-choose your digest. The [Quickstart](/docs/quickstart) walks you through it.
+choose your emails. The [Quickstart](/docs/quickstart) walks you through it.
 Everything inside needs an account. A post or battle link someone
 shares opens for anyone.
 

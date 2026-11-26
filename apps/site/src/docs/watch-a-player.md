@@ -38,7 +38,7 @@ notification choices and private nicknames are yours to keep.
 
 Elixir records their next reads, and their sessions and moments appear
 in your Timeline while their Notifications switch is on. Their player page
-opens Stats. Your digest includes friends who played or posted.
+opens Stats. Your digest emails include friends who played or posted.
 
 ## Stopping
 

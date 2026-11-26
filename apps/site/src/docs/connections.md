@@ -106,7 +106,7 @@ on a phone it folds into one row above the page.
 | Page | What it does |
 |---|---|
 | Profile | your address, the timezone your date windows use and Elixir prints every time in (a new account starts on its signup browser's; UTC when it has none), and closing your account |
-| Emails | your digest (**Weekly**, **Daily** or **Off**), a switch for each other email, and **All sent**, the emails Elixir sent you ([Turn an email off](/docs/turn-an-email-off)) |
+| Emails | a switch for each digest (**Daily brief**, **Weekly recap**, **Season recap**) and their **Clan news**, a switch for each other email, and **All sent**, the emails Elixir sent you ([Turn an email off](/docs/turn-an-email-off)) |
 | Players & following | your players (relationship, nickname, notify) and your clans (scope, notify), and where you change them; your AI can also start following someone and set a nickname with its tools |
 | Players & following › Verify | prove that you control a player by playing one battle with a deck Elixir names |
 | Connections | every app you connected as yourself, its last call, address and country, calls this week, refused credentials; controls to change capabilities or disconnect; the `/mcp` address to copy; the questions to try once your AI can answer; Discord sharing for your Timeline; and [your RSS link](/docs/timeline#your-rss-link) |
