@@ -627,6 +627,13 @@ async function switchDecks(db, rows) {
 }
 /** The deck symbol on an item, when the sitting has one. */
 const deckOf = (s) => (s.deckRow ? { [DECK]: s.deckRow } : {});
+/** What a clan's stored story keeps beyond what its build serves
+ *  (2026-11-26, stage 5 of the stored Timeline): the instants a window's
+ *  build selects it by, so a window can be cut from the 8-day rows
+ *  (clanWindowItems). A ledger row's `window_end`; a standout's every
+ *  crossing with when it was played and learned; a return's learned
+ *  instant. Server-only, never served: clanWindowItems strips it. */
+const SUPERSET = Symbol("clan story superset");
 /** A finished item as Home's stored week keeps it (home_feed, 0245): its
  *  server-only fields as plain keys, so they survive JSON. Never served:
  *  `restoredItem` puts them back under their symbols. A week stored
@@ -637,18 +644,21 @@ export function storedItem(it) {
   if (it[DECK] !== undefined) out._deck = it[DECK];
   if (it[EVIDENCE] !== undefined) out._evidence_source = it[EVIDENCE];
   if (it[LEARNED_LATE] === true) out._learned_late = true;
+  if (it[SUPERSET] !== undefined) out._superset = it[SUPERSET];
   return out;
 }
 /** A stored item as the builder finished it: its server-only fields back
  *  under their symbols, and nothing else changed. */
 export function restoredItem(stored) {
-  const { _spark, _deck, _evidence_source, _learned_late, ...it } = stored;
+  const { _spark, _deck, _evidence_source, _learned_late, _superset, ...it } =
+    stored;
   if (_spark !== undefined) it[SPARK] = _spark;
   if (_deck !== undefined) it[DECK] = _deck;
   // A source the page's read stored on 2026-11-23 also says
   // `late_battles`, which no read asks any more: every read counts them.
   if (_evidence_source !== undefined) it[EVIDENCE] = _evidence_source;
   if (_learned_late === true) it[LEARNED_LATE] = true;
+  if (_superset !== undefined) it[SUPERSET] = _superset;
   return it;
 }
 const evidenceVersion = (...parts) =>
@@ -1145,6 +1155,9 @@ function sessionsOf(battles, toMs, { learned = () => true } = {}) {
         crossed: [],
         crossings: [],
         newly: [],
+        // Every crossing with when it was played and learned, whatever
+        // the window: what a clan's stored standout keeps (SUPERSET).
+        every: [],
         decks: new Map(),
         events: new Map(),
         // Ranked as the game tells it (2026-11-16): the league each
@@ -1239,6 +1252,11 @@ function sessionsOf(battles, toMs, { learned = () => true } = {}) {
             battle_id: b.battle_id ?? null,
           };
           cur.crossings.push(crossing);
+          cur.every.push({
+            label,
+            at: iso(t),
+            learned_at: b.created_at ? iso(b.created_at.getTime()) : null,
+          });
           if (learned(b))
             cur.newly.push({
               label,
@@ -1268,6 +1286,7 @@ function sessionsOf(battles, toMs, { learned = () => true } = {}) {
     crossed: s.crossed,
     crossings: s.crossings,
     newly: s.newly,
+    every: s.every,
     ...(s.ranked ? { ranked: rankedFacts(s.ranked) } : {}),
     deckCounts: s.decks,
     eventCounts: s.events,
@@ -1541,6 +1560,7 @@ function sessionFacts({
   crossed: _c,
   crossings: _x,
   newly: _n,
+  every: _v,
   learned_at: _l,
   deckCounts: _d,
   eventCounts: _e,
@@ -3339,6 +3359,13 @@ export async function buildClanEntry(
     // compact, or sections without activity): no sentence or item says
     // either count, so the answer is the same without them.
     lateCounts = true,
+    // The clan's stored telling (stage 5 of the stored Timeline,
+    // 2026-11-26; story-store.mjs): an occurred build over the span that
+    // keeps every member moment (no MEMBER_MOMENTS_CAP), every standout
+    // a crossing played or learned in the span, and on each item what a
+    // window's build selects it by (SUPERSET). clanWindowItems cuts a
+    // window from it.
+    stored = false,
   },
 ) {
   const occurred = basis === "occurred";
@@ -3483,8 +3510,13 @@ export async function buildClanEntry(
     byPlayerAll.get(r.player_tag).push(r);
   }
   const standoutSessions = [];
+  // Stored, a crossing learned in the span counts too: an observed window
+  // inside the span tells a crossing played before it and learned in it.
+  const standoutLearned = stored
+    ? (b) => b.learned || b.created_at?.getTime() > fromMs
+    : (b) => b.learned;
   for (const [playerTag, rows] of byPlayerAll)
-    for (const sess of sessionsOf(rows, toMs, { learned: (b) => b.learned }))
+    for (const sess of sessionsOf(rows, toMs, { learned: standoutLearned }))
       if (sess.newly.length)
         standoutSessions.push({ player_tag: playerTag, ...sess });
   await timed(perf, "clan.sessions", () => nameSessions(db, standoutSessions));
@@ -3908,6 +3940,7 @@ export async function buildClanEntry(
             after_days: Math.floor((end - start) / DAY_MS),
             at: iso(end),
             observed_at: iso(learnedMs ?? end),
+            learned_at: iso(learnedAt.get(`${m.player_tag}|${end}`) ?? end),
           });
         for (const rung of QUIET_RUNGS_DAYS) {
           const atMs = start + rung * DAY_MS;
@@ -4311,6 +4344,7 @@ export async function buildClanEntry(
           ? { ...e.payload, members: weekMembers.get(weekKey(e.payload)) ?? [] }
           : e.payload,
       [STORY]: ledgerStory("clan_event", clanFirstIds, e),
+      ...(stored ? { [SUPERSET]: { window_end: iso(e.window_end) } } : {}),
     });
   }
   const memberDeck = await switchDecks(db, memberRows);
@@ -4334,9 +4368,12 @@ export async function buildClanEntry(
   }));
   // Newest first before the cap (Jamie, 2026-09-23: the timeline is a
   // stream of what is new), so what a busy window drops is the oldest,
-  // counted in `more`.
-  memberItems.sort((a, b) => b.at.localeCompare(a.at));
-  items.push(...memberItems.slice(0, MEMBER_MOMENTS_CAP));
+  // counted in `more`. Moments at one instant go by story id
+  // (2026-11-26), so the cut is the same from stored rows
+  // (clanWindowItems).
+  memberItems.sort(memberMomentOrder);
+  const momentCap = stored ? Infinity : MEMBER_MOMENTS_CAP;
+  items.push(...memberItems.slice(0, momentCap));
   // A standout session is an item at the instant of the first rung this
   // window learned, observed when the record learned that battle. Every
   // standout is an item (Gym #164: five were served and the rest dropped
@@ -4391,6 +4428,7 @@ export async function buildClanEntry(
       },
       [SPARK]: sess.spark,
       ...deckOf(sess),
+      ...(stored ? { [SUPERSET]: { crossings: sess.every } } : {}),
       [STORY]: sittingStory(
         sess.player_tag,
         standoutAnchored[i],
@@ -4436,13 +4474,14 @@ export async function buildClanEntry(
           after_days: r.after_days,
         },
         [STORY]: moment("returned", r.tag, r.at),
+        ...(stored ? { [SUPERSET]: { learned_at: r.learned_at } } : {}),
       });
   }
   return {
     entry,
     items,
-    more: Math.max(0, memberItems.length - MEMBER_MOMENTS_CAP),
-    dropped: memberItems.slice(MEMBER_MOMENTS_CAP),
+    more: Math.max(0, memberItems.length - momentCap),
+    dropped: memberItems.slice(momentCap),
   };
 }
 
@@ -5382,6 +5421,9 @@ export async function buildTimeline(
     // callers (Home's week): `entries` and `quiet` leave the stored
     // players out. Null: every player is built.
     storedPlayers = null,
+    // A clan's stored telling (buildClanEntry's `stored`): the store's
+    // own clan build (story-store.mjs) and nothing else.
+    clanStored = false,
   },
 ) {
   const entries = [];
@@ -5434,6 +5476,7 @@ export async function buildTimeline(
         memberTag,
         basis,
         lateCounts,
+        stored: clanStored,
       });
       entries.push(built.entry);
       items.push(...built.items);
@@ -5833,6 +5876,150 @@ export async function storedTimeline(
   });
 }
 
+/** A story's id, told or not yet (its STORY). */
+const idOf = (it) =>
+  String(
+    it.id ?? it[STORY]?.id ?? (it[STORY]?.key ? storyId(...it[STORY].key) : ""),
+  );
+/** A clan's member moments as its cap takes them: newest first, then by
+ *  story id (2026-11-26), one order for a build and for stored rows. */
+const memberMomentOrder = (a, b) =>
+  (b.at ?? "").localeCompare(a.at ?? "") || idOf(a).localeCompare(idOf(b));
+
+const inWindow = (instant, fromMs, toMs) => {
+  const t = Date.parse(instant);
+  return t > fromMs && t <= toMs;
+};
+const unsuperset = ({ [SUPERSET]: _s, ...it }) => it;
+/** Kinds an activity-scope clan never tells: buildClanEntry reads
+ *  presence for comprehensive clans only. */
+const PRESENCE_KINDS = new Set(["quiet_crossed", "returned"]);
+
+/**
+ * A clan's stored standout as a window's build tells it (stage 5 of the
+ * stored Timeline, 2026-11-26), or null when the window learned none of
+ * its crossings. A build keeps a standout when a rung was crossed by a
+ * battle the window selects: played in it (occurred) or learned in it
+ * (observed). Its `at` is the first such crossing's battle, its
+ * `observed_at` the latest of their learned instants, and `facts.newly`
+ * their labels; everything else is the sitting's and the same in any
+ * window. The stored item keeps every crossing (SUPERSET) for this.
+ */
+export function standoutInWindow(item, { fromMs, toMs, basis }) {
+  const newly = (item[SUPERSET]?.crossings ?? []).filter((c) =>
+    basis === "occurred"
+      ? inWindow(c.at, fromMs, toMs)
+      : c.learned_at !== null && inWindow(c.learned_at, fromMs, toMs),
+  );
+  if (!newly.length) return null;
+  return {
+    ...item,
+    at: newly[0].at,
+    observed_at: iso(
+      Math.max(...newly.map((c) => Date.parse(c.learned_at ?? c.at))),
+    ),
+    facts: { ...item.facts, newly: newly.map((c) => c.label) },
+  };
+}
+
+/**
+ * One window of a clan's stored items (restoredItem's, SUPERSET kept), as
+ * buildClanEntry would select it for a reader of `scope`, with
+ * buildTimeline's `more` and `dropped`. Pure: each kind by the instant
+ * its build selects by.
+ *
+ *  - The ledger (roster and war): observed, its row's window_end in the
+ *    window; occurred, `at` in it and window_end after `from`.
+ *  - Member moments: observed, `observed_at` in the window; occurred,
+ *    `at` in it and `observed_at` after `from`. Then MEMBER_MOMENTS_CAP,
+ *    in the builder's order (memberMomentOrder).
+ *  - Standouts: standoutInWindow.
+ *  - Returns: observed, the instant the record learned the battle that
+ *    ended the gap, which is the item's `observed_at`; occurred, `at`.
+ *  - Quiet crossings: `at`, on either basis.
+ *
+ * An activity-scope reader gets no presence (quiet_crossed, returned).
+ * What a window's build decides that rows cannot hold (the note lists
+ * it) is left to the comparison.
+ */
+export function clanWindowItems(
+  items,
+  { fromMs, toMs, basis, scope = "comprehensive" },
+) {
+  const occurred = basis === "occurred";
+  const kept = [];
+  const moments = [];
+  for (const it of items) {
+    if (scope !== "comprehensive" && PRESENCE_KINDS.has(it.kind)) continue;
+    const sup = it[SUPERSET];
+    if (it.kind === "session_standout") {
+      const told = standoutInWindow(it, { fromMs, toMs, basis });
+      if (told) kept.push(unsuperset(told));
+    } else if (it.kind === "returned") {
+      const learned = sup?.learned_at ?? it.at;
+      if (inWindow(occurred ? it.at : learned, fromMs, toMs))
+        kept.push(
+          unsuperset({ ...it, observed_at: occurred ? it.at : learned }),
+        );
+    } else if (sup?.window_end) {
+      if (
+        occurred
+          ? inWindow(it.at, fromMs, toMs) && Date.parse(sup.window_end) > fromMs
+          : inWindow(sup.window_end, fromMs, toMs)
+      )
+        kept.push(unsuperset(it));
+    } else if (it.section === "standouts") {
+      const seen = it.observed_at ?? it.at;
+      if (
+        occurred
+          ? inWindow(it.at, fromMs, toMs) && Date.parse(seen) > fromMs
+          : inWindow(seen, fromMs, toMs)
+      )
+        moments.push(unsuperset(it));
+    } else if (inWindow(it.at, fromMs, toMs)) kept.push(unsuperset(it));
+  }
+  moments.sort(memberMomentOrder);
+  return {
+    items: [...kept, ...moments.slice(0, MEMBER_MOMENTS_CAP)],
+    more: Math.max(0, moments.length - MEMBER_MOMENTS_CAP),
+    dropped: moments.slice(MEMBER_MOMENTS_CAP),
+  };
+}
+
+/**
+ * One clan's timeline for a window from its stored items (stage 5,
+ * 2026-11-26): clanWindowItems, then the builder's own tail
+ * (finishTimeline). Compared with a build in shadow (story-clans.mjs);
+ * no door serves it yet. Entries and quiet are empty.
+ */
+export async function storedClanTimeline(
+  db,
+  tag,
+  stored,
+  {
+    fromMs,
+    toMs,
+    basis,
+    scope = "comprehensive",
+    timezone = "UTC",
+    filter = null,
+    cap = TIMELINE_CAP,
+  },
+) {
+  const cut = clanWindowItems(stored, { fromMs, toMs, basis, scope });
+  return finishTimeline(db, cut.items, {
+    subjects: [{ kind: "clan", tag, scope }],
+    filter,
+    fromMs,
+    toMs,
+    timezone,
+    basis,
+    cap,
+    more: cut.more,
+    dropped: cut.dropped,
+  });
+}
+
 const observedOf = (it) => Date.parse(it.observed_at ?? it.at);
 
 /** The instant a story sorts by: a sitting's last battle (it moved
@@ -6059,10 +6246,11 @@ export const NEWS_SOURCES = {
 export async function timelineNews(
   db,
   subjects,
-  { fromMs, toMs, accountId = null, kinds = null },
+  { fromMs, toMs, accountId = null, kinds = null, lifecycle = false },
 ) {
   const wants = (source) =>
     !kinds ||
+    source === "clan_lifecycle" ||
     NEWS_SOURCES[source].some((k) =>
       k === "account_*"
         ? kinds.some((x) => x.startsWith("account_"))
@@ -6193,11 +6381,20 @@ export async function timelineNews(
                 where ${inWindow("f.recorded_at")}
                   and ((f.subject_kind = 'clan' and f.clan_tag = any(p.clans))
                     or (f.subject_kind = 'player' and f.player_tag = any(p.players))))`,
+    // With `lifecycle` (a clan's stored stories, 2026-11-26): an occasion
+    // bound to a roster observation renames its ledger story
+    // (firstEventIds).
+    clan_lifecycle:
+      lifecycle &&
+      clans.length &&
+      `exists (select 1 from clan_lifecycle l
+                where l.clan_tag = any(p.clans) and ${inWindow("l.observed_at")})`,
   };
   const asked = Object.entries(checks).filter(([k, sql]) => sql && wants(k));
   const sources = Object.fromEntries(
     Object.keys(NEWS_SOURCES).map((k) => [k, false]),
   );
+  if (lifecycle) sources.clan_lifecycle = false;
   if (asked.length) {
     const {
       rows: [row],

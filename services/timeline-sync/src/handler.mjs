@@ -48,6 +48,13 @@
  * player's record is then newer than its write, and the next sweep wakes
  * it again.
  *
+ * A clan's stored stories (stage 5, 2026-11-26) are rewritten by `{ v: 1,
+ * story_clan, since }`, which only the jobs' sweep writes. With
+ * TIMELINE_STORY_CLANS at `shadow` the write is compared with the clan
+ * built live, and one `timeline_story_clan_shadow` line of counts and
+ * story ids is logged (no tag). A failed write is logged by its error's
+ * class and dropped, as a player's is.
+ *
  * The relay's receipts for the quality ledger (0222: what Discord
  * answered for each post) arrive on discord-receipt/ and are read into
  * the ledger here, the one place in the VPC its notifications reach. Its
@@ -81,6 +88,7 @@ const LANES = [
  *   pushReceipts?: ((db: any, msg: object) => Promise<object | null>) | null,
  *   homeFeed?: ((db: any, accountId: string, opts?: { since?: string }) => Promise<object>) | null,
  *   stories?: ((db: any, playerTag: string, opts: { since: string | null }) => Promise<object>) | null,
+ *   clanStories?: ((db: any, clanTag: string, opts: { since: string | null }) => Promise<object>) | null,
  *   readObject: (obj: {bucket: string, key: string}) => Promise<string | null>,
  *   deleteObject: (obj: {bucket: string, key: string}) => Promise<unknown>,
  * }} deps
@@ -95,6 +103,7 @@ export function makeHandler({
   pushReceipts = null,
   homeFeed = null,
   stories = null,
+  clanStories = null,
   readObject,
   deleteObject,
 }) {
@@ -181,6 +190,29 @@ export function makeHandler({
           // Counts and the error's class only: no tag in this log.
           console.error(
             "timeline_story_failed",
+            err?.code ?? err?.name ?? "error",
+          );
+        }
+      } else if (msg?.v === 1 && typeof msg.story_clan === "string") {
+        if (!isCanonicalTag(msg.story_clan) || !clanStories)
+          return "bad_message";
+        const since =
+          typeof msg.since === "string" &&
+          Number.isFinite(Date.parse(msg.since))
+            ? msg.since
+            : null;
+        try {
+          const { shadow = null, ...out } =
+            (await clanStories(await db(), msg.story_clan, { since })) ?? {};
+          console.log("timeline_story_clan_written", JSON.stringify(out));
+          // One line a write: counts, story ids and a short hash, no tag.
+          if (shadow)
+            console.log(
+              JSON.stringify({ at: "timeline_story_clan_shadow", ...shadow }),
+            );
+        } catch (err) {
+          console.error(
+            "timeline_story_clan_failed",
             err?.code ?? err?.name ?? "error",
           );
         }

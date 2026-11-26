@@ -155,6 +155,16 @@ Parameters:
       off and stored, then built again with followed players from their
       stored stories, and one line of differences is logged. on - that
       second build is stored. A deploy never resets it.
+  TimelineStoryClans:
+    Type: String
+    Default: shadow
+    AllowedValues: ["off", "shadow"]
+    Description: >-
+      The stored Timeline's clan stories (2026-11-26, stage 5). shadow -
+      the timeline-sync lane writes each due clan's stories and compares
+      a build of its week with the week cut from its rows, logging one
+      line of differences. off - no clan is written or compared. Nothing
+      is served from clan rows. A deploy never resets it.
   DiscordClientId:
     Type: String
     Default: ""
@@ -1991,6 +2001,8 @@ Resources:
           PGOPTIONS: "-c statement_timeout=50s -c idle_in_transaction_session_timeout=60s"
           # Home's week from stored stories, on the lane's build (2026-11-25).
           TIMELINE_STORY_BUILD: !Ref TimelineStoryBuild
+          # Clan stories written and compared on the lane (2026-11-26).
+          TIMELINE_STORY_CLANS: !Ref TimelineStoryClans
           OUTBOX_BUCKET: !Ref OutboxBucket
           ARCHIVE_BUCKET: !Ref ArchiveBucket
           # Seals a clan's rewrite request and opens its reply; the

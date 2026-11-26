@@ -99,6 +99,7 @@ test("the answer counts players, writes and gaps, with no tag", async () => {
   assert.deepEqual(Object.keys(out).sort(), [
     "build_ms_avg",
     "build_ms_max",
+    "clans",
     "complete",
     "ms",
     "oldest_gap_s",

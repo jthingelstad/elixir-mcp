@@ -112,6 +112,9 @@ export const PRESERVED_PARAMETERS = [
   // The stored Timeline's build of Home's week (2026-11-25): shadow by
   // default, moved to on or off only by hand.
   "TimelineStoryBuild",
+  // The stored Timeline's clan stories (2026-11-26): shadow by default,
+  // switched off only by hand.
+  "TimelineStoryClans",
 ];
 
 /**

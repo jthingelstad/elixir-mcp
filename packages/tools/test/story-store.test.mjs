@@ -12,6 +12,7 @@ import { scratchDb } from "../../ingest/test/helpers.mjs";
 import {
   STORY_SPAN_DAYS,
   compareStories,
+  readSubjectStories,
   storySpan,
   writeSubjectStories,
 } from "../src/activity/story-store.mjs";
@@ -215,9 +216,19 @@ test("a write deletes inside its span what the build no longer tells, and keeps 
     assert.equal(diff[k], 0, `${k}: ${JSON.stringify(diff)}`);
 });
 
-test("clans are refused until their stage", async () => {
+// Clans are written since stage 5 (2026-11-26, story-clans.test.mjs);
+// no read serves them yet, and no other kind is stored.
+test("reads serve players only, and only players and clans are written", async () => {
   await assert.rejects(
-    writeSubjectStories(db, "clan", "#0Q2L8", storySpan(NOW)),
+    readSubjectStories(db, "clan", "#0Q2L8", {
+      fromMs: NOW - DAY,
+      toMs: NOW,
+      visibilities: ["public"],
+    }),
     /players only/,
+  );
+  await assert.rejects(
+    writeSubjectStories(db, "account", "#0Q2L8", storySpan(NOW)),
+    /players and clans/,
   );
 });
