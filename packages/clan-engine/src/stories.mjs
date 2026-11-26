@@ -640,8 +640,10 @@ function sittingStory(it, { after = false, told = new Set() } = {}) {
   const f = it.facts ?? {};
   const rec = `${f.won ?? 0}-${f.lost ?? 0}${f.drawn ? `-${f.drawn}` : ""}`;
   const decks = (f.decks ?? []).map((d) => d.label).filter(Boolean);
+  // Two modes with one count go by name, never by the object's key
+  // order: a stored row's is jsonb's, a build's the order played.
   const modes = Object.entries(f.by_mode ?? {})
-    .sort((a, b) => b[1] - a[1])
+    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
     .map(([m, n]) => `${n} ${m}`);
   const partner = f.teammate?.name;
   let text = after
