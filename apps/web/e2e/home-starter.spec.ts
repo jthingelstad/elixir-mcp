@@ -121,7 +121,10 @@ const home = (
     ...more,
   });
 
-const NEW = { following: 0, digest: null };
+const NEW = {
+  following: 0,
+  emails: { chosen_at: null, daily: false, weekly: true, season: true },
+};
 
 async function noSideways(page: Page) {
   const over = await page.evaluate(
@@ -304,7 +307,12 @@ test("offered to an account following few after its profile list is done, and No
     home(
       {
         following: 3,
-        digest: { chosen_at: AGO(600), enabled: true, cadence: "weekly" },
+        emails: {
+          chosen_at: AGO(600),
+          daily: false,
+          weekly: true,
+          season: true,
+        },
       },
       offer(),
       {
@@ -341,9 +349,16 @@ test("following five, or put aside: no list, and no read for it", async ({
   };
   await mockApi(
     page,
-    home({ following: 5, digest: null }, offer(), {
-      "GET /api/me/people/starter": count,
-    }),
+    home(
+      {
+        following: 5,
+        emails: { chosen_at: null, daily: false, weekly: true, season: true },
+      },
+      offer(),
+      {
+        "GET /api/me/people/starter": count,
+      },
+    ),
   );
   await page.goto("/home");
   await expect(page.locator(".kit-feed")).toBeVisible();

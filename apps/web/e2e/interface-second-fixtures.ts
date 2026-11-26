@@ -88,20 +88,31 @@ export const RECRUIT = {
 
 export const EMAILS = {
   kinds: [
-    ["tracking_report", "Your digest", "Timeline", "Wednesday"],
-    ["collector_activity", "Collector activity", "Collectors", "Sunday"],
-    ["clan_actions_waiting", "Clan actions waiting", "Clan", null],
-    ["feedback_answer", "Answers to your feedback", "Account", null],
-    ["activity_today", "Cheers on your play", "Timeline", null],
-  ].map(([kind, label, product, weekday]) => ({
+    ["digest_daily", "Daily brief", "Timeline", "Monday", "day"],
+    ["tracking_report", "Weekly recap", "Timeline", "Monday", "week"],
+    ["digest_season", "Season recap", "Timeline", "Monday", "season"],
+    [
+      "collector_activity",
+      "Collector activity",
+      "Collectors",
+      "Sunday",
+      "week",
+    ],
+    ["clan_actions_waiting", "Clan actions waiting", "Clan", null, null],
+    ["feedback_answer", "Answers to your feedback", "Account", null, null],
+    ["activity_today", "Cheers on your play", "Timeline", null, null],
+  ].map(([kind, label, product, weekday, every]) => ({
     kind,
     label,
     product,
     enabled: true,
     applies: true,
-    sends: weekday ? { weekday, time: "9:00 am", zone: "Central" } : null,
+    sends: weekday
+      ? { weekday, time: "9:00 am", zone: "Central", every }
+      : null,
     last_send_id: null,
   })),
+  clan_part: true,
   recent: [
     {
       send_id: "fixture-digest",

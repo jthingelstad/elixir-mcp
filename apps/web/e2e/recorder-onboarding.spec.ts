@@ -617,7 +617,7 @@ test("Quickstart starts with browser use and retains client deep links", async (
   await expect(
     page.getByRole("heading", { name: "Get started with Elixir", exact: true }),
   ).toBeVisible();
-  await expect(page.locator("main")).toContainText("Choose your digest");
+  await expect(page.locator("main")).toContainText("Choose your emails");
   await expect(page.locator("main")).toContainText("Connect a client");
   await expect(
     page

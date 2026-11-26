@@ -16,8 +16,16 @@ import { SETTINGS } from "../../lib/settings.js";
  *  and the send time are the API's too, from the mail package, so the
  *  page and the mail's own pill and footer cannot disagree. */
 const ABOUT = {
+  digest_daily: {
+    what: "A short brief on yesterday: who you follow played or posted, and your clan's race.",
+    note: "skipped when there is no news",
+  },
   tracking_report: {
-    what: "The people you follow and your clan's week in one email: who played, what they posted and reached, your clan's race, joins and departures, and your own week. Each player once.",
+    what: "Your week, after Monday's reset: the people you follow, your clan and you.",
+    note: "skipped when there is no news",
+  },
+  digest_season: {
+    what: "Your season, when a new one starts: what the people you follow and your clan did.",
     note: "skipped when there is no news",
   },
   collector_activity: {
@@ -67,40 +75,9 @@ function Source({ product }) {
   );
 }
 
-/** The digest's how-often, as one segmented control (the canvas's
- *  Weekly / Daily / Off): Weekly and Daily are its cadence, Off is its
- *  on-off switch. The same two settings and endpoints as before; the one
- *  control replaces the digest's switch. */
-const CADENCES = [
-  ["weekly", "Weekly"],
-  ["daily", "Daily"],
-  ["off", "Off"],
-];
-
-function Cadence({ value, disabled, onPick }) {
-  return (
-    <div
-      className="segmented mail-pref__cadence"
-      role="radiogroup"
-      aria-label="How often the digest comes"
-    >
-      {CADENCES.map(([v, label]) => (
-        <button
-          key={v}
-          type="button"
-          role="radio"
-          aria-checked={value === v ? "true" : "false"}
-          disabled={disabled}
-          // The selected one saves too: Weekly is the default, and
-          // clicking it is how a person chooses it (Codex on #811).
-          onClick={() => onPick(v)}
-        >
-          {label}
-        </button>
-      ))}
-    </div>
-  );
-}
+/** The three digests (2026-11-26), first in Scheduled, in this order;
+ *  the clan news switch under them covers all three. */
+const DIGESTS = ["digest_daily", "tracking_report", "digest_season"];
 
 function Switch({ on, label, disabled = false, onFlip }) {
   return (
@@ -123,18 +100,16 @@ export function EmailPage() {
   const { data, isLoading } = query;
   const kinds = data?.kinds ?? [];
   const pref = useWrite(api.setEmailPref, { invalidate: [keys.email] });
-  const cadence = useWrite(api.setDigest, {
-    invalidate: [keys.email],
-  });
   const clanPart = useWrite(api.setDigestClanPart, {
     invalidate: [keys.email],
   });
   const flip = (kind, enabled) => pref.run(kind, enabled);
-  /** The digest's control, one write: Weekly or Daily turns it on at
-   *  that cadence, Off turns it off (`setDigest`, Home's write too). */
-  const pick = (v) => cadence.run(v);
+  const digests = DIGESTS.map((d) => kinds.find((k) => k.kind === d)).filter(
+    Boolean,
+  );
+  const anyDigest = digests.some((k) => k.enabled && k.applies);
   const weekly = kinds
-    .filter((k) => k.sends)
+    .filter((k) => k.sends && !DIGESTS.includes(k.kind))
     .sort(
       (a, b) => WEEK.indexOf(a.sends.weekday) - WEEK.indexOf(b.sends.weekday),
     );
@@ -153,8 +128,11 @@ export function EmailPage() {
     ) : null;
   const when_ = (k) => {
     const note = ABOUT[k.kind]?.note;
-    if (k.sends && k.cadence === "daily")
-      return `Daily, ${k.sends.time} ${k.sends.zone}${note ? ` · ${note}` : ""}`;
+    const tail = k.sends
+      ? `${k.sends.time} ${k.sends.zone}${note ? ` · ${note}` : ""}`
+      : "";
+    if (k.sends?.every === "day") return `Daily, ${tail}`;
+    if (k.sends?.every === "season") return `When a season starts, ${tail}`;
     if (k.sends)
       return `${k.sends.weekday}s, ${k.sends.time} ${k.sends.zone}${note ? ` · ${note}` : ""}`;
     if (k.kind === "clan_actions_waiting")
@@ -169,42 +147,40 @@ export function EmailPage() {
           {k.label} <Source product={k.product} />
         </h3>
         <p className="mail-pref__what">{ABOUT[k.kind]?.what}</p>
-        {k.cadence ? (
-          <Cadence
-            value={k.enabled ? k.cadence : "off"}
-            disabled={!k.applies || cadence.busy || pref.busy}
-            onPick={pick}
-          />
-        ) : null}
-        {typeof k.clan_part === "boolean" ? (
-          <div className="mail-pref__part">
-            <span className="mailall__label">
-              <span className="mailall__name">Clan news</span>
-              <span className="mailall__note">
-                Your clans' races, joins, departures and role changes
-              </span>
-            </span>
-            <Switch
-              on={k.clan_part}
-              label="Clan news in the digest"
-              disabled={!k.applies || !k.enabled || clanPart.busy}
-              onFlip={(on) => clanPart.run(on)}
-            />
-          </div>
-        ) : null}
         {latest(k)}
       </div>
       <span className="mail-pref__when">{when_(k)}</span>
-      {k.cadence ? null : (
-        <Switch
-          on={k.enabled}
-          label={`${k.label} email`}
-          disabled={!k.applies || pref.busy}
-          onFlip={(on) => flip(k.kind, on)}
-        />
-      )}
+      <Switch
+        on={k.enabled}
+        label={`${k.label} email`}
+        disabled={!k.applies || pref.busy}
+        onFlip={(on) => flip(k.kind, on)}
+      />
     </li>
   );
+  /** The digests' clan news: one switch for all three, written to the
+   *  clan report's row they read. */
+  const clanNews =
+    digests.length > 0 && typeof data?.clan_part === "boolean" ? (
+      <li key="clan_part" className="mail-pref__row">
+        <div className="mail-pref__body">
+          <h3 className="mail-pref__name">Clan news</h3>
+          <p className="mail-pref__what">
+            Your clans' races, joins, departures and role changes, in the emails
+            above.
+          </p>
+        </div>
+        <span className="mail-pref__when">
+          {anyDigest ? "In each one you get" : "Turn one on first"}
+        </span>
+        <Switch
+          on={data.clan_part}
+          label="Clan news in these emails"
+          disabled={!anyDigest || clanPart.busy}
+          onFlip={(on) => clanPart.run(on)}
+        />
+      </li>
+    ) : null;
   return (
     <div className="mailprefs">
       <PageHead
@@ -231,7 +207,6 @@ export function EmailPage() {
         className="mailprefs__head"
       />
       <WriteError error={pref.error} className="field-error mb-3" />
-      <WriteError error={cadence.error} className="field-error mb-3" />
       <WriteError error={clanPart.error} className="field-error mb-3" />
       {query.isError ? (
         <ErrorState
@@ -249,7 +224,11 @@ export function EmailPage() {
         {isLoading ? (
           <p className="page__lede">Reading your email choices.</p>
         ) : (
-          <ul className="mail-pref__list">{weekly.map(row)}</ul>
+          <ul className="mail-pref__list">
+            {digests.map(row)}
+            {clanNews}
+            {weekly.map(row)}
+          </ul>
         )}
       </section>
       <section className="mail-pref" aria-labelledby="as-it-happens">

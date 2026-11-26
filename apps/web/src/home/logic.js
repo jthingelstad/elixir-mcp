@@ -673,31 +673,35 @@ export function gameLine(b) {
   return `${outcome}${score}${against}${mode}`;
 }
 
-/** Home's digest panel's three choices (canvas: Weekly / Daily / Off). */
-export const DIGEST_CHOICES = [
-  { key: "weekly", label: "Weekly" },
-  { key: "daily", label: "Daily" },
-  { key: "off", label: "Off" },
+/** The three digests (2026-11-26), each its own switch, in the order
+ *  Home and Settings show them: the key in first-answer's
+ *  `setup.emails`, the mail kind, and its words. */
+export const DIGEST_SWITCHES = [
+  {
+    key: "daily",
+    kind: "digest_daily",
+    label: "Daily",
+    hint: "A brief on yesterday",
+  },
+  {
+    key: "weekly",
+    kind: "tracking_report",
+    label: "Weekly",
+    hint: "Your week, after Monday's reset",
+  },
+  {
+    key: "season",
+    kind: "digest_season",
+    label: "Season",
+    hint: "Your season, when a new one starts",
+  },
 ];
 
-/** Which choice is lit: the person's own setting, else the default (the
- *  digest is on, weekly, until someone changes it). */
-export function digestChoice(digest) {
-  if (digest?.enabled === false) return "off";
-  return digest?.cadence === "daily" ? "daily" : "weekly";
-}
-
-/** When the digest comes, in the panel's words. */
-export const digestWhen = (choice) =>
-  choice === "daily" ? "daily" : "once a week";
-
-/** The digest step's line once chosen, from the person's own setting. */
-export function digestLine(digest) {
-  if (!digest) return null;
-  if (digest.enabled === false) return "Your digest is off.";
-  return digest.cadence === "daily"
-    ? "Your digest comes daily."
-    : "Your digest comes weekly.";
+/** The email step's line once chosen, from the switches as they stand. */
+export function emailsLine(emails) {
+  if (!emails) return null;
+  const on = DIGEST_SWITCHES.filter((d) => emails[d.key]).map((d) => d.label);
+  return on.length ? `You get: ${on.join(", ")}.` : "Your emails are off.";
 }
 
 /**

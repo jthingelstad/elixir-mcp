@@ -1,5 +1,5 @@
 /**
- * Home's side and profile list: the digest chosen in place with the same
+ * Home's side and profile list: the three emails switched in place with the same
  * write Settings makes, the profile list (#1015) from the passport read
  * with its next step on top, and the race's place on the clan card while a
  * war day runs. Invented names only.
@@ -14,7 +14,7 @@ import {
 } from "@testing-library/react";
 import { renderWithProviders } from "./helpers.jsx";
 import { HomePanels } from "../src/home/Today.jsx";
-import { digestChoice, digestWhen } from "../src/home/logic.js";
+import { emailsLine } from "../src/home/logic.js";
 
 vi.mock("../src/analytics.js", () => ({ trackEvent: () => {} }));
 
@@ -123,46 +123,54 @@ afterEach(() => cleanup());
 
 const first = (setup) => ({ player: PLAYER, setup });
 
-test("the digest's lit choice is the person's own, else weekly", () => {
-  expect(digestChoice(null)).toBe("weekly");
-  expect(digestChoice({ enabled: true, cadence: "daily" })).toBe("daily");
-  expect(digestChoice({ enabled: false, cadence: "daily" })).toBe("off");
-  expect(digestWhen("weekly")).toBe("once a week");
+const DEFAULTS = { chosen_at: null, daily: false, weekly: true, season: true };
+
+test("the email step's line says which emails come", () => {
+  expect(emailsLine(null)).toBeNull();
+  expect(emailsLine(DEFAULTS)).toBe("You get: Weekly, Season.");
+  expect(emailsLine({ daily: true, weekly: true, season: true })).toBe(
+    "You get: Daily, Weekly, Season.",
+  );
+  expect(emailsLine({ daily: false, weekly: false, season: false })).toBe(
+    "Your emails are off.",
+  );
 });
 
-test("choosing the digest on Home makes Settings' write, Off included", async () => {
+test("switching emails on Home makes Settings' write, one email at a time", async () => {
   renderWithProviders(
     <HomePanels
-      first={first({ following: 2, digest: null })}
+      first={first({ following: 2, emails: DEFAULTS })}
       player={PLAYER}
       feed={null}
     />,
   );
-  const group = await screen.findByRole("group", {
-    name: "How often your digest comes",
-  });
-  const weekly = screen.getByRole("button", { name: "Weekly" });
-  expect(weekly.getAttribute("aria-pressed")).toBe("true");
-  expect(group.closest("section").textContent).toContain("once a week");
-  // The lit default saves too: that is how a person chooses it.
-  fireEvent.click(weekly);
+  await screen.findByRole("heading", { name: "Your emails" });
+  const daily = screen.getByRole("switch", { name: "Daily" });
+  const weekly = screen.getByRole("switch", { name: "Weekly" });
+  const season = screen.getByRole("switch", { name: "Season" });
+  expect(
+    [daily, weekly, season].map((s) => s.getAttribute("aria-checked")),
+  ).toEqual(["false", "true", "true"]);
+  fireEvent.click(daily);
   await waitFor(() => expect(writes).toHaveLength(1));
-  fireEvent.click(screen.getByRole("button", { name: "Off" }));
+  await waitFor(() => expect(weekly.disabled).toBe(false));
+  fireEvent.click(weekly);
   await waitFor(() => expect(writes).toHaveLength(2));
   expect(writes).toEqual([
-    [
-      "/api/me/email",
-      { kind: "tracking_report", cadence: "weekly", enabled: true },
-    ],
+    ["/api/me/email", { kind: "digest_daily", enabled: true }],
     ["/api/me/email", { kind: "tracking_report", enabled: false }],
   ]);
-  expect(screen.getByText(/Your feed is still here/)).toBeTruthy();
+  expect(daily.getAttribute("aria-checked")).toBe("true");
+  expect(weekly.getAttribute("aria-checked")).toBe("false");
 });
 
 test("the profile list puts its next step on top, the six folded under it", async () => {
   renderWithProviders(
     <HomePanels
-      first={first({ following: 1, digest: { enabled: false } })}
+      first={first({
+        following: 1,
+        emails: { ...DEFAULTS, weekly: false, season: false },
+      })}
       player={PLAYER}
       feed={null}
     />,
@@ -183,13 +191,13 @@ test("the profile list puts its next step on top, the six folded under it", asyn
     "Verify it’s you Done.",
     "Pick your picture To do.",
     "Follow someone who plays To do.",
-    "Choose your email Done.",
+    "Choose your emails Done.",
     "Your place on the clan map To do.",
   ]);
   expect(document.querySelector(".kit-profile").textContent).toContain(
     "The player you follow hasn’t played in the last 7 days.",
   );
-  expect(screen.getByText("Your digest is off.")).toBeTruthy();
+  expect(screen.getByText("Your emails are off.")).toBeTruthy();
   // Only after the older welcome can it be put away.
   expect(
     screen.queryByRole("button", { name: "Hide the setup list" }),
@@ -200,7 +208,7 @@ test("the map's Not now finishes the step with the server's answer", async () =>
   owner = passport(["done", "done", "done", "done", "done", "todo"]);
   renderWithProviders(
     <HomePanels
-      first={first({ following: 1, digest: { enabled: true } })}
+      first={first({ following: 1, emails: DEFAULTS })}
       player={PLAYER}
       feed={null}
     />,
@@ -220,7 +228,7 @@ test("the map step sets the place on Home itself: no clan page, Cancel returns f
   owner = passport(["done", "done", "done", "done", "done", "todo"]);
   renderWithProviders(
     <HomePanels
-      first={first({ following: 1, digest: { enabled: true } })}
+      first={first({ following: 1, emails: DEFAULTS })}
       player={PLAYER}
       feed={null}
     />,
@@ -265,7 +273,7 @@ test("after the older welcome: only what is left, and Hide puts it away", async 
   });
   renderWithProviders(
     <HomePanels
-      first={first({ following: 1, digest: { enabled: true } })}
+      first={first({ following: 1, emails: DEFAULTS })}
       player={PLAYER}
       feed={null}
     />,
@@ -284,7 +292,7 @@ test("after the older welcome: only what is left, and Hide puts it away", async 
 test("the clan card draws the race's place while a war day runs", async () => {
   renderWithProviders(
     <HomePanels
-      first={first({ following: 2, digest: { enabled: true } })}
+      first={first({ following: 2, emails: DEFAULTS })}
       player={PLAYER}
       feed={null}
     />,

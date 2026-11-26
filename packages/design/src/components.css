@@ -5667,21 +5667,6 @@ a.card-art:hover .card-art__img {
   font-size: var(--t-caption);
   color: var(--ink-faint);
 }
-.mail-pref__cadence {
-  display: inline-flex;
-  max-width: 100%;
-  margin-top: var(--s-2);
-}
-/* The digest's clan part: a quiet line under its cadence, its own switch
-   at the end. */
-.mail-pref__part {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--s-3);
-  max-width: 420px;
-  margin-top: 10px;
-}
 .mail-pref__last {
   display: inline-block;
   margin-top: 5px;

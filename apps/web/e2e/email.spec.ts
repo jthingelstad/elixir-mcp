@@ -22,10 +22,17 @@ async function accessible(page: Page, name: string) {
   ).toEqual([]);
 }
 
-const at = (weekday: string) => ({ weekday, time: "9:00 am", zone: "Central" });
+const at = (weekday: string, every = "week") => ({
+  weekday,
+  time: "9:00 am",
+  zone: "Central",
+  every,
+});
 const KINDS = (
   [
-    ["tracking_report", "Your digest", "Timeline", at("Wednesday")],
+    ["digest_daily", "Daily brief", "Timeline", at("Monday", "day")],
+    ["tracking_report", "Weekly recap", "Timeline", at("Monday")],
+    ["digest_season", "Season recap", "Timeline", at("Monday", "season")],
     ["collector_activity", "Collector activity", "Collectors", at("Sunday")],
     ["clan_actions_waiting", "Clan actions waiting", "Clan", null],
   ] as const
@@ -34,7 +41,7 @@ const KINDS = (
   label,
   product,
   sends,
-  enabled: kind !== "tracking_report",
+  enabled: kind !== "digest_daily",
   changed_at: null,
   applies: kind !== "collector_activity",
   last_send_id:
@@ -44,7 +51,7 @@ const RECENT = [
   {
     send_id: "3f2a9c1b-0000-4000-8000-000000000001",
     kind: "tracking_report",
-    label: "Your digest",
+    label: "Weekly recap",
     subject: "Your week: 4 people you follow played",
     period: "2026-W39",
     sent_at: "2026-09-30T14:00:00Z",
@@ -66,7 +73,10 @@ async function open(page: Page) {
   await mockApi(
     page,
     signedIn({
-      "GET /api/me/email": [200, { kinds: KINDS, recent: RECENT }],
+      "GET /api/me/email": [
+        200,
+        { kinds: KINDS, clan_part: true, recent: RECENT },
+      ],
       "PUT /api/me/email": (route) => {
         const body = route.request().postDataJSON();
         puts.push(body);
@@ -86,8 +96,15 @@ test("scheduled and event-driven mail, with a switch that writes", async ({
 }) => {
   const puts = await open(page);
   const week = page.getByRole("region", { name: "Scheduled" });
-  await expect(week.getByText("Your digest")).toBeVisible();
-  await expect(week.getByRole("listitem")).toHaveCount(2);
+  for (const name of ["Daily brief", "Weekly recap", "Season recap"])
+    await expect(
+      week.getByRole("switch", { name: `${name} email` }),
+    ).toBeVisible();
+  // Three digests, their clan news, and the collector's.
+  await expect(week.getByRole("listitem")).toHaveCount(5);
+  await expect(
+    page.getByRole("switch", { name: "Clan news in these emails" }),
+  ).toBeEnabled();
   // The clan report, Arena week and milestones ended (2026-11-12).
   await expect(
     page.getByRole("switch", { name: "Clan report email" }),

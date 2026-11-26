@@ -1,7 +1,7 @@
 import { PROFILE_STEPS, stampById } from "@elixir-mcp/stamps/catalog";
 import { destinationHref } from "../lib/passport.js";
 import { SETTINGS } from "../lib/settings.js";
-import { digestLine } from "./logic.js";
+import { emailsLine } from "./logic.js";
 
 /**
  * Home's profile list (#1015, docs/product/stamps.md "One profile list"),
@@ -29,7 +29,7 @@ const TITLES = {
   verify_player: "Verify it’s you",
   picture: "Pick your picture",
   follow_active: "Follow someone who plays",
-  digest: "Choose your email",
+  digest: "Choose your emails",
   map: "Your place on the clan map",
 };
 
@@ -55,11 +55,11 @@ export function followLine(state, follows) {
  * One step's words: { id, n, title, state, stamp, line, go } where `go`
  * is { to, label, name } for its way in (null once done), and `place`
  * marks the map step's picker, opened on Home itself. `context` carries
- * the player's name, the digest setting and `placeAllowed`, the place
+ * the player's name, the digest switches (`emails`) and `placeAllowed`, the place
  * route's answer (true, false, or null before it).
  */
 export function stepView(step, n, profile, context = {}) {
-  const { playerName = null, digest = null, placeAllowed = null } = context;
+  const { playerName = null, emails = null, placeAllowed = null } = context;
   const verifyState =
     profile?.steps?.find((s) => s.id === "verify_player")?.state ?? null;
   const done = step.state === "done";
@@ -131,14 +131,14 @@ export function stepView(step, n, profile, context = {}) {
       return {
         ...base,
         line: done
-          ? digestLine(digest)
-          : "Your friends in one email: weekly, daily or off. Any choice counts.",
+          ? emailsLine(emails)
+          : "Your friends by email: daily, weekly or season. Any choice counts.",
         go: done
           ? null
           : {
               to: `${SETTINGS}/emails`,
               label: "Choose",
-              name: "Choose your email",
+              name: "Choose your emails",
             },
       };
     case "map": {

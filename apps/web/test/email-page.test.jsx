@@ -41,9 +41,16 @@ const ME = {
   entitlements: {},
 };
 
-const at = (weekday) => ({ weekday, time: "9:00 am", zone: "Central" });
+const at = (weekday, every = "week") => ({
+  weekday,
+  time: "9:00 am",
+  zone: "Central",
+  every,
+});
 const KINDS = [
-  ["tracking_report", "Your digest", "Home", at("Wednesday")],
+  ["digest_daily", "Daily brief", "Timeline", at("Monday", "day")],
+  ["tracking_report", "Weekly recap", "Timeline", at("Monday")],
+  ["digest_season", "Season recap", "Timeline", at("Monday", "season")],
   ["collector_activity", "Collector activity", "Collectors", at("Sunday")],
   ["clan_actions_waiting", "Clan actions waiting", "Clan", null],
   ["feedback_answer", "Answers to your feedback", "Account", null],
@@ -53,8 +60,7 @@ const KINDS = [
   label,
   product,
   sends,
-  enabled: kind !== "tracking_report",
-  cadence: kind === "tracking_report" ? "weekly" : null,
+  enabled: kind !== "digest_daily",
   changed_at: null,
   applies: kind !== "collector_activity",
   last_send_id:
@@ -76,8 +82,10 @@ const RECENT = [
 
 let puts;
 let kinds = KINDS;
+let clanPart = true;
 beforeEach(() => {
   kinds = KINDS;
+  clanPart = true;
   cleanup();
   puts = [];
   vi.spyOn(console, "error").mockImplementation(() => {});
@@ -90,7 +98,7 @@ beforeEach(() => {
         : p === "/api/me/email"
           ? init?.method === "PUT"
             ? JSON.parse(init.body)
-            : { kinds, recent: RECENT }
+            : { kinds, clan_part: clanPart, recent: RECENT }
           : {};
     return {
       ok: true,
@@ -106,7 +114,7 @@ async function open() {
   window.history.pushState({}, "", "/settings/emails");
   render(<App />);
   await waitFor(() => screen.getByRole("heading", { name: "Emails" }));
-  await waitFor(() => screen.getByText("Your digest"));
+  await waitFor(() => screen.getByText("Weekly recap"));
 }
 
 test(
@@ -123,22 +131,27 @@ test(
       expect(
         screen.queryByRole("switch", { name: `${gone} email` }),
       ).toBeNull();
-    // The digest's one control says Off; it has no switch of its own.
+    // The three digests, each its own switch with its own words and day.
     expect(
-      within(
-        screen.getByRole("radiogroup", { name: "How often the digest comes" }),
-      )
-        .getByRole("radio", { name: "Off" })
-        .getAttribute("aria-checked"),
-    ).toBe("true");
+      ["Daily brief", "Weekly recap", "Season recap"].map((n) =>
+        screen
+          .getByRole("switch", { name: `${n} email` })
+          .getAttribute("aria-checked"),
+      ),
+    ).toEqual(["false", "true", "true"]);
+    expect(within(week).getByText(/^Daily, 9:00 am Central/)).toBeTruthy();
+    expect(within(week).getByText(/^Mondays, 9:00 am Central/)).toBeTruthy();
     expect(
-      screen.queryByRole("switch", { name: "Your digest email" }),
-    ).toBeNull();
+      within(week).getByText(/^When a season starts, 9:00 am Central/),
+    ).toBeTruthy();
+    expect(screen.getByText(/A short brief on yesterday/)).toBeTruthy();
+    expect(screen.queryByRole("radiogroup")).toBeNull();
     // A collector's email with no collector: shown, and not switchable.
     expect(
       screen.getByRole("switch", { name: "Collector activity email" }).disabled,
     ).toBe(true);
-    expect(within(week).getAllByRole("listitem")).toHaveLength(2);
+    // Three digests, their clan news, and the collector's.
+    expect(within(week).getAllByRole("listitem")).toHaveLength(5);
     expect(within(week).queryByText("nothing")).toBeNull();
     expect(screen.queryByRole("switch", { name: "Top 100 email" })).toBeNull();
     expect(
@@ -182,11 +195,11 @@ test(
     );
     await waitFor(() => expect(puts.length).toBe(1));
     expect(puts[0]).toEqual({ kind: "clan_actions_waiting", enabled: false });
-    // Friends is off in the fixture, so Every email is off and says how
-    // many are on.
+    // The daily brief is off in the fixture, so Every email is off and
+    // says how many are on.
     const all = screen.getByRole("switch", { name: "Every email" });
     expect(all.getAttribute("aria-checked")).toBe("false");
-    expect(screen.getByText("4 of 5 on")).toBeTruthy();
+    expect(screen.getByText("6 of 7 on")).toBeTruthy();
     fireEvent.click(all);
     await waitFor(() => expect(puts.length).toBe(2));
     expect(puts[1]).toEqual({ kind: "all", enabled: true });
@@ -214,83 +227,52 @@ test(
   },
 );
 
-test("the digest is Weekly, Daily or Off, each choice one write", async () => {
-  // Off: picking Daily turns it on at that cadence in one write.
-  await open();
-  let group = screen.getByRole("radiogroup", {
-    name: "How often the digest comes",
-  });
-  expect(
-    within(group)
-      .getByRole("radio", { name: "Off" })
-      .getAttribute("aria-checked"),
-  ).toBe("true");
-  fireEvent.click(within(group).getByRole("radio", { name: "Daily" }));
-  await waitFor(() => expect(puts).toHaveLength(1));
-  expect(puts[0]).toEqual({
-    kind: "tracking_report",
-    cadence: "daily",
-    enabled: true,
-  });
-  cleanup();
-  puts.length = 0;
-  kinds = KINDS.map((k) =>
-    k.kind === "tracking_report" ? { ...k, enabled: true } : k,
-  );
-  await open();
-  group = screen.getByRole("radiogroup", {
-    name: "How often the digest comes",
-  });
-  const weekly = within(group).getByRole("radio", { name: "Weekly" });
-  expect(weekly.getAttribute("aria-checked")).toBe("true");
-  fireEvent.click(within(group).getByRole("radio", { name: "Off" }));
-  await waitFor(() => expect(puts).toHaveLength(1));
-  expect(puts[0]).toEqual({ kind: "tracking_report", enabled: false });
-});
+test(
+  "each digest is its own switch: any of them, all or none, one write each",
+  { timeout: 20000 },
+  async () => {
+    await open();
+    fireEvent.click(screen.getByRole("switch", { name: "Daily brief email" }));
+    await waitFor(() => expect(puts).toHaveLength(1));
+    fireEvent.click(screen.getByRole("switch", { name: "Season recap email" }));
+    await waitFor(() => expect(puts).toHaveLength(2));
+    expect(puts).toEqual([
+      { kind: "digest_daily", enabled: true },
+      { kind: "digest_season", enabled: false },
+    ]);
+  },
+);
 
-test("clicking the digest's selected cadence saves it, so the default can be chosen", async () => {
-  kinds = KINDS.map((k) =>
-    k.kind === "tracking_report" ? { ...k, enabled: true } : k,
-  );
-  await open();
-  const group = screen.getByRole("radiogroup", {
-    name: "How often the digest comes",
-  });
-  const weekly = within(group).getByRole("radio", { name: "Weekly" });
-  expect(weekly.getAttribute("aria-checked")).toBe("true");
-  fireEvent.click(weekly);
-  await waitFor(() => expect(puts).toHaveLength(1));
-  expect(puts[0]).toEqual({
-    kind: "tracking_report",
-    cadence: "weekly",
-    enabled: true,
-  });
-});
-
-test("the digest's clan news is its own switch, kept off for someone who said no", async () => {
-  kinds = KINDS.map((k) =>
-    k.kind === "tracking_report"
-      ? { ...k, enabled: true, clan_part: false }
-      : { ...k, clan_part: null },
-  );
-  await open();
-  const sw = screen.getByRole("switch", { name: "Clan news in the digest" });
-  expect(sw.getAttribute("aria-checked")).toBe("false");
-  expect(
-    screen.getByText("Your clans' races, joins, departures and role changes"),
-  ).toBeTruthy();
-  fireEvent.click(sw);
-  await waitFor(() => expect(puts).toHaveLength(1));
-  expect(puts[0]).toEqual({ kind: "tracking_report", clan_part: true });
-  // Only the digest has one.
-  expect(screen.getAllByRole("switch", { name: /Clan news/ })).toHaveLength(1);
-  // With the digest off there is nothing to put clan news in.
-  cleanup();
-  kinds = KINDS.map((k) =>
-    k.kind === "tracking_report" ? { ...k, clan_part: true } : k,
-  );
-  await open();
-  expect(
-    screen.getByRole("switch", { name: "Clan news in the digest" }).disabled,
-  ).toBe(true);
-});
+test(
+  "the digests' clan news is one switch for all three, kept off for someone who said no",
+  { timeout: 20000 },
+  async () => {
+    clanPart = false;
+    await open();
+    const sw = screen.getByRole("switch", {
+      name: "Clan news in these emails",
+    });
+    expect(sw.getAttribute("aria-checked")).toBe("false");
+    expect(
+      screen.getByText(/Your clans' races, joins, departures and role changes/),
+    ).toBeTruthy();
+    fireEvent.click(sw);
+    await waitFor(() => expect(puts).toHaveLength(1));
+    expect(puts[0]).toEqual({ clan_part: true });
+    expect(screen.getAllByRole("switch", { name: /Clan news/ })).toHaveLength(
+      1,
+    );
+    // With all three off there is nothing to put clan news in.
+    cleanup();
+    kinds = KINDS.map((k) =>
+      ["digest_daily", "tracking_report", "digest_season"].includes(k.kind)
+        ? { ...k, enabled: false }
+        : k,
+    );
+    await open();
+    expect(
+      screen.getByRole("switch", { name: "Clan news in these emails" })
+        .disabled,
+    ).toBe(true);
+  },
+);

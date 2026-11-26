@@ -13,6 +13,7 @@ import {
   Stat,
   Stats,
   Chips,
+  Switch,
   TagText,
   useClock,
   WriteError,
@@ -36,9 +37,7 @@ import {
   LEADS,
   STANDING,
   actionsFrom,
-  DIGEST_CHOICES,
-  digestChoice,
-  digestWhen,
+  DIGEST_SWITCHES,
   lastRaceLine,
   modeWord,
   offersStarter,
@@ -368,13 +367,13 @@ function FollowHomeClan({ clan }) {
   );
 }
 
-/** Your digest, chosen here as on Settings' Emails (design canvas
- *  2026-11-13): one write to the same row, so choosing here completes the
- *  profile list's email step too. The default is weekly; choosing the one already lit
- *  saves it, which is how a person chooses the default. */
+/** Your emails, switched here as on Settings' Emails (2026-11-26):
+ *  three digests, each its own switch and any combination, written to
+ *  the same rows, so moving one here completes the profile list's email
+ *  step too. The switches show where they stand, defaults included. */
 function DigestPanel({ first }) {
   const queryClient = useQueryClient();
-  const write = useWrite(api.setDigest, {
+  const write = useWrite(api.setEmailPref, {
     invalidate: async () => {
       // Home's own read, the profile list's email step and Settings'
       // Emails, not the rest of Home.
@@ -389,35 +388,32 @@ function DigestPanel({ first }) {
       await queryClient.invalidateQueries({ queryKey: keys.email });
     },
   });
-  const [picked, setPicked] = useState(null);
-  if (!first?.setup) return null;
-  const value = picked ?? digestChoice(first.setup.digest);
+  const [picked, setPicked] = useState({});
+  const emails = first?.setup?.emails;
+  if (!emails) return null;
+  const on = (key) => picked[key] ?? emails[key] === true;
   return (
-    <Panel title="Your digest" pad className="kit-digest">
+    <Panel title="Your emails" pad className="kit-digest">
       <p className="kit-digest__line">
-        {value === "off" ? (
-          <>
-            <b>Off.</b> Your feed is still here.
-          </>
-        ) : (
-          <>
-            Comes <b>{digestWhen(value)}</b>: the people you follow and your
-            clan&rsquo;s week, in one email. Skipped when there is no news.
-          </>
-        )}
+        The people you follow and your clan. Skipped when there is no news.
       </p>
-      <Chips
-        label="How often your digest comes"
-        options={DIGEST_CHOICES}
-        value={value}
-        onChange={async (v) => {
-          if (write.busy) return;
-          const before = picked;
-          setPicked(v);
-          const res = await write.run(v);
-          if (!res.ok) setPicked(before);
-        }}
-      />
+      {DIGEST_SWITCHES.map((d) => (
+        <Switch
+          key={d.key}
+          on={on(d.key)}
+          hint={d.hint}
+          disabled={write.busy}
+          onChange={async (next) => {
+            if (write.busy) return;
+            const before = picked[d.key];
+            setPicked((p) => ({ ...p, [d.key]: next }));
+            const res = await write.run(d.kind, next);
+            if (!res.ok) setPicked((p) => ({ ...p, [d.key]: before }));
+          }}
+        >
+          {d.label}
+        </Switch>
+      ))}
       <WriteError error={write.error} className="field-error" />
     </Panel>
   );

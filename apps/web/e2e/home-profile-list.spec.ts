@@ -21,7 +21,15 @@ const withList = (
       {
         first: {
           ...HOME.first,
-          setup: { following: 1, digest: null },
+          setup: {
+            following: 1,
+            emails: {
+              chosen_at: null,
+              daily: false,
+              weekly: true,
+              season: true,
+            },
+          },
           starter_hidden_until: null,
         },
       },

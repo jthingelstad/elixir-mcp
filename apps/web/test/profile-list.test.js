@@ -29,7 +29,7 @@ const profile = (states, extra = {}) => ({
   steps: IDS.map((id, i) => ({ id, state: states[i], latched: false })),
   ...extra,
 });
-const ctx = { playerName: "Invented One", digest: null };
+const ctx = { playerName: "Invented One", emails: null };
 
 describe("The profile list", () => {
   test("six steps in order, each naming the Stamp it earns", () => {
@@ -42,7 +42,7 @@ describe("The profile list", () => {
       "Verify it’s you",
       "Pick your picture",
       "Follow someone who plays",
-      "Choose your email",
+      "Choose your emails",
       "Your place on the clan map",
     ]);
     expect(v.steps.map((s) => s.stamp)).toEqual([

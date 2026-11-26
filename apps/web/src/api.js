@@ -145,24 +145,9 @@ export const api = {
   emailPrefs: () => request("GET", "/api/me/email"),
   setEmailPref: (kind, enabled) =>
     request("PUT", "/api/me/email", { kind, enabled }),
-  /** The digest chosen in one write, from Home's panel: Weekly or Daily
-   *  turns it on at that cadence, Off turns it off (the same route and
-   *  row as Settings' Emails). */
-  setDigest: (choice) =>
-    request(
-      "PUT",
-      "/api/me/email",
-      choice === "off"
-        ? { kind: "tracking_report", enabled: false }
-        : { kind: "tracking_report", cadence: choice, enabled: true },
-    ),
-  /** The digest's clan part on or off (the clan report's stored row,
-   *  which the digest reads). */
-  setDigestClanPart: (on) =>
-    request("PUT", "/api/me/email", {
-      kind: "tracking_report",
-      clan_part: on,
-    }),
+  /** The digests' clan news on or off, for all three (the clan
+   *  report's stored row, which they read). */
+  setDigestClanPart: (on) => request("PUT", "/api/me/email", { clan_part: on }),
   myEmailSends: () => request("GET", "/api/me/email/sends"),
   emailRecord: (send_id) =>
     request("GET", `/api/me/email/sends/${encodeURIComponent(send_id)}`),

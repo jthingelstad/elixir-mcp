@@ -35,7 +35,8 @@ for (const width of [390, 820, 1280]) {
       name: "Scheduled",
       exact: true,
     });
-    await expect(scheduled.getByRole("switch")).toHaveCount(2);
+    // Three digests, their clan news, and the collector's.
+    await expect(scheduled.getByRole("switch")).toHaveCount(5);
     await expect(
       page
         .getByRole("region", { name: "When something happens" })
@@ -44,7 +45,7 @@ for (const width of [390, 820, 1280]) {
     await expect(
       scheduled.getByText(/^Sundays, 9:00 am Central/),
     ).toBeVisible();
-    await expect(page.getByRole("switch")).toHaveCount(6);
+    await expect(page.getByRole("switch")).toHaveCount(9);
     await page
       .getByRole("switch", { name: "Clan actions waiting email", exact: true })
       .click();
