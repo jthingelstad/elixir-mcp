@@ -221,6 +221,7 @@ function YourWeek({ player }) {
                 size={56}
                 columns={8}
                 showLevel={false}
+                showForm={false}
                 label={week.deck.label ?? "Most played deck"}
               />
             </div>

@@ -128,7 +128,6 @@ function PostForm({ onClose, opener, moment = null }) {
     ? draft.deck.cards.map((id) => ({
         id,
         name: byId.get(id)?.name ?? "A card",
-        elixir_cost: byId.get(id)?.elixir_cost ?? null,
       }))
     : null;
   const empty = !draft.words;
@@ -205,7 +204,11 @@ function PostForm({ onClose, opener, moment = null }) {
       {!moment && deckCards ? (
         <div className="kit-written__deck">
           <p className="kit-tiny m-0">The deck from your link</p>
-          <DeckRow cards={deckCards} showCost label="The deck from your link" />
+          <DeckRow
+            cards={deckCards}
+            showForm={false}
+            label="The deck from your link"
+          />
         </div>
       ) : cards.length ? (
         <PostCards
@@ -360,7 +363,7 @@ function PostCards({ cards, onRemove = null }) {
               aria-label={`Take out ${c.name}`}
               onClick={() => onRemove(c.id)}
             >
-              <CardArt card={c} size={48} showLevel={false} />
+              <CardArt card={c} size={48} showLevel={false} showForm={false} />
               <span className="kit-written__name">{c.name}</span>
             </button>
           ) : (

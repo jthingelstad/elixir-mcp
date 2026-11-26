@@ -29,7 +29,8 @@ export interface DeckCard {
   form?: CardForm | null;
   rarity?: string | null;
   level?: number | null;
-  /** The catalog's elixir cost, for a deck row's cost drop. */
+  /** The catalog's elixir cost: a post's average elixir reads it. Never
+   *  drawn on a card (Jamie, 2026-11-26: decks are "just the cards"). */
   elixir_cost?: number | null;
 }
 
@@ -226,12 +227,14 @@ export function CardArt({
 }
 
 /** A deck as the game lays it out: two rows of four (`columns` 8 for one
- *  strip). The display copy follows Evo, Hero, Wild slots. */
+ *  strip). The display copy follows Evo, Hero, Wild slots. `showForm`
+ *  false draws each card's art alone (CardArt). */
 export function DeckGrid({
   cards,
   size = 64,
   columns = 4,
   showLevel = true,
+  showForm = true,
   cardTo,
   label,
   preserveOrder = false,
@@ -240,6 +243,8 @@ export function DeckGrid({
   size?: number;
   columns?: 4 | 8;
   showLevel?: boolean;
+  /** False for the art alone, no Evo or Hero ribbon (CardArt). */
+  showForm?: boolean;
   cardTo?: ((card: DeckCard) => string | undefined) | undefined;
   label?: string | undefined;
   /** Loose card attachments keep their authored order. */
@@ -258,6 +263,7 @@ export function DeckGrid({
             card={c}
             size={size}
             showLevel={showLevel}
+            showForm={showForm}
             to={cardTo?.(c)}
           />
         </li>
@@ -300,14 +306,12 @@ export function DeckGridWait({
  *  takes an equal share of the row, up to 420px wide, so the eight fit a
  *  phone. `columns` 4 lays it two by four, as each side of `DeckVersus`
  *  does. The art is the mirror's file, sized by CSS only; the canvas's
- *  text tiles were stand-ins for it. `showCost` puts each card's elixir
- *  cost on its corner (canvas `.ct .cost`) where the card carries one,
- *  and says it to a screen reader. */
+ *  text tiles were stand-ins for it. No card carries its elixir cost
+ *  (Jamie, 2026-11-26: every deck is "just the cards"). */
 export function DeckRow({
   cards,
   columns = 8,
   showLevel = false,
-  showCost = false,
   showForm = true,
   cardTo,
   label,
@@ -316,7 +320,6 @@ export function DeckRow({
   cards: DeckCard[];
   columns?: 4 | 8;
   showLevel?: boolean;
-  showCost?: boolean;
   /** False for the art alone, no Evo or Hero ribbon (CardArt). */
   showForm?: boolean;
   cardTo?: ((card: DeckCard) => string | undefined) | undefined;
@@ -330,29 +333,17 @@ export function DeckRow({
       className={`kit-deckrow kit-deckrow--${columns}`}
       aria-label={label ?? "Deck"}
     >
-      {shown.map((c) => {
-        const cost =
-          showCost && typeof c.elixir_cost === "number" ? c.elixir_cost : null;
-        return (
-          <li key={`${c.id}-${cards.indexOf(c)}`}>
-            <CardArt
-              card={c}
-              size="fill"
-              showLevel={showLevel}
-              showForm={showForm}
-              to={cardTo?.(c)}
-            />
-            {cost !== null ? (
-              <>
-                <span className="card-elixir kit-deckrow__cost" aria-hidden>
-                  {cost}
-                </span>
-                <span className="kit-deckrow__said">, {cost} elixir</span>
-              </>
-            ) : null}
-          </li>
-        );
-      })}
+      {shown.map((c) => (
+        <li key={`${c.id}-${cards.indexOf(c)}`}>
+          <CardArt
+            card={c}
+            size="fill"
+            showLevel={showLevel}
+            showForm={showForm}
+            to={cardTo?.(c)}
+          />
+        </li>
+      ))}
     </ul>
   );
 }
@@ -375,7 +366,6 @@ export function DeckVersus({
   scoreLabel,
   note,
   cardTo,
-  showCost = false,
   showForm = true,
 }: {
   left: VersusSide;
@@ -385,7 +375,6 @@ export function DeckVersus({
   /** A line under the score (canvas: the mode). */
   note?: ReactNode;
   cardTo?: ((card: DeckCard) => string | undefined) | undefined;
-  showCost?: boolean;
   /** False for the art alone, no Evo or Hero ribbon (CardArt). */
   showForm?: boolean;
 }) {
@@ -399,7 +388,6 @@ export function DeckVersus({
         cards={s.cards}
         columns={4}
         cardTo={cardTo}
-        showCost={showCost}
         showForm={showForm}
       />
     </div>

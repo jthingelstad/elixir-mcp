@@ -12,7 +12,12 @@ import { renderWithProviders } from "./helpers.jsx";
  */
 afterEach(cleanup);
 
-const card = (id, name) => ({ id, name, form: "base", level: 14 });
+const card = (id, name) => ({
+  id,
+  name,
+  form: id % 10 === 0 ? "evolution" : "base",
+  level: 14,
+});
 const roundDeck = (base, label) => ({
   cards: Array.from({ length: 8 }, (_, i) =>
     card(26000000 + base + i, `Card ${base + i}`),
@@ -219,4 +224,18 @@ test("each side's towers read Princess, King, Princess, the King in the middle",
   expect(container.textContent).toContain(
     "The game leaves out a King Tower’s hitpoints after three crowns, so it shows here as destroyed.",
   );
+});
+
+test("a battle's cards are just their art: no form ribbon, no number on the card", () => {
+  const { container } = view(readOf({ games: null }));
+  const decks = container.querySelectorAll(".battle-deck .deck-grid");
+  expect(decks).toHaveLength(2);
+  expect(container.querySelectorAll(".card-art__form")).toHaveLength(0);
+  expect(container.querySelectorAll(".card-art__level")).toHaveLength(0);
+  // The form and level stay in each card's name for a screen reader.
+  expect(
+    screen.getAllByRole("link", { name: "Evo Card 0, level 14" }),
+  ).toHaveLength(1);
+  // The deck's own facts still sit beside it.
+  expect(screen.getAllByText("Average elixir").length).toBeGreaterThan(0);
 });

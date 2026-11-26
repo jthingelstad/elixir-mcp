@@ -101,7 +101,7 @@ export function SessionGames({ item, query, offset, setOffset, onRefresh }) {
                 <div className="kit-sgames__cards">
                   <DeckRow
                     cards={run.deck.cards}
-                    showCost
+                    showForm={false}
                     label={`${run.deck.label ?? "The deck"}, its eight cards`}
                   />
                 </div>
@@ -272,6 +272,7 @@ export function Game({
           <div className="kit-sgame__theirs">
             <DeckRow
               cards={theirs.cards}
+              showForm={false}
               label={`Their deck${theirs.label ? `, ${theirs.label}` : ""}`}
             />
           </div>

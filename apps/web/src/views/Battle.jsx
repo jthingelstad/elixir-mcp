@@ -637,6 +637,8 @@ function DeckPanel({ player, outcome, deck, narrow }) {
             <DeckGrid
               cards={deck.cards}
               size={narrow ? 34 : 72}
+              showLevel={false}
+              showForm={false}
               label={`${name}’s deck`}
               cardTo={(c) =>
                 isTowerTroop(c.id) ? undefined : `/cards/${c.id}/`

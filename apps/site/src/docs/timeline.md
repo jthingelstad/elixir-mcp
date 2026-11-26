@@ -196,9 +196,10 @@ Moments carry their art. A new card, a new Evo or Hero form and a Card
 Mastery show that card's own art, never changed. A badge moment (a new
 badge, a badge's new level, 12 wins in a challenge that raised the badge)
 shows the badge's own art from the game, never changed either, about as
-big as a card in a deck. Cards on the Timeline are the card's art alone:
-an Evo or Hero card shows its own Evo or Hero art, with no label over it
-and no elixir cost on its corner. Badge art
+big as a card in a deck. Cards on the Timeline, on a session's own page
+and on a battle's page are the card's art alone: an Evo or Hero card
+shows its own Evo or Hero art, with no label over it and no elixir cost
+or level on it. Badge art
 arrives as Elixir reads profiles: a badge level no profile it has read
 carries yet shows the moment's usual mark until one does. A new Arena, a new league
 in Ranked and a new best on Trophy Road read as the day's headline, with
@@ -209,7 +210,7 @@ star beside their name, which only you see.
 Tap the card to open the session's own page. Back brings you here. It shows:
 
 - the figures, the bar chart and the chips again;
-- every deck played, with its cards and its count;
+- every deck played, with its cards (just their art) and its count;
 - every battle, newest first: its result and score, who was on the other
   side (tap a name for their page) and their deck, your teammate in a 2v2,
   a duel's games, the trophies it moved, the mode, the time, and
