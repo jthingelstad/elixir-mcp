@@ -94,8 +94,8 @@ export interface CrResultMessage {
  *  removed outright on 2026-11-14 (Jamie: "Remove those email kinds."):
  *  their sent records still read (the label falls back) and their old
  *  unsubscribe links land on the "has ended" page, as any unknown kind
- *  does. Active since 2026-11-12: the digest
- *  (tracking_report, the one scheduled mail for everyone), the collector
+ *  does. Active: the three digests (2026-11-26, Jamie: "three unique
+ *  emails at three different frequencies"; DIGEST_EMAIL_KINDS), the collector
  *  week, Clan's actions waiting (a family app's own mail sent through
  *  Elixir), and answers to feedback. Every one is bulk: switchable per
  *  kind on the account page, one-click unsubscribable. The body is
@@ -111,6 +111,8 @@ export const PRODUCT_EMAIL_KINDS = [
   "clan_actions_waiting",
   "feedback_answer",
   "activity_today",
+  "digest_daily",
+  "digest_season",
 ] as const;
 export type ProductEmailKind = (typeof PRODUCT_EMAIL_KINDS)[number];
 /** Kinds Elixir no longer sends: `clan_report`, `arena_week` and
@@ -131,9 +133,28 @@ export function isRetiredEmailKind(kind: string): boolean {
  *  who never touched its switch. The one place its default lives: flip it
  *  here and every reader (the recipients' query, Settings › Emails) follows. */
 export const ACTIVITY_MAIL_DEFAULT_ON = true;
-/** A kind's switch for a person with no stored row for it. */
+/** The three digests (2026-11-26, Jamie: "it is actually three unique
+ *  emails at three different frequencies ... I should be able to select
+ *  all or none of them"), each its own kind with its own switch, ledger
+ *  and one-click link: the daily brief on yesterday, the weekly recap
+ *  after Monday's reset (`tracking_report`, the digest's key since
+ *  2026-11-12, so its switches and old links carry over), and the season
+ *  recap when the season rolls over. Daily, week, season order. */
+export const DIGEST_EMAIL_KINDS = [
+  "digest_daily",
+  "tracking_report",
+  "digest_season",
+] as const;
+export type DigestEmailKind = (typeof DIGEST_EMAIL_KINDS)[number];
+export function isDigestEmailKind(kind: string): kind is DigestEmailKind {
+  return (DIGEST_EMAIL_KINDS as readonly string[]).includes(kind);
+}
+/** A kind's switch for a person with no stored row for it. The daily
+ *  brief is off until chosen; the weekly and season recaps are on
+ *  (2026-11-26). */
 export function emailKindDefault(kind: string): boolean {
-  return kind === "activity_today" ? ACTIVITY_MAIL_DEFAULT_ON : true;
+  if (kind === "activity_today") return ACTIVITY_MAIL_DEFAULT_ON;
+  return kind !== "digest_daily";
 }
 /** Web push (2026-11-16, docs/notes/2026-11-16-web-push.md): the kinds a
  *  person can switch per account on Settings › Notifications. Each is on
@@ -274,6 +295,8 @@ export const EMAIL_KIND_CLASS: Record<
   clan_actions_waiting: "bulk",
   feedback_answer: "bulk",
   activity_today: "bulk",
+  digest_daily: "bulk",
+  digest_season: "bulk",
 };
 
 export function isProductEmailKind(kind: unknown): kind is ProductEmailKind {

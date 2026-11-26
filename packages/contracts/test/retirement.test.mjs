@@ -9,6 +9,9 @@ import {
   isProductEmailKind,
   isActiveEmailKind,
   inactiveEmailReason,
+  DIGEST_EMAIL_KINDS,
+  isDigestEmailKind,
+  emailKindDefault,
 } from "../dist/index.js";
 
 test("obsolete capture has no collector path while retained paths still work", () => {
@@ -43,4 +46,21 @@ test("the removed mail kinds are no kind at all; the folded ones stay retired", 
   }
   assert.ok(ACTIVE_PRODUCT_EMAIL_KINDS.includes("tracking_report"));
   assert.equal(isActiveEmailKind("tracking_report"), true);
+});
+
+test("three digests, each its own active kind; the daily brief starts off", () => {
+  // Jamie, 2026-11-26: "three unique emails at three different
+  // frequencies ... I should be able to select all or none of them."
+  assert.deepEqual(
+    [...DIGEST_EMAIL_KINDS],
+    ["digest_daily", "tracking_report", "digest_season"],
+  );
+  for (const kind of DIGEST_EMAIL_KINDS) {
+    assert.equal(isActiveEmailKind(kind), true, kind);
+    assert.equal(isDigestEmailKind(kind), true, kind);
+  }
+  assert.equal(isDigestEmailKind("collector_activity"), false);
+  assert.equal(emailKindDefault("digest_daily"), false);
+  assert.equal(emailKindDefault("tracking_report"), true);
+  assert.equal(emailKindDefault("digest_season"), true);
 });
