@@ -19,7 +19,7 @@ const cards = (base) =>
   Array.from({ length: 8 }, (_, i) => ({
     id: base + i,
     name: `Card ${base + i}`,
-    form: "base",
+    form: i === 0 ? "evolution" : i === 1 ? "hero" : "base",
     elixir_cost: (i % 5) + 1,
   }));
 const DECKS = [
@@ -174,6 +174,13 @@ test("the opened session draws its battles, decks, teammate and duel games", () 
   expect(screen.getAllByRole("list", { name: /its eight cards/ })).toHaveLength(
     2,
   );
+  // Just the cards (Jamie, 2026-11-26): no Evo or Hero ribbon and no
+  // elixir cost on any card, though a card's name still says its form.
+  expect(document.querySelectorAll(".card-art__form")).toHaveLength(0);
+  expect(document.body.textContent).not.toMatch(/\d elixir/);
+  expect(
+    screen.getAllByRole("img", { name: "Evo Card 26000000" }),
+  ).toHaveLength(1);
   // Names open the player page; each row opens its battle.
   expect(
     within(rows[1]).getByRole("link", { name: "Hazel" }).getAttribute("href"),

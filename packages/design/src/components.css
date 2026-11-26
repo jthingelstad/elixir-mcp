@@ -4034,19 +4034,6 @@ a.card-art:hover .card-art__img {
   min-width: 0;
 }
 
-.card-elixir.kit-deckrow__cost {
-  top: 2px;
-  left: 2px;
-  background: var(--elixir-drop-deck);
-}
-.kit-deckrow__said {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip-path: inset(50%);
-  white-space: nowrap;
-}
 .kit-vs__note {
   display: block;
   margin-top: var(--s-1);
@@ -4147,32 +4134,6 @@ a.card-art:hover .card-art__img {
 .card-tile__kind {
   font-size: var(--t-caption);
   color: var(--ink-faint);
-}
-/* The elixir drop on a card's art: the game's own elixir colour. */
-.card-elixir {
-  position: absolute;
-  top: -5px;
-  left: -3px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-sizing: border-box;
-  width: 17px;
-  height: 17px;
-  border-radius: var(--r-pill);
-  background: var(--elixir-drop);
-  border: 2px solid var(--ground);
-  color: var(--ink-on-art);
-  font-size: var(--t-card-cost);
-  font-weight: 800;
-  line-height: 1;
-}
-.card-elixir--lg {
-  top: -5px;
-  left: 3px;
-  width: 24px;
-  height: 24px;
-  font-size: var(--t-caption);
 }
 /* These pages show their live pieces when the data arrives, with the
    hidden attribute. A class or a utility that sets `display` beats the
@@ -4789,9 +4750,6 @@ a.card-art:hover .card-art__img {
   }
   .battle-deck__stats dd {
     font-size: var(--t-body-sm);
-  }
-  .battle-deck .card-art__form {
-    padding: 0 2px;
   }
 }
 

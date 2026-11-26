@@ -315,7 +315,7 @@ export function SessionView({
                 </p>
                 <DeckRow
                   cards={d.cards}
-                  showCost
+                  showForm={false}
                   label={`${d.label ?? "The deck"}, its eight cards`}
                 />
               </div>
