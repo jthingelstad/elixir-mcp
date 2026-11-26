@@ -358,7 +358,7 @@ export function HomeFeed({
       !mode &&
       ["everyone", "clan"].includes(show) &&
       hasVerifiedPlayer(me) ? (
-        <ClanDeckSpotlight />
+        <ClanDeckSpotlight key={who ?? ""} who={who} />
       ) : null}
       {!newOnly && ["everyone", "friends"].includes(show)
         ? timeline?.shared_events?.map((event) => (

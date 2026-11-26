@@ -11,6 +11,7 @@ import {
   useClock,
   WriteError,
   ErrorState,
+  Icon,
 } from "@elixir-mcp/ui";
 import { useQueryClient } from "@tanstack/react-query";
 import { useWrite } from "../client/index.ts";
@@ -35,6 +36,9 @@ import {
   metLine,
   roleLabel,
   slotsLine,
+  dismissSpotlight,
+  spotlightDismissed,
+  spotlightMatch,
   starterPlan,
   whyLines,
 } from "./logic.js";
@@ -492,25 +496,32 @@ function ClanPlayLine({ play: p, name }) {
   );
 }
 
-/** The Timeline features one match; Find uses the same cached roster for the full list. */
-export function ClanDeckSpotlight() {
+/** The Timeline features one match; Find uses the same cached roster for
+ *  the full list. `who` is whose dismissals this browser keeps (keptFor):
+ *  a dismissed best match hides the notice, never giving way to the next
+ *  (spotlightMatch, dismissSpotlight). */
+export function ClanDeckSpotlight({ who = null }) {
   const read = usePeople("clan");
-  const matches = (read.data?.players ?? []).filter((p) => p.shared_play);
-  matches.sort(
-    (a, b) =>
-      b.shared_play.shared - a.shared_play.shared ||
-      Number(b.shared_play.exact) - Number(a.shared_play.exact) ||
-      Math.min(b.shared_play.card?.mine ?? 0, b.shared_play.card?.theirs ?? 0) -
-        Math.min(
-          a.shared_play.card?.mine ?? 0,
-          a.shared_play.card?.theirs ?? 0,
-        ) ||
-      a.player_tag.localeCompare(b.player_tag),
-  );
-  const mate = matches[0];
-  if (!read.isSuccess || !mate) return null;
+  const [dismissed, setDismissed] = useState(() => spotlightDismissed(who));
+  const mate = spotlightMatch(read.data?.players);
+  if (!read.isSuccess || !mate || dismissed.includes(mate.player_tag))
+    return null;
   return (
-    <Panel title="A clanmate who plays your cards" pad>
+    <Panel
+      title="A clanmate who plays your cards"
+      pad
+      className="kit-spotlight"
+      action={
+        <button
+          type="button"
+          className="btn btn--quiet kit-spotlight__dismiss"
+          aria-label="Dismiss"
+          onClick={() => setDismissed(dismissSpotlight(who, mate.player_tag))}
+        >
+          <Icon name="x" size={18} />
+        </button>
+      }
+    >
       <Link to={playerHref(mate.player_tag)}>
         <PlayerName tag={mate.player_tag}>
           <TagText>{mate.name ?? mate.player_tag}</TagText>
