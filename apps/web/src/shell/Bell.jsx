@@ -18,13 +18,20 @@ import { needsYou, panelOf } from "../home/logic.js";
 import {
   useBell as useBellRead,
   useBellNeeds,
+  useBellReadAll,
   useBellSeen,
   useHomeClan,
   useConversations,
 } from "../lib/queries.js";
 import { SETTINGS } from "../lib/settings.js";
 import { PushPrompt } from "./PushPrompt.jsx";
-import { bellCount, bellGroups, bellLabel } from "./bell-logic.js";
+import {
+  bellAllRead,
+  bellCount,
+  bellGroups,
+  bellHasUnread,
+  bellLabel,
+} from "./bell-logic.js";
 
 /**
  * The bell (2026-11-12): what is about you, not your friends. Reactions to
@@ -49,6 +56,11 @@ import { bellCount, bellGroups, bellLabel } from "./bell-logic.js";
  * left it; closing the bell yourself starts it fresh next time. Nothing
  * here goes to mail or Discord. Both reads are every few minutes at most;
  * the sheet adds the clan card's read only when it is opened.
+ *
+ * Mark all read (Jamie, 2026-11-26), at the sheet's top while anything is
+ * unread, reads everything up to the tap in one request: the badge's new
+ * count goes out at once, every row stays where it is, no longer New. What
+ * needs you stays until it is done.
  */
 export function useBell(me, enabled) {
   const clock = useClock();
@@ -289,6 +301,12 @@ export function BellSheet({ me, onClose, returnTo = null }) {
   const clan = panelOf(useHomeClan(), "clan");
   const read = useBellRead(true, { fresh: true });
   const seen = useBellSeen();
+  const readAll = useBellReadAll();
+  // My conversations' read, only as far as it was already read: it never
+  // reads for this.
+  const talks = useConversations(false);
+  // Tapped Mark all read: nothing in this sheet is New any more.
+  const [cleared, setCleared] = useState(false);
   // What was new when the sheet opened stays marked while it is open; the
   // marker moves once, as soon as there is something to show.
   const [shown, setShown] = useState(null);
@@ -317,8 +335,29 @@ export function BellSheet({ me, onClose, returnTo = null }) {
   });
   const bell = shown ?? read.data ?? null;
   const { fresh, earlier, counted } = bellGroups(bell, {
-    keep: kept?.keys ?? null,
+    keep: cleared ? null : (kept?.keys ?? null),
   });
+  // Hidden from the tap on, while the cached read catches up.
+  const unread =
+    !readAll.isPending &&
+    bellHasUnread(read.data, {
+      fresh,
+      conversations: talks.data?.pages.flatMap((p) => p.items) ?? [],
+    });
+  /** Everything read, now; the rows stay. A refusal puts New back. */
+  const markAllRead = () => {
+    const was = shown;
+    // The marker moves with it: opening's own write is not needed now.
+    marked.current = true;
+    setCleared(true);
+    setShown((s) => bellAllRead(s ?? read.data ?? null));
+    readAll.mutate(undefined, {
+      onError: () => {
+        setCleared(false);
+        setShown(was);
+      },
+    });
+  };
   // Followed back while the sheet is open: the sheet keeps the read it
   // opened on, so the row says Following itself.
   const [backed, setBacked] = useState(() => new Set());
@@ -559,6 +598,16 @@ export function BellSheet({ me, onClose, returnTo = null }) {
           <h2 id="bell-title" ref={head} tabIndex={-1}>
             {SHELL_PLACES.bell.label}
           </h2>
+          {unread ? (
+            <button
+              type="button"
+              className="btn btn--quiet kit-bell__read-all"
+              onClick={markAllRead}
+            >
+              <Icon name="check" size={18} />
+              Mark all read
+            </button>
+          ) : null}
           <button
             type="button"
             className="btn btn--quiet kit-bell__close"
@@ -568,6 +617,11 @@ export function BellSheet({ me, onClose, returnTo = null }) {
             <Icon name="x" size={18} />
           </button>
         </header>
+        {readAll.isError ? (
+          <p className="kit-bell__stale" role="status">
+            Couldn’t mark them read just now. Try again in a moment.
+          </p>
+        ) : null}
         {me?.features?.comments ? (
           <Chips
             label="Notifications view"

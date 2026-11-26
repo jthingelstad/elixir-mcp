@@ -6,7 +6,9 @@ import { test, expect } from "vitest";
 import {
   accountRows,
   answerRows,
+  bellAllRead,
   bellCount,
+  bellHasUnread,
   bellGroups,
   newestFirst,
   bellLabel,
@@ -418,4 +420,50 @@ test("each part runs newest first across kinds; rows with no time keep their ord
     { key: "c", at: "2026-11-21T10:00:00Z" },
   ]);
   expect(rows.map((r) => r.key)).toEqual(["b", "c", "a", "f1", "f2"]);
+});
+
+test("Mark all read: every row stays, none new, answers and comments included", () => {
+  const bell = {
+    seen_at: null,
+    players: 1,
+    new: 4,
+    reactions: { new: 1, items: [{ item_id: "tl_1", new: true }] },
+    followers: { new: 1, players: [{ tag: "#0VQRR8U0", new: true }] },
+    comments: {
+      new: 1,
+      items: [{ comment_id: "7", post_id: "3", unread_count: 2, new: true }],
+    },
+    answers: { new: 1, items: [{ id: "42", new: true }] },
+    account: { new: 0, items: [] },
+  };
+  const done = bellAllRead(bell);
+  expect(done.new).toBe(0);
+  for (const part of ["reactions", "comments", "answers"])
+    expect(done[part].new).toBe(0);
+  expect(done.followers.new).toBe(0);
+  expect(done.reactions.items).toHaveLength(1);
+  expect(done.answers.items[0].new).toBe(false);
+  expect(done.comments.items[0]).toMatchObject({ new: false, unread_count: 0 });
+  expect(done.followers.players[0].new).toBe(false);
+  expect(bellGroups(done).fresh).toEqual([]);
+  expect(bellGroups(done).earlier).toHaveLength(4);
+  expect(bellAllRead(null)).toBe(null);
+  // The original read is left alone, for a rollback.
+  expect(bell.answers.items[0].new).toBe(true);
+});
+
+test("unread: the read's count, the sheet's New rows, or a thread's replies", () => {
+  expect(bellHasUnread(null)).toBe(false);
+  expect(bellHasUnread({ new: 0 })).toBe(false);
+  expect(bellHasUnread({ new: 2 })).toBe(true);
+  expect(bellHasUnread({ new: 0 }, { fresh: [{ key: "a" }] })).toBe(true);
+  expect(
+    bellHasUnread(
+      { new: 0 },
+      { conversations: [{ unread: 0 }, { unread: 1 }] },
+    ),
+  ).toBe(true);
+  expect(bellHasUnread({ new: 0 }, { conversations: [{ unread: 0 }] })).toBe(
+    false,
+  );
 });

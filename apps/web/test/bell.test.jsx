@@ -546,3 +546,102 @@ test("My conversations reads only on selection and resumes the first unread repl
   ).toEqual([]);
   fireEvent.click(screen.getByRole("button", { name: "Close", hidden: true }));
 });
+
+test("Mark all read: one request, New goes at once, the rows stay; a refusal puts New back", async () => {
+  HTMLDialogElement.prototype.showModal ??= function () {
+    this.open = true;
+  };
+  HTMLDialogElement.prototype.close ??= function () {
+    this.open = false;
+  };
+  const calls = [];
+  let refuse = false;
+  global.fetch = vi.fn(async (path, init) => {
+    const p = String(path);
+    const method = init?.method ?? "GET";
+    calls.push([method, p]);
+    if (p === "/api/me/bell") return reply(BELL);
+    if (p === "/api/me/bell/seen")
+      return reply({ seen_at: "2026-11-12T12:00:00.000Z" });
+    if (p === "/api/me/bell/read-all")
+      return refuse
+        ? reply({ error: "unavailable" }, 503)
+        : reply({
+            seen_at: "2026-11-12T12:01:00.000Z",
+            answers: 1,
+            conversations: 0,
+          });
+    if (p === "/api/me/home/needs") return reply({ needs: CLAN });
+    if (p === "/api/me/home/clan") return reply({ clan: CLAN });
+    return reply({});
+  });
+  renderWithProviders(<BellSheet me={{}} onClose={() => {}} />);
+  await screen.findByRole("region", { name: "New", hidden: true });
+  await waitFor(() =>
+    expect(calls).toContainEqual(["PUT", "/api/me/bell/seen"]),
+  );
+  // Refused first: New comes back, and the sheet says so.
+  refuse = true;
+  fireEvent.click(
+    screen.getByRole("button", { name: "Mark all read", hidden: true }),
+  );
+  await screen.findByText(/Couldn’t mark them read just now/);
+  expect(
+    screen.getByRole("region", { name: "New", hidden: true }),
+  ).toBeTruthy();
+  refuse = false;
+  fireEvent.click(
+    screen.getByRole("button", { name: "Mark all read", hidden: true }),
+  );
+  // At once: no New part, every row in Earlier, the control gone.
+  expect(
+    screen.queryByRole("region", { name: "New", hidden: true }),
+  ).toBeNull();
+  const earlier = screen.getByRole("region", { name: "Earlier", hidden: true });
+  expect(earlier.textContent).toContain("Invented Owner won five in a row");
+  expect(earlier.textContent).toContain("Elixir answered your feedback");
+  expect(earlier.textContent).toContain("Invented Fan follows you");
+  expect(document.querySelectorAll(".kit-bell__new")).toHaveLength(0);
+  expect(
+    screen.queryByRole("button", { name: "Mark all read", hidden: true }),
+  ).toBeNull();
+  await waitFor(() =>
+    expect(
+      calls.filter(([m, p]) => m === "PUT" && p === "/api/me/bell/read-all"),
+    ).toHaveLength(2),
+  );
+  // Done: the read is read again, and New stays gone.
+  await waitFor(() =>
+    expect(
+      calls.filter(([m, p]) => m === "GET" && p === "/api/me/bell").length,
+    ).toBeGreaterThan(1),
+  );
+  expect(
+    screen.queryByRole("region", { name: "New", hidden: true }),
+  ).toBeNull();
+});
+
+test("nothing unread: no Mark all read", async () => {
+  HTMLDialogElement.prototype.showModal ??= function () {
+    this.open = true;
+  };
+  const quiet = {
+    ...BELL,
+    new: 0,
+    reactions: { new: 0, items: [{ ...BELL.reactions.items[0], new: false }] },
+    followers: { ...BELL.followers, new: 0, players: [] },
+    answers: { new: 0, items: [] },
+  };
+  global.fetch = vi.fn(async (path) => {
+    const p = String(path);
+    if (p === "/api/me/bell") return reply(quiet);
+    if (p === "/api/me/bell/seen")
+      return reply({ seen_at: "2026-11-12T12:00:00.000Z" });
+    return reply({});
+  });
+  renderWithProviders(<BellSheet me={{}} onClose={() => {}} />);
+  await screen.findByRole("region", { name: "Earlier", hidden: true });
+  expect(
+    screen.queryByRole("button", { name: "Mark all read", hidden: true }),
+  ).toBeNull();
+});

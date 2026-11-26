@@ -220,7 +220,17 @@ opened it, plus comments and answers you have not read. Opening the bell
 marks cheers, followers and your account's lines as seen. A comment stays
 new until you open its item's comments, and an answer until you open it. If you open a line and come back, the bell opens where you left
 it, with the rest of what was new still marked; once you put the bell away,
-the next opening starts fresh. If the bell can't refresh when you open
+the next opening starts fresh.
+
+**Mark all read**, at the top of the list while anything is unread, reads
+everything up to that moment in one tap: cheers, followers, your account's
+lines, answers to your feedback, and the new replies in every conversation
+you're in. The number on the bell drops at once to what needs you, and every
+line stays in the list, under Earlier. Anything that arrives after you tap
+is new as usual. Like opening the bell, it counts as seen for **Cheers on
+your play**, so that email won't tell you those cheers and followers again.
+
+If the bell can't refresh when you open
 it, it keeps what it showed before, says it may be out of date, and offers
 **Try again**; it marks nothing seen until a refresh works. With no verified player, the bell says how
 to verify one. Nothing in the bell is mailed or posted to Discord.
