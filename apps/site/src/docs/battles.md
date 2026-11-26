@@ -101,11 +101,10 @@ not report tower state for that side. `verbosity: "compact"` drops `deck`,
 Every recorded battle has a member page at `/battle/<short id>`, the `url`
 above. Sign in to open it. The player whose battle log Elixir read first
 is on the left, the opponent on the right. Both decks keep the game's two
-rows of four cards, each card just its own art: no Evo or Hero label
-over it and no number on it. Beside each deck are its average elixir, the
-cost of its four cheapest cards and its average card level; a card's own
-level is in its name for a screen reader. A small phone stacks the two
-panels. Towers, the score,
+rows of four cards, each card its own art with its level under it and no
+Evo or Hero label over it. Beside each deck are its average elixir, the
+cost of its four cheapest cards and its average card level. A small phone
+stacks the two panels. Towers, the score,
 mode, time and how it ended come from the record. A duel reads game by game.
 Missing numbers stay missing. When three crowns prove a missing King Tower
 fell, the page marks it `king: 0` with `king_inferred: true`.

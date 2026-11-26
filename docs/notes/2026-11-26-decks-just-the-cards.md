@@ -12,13 +12,11 @@ This carries the 2026-11-23 Timeline change
   `SessionGames`, both the run's deck and the other side's): `DeckRow`
   with `showForm={false}` and no cost drop.
 - **Battle page** (`Battle.jsx` `DeckPanel`, so both sides and each duel
-  round): `DeckGrid` with `showLevel={false}` and `showForm={false}`. The
-  battle page never drew an elixir cost on a card; the number on each card
-  was its level pill, which is what goes. Each card's level stays in its
-  accessible name ("Evo Musketeer, level 14"), and the panel's facts
-  (average elixir, the four cheapest cards, average card level) and the
-  Side by side table are unchanged. [engineering: reading "elixir score
-  overlay" as the level pill, the only number on those cards]
+  round): `DeckGrid` with `showForm={false}`. The battle page never drew an
+  elixir cost on a card, so nothing else goes: each card keeps its level
+  pill (Jamie, 2026-11-26: "Don't remove card levels"), and the panel's
+  facts (average elixir, the four cheapest cards, average card level) and
+  the Side by side table are unchanged.
 - **Also brought in line:** Home's week panel's most played deck
   (`Today.jsx`), and the composer's preview of a pasted deck and of picked
   cards (`Post.jsx`), so a post looks the same before and after it is
