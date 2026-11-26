@@ -9179,6 +9179,19 @@ a.kit-scard:focus-visible {
 .kit-bell__head h2:focus {
   outline: none;
 }
+/* Mark all read (2026-11-26): beside Close, a full tap target. */
+.kit-bell__read-all {
+  margin-left: auto;
+  min-height: var(--hit);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-1);
+  padding: 0 var(--s-2);
+  white-space: nowrap;
+}
+.kit-bell__read-all + .kit-bell__close {
+  margin-left: calc(-1 * var(--s-2));
+}
 .kit-bell__close {
   min-width: var(--hit);
   min-height: var(--hit);

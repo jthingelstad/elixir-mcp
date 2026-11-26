@@ -26,7 +26,7 @@ import { answered, unwrap } from "../client/index.ts";
 import { api } from "../api.js";
 import { sweepBattles } from "./battle-sweep.js";
 import { reconcileOnOpen } from "./passport.js";
-import { bellSeenAt } from "../shell/bell-logic.js";
+import { bellAllRead, bellSeenAt } from "../shell/bell-logic.js";
 
 export const keys = {
   me: ["me"],
@@ -199,6 +199,44 @@ export function useBellSeen() {
       queryClient.setQueryData(["me", "bell"], (old) =>
         old ? bellSeenAt(old, data?.seen_at ?? null) : old,
       ),
+  });
+}
+
+/** Mark all read (2026-11-26): the badge's new count goes out at once and
+ *  every thread's unread with it; the rows stay. A refusal puts both back
+ *  as they were, and either way both are read again afterwards. */
+export function useBellReadAll() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => api.bellReadAll().then(unwrap),
+    onMutate: async () => {
+      await queryClient.cancelQueries({ queryKey: ["me", "bell"] });
+      await queryClient.cancelQueries({ queryKey: conversationsKey });
+      const bell = queryClient.getQueryData(["me", "bell"]);
+      const conversations = queryClient.getQueryData(conversationsKey);
+      queryClient.setQueryData(["me", "bell"], (old) => bellAllRead(old));
+      queryClient.setQueryData(conversationsKey, (old) =>
+        old
+          ? {
+              ...old,
+              pages: old.pages.map((p) => ({
+                ...p,
+                items: (p.items ?? []).map((it) => ({ ...it, unread: 0 })),
+              })),
+            }
+          : old,
+      );
+      return { bell, conversations };
+    },
+    onError: (_err, _vars, was) => {
+      if (!was) return;
+      queryClient.setQueryData(["me", "bell"], was.bell);
+      queryClient.setQueryData(conversationsKey, was.conversations);
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["me", "bell"] });
+      queryClient.invalidateQueries({ queryKey: conversationsKey });
+    },
   });
 }
 

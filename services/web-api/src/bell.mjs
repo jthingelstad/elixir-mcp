@@ -382,6 +382,81 @@ async function readPostCheers(db, accountId, seen) {
   }));
 }
 
+/**
+ * Mark all read (Jamie, 2026-11-26: "Notifications dropdown needs a 'Mark
+ * all read' option"): everything in the bell up to this instant, in one
+ * transaction whose `now()` is the cutoff, so a notification that lands
+ * after it is still new. Opening the bell already moves the seen marker
+ * (reactions, followers, your account's lines; the activity mail and push
+ * count from it too); this also reads your feedback's answers and, while
+ * comments are on, every conversation you are in, as if you had opened
+ * each one. Only the account's own rows move, only forward, so a second
+ * tap changes nothing.
+ */
+export async function markBellAllRead(
+  db,
+  accountId,
+  { comments = false } = {},
+) {
+  await db.query("begin");
+  try {
+    const {
+      rows: [seen],
+    } = await db.query(
+      `insert into bell_seen (account_id, seen_at) values ($1, now())
+       on conflict (account_id) do update
+         set seen_at = greatest(bell_seen.seen_at, excluded.seen_at)
+       returning seen_at`,
+      [accountId],
+    );
+    const answers = await db.query(
+      `update feedback set response_seen_at = now()
+        where account_id = $1 and responded_at is not null
+          and responded_at <= now() and response_seen_at is null`,
+      [accountId],
+    );
+    let conversations = 0;
+    if (comments) {
+      // Each conversation's cursor to its latest visible comment up to
+      // the cutoff, then the receipts that cursor now covers, as a thread
+      // read prunes them (conversation-state readConversationThrough).
+      const moved = await db.query(
+        `with latest as (
+           select distinct on (c.item_id) c.item_id, tc.created_at, tc.comment_id
+             from comment_conversation c
+             join timeline_comment tc on tc.item_id = c.item_id
+            where c.account_id = $1 and tc.status = 'visible'
+              and tc.created_at <= now()
+            order by c.item_id, tc.created_at desc, tc.comment_id desc
+         ) update comment_conversation c
+              set read_at = l.created_at, read_comment_id = l.comment_id
+             from latest l
+            where c.account_id = $1 and c.item_id = l.item_id
+              and (c.read_at, c.read_comment_id) < (l.created_at, l.comment_id)`,
+        [accountId],
+      );
+      conversations = moved.rowCount ?? 0;
+      await db.query(
+        `delete from comment_conversation_read r
+          using comment_conversation c, timeline_comment tc
+          where c.account_id = $1 and r.account_id = c.account_id
+            and r.item_id = c.item_id and tc.comment_id = r.comment_id
+            and (tc.created_at, tc.comment_id) <= (c.read_at, c.read_comment_id)`,
+        [accountId],
+      );
+    }
+    await db.query("commit");
+    return {
+      seen_at: seen.seen_at,
+      answers: answers.rowCount ?? 0,
+      conversations,
+    };
+  } catch (err) {
+    await db.query("rollback");
+    throw err;
+  }
+}
+
 function clip(text, max) {
   const one = text.replace(/\s+/g, " ").trim();
   return one.length > max ? `${one.slice(0, max - 1).trimEnd()}…` : one;

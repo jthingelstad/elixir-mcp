@@ -280,6 +280,8 @@ export const api = {
   // feedback's answers; opening it moves your seen marker. Yours alone.
   bell: () => request("GET", "/api/me/bell"),
   bellSeen: () => request("PUT", "/api/me/bell/seen"),
+  // Mark all read (2026-11-26): the marker, answers and conversations.
+  bellReadAll: () => request("PUT", "/api/me/bell/read-all"),
   conversations: (before = null) =>
     request(
       "GET",

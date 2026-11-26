@@ -277,6 +277,85 @@ for (const width of [320, 390, 1280]) {
       await expect(fresh).toContainText("Elixir answered your feedback");
     });
 
+    test("Mark all read: one tap at the top, the badge's new count goes, the rows stay", async ({
+      page,
+    }) => {
+      const bell = bellRead();
+      let readAll = 0;
+      const done = {
+        ...MIXED_BELL,
+        new: 0,
+        reactions: {
+          ...MIXED_BELL.reactions,
+          new: 0,
+          items: MIXED_BELL.reactions.items.map((r) => ({ ...r, new: false })),
+        },
+        followers: {
+          ...MIXED_BELL.followers,
+          new: 0,
+          players: MIXED_BELL.followers.players.map((f) => ({
+            ...f,
+            new: false,
+          })),
+        },
+        answers: {
+          new: 0,
+          items: MIXED_BELL.answers.items.map((a) => ({ ...a, new: false })),
+        },
+        account: {
+          new: 0,
+          items: MIXED_BELL.account.items.map((a) => ({ ...a, new: false })),
+        },
+      };
+      await mockApi(
+        page,
+        homeApi({
+          "GET /api/me": [200, BELL_ME],
+          "GET /api/me/bell": () =>
+            readAll ? [200, done] : (bell.read() as [number, unknown]),
+          "PUT /api/me/bell/seen": bell.seen,
+          "PUT /api/me/bell/read-all": () => {
+            readAll += 1;
+            return [
+              200,
+              {
+                seen_at: new Date().toISOString(),
+                answers: 1,
+                conversations: 0,
+              },
+            ];
+          },
+        }),
+      );
+      await page.goto("/home");
+      await trigger(page).click();
+      const sheet = page.getByRole("dialog", { name: "Notifications" });
+      await expect(sheet.getByRole("region", { name: "New" })).toBeVisible();
+      const mark = sheet.getByRole("button", { name: "Mark all read" });
+      await expect(mark).toBeVisible();
+      // Comfortably tappable, in the sheet's head beside Close.
+      const mb = (await mark.boundingBox())!;
+      expect(mb.height).toBeGreaterThanOrEqual(44);
+      await expect(sheet.locator(".kit-bell__head")).toContainText(
+        "Mark all read",
+      );
+      await noSideways(page);
+      await accessible(page, `Mark all read at ${width}`);
+      await mark.click();
+      await expect(sheet.getByRole("region", { name: "New" })).toHaveCount(0);
+      await expect(mark).toHaveCount(0);
+      const earlier = sheet.getByRole("region", { name: "Earlier" });
+      await expect(earlier).toContainText("Invented Fan follows you");
+      await expect(earlier).toContainText("Elixir answered your feedback");
+      await expect(sheet.locator(".kit-bell__new")).toHaveCount(0);
+      expect(readAll).toBe(1);
+      // What needs you still counts; nothing is new.
+      await sheet.getByRole("button", { name: "Close" }).click();
+      await expect(trigger(page)).toHaveAccessibleName(
+        "Notifications, 2 need you",
+      );
+    });
+
     test("a claimed follower is named, not verified, with Follow back; only no-player accounts are counted", async ({
       page,
     }) => {

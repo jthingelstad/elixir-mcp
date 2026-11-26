@@ -65,6 +65,41 @@ export function bellSeenAt(bell, seenAt) {
   };
 }
 
+/** The read once Mark all read was tapped (2026-11-26): every row stays,
+ *  none of them new, answers and comments included. */
+export function bellAllRead(bell) {
+  if (!bell) return bell;
+  const off = (items) => (items ?? []).map((it) => ({ ...it, new: false }));
+  return {
+    ...bellSeenAt(bell, bell.seen_at),
+    new: 0,
+    answers: { ...bell.answers, items: off(bell.answers?.items), new: 0 },
+    ...(bell.comments
+      ? {
+          comments: {
+            ...bell.comments,
+            items: (bell.comments.items ?? []).map((c) => ({
+              ...c,
+              new: false,
+              ...(c.unread_count ? { unread_count: 0 } : {}),
+            })),
+            new: 0,
+          },
+        }
+      : {}),
+  };
+}
+
+/** Whether anything in the bell is unread: its read's count, what the
+ *  open sheet shows as New, or a thread with replies you have not read. */
+export function bellHasUnread(bell, { fresh = [], conversations = [] } = {}) {
+  return (
+    (bell?.new ?? 0) > 0 ||
+    fresh.length > 0 ||
+    conversations.some((c) => (c.unread ?? 0) > 0)
+  );
+}
+
 const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
 
 /** Who a line of your account's names: one by name, else how many. */

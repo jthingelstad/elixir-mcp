@@ -1,11 +1,17 @@
 /** The bell (2026-11-12): `GET /api/me/bell` reads its reactions, followers
  *  and feedback answers with how many are new; `PUT /api/me/bell/seen` moves
  *  the account's seen marker when the bell is opened (the contract header
- *  required). Actions waiting stay Clan's own read,
+ *  required); `PUT /api/me/bell/read-all` is Mark all read (2026-11-26).
+ *  Actions waiting stay Clan's own read,
  *  `/api/me/home/needs`. */
 import { checkRateLimit } from "@elixir-mcp/auth";
 import { json } from "../http.mjs";
-import { BELL_READS_PER_HOUR, markBellSeen, readBell } from "../bell.mjs";
+import {
+  BELL_READS_PER_HOUR,
+  markBellAllRead,
+  markBellSeen,
+  readBell,
+} from "../bell.mjs";
 
 export function bellRoutes({
   resolveAccount,
@@ -57,6 +63,17 @@ export function bellRoutes({
       const { account, refused } = await person(db, event, true);
       if (refused) return refused;
       return json(200, { seen_at: await markBellSeen(db, account.accountId) });
+    },
+
+    // Mark all read (2026-11-26): the seen marker, your answers and your
+    // conversations, up to now. Yours alone; the contract header required.
+    "PUT /api/me/bell/read-all": async (db, event) => {
+      const { account, refused } = await person(db, event, true);
+      if (refused) return refused;
+      return json(
+        200,
+        await markBellAllRead(db, account.accountId, { comments }),
+      );
     },
   };
 }
