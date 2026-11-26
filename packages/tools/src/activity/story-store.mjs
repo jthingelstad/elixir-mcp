@@ -34,6 +34,7 @@
 import { createHash } from "node:crypto";
 import {
   ITEM_KINDS,
+  SESSION_GAP_MS,
   buildTimeline,
   itemVisibility,
   restoredItem,
@@ -313,8 +314,11 @@ export async function subjectNews(db, tag, sinceMs, nowMs = Date.now()) {
 }
 
 /** A sitting is closed once its last battle is SESSION_GAP_MS (30 min)
- *  old; a minute more for the read. */
-const SITTING_QUIET_MS = 31 * 60_000;
+ *  old. A read refuses a stored open sitting from that instant, as a
+ *  build would call it closed (2026-11-26: a minute's margin served
+ *  "still going" where a build no longer said it); the sweep waits a
+ *  minute more before it looks for one to rewrite. */
+const SITTING_QUIET_MS = SESSION_GAP_MS + 60_000;
 /** A player's rows are rewritten at least this often, whatever the
  *  record says: the repair for what no probe sees (a profile's own
  *  change whose wake was lost, days_since_poll) and the window's slide. */
@@ -349,7 +353,7 @@ const STORY_READ_STALE_MS = STORY_FLOOR_MS + STORY_READ_MARGIN_MS;
  *    since the write (subjectNews), so a read right after a live fetch or
  *    an admission computes rather than serve rows a minute behind.
  *  - `open`: a stored sitting in the window says `open` and its last
- *    battle is more than SITTING_QUIET_MS old: the clock closed it and no
+ *    battle is SESSION_GAP_MS old or more: the clock closed it and no
  *    write has yet.
  *
  * The stored telling is canonical: rows are taken by sort_at as the
@@ -545,8 +549,7 @@ async function readStories(
       (item) =>
         item.kind === "battle_session" &&
         item.facts?.open === true &&
-        now - Date.parse(item.facts.ended_at ?? item.sort_at) >
-          SITTING_QUIET_MS,
+        now - Date.parse(item.facts.ended_at ?? item.sort_at) >= SESSION_GAP_MS,
     );
     if (open) refuse(tag, "open");
     else

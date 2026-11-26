@@ -118,3 +118,19 @@ test("a sitting says its three-crown and overtime wins", () => {
   });
   assert.doesNotMatch(none, /three-crown|overtime/);
 });
+
+test("two modes with one count are said in one order, whatever the keys' order", () => {
+  const facts = { battles: 5, won: 3, lost: 2, drawn: 0 };
+  // As a build makes them: in the order played.
+  const built = said("battle_session", {
+    ...facts,
+    by_mode: { war: 1, ranked: 2, ladder: 2 },
+  });
+  // As a stored row gives them back: jsonb's own key order.
+  const stored = said("battle_session", {
+    ...facts,
+    by_mode: { war: 1, ladder: 2, ranked: 2 },
+  });
+  assert.equal(built, stored);
+  assert.match(built, /\(3W-2L; 2 Trophy Road, 2 Ranked, 1 war\)/);
+});

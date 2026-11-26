@@ -63,9 +63,21 @@ const MODE_WORDS = {
   event: "event",
   other: "other",
 };
+/** The order two modes with one count are said in: the table's, then by
+ *  name. Never the object's key order, which is the order played when a
+ *  build made the facts and jsonb's own when a row holds them
+ *  (2026-11-26: one sitting read "2 Ranked, 2 Trophy Road" computed and
+ *  "2 Trophy Road, 2 Ranked" from its stored row). */
+const MODE_ORDER = Object.keys(MODE_WORDS);
+const modeRank = (m) => {
+  const i = MODE_ORDER.indexOf(m);
+  return i === -1 ? MODE_ORDER.length : i;
+};
+const byCountThenMode = (x, y) =>
+  y[1] - x[1] || modeRank(x[0]) - modeRank(y[0]) || x[0].localeCompare(y[0]);
 const modes = (byMode) =>
   Object.entries(byMode ?? {})
-    .sort((x, y) => y[1] - x[1])
+    .sort(byCountThenMode)
     .map(([m, n]) => `${n} ${MODE_WORDS[m] ?? m}`)
     .join(", ");
 /** Where a deck switch happened, as a sentence says it (0289). */

@@ -222,6 +222,14 @@ test("open: a sitting stored open whose player has gone quiet is refused", async
   await writeSubjectStories(db, "player", READ, storySpan(NOW));
   // Five minutes on the sitting is still open, and served.
   assert.equal((await read(READ, { now: NOW + 5 * MIN })).ok, true);
+  // Its last battle was fifteen minutes before the write. A minute short
+  // of the thirty that close a sitting it is served; at thirty a build
+  // calls it closed, so the read refuses the row that says open.
+  assert.equal((await read(READ, { now: NOW + 14 * MIN })).ok, true);
+  assert.deepEqual(await read(READ, { now: NOW + 15 * MIN }), {
+    ok: false,
+    reason: "open",
+  });
   // Forty minutes on the clock has closed it, and no write has.
   assert.deepEqual(await read(READ, { now: NOW + 40 * MIN }), {
     ok: false,

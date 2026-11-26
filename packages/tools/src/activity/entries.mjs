@@ -85,7 +85,7 @@ const BEST_TROPHIES_BAND = 500;
 const CAREER_WINS_STEP = 1000;
 const RETURN_AFTER_DAYS = 7;
 /** A session breaks on a gap of thirty minutes or more (Jamie, 2026-09-13). */
-const SESSION_GAP_MS = 30 * MIN_MS;
+export const SESSION_GAP_MS = 30 * MIN_MS;
 /**
  * A session is a STANDOUT when it crosses a disclosed rung — wins in a
  * row, ladder trophies net, battles in one sitting — and the crossing
