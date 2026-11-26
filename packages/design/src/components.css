@@ -13270,3 +13270,32 @@ button.kit-written__card:focus-visible {
   font-size: var(--t-body-sm);
   color: var(--ink-dim);
 }
+
+/* The elixir drop on a card's art, in the game's own elixir colour. The
+   public card catalog draws it (apps/site cards-index.njk, card.njk); no
+   deck does. */
+.card-elixir {
+  position: absolute;
+  top: -5px;
+  left: -3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  width: 17px;
+  height: 17px;
+  border-radius: var(--r-pill);
+  background: var(--elixir-drop);
+  border: 2px solid var(--ground);
+  color: var(--ink-on-art);
+  font-size: var(--t-card-cost);
+  font-weight: 800;
+  line-height: 1;
+}
+.card-elixir--lg {
+  top: -5px;
+  left: 3px;
+  width: 24px;
+  height: 24px;
+  font-size: var(--t-caption);
+}
