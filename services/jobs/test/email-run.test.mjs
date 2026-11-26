@@ -2,7 +2,7 @@
  * The mail run over a scratch database: the
  * ledger is asked before anything is composed, a run stops with time to
  * spare and says how far it got, a written issue goes out only for its
- * own period, and the digest keeps its cadence.
+ * own period, and each of the three digests keeps its own day and switch.
  */
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
@@ -212,12 +212,12 @@ test("Monday's digest names you on your player page", async () => {
   assert.doesNotMatch(digest.html, /\/ladder\?player=/);
 });
 
-test("the digest goes out weekly on Monday, daily to who chose it, once a day, and never to an opt-out or an empty week", async () => {
-  const run = async (at, extra = {}) => {
+test("three digests: the daily brief to who turned it on, the weekly recap on Monday, the season recap on a season's first day; never to an opt-out or an empty stretch", async () => {
+  const run = async (kind, at, extra = {}) => {
     const { out, enqueue } = sink();
     const result = await runEmail({
       db,
-      kind: "tracking_report",
+      kind,
       now: new Date(at),
       enqueue,
       secret: "s",
@@ -239,40 +239,66 @@ test("the digest goes out weekly on Monday, daily to who chose it, once a day, a
       [id, OLD_TAG, at],
     );
   };
-  // A Thursday: a weekly reader waits for Monday.
-  const thu = await run("2026-10-08T14:30:00Z");
+  await played("2026-10-08T09:00:00Z");
+  // A Thursday: the weekly recap waits for Monday, and the daily brief
+  // starts off.
+  const thu = await run("tracking_report", "2026-10-08T11:00:00Z");
   assert.equal(thu.out.length, 0, JSON.stringify(thu.result));
-  // Choosing daily: the same Thursday sends, once.
+  const dailyOff = await run("digest_daily", "2026-10-08T11:00:00Z");
+  assert.equal(dailyOff.out.length, 0, JSON.stringify(dailyOff.result));
+  // Turning the daily brief on: the same Thursday sends, once.
   await db.query(
-    `insert into account_email_pref (account_id, kind, enabled, cadence, via)
-     values ($1, 'tracking_report', true, 'daily', 'profile')
-     on conflict (account_id, kind) do update set cadence = 'daily'`,
+    `insert into account_email_pref (account_id, kind, enabled, via)
+     values ($1, 'digest_daily', true, 'profile')`,
     [acct.old],
   );
-  await played("2026-10-08T09:00:00Z");
-  const daily = await run("2026-10-08T14:30:00Z");
+  const daily = await run("digest_daily", "2026-10-08T11:00:00Z");
   assert.deepEqual(
     daily.out.map((m) => m.to),
     ["old@example.com"],
     JSON.stringify(daily.result),
   );
   assert.match(daily.out[0].html, /Your day in Elixir/);
-  const again = await run("2026-10-08T15:30:00Z");
+  const again = await run("digest_daily", "2026-10-08T12:00:00Z");
   assert.equal(again.out.length, 0);
   assert.equal(again.result.already_sent, 1);
   // The next day had nothing: never an empty mail.
-  const quiet = await run("2026-10-09T14:30:00Z");
+  const quiet = await run("digest_daily", "2026-10-09T11:00:00Z");
   assert.equal(quiet.out.length, 0, JSON.stringify(quiet.result));
-  // Off stays off, whatever the cadence.
+  // The weekly recap's Monday tells the week, the daily brief beside it.
+  const monday = await run("tracking_report", "2026-10-12T11:00:00Z");
+  assert.ok(
+    monday.out.some((m) => m.to === "old@example.com"),
+    JSON.stringify(monday.result),
+  );
+  // The season recap: not on an ordinary Monday, on the first day of a
+  // season (season 137 started 2026-10-05 at 10:00 UTC), keyed by the
+  // season it closes.
+  const notYet = await run("digest_season", "2026-10-12T11:00:00Z");
+  assert.equal(notYet.out.length, 0, JSON.stringify(notYet.result));
+  await played("2026-11-01T09:00:00Z");
+  const season = await run("digest_season", "2026-11-02T11:00:00Z");
+  const mine = season.out.find((m) => m.to === "old@example.com");
+  assert.ok(mine, JSON.stringify(season.result));
+  assert.match(mine.html, /Your season in Elixir/);
+  assert.match(mine.html, /Season 137/);
+  const { rows } = await db.query(
+    `select distinct period_key from email_issue where kind = 'digest_season'`,
+  );
+  assert.deepEqual(
+    rows.map((r) => r.period_key),
+    ["S137"],
+  );
+  // Off stays off, for that email alone.
   await db.query(
-    `update account_email_pref set enabled = false where account_id = $1 and kind = 'tracking_report'`,
+    `update account_email_pref set enabled = false where account_id = $1 and kind = 'digest_daily'`,
     [acct.old],
   );
-  await played("2026-10-10T09:00:00Z");
-  const off = await run("2026-10-10T14:30:00Z");
+  await played("2026-11-03T09:00:00Z");
+  const off = await run("digest_daily", "2026-11-04T11:00:00Z");
   assert.equal(off.out.length, 0, JSON.stringify(off.result));
   await db.query(
-    `delete from account_email_pref where account_id = $1 and kind = 'tracking_report'`,
+    `delete from account_email_pref where account_id = $1 and kind = 'digest_daily'`,
     [acct.old],
   );
 });

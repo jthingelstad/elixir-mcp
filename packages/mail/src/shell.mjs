@@ -73,7 +73,9 @@ export const esc = (v) =>
 export const MAIL_SOURCE = {
   clan_report: { product: "Clan", when: "Monday" },
   arena_week: { product: "Stats", when: "Tuesday" },
-  tracking_report: { product: "Timeline", when: "Digest" },
+  digest_daily: { product: "Timeline", when: "Daily" },
+  tracking_report: { product: "Timeline", when: "Weekly" },
+  digest_season: { product: "Timeline", when: "Season" },
   collector_activity: { product: "Collectors", when: "Sunday" },
   milestone: { product: "Stats", when: "Milestone" },
   clan_actions_waiting: { product: "Clan", when: "Actions" },
@@ -86,21 +88,19 @@ export const MAIL_SOURCE = {
 
 /** When each scheduled kind is sent: the EventBridge crons in
  *  infra/template.yaml (pinned by test). A footer says it in the
- *  reader's own zone. day is 0 = Sunday. The digest (tracking_report),
- *  the one scheduled mail for everyone since 2026-11-12, runs every day
- *  at 11:00 UTC: a daily reader gets it each day, a weekly one (the
- *  default) on Mondays, an hour after the game's 10:00 UTC weekly reset
- *  (Jamie, 2026-11-13). The clan report and Arena week folded into it
- *  and have no slot. */
+ *  reader's own zone. day is 0 = Sunday. The three digests (2026-11-26,
+ *  each its own kind) send at 11:00 UTC, an hour after the game's 10:00
+ *  UTC reset: the daily brief every day (`every: "day"`), the weekly
+ *  recap on Mondays (Jamie, 2026-11-13: "right after the weekly reset"),
+ *  and the season recap on the Monday a season starts (`every:
+ *  "season"`: its rule fires each Monday and the run sends only on the
+ *  first Monday of the month, the season clock's rollover). */
 export const MAIL_SCHEDULE = {
-  tracking_report: { day: 1, hour: 11, minute: 0, daily: true },
-  collector_activity: { day: 0, hour: 14, minute: 0 },
+  digest_daily: { day: 1, hour: 11, minute: 0, every: "day" },
+  tracking_report: { day: 1, hour: 11, minute: 0, every: "week" },
+  digest_season: { day: 1, hour: 11, minute: 0, every: "season" },
+  collector_activity: { day: 0, hour: 14, minute: 0, every: "week" },
 };
-
-/** How often a reader gets the digest: their choice, weekly when they
- *  have made none (Jamie, 2026-11-12: "Weekly by default, daily or off by
- *  choice"). */
-export const DIGEST_CADENCES = ["weekly", "daily"];
 
 /** "Central", "Eastern", "UTC": a zone's everyday name. */
 function zoneName(timezone, at) {
@@ -121,9 +121,10 @@ function zoneName(timezone, at) {
   }
 }
 
-/** A weekly kind's send in the reader's zone, this week: {weekday,
- *  time, zone}, e.g. {weekday: "Monday", time: "9:00 am", zone:
- *  "Central"}. The weekday is the reader's (14:00 UTC on a Monday is
+/** A scheduled kind's send in the reader's zone, this week: {every,
+ *  weekday, time, zone}, e.g. {every: "week", weekday: "Monday", time:
+ *  "9:00 am", zone: "Central"}; `every` is the slot's (day, week or
+ *  season). The weekday is the reader's (14:00 UTC on a Monday is
  *  already Tuesday in Sydney), and the hour follows daylight time. The
  *  footer says it, and the console's email rows use it. */
 export function sendTime(kind, timezone = "UTC", now = new Date()) {
@@ -157,6 +158,7 @@ export function sendTime(kind, timezone = "UTC", now = new Date()) {
   }
   const get = (t) => parts.find((p) => p.type === t)?.value ?? "";
   return {
+    every: slot.every,
     weekday: get("weekday"),
     time: `${get("hour")}:${get("minute")} ${get("dayPeriod").toLowerCase()}`,
     zone: zoneName(tz, at),
@@ -172,8 +174,16 @@ function whyLine(kind, timezone = "UTC", now = new Date()) {
   switch (kind) {
     case "collector_activity":
       return `You get this ${on}, while you run a collector.`;
+    case "digest_daily":
+      return t
+        ? `You get this each day at ${t.time} ${t.zone}, after a day when someone you follow played or posted, you did, or your clan finished a race. Turn it off in Manage emails.`
+        : "You get this each day after a day with news. Turn it off in Manage emails.";
     case "tracking_report":
-      return digestWhy("weekly", t);
+      return `You get this ${on || "weekly"}, after a week when someone you follow played or posted, you did, or your clan had news. Turn it off in Manage emails.`;
+    case "digest_season":
+      return t
+        ? `You get this when a new season starts, at ${t.time} ${t.zone} on its first day, after a season when someone you follow played or posted, you did, or your clan had news. Turn it off in Manage emails.`
+        : "You get this when a new season starts. Turn it off in Manage emails.";
     case "clan_actions_waiting":
       return "You get this when an action in your clan waits for your decision.";
     case "feedback_answer":
@@ -189,28 +199,6 @@ function whyLine(kind, timezone = "UTC", now = new Date()) {
     default:
       return "You get this because it is on for your Elixir account.";
   }
-}
-
-/** The digest's why-line by cadence: when it comes, and that a period
- *  with nothing in it sends nothing. */
-function digestWhy(cadence, t) {
-  const when =
-    cadence === "daily"
-      ? t
-        ? `each day at ${t.time} ${t.zone}`
-        : "each day"
-      : t
-        ? `on ${t.weekday}s at ${t.time} ${t.zone}`
-        : "weekly";
-  const span = cadence === "daily" ? "day" : "week";
-  const clan =
-    cadence === "daily" ? "your clan finished a race" : "your clan had news";
-  return `You get this ${when}, in a ${span} when someone you follow played or posted, you did, or ${clan}. Choose weekly, daily or off in Manage emails.`;
-}
-
-/** The footer's why-line for a digest of this cadence. */
-export function digestWhyLine(cadence, timezone = "UTC", now = new Date()) {
-  return digestWhy(cadence, sendTime("tracking_report", timezone, now));
 }
 
 /** The short id a footer shows: a person can quote it, and the link carries

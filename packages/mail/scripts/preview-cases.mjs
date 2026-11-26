@@ -28,9 +28,8 @@ export function mailPreviewCases() {
     );
   const digest = read("tracking_report");
   cases.push(
-    product("tracking_report-daily", "tracking_report", {
+    product("digest_daily", "digest_daily", {
       ...digest,
-      cadence: "daily",
       window: {
         from: "2026-11-10T14:30:00.000Z",
         to: "2026-11-11T14:30:00.000Z",
@@ -39,6 +38,18 @@ export function mailPreviewCases() {
       clans: [],
       coverage:
         "You follow 5 people; 1 has something recorded this day. A gap means unknown. It does not mean they didn’t play.",
+    }),
+  );
+  cases.push(
+    product("digest_season", "digest_season", {
+      ...digest,
+      season: { id: 136 },
+      window: {
+        from: "2026-10-05T10:00:00.000Z",
+        to: "2026-11-02T11:00:00.000Z",
+      },
+      coverage:
+        "You follow 5 people; 2 have something recorded this season. A gap means unknown. It does not mean they didn’t play.",
     }),
   );
   cases.push(
@@ -62,7 +73,6 @@ export function mailPreviewCases() {
         from: "2026-11-16T11:00:00.000Z",
         to: "2026-11-17T11:00:00.000Z",
       },
-      cadence: "daily",
       account_follow_posts: true,
       following: 0,
       clans: [],

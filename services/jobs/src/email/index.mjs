@@ -1,4 +1,9 @@
-import { isActiveEmailKind, inactiveEmailReason } from "@elixir-mcp/contracts";
+import {
+  isActiveEmailKind,
+  inactiveEmailReason,
+  isDigestEmailKind,
+} from "@elixir-mcp/contracts";
+import { seasonFromDate } from "@elixir-mcp/record/war-clock";
 /** The product email job: one op per kind, idempotent by the ledger.
  *
  *  runEmail asks the ledger first which recipients already
@@ -121,7 +126,7 @@ export async function runEmail({
         return r;
       },
     };
-    if (kind === "tracking_report") await runDigest(run, recipients);
+    if (isDigestEmailKind(kind)) await runDigest(run, recipients);
     else await runPerAccount(run, recipients);
     return result;
   } finally {
@@ -163,21 +168,39 @@ function failed(run, who, err) {
   );
 }
 
-/** The digest's own day: Monday, right after the game's weekly reset
- *  (Jamie, 2026-11-13); a daily reader gets one every day. The rule
- *  fires daily (infra/template.yaml, EmailTrackingReportRule) and a
- *  scheduled run takes the weekly readers only on this UTC weekday. */
-const DIGEST_WEEKLY_DAY = 1;
+/** The weekly recap's day: Monday, right after the game's weekly reset
+ *  (Jamie, 2026-11-13); its rule fires only then (infra/template.yaml,
+ *  EmailTrackingReportRule), and a scheduled run on another UTC day
+ *  sends nothing. */
+const WEEKLY_RECAP_DAY = 1;
+const DAY_MS = 86400_000;
 
-/** Each recipient's digest cadence (0242): absent or null is weekly. */
-async function digestCadences(db, accountIds) {
-  const { rows } = await db.query(
-    `select account_id, cadence from account_email_pref
-      where kind = 'tracking_report' and account_id = any($1::uuid[])
-        and cadence is not null`,
-    [accountIds],
-  );
-  return new Map(rows.map((r) => [r.account_id, r.cadence]));
+/** Which digest a scheduled run may send now, and its period: the daily
+ *  brief any day (the UTC date); the weekly recap on a Monday (the UTC
+ *  date, as the digest keyed it before); the season recap only on the
+ *  day a season starts (the season clock's first-Monday 10:00 UTC reset,
+ *  @elixir-mcp/record/war-clock), keyed by the season it closes (`S136`).
+ *  Its rule fires every Monday, so the other Mondays send nothing. An
+ *  ops run (one account, or force) sends any day. */
+export function digestSlot(kind, now, { scheduled }) {
+  const day = now.toISOString().slice(0, 10);
+  if (kind === "digest_season") {
+    const { seasonStartMs } = seasonFromDate(now.getTime());
+    const closed = seasonFromDate(seasonStartMs - 1);
+    const rolledToday = now.getTime() - seasonStartMs < DAY_MS;
+    return {
+      due: !scheduled || rolledToday,
+      periodKey: `S${closed.seasonId}`,
+      season: closed.seasonId,
+      seasonStartMs: closed.seasonStartMs,
+    };
+  }
+  if (kind === "tracking_report")
+    return {
+      due: !scheduled || now.getUTCDay() === WEEKLY_RECAP_DAY,
+      periodKey: day,
+    };
+  return { due: true, periodKey: day };
 }
 
 /** The folded kinds each recipient has off (clan_report, arena_week):
@@ -206,36 +229,35 @@ async function foldedOff(db, accountIds) {
   };
 }
 
-/** When each recipient last had a scheduled digest (a manual send, with
- *  its ~m suffix, never moves the window). */
-async function lastDigests(db, accountIds) {
+/** When each recipient last had a scheduled mail of this digest kind (a
+ *  manual send, with its ~m suffix, never moves the window). Each kind
+ *  keeps its own: a weekly recap never skips what a daily brief told. */
+async function lastDigests(db, kind, accountIds) {
   const { rows } = await db.query(
     `select s.account_id, max(s.enqueued_at) as at
        from email_send s join email_issue i on i.issue_id = s.issue_id
-      where i.kind = 'tracking_report' and i.period_key not like '%~m%'
-        and s.account_id = any($1::uuid[])
+      where i.kind = $1 and i.period_key not like '%~m%'
+        and s.account_id = any($2::uuid[])
       group by s.account_id`,
-    [accountIds],
+    [kind, accountIds],
   );
   return new Map(rows.map((r) => [r.account_id, r.at]));
 }
 
-/** tracking_report, the digest of the people you follow (#767): one
- *  issue per account per UTC day, the day its period. A scheduled run
- *  takes the daily readers every day and the weekly ones on Monday;
- *  an ops run (one account, or force) sends whatever the reader's
- *  cadence covers, any day. Nothing to tell is no mail. */
+/** The three digests of the people you follow (#767; three kinds since
+ *  2026-11-26): the daily brief, the weekly recap and the season recap,
+ *  one issue per account per period (digestSlot). The recipients are
+ *  the accounts with that kind on (loadRecipients, the kind's default
+ *  for an absent row). Nothing to tell is no mail. */
 async function runDigest(run, recipients) {
   const { db, kind, now, result } = run;
-  const periodKey = now.toISOString().slice(0, 10);
-  const ids = recipients.map((a) => a.accountId);
-  const cadences = await digestCadences(db, ids);
-  const cadenceOf = (a) => cadences.get(a.accountId) ?? "weekly";
-  let todo = recipients;
-  if (run.scheduled && now.getUTCDay() !== DIGEST_WEEKLY_DAY) {
-    todo = todo.filter((a) => cadenceOf(a) === "daily");
-    result.skipped += recipients.length - todo.length;
+  const slot = digestSlot(kind, now, { scheduled: run.scheduled });
+  if (!slot.due) {
+    result.skipped += recipients.length;
+    return;
   }
+  const { periodKey } = slot;
+  let todo = recipients;
   if (!run.force) {
     const sent = await sentForPeriod(db, kind, periodKey);
     const before = todo.length;
@@ -244,6 +266,7 @@ async function runDigest(run, recipients) {
   }
   const lastSent = await lastDigests(
     db,
+    kind,
     todo.map((a) => a.accountId),
   );
   const foldFor = await foldedOff(
@@ -257,12 +280,17 @@ async function runDigest(run, recipients) {
       break;
     }
     try {
-      const cadence = cadenceOf(account);
       const facts = await buildDigest({
         db,
         account,
-        cadence,
-        window: digestWindow(now, cadence, lastSent.get(account.accountId)),
+        kind,
+        window: digestWindow(
+          now,
+          kind,
+          lastSent.get(account.accountId),
+          slot.seasonStartMs ?? null,
+        ),
+        season: slot.season ?? null,
         fold: foldFor(account.accountId),
         posts: run.posts,
       });

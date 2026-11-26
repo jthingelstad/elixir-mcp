@@ -2160,18 +2160,35 @@ Resources:
       Principal: events.amazonaws.com
       SourceArn: !GetAtt ClanEvaluateRule.Arn
 
-  # The digest (tracking_report, #767) runs every day: daily readers get
-  # it each day, weekly ones (the default) on Monday (runDigest). At 11:00
-  # UTC, an hour after the game's 10:00 UTC weekly reset, so the week and
-  # its river race have closed and been read (Jamie, 2026-11-13: "right
-  # after the weekly reset"). Since 2026-11-12 it is the one scheduled mail for everyone:
-  # the Monday clan report, Tuesday's Arena week and the hourly milestone
-  # mail folded into it and have no rule.
+  # The three digests (#767; three emails since 2026-11-26, Jamie: "three
+  # unique emails at three different frequencies"), each its own rule and
+  # kind, at 11:00 UTC, an hour after the game's 10:00 UTC reset, so the
+  # day, the week and its river race have closed and been read (Jamie,
+  # 2026-11-13: "right after the weekly reset"). The daily brief runs every
+  # day; the weekly recap on Mondays; the season recap's rule runs every
+  # Monday and the run sends only on the Monday a season starts (the first
+  # Monday of the month, runDigest's digestSlot, from the season clock).
+  EmailDigestDailyRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: elixir-mcp-email-digest-daily
+      ScheduleExpression: cron(0 11 * * ? *)
+      Targets:
+        - Arn: !GetAtt JobsFunction.Arn
+          Id: email-digest-daily
+          Input: '{"email": "digest_daily"}'
+  EmailDigestDailyPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref JobsFunction
+      Action: lambda:InvokeFunction
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt EmailDigestDailyRule.Arn
   EmailTrackingReportRule:
     Type: AWS::Events::Rule
     Properties:
       Name: elixir-mcp-email-tracking-report
-      ScheduleExpression: cron(0 11 * * ? *)
+      ScheduleExpression: cron(0 11 ? * MON *)
       Targets:
         - Arn: !GetAtt JobsFunction.Arn
           Id: email-tracking-report
@@ -2183,6 +2200,22 @@ Resources:
       Action: lambda:InvokeFunction
       Principal: events.amazonaws.com
       SourceArn: !GetAtt EmailTrackingReportRule.Arn
+  EmailDigestSeasonRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: elixir-mcp-email-digest-season
+      ScheduleExpression: cron(0 11 ? * MON *)
+      Targets:
+        - Arn: !GetAtt JobsFunction.Arn
+          Id: email-digest-season
+          Input: '{"email": "digest_season"}'
+  EmailDigestSeasonPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref JobsFunction
+      Action: lambda:InvokeFunction
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt EmailDigestSeasonRule.Arn
   EmailCollectorActivityRule:
     Type: AWS::Events::Rule
     Properties:

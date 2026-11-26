@@ -255,7 +255,7 @@ test("one shell: the wordmark, the product source, the why-line in the reader's 
   }
 });
 
-test("the digest replaces the friends mail under its kind: Your week in Elixir, weekly by default (#767)", () => {
+test("the weekly recap replaces the friends mail under its kind: Your week in Elixir (#767)", () => {
   const facts = JSON.parse(
     readFileSync(path.join(fixtures, "tracking_report.json"), "utf8"),
   );
@@ -263,7 +263,7 @@ test("the digest replaces the friends mail under its kind: Your week in Elixir, 
     ...links,
     timezone: "America/Chicago",
   });
-  assert.equal(KIND_LABELS.tracking_report, "Your digest");
+  assert.equal(KIND_LABELS.tracking_report, "Weekly recap");
   assert.match(
     out.subject,
     /^Your week in Elixir: 1 post from 1 player · 73 battles from 3 players$/,
@@ -298,14 +298,14 @@ test("the digest replaces the friends mail under its kind: Your week in Elixir, 
   assert.match(text, /Open your Timeline/);
   assert.match(
     text,
-    /You get this on Mondays at \d:00 am Central, in a week when someone you follow played or posted, you did, or your clan had news\./,
+    /You get this on Mondays at \d:00 am Central, after a week when someone you follow played or posted, you did, or your clan had news\. Turn it off in Manage emails\./,
   );
   assert.doesNotMatch(text, /[A-Za-z0-9]\.\./);
   // Each player once: a followed clanmate is marked, never told twice.
   assert.match(text, /Rapid Clear[^\n]*\n+In POAP KINGS/);
 });
 
-test("digest headlines count posting and play independently in both cadences", () => {
+test("digest headlines count posting and play independently in all three digests", () => {
   const facts = allFixtures().find((x) => x.kind === "tracking_report").facts;
   const [poster, player, moment] = facts.people;
   const question = {
@@ -318,14 +318,12 @@ test("digest headlines count posting and play independently in both cadences", (
     { ...player, battles: 1 },
     { ...moment, battles: 0, sessions: 0, sittings: [] },
   ];
-  for (const cadence of ["daily", "weekly"]) {
-    const title =
-      cadence === "daily" ? "Your day in Elixir" : "Your week in Elixir";
-    const out = renderMail(
-      "tracking_report",
-      { ...facts, cadence, people, you: null },
-      links,
-    );
+  for (const [kind, title] of [
+    ["digest_daily", "Your day in Elixir"],
+    ["tracking_report", "Your week in Elixir"],
+    ["digest_season", "Your season in Elixir"],
+  ]) {
+    const out = renderMail(kind, { ...facts, people, you: null }, links);
     const summary = "1 post from 1 player · 1 battle from 1 player";
     assert.equal(out.subject, title + ": " + summary);
     const text = htmlToText(out.html);
@@ -363,20 +361,38 @@ test("a reader's own post can stand alone in their digest", () => {
   assert.equal(out.subject, "Your week in Elixir: your week");
 });
 
-test("a daily digest says its day and its cadence (#767)", () => {
+test("the daily brief and the season recap say their own stretch, footer and label (2026-11-26)", () => {
   const facts = JSON.parse(
     readFileSync(path.join(fixtures, "tracking_report.json"), "utf8"),
   );
-  facts.cadence = "daily";
-  const out = renderMail("tracking_report", facts, {
+  const daily = renderMail("digest_daily", facts, {
     ...links,
     timezone: "America/Chicago",
   });
-  assert.match(out.subject, /^Your day in Elixir/);
+  assert.equal(KIND_LABELS.digest_daily, "Daily brief");
+  assert.match(daily.subject, /^Your day in Elixir/);
+  const dailyText = htmlToText(daily.html);
   assert.match(
-    htmlToText(out.html),
-    /You get this each day at \d:00 am Central, in a day when someone you follow/,
+    dailyText,
+    /You get this each day at \d:00 am Central, after a day when someone you follow played or posted, you did, or your clan finished a race\./,
   );
+  assert.match(dailyText, /utm_medium=digest_daily/);
+  const season = renderMail(
+    "digest_season",
+    { ...facts, season: { id: 136 } },
+    { ...links, timezone: "America/Chicago" },
+  );
+  assert.equal(KIND_LABELS.digest_season, "Season recap");
+  assert.match(season.subject, /^Your season in Elixir/);
+  const seasonText = htmlToText(season.html);
+  assert.match(seasonText, /Season 136/);
+  assert.match(
+    seasonText,
+    /You get this when a new season starts, at \d:00 am Central on its first day/,
+  );
+  assert.match(seasonText, /had something this season/);
+  // Each has its own turn-off: the footer link is the caller's, per kind.
+  assert.match(season.html, /Turn off this mail/);
 });
 
 test("the digest: a clan is a headline and at most three bullets, and a full stop never doubles (Jamie, 2026-10-08)", () => {
@@ -400,7 +416,7 @@ test("the digest: a clan is a headline and at most three bullets, and a full sto
   assert.doesNotMatch(text, /[A-Za-z0-9]\.\./);
 });
 
-test("the weekly send times are the EventBridge crons", () => {
+test("the scheduled send times are the EventBridge crons", () => {
   const template = readFileSync(
     path.join(here, "../../../infra/template.yaml"),
     "utf8",
@@ -415,27 +431,40 @@ test("the weekly send times are the EventBridge crons", () => {
       hour: Number(m[2]),
       minute: Number(m[1]),
     });
-  // The digest's rule fires every day; it keeps Monday for the
-  // weekly default (runDigest's DIGEST_WEEKLY_DAY).
+  // The daily brief's rule fires every day.
   for (const m of template.matchAll(
     /ScheduleExpression: cron\((\d+) (\d+) \* \* \? \*\)\n(?:.*\n){0,8}?\s*Input: '\{"email": "(\w+)"\}'/g,
   ))
-    crons.set(m[3], {
-      day: 1,
-      hour: Number(m[2]),
-      minute: Number(m[1]),
-      daily: true,
-    });
+    crons.set(m[3], { daily: true, hour: Number(m[2]), minute: Number(m[1]) });
   for (const [kind, slot] of Object.entries(MAIL_SCHEDULE)) {
-    if (isRetiredEmailKind(kind)) assert.equal(crons.has(kind), false);
-    else assert.deepEqual(slot, crons.get(kind), kind);
+    assert.equal(isRetiredEmailKind(kind), false, kind);
+    const cron = crons.get(kind);
+    assert.ok(cron, kind);
+    assert.equal(cron.hour, slot.hour, kind);
+    assert.equal(cron.minute, slot.minute, kind);
+    if (slot.every === "day") assert.equal(cron.daily, true, kind);
+    // A week's slot and the season's (whose run sends only on the Monday
+    // a season starts) fire on their weekday.
+    else assert.equal(cron.day, slot.day, kind);
   }
-  // One scheduled digest and the operators' collector mail (2026-11-12).
+  // The three digests (2026-11-26) and the operators' collector mail.
   assert.deepEqual(Object.keys(MAIL_SCHEDULE).sort(), [
     "collector_activity",
+    "digest_daily",
+    "digest_season",
     "tracking_report",
   ]);
-  assert.equal(MAIL_SCHEDULE.tracking_report.daily, true);
+  assert.deepEqual(
+    Object.fromEntries(
+      Object.entries(MAIL_SCHEDULE).map(([k, v]) => [k, v.every]),
+    ),
+    {
+      digest_daily: "day",
+      tracking_report: "week",
+      digest_season: "season",
+      collector_activity: "week",
+    },
+  );
 });
 
 test("renderMail refuses a kind it does not know and a send without links", () => {
