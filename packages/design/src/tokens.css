@@ -313,7 +313,14 @@
   --chart-bar: rgba(139, 92, 246, 0.85); /* a chart's bar */
   --chart-bar-partial: rgba(139, 92, 246, 0.35); /* a bar for a part day */
   --chart-hit-focus: rgba(139, 92, 246, 0.1); /* a focused bar's hit area */
-  --ink-on-art: #fff; /* text over card art: a deck's name */
+  --ink-on-art: #fff; /* text over card art: a deck's name, an elixir cost */
+  --elixir-drop: radial-gradient(
+    circle at 35% 30%,
+    #f5b8ff,
+    #d946ef 55%,
+    #86198f
+  ); /* a card's elixir cost drop, on the card catalog */
+  --t-card-cost: 9px; /* a card's elixir cost */
   --deck-name-scrim: rgba(4, 2, 12, 0.6); /* under a deck's name on its art */
   --form-ink: #160f2e; /* text on a card's form badge */
   --form-evo: #d946ef; /* the Evolution form badge */
