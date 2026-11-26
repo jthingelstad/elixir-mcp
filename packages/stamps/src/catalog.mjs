@@ -257,13 +257,10 @@ export const PROFILE_STEPS = Object.freeze(
       id: "follow_active",
       label: "Follow one player who has played in the last seven days.",
     },
-    { id: "digest", label: "Choose the digest: weekly, daily or off." },
+    { id: "digest", label: "Choose your emails: daily, weekly or season." },
     { id: "map", label: "Choose for the clan map: set a place or Not now." },
   ].map((s) => Object.freeze(s)),
 );
-
-/** The digest choices that count for the digest step; off included. */
-export const DIGEST_CHOICES = Object.freeze(["weekly", "daily", "off"]);
 
 /** The map choices that count for the map step. Only "place" can ever
  *  grant On the Map, and only once a save has succeeded. */

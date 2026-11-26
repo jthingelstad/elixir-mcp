@@ -1469,21 +1469,37 @@ test("emails sent to me: the list, one record with its archived body (pixel stri
   // and the last one sent here, which the page opens as its example.
   const kind = (k) => prefs.kinds.find((x) => x.kind === k);
   // The retired kinds keep their records above and leave the switches
-  // (2026-11-12, the one digest).
+  // (2026-11-12); the digest is three emails since 2026-11-26.
   for (const k of ["milestone", "arena_week", "clan_report"])
     assert.equal(kind(k), undefined, k);
   assert.deepEqual(prefs.kinds.map((x) => x.kind).sort(), [
     "activity_today",
     "clan_actions_waiting",
     "collector_activity",
+    "digest_daily",
+    "digest_season",
     "feedback_answer",
     "tracking_report",
   ]);
   assert.equal(kind("tracking_report").last_send_id, null);
-  assert.equal(kind("tracking_report").product, "Timeline");
-  // The digest carries its cadence, weekly until chosen; no other kind does.
-  assert.equal(kind("tracking_report").cadence, "weekly");
-  assert.equal(kind("collector_activity").cadence, null);
+  for (const k of ["digest_daily", "tracking_report", "digest_season"])
+    assert.equal(kind(k).product, "Timeline", k);
+  // Three switches with their own defaults: the daily brief off, the
+  // weekly and season recaps on; no kind carries a how-often.
+  assert.deepEqual(
+    ["digest_daily", "tracking_report", "digest_season"].map(
+      (k) => kind(k).enabled,
+    ),
+    [false, true, true],
+  );
+  assert.ok(prefs.kinds.every((k) => !("cadence" in k) && !("clan_part" in k)));
+  assert.equal(prefs.clan_part, true);
+  assert.deepEqual(
+    ["digest_daily", "tracking_report", "digest_season"].map(
+      (k) => kind(k).sends.every,
+    ),
+    ["day", "week", "season"],
+  );
   assert.match(kind("tracking_report").sends.time, /^\d{1,2}:00 (am|pm)$/);
   assert.equal(kind("clan_actions_waiting").sends, null);
   // The activity mail (2026-11-16): event mail, on by default
@@ -1492,6 +1508,7 @@ test("emails sent to me: the list, one record with its archived body (pixel stri
   assert.equal(kind("activity_today").enabled, true);
   assert.equal(kind("activity_today").product, "Timeline");
   assert.deepEqual(Object.keys(kind("collector_activity").sends).sort(), [
+    "every",
     "time",
     "weekday",
     "zone",
@@ -1517,69 +1534,67 @@ test("emails sent to me: the list, one record with its archived body (pixel stri
   );
   assert.equal(choice.detail.enabled, true);
   assert.equal(choice.detail.label, "every Elixir email");
-  // The digest's cadence: daily or weekly, on the digest only; a turn-off
-  // keeps it, and choosing one never turns the mail back on.
-  const digest = async () =>
-    parse(await get("/api/me/email")).kinds.find(
-      (k) => k.kind === "tracking_report",
+  // Each digest has its own switch: any combination, each one alone.
+  const on = async () =>
+    Object.fromEntries(
+      parse(await get("/api/me/email"))
+        .kinds.filter((k) =>
+          ["digest_daily", "tracking_report", "digest_season"].includes(k.kind),
+        )
+        .map((k) => [k.kind, k.enabled]),
     );
   assert.equal(
-    (await put({ kind: "tracking_report", cadence: "daily" })).statusCode,
+    (await put({ kind: "digest_daily", enabled: true })).statusCode,
     200,
   );
-  assert.equal((await digest()).cadence, "daily");
-  assert.equal((await digest()).enabled, true);
   assert.equal(
     (await put({ kind: "tracking_report", enabled: false })).statusCode,
     200,
   );
-  assert.equal((await digest()).cadence, "daily");
-  // A person's own cadence choice is theirs even on a row an operator
-  // made, so Home's welcome step sees it (Codex on #811).
-  await db.query(
-    "update account_email_pref set via = 'ops' where account_id = $1 and kind = 'tracking_report'",
-    [accountId],
-  );
+  assert.deepEqual(await on(), {
+    digest_daily: true,
+    tracking_report: false,
+    digest_season: true,
+  });
   assert.equal(
-    (await put({ kind: "tracking_report", cadence: "weekly" })).statusCode,
+    (await put({ kind: "digest_season", enabled: false })).statusCode,
     200,
   );
+  assert.deepEqual(await on(), {
+    digest_daily: true,
+    tracking_report: false,
+    digest_season: false,
+  });
+  // The old how-often is gone: a switch needs its on or off.
   assert.equal(
-    (
-      await db.query(
-        "select via from account_email_pref where account_id = $1 and kind = 'tracking_report'",
-        [accountId],
-      )
-    ).rows[0].via,
-    "profile",
+    parse(await put({ kind: "tracking_report", cadence: "daily" })).error,
+    "bad_enabled",
   );
-  assert.deepEqual(
-    [(await digest()).enabled, (await digest()).cadence],
-    [false, "weekly"],
-  );
+  // The clan news switch names no kind and covers all three.
+  assert.equal((await put({ clan_part: false })).statusCode, 200);
+  assert.equal(parse(await get("/api/me/email")).clan_part, false);
   assert.equal(
-    parse(await put({ kind: "arena_week", cadence: "daily" })).error,
-    "no_cadence",
+    parse(await put({ kind: "tracking_report", clan_part: true })).error,
+    "clan_part_alone",
   );
-  assert.equal(
-    parse(await put({ kind: "tracking_report", cadence: "hourly" })).error,
-    "bad_cadence",
-  );
-  assert.equal(
-    (await put({ kind: "tracking_report", enabled: true })).statusCode,
-    200,
-  );
-  // A cadence choice reads back as its own event, the digest named.
+  assert.equal(parse(await put({ clan_part: "no" })).error, "bad_clan_part");
+  assert.equal((await put({ clan_part: true })).statusCode, 200);
+  assert.equal(parse(await get("/api/me/email")).clan_part, true);
+  // Each choice reads back as its own event, the email named.
   const chose = parse(await get("/api/me/activity")).events.filter(
-    (e) => e.kind === "email_pref" && e.detail.cadence,
+    (e) =>
+      e.kind === "email_pref" &&
+      ["digest_daily", "digest_season"].includes(e.detail.kind),
   );
   assert.deepEqual(
-    chose.map((e) => [e.detail.label, e.detail.cadence]),
+    chose.map((e) => [e.detail.label, e.detail.enabled]),
     [
-      ["Your digest", "weekly"],
-      ["Your digest", "daily"],
+      ["Season recap", false],
+      ["Daily brief", true],
     ],
   );
+  for (const k of ["digest_daily", "tracking_report", "digest_season"])
+    await put({ kind: k, enabled: k !== "digest_daily" });
 
   // Without a store: the row answers, the body is null.
   const bare = parse(await get(`/api/me/email/sends/${mine[0].send_id}`));
@@ -3723,7 +3738,7 @@ test("a turn-off link is answered in Elixir's own page, and the button gets a pa
   const ask = await call("GET");
   assert.equal(ask.statusCode, 200);
   assert.match(ask.headers["content-type"], /^text\/html/);
-  assert.match(ask.body, /<title>Turn off Your digest\? - Elixir<\/title>/);
+  assert.match(ask.body, /<title>Turn off Weekly recap\? - Elixir<\/title>/);
   assert.match(ask.body, /class="kit-top"/, "the site's own bar");
   assert.match(ask.body, /site\.css/, "the site's own stylesheet");
   assert.match(
@@ -3741,7 +3756,7 @@ test("a turn-off link is answered in Elixir's own page, and the button gets a pa
   const pressed = await call("POST");
   assert.equal(pressed.statusCode, 200);
   assert.match(pressed.headers["content-type"], /^text\/html/);
-  assert.match(pressed.body, /<title>Your digest: off - Elixir<\/title>/);
+  assert.match(pressed.body, /<title>Weekly recap: off - Elixir<\/title>/);
   for (const href of ["/timeline", "/settings/emails", "/signin", "/"])
     assert.ok(pressed.body.includes(`href="${href}"`), `no way on to ${href}`);
   assert.match(pressed.body, /data-session-face="in"/);
@@ -3965,7 +3980,7 @@ test("a removed mail kind (Top 100, Card of the Week): old unsubscribe links lan
   );
 });
 
-test("the digest's clan part is the person's to turn on and off, on the clan report's row", async () => {
+test("the digests' clan news is the person's to turn on and off, on the clan report's row, for all three", async () => {
   const {
     rows: [account],
   } = await db.query("select account_id from account where email_hash = $1", [
@@ -3981,12 +3996,12 @@ test("the digest's clan part is the person's to turn on and off, on the clan rep
         body,
       }),
     );
-  const digest = async () =>
+  const prefs = async () =>
     parse(
       await handler(
         event({ method: "GET", path: "/api/me/email", cookie: memberCookie }),
       ),
-    ).kinds.find((k) => k.kind === "tracking_report");
+    );
   const stored = async () =>
     (
       await db.query(
@@ -4001,42 +4016,87 @@ test("the digest's clan part is the person's to turn on and off, on the clan rep
      on conflict (account_id, kind) do update set enabled = false`,
     [accountId],
   );
-  assert.equal((await digest()).clan_part, false);
-  const on = await put({ kind: "tracking_report", clan_part: true });
+  assert.equal((await prefs()).clan_part, false);
+  const before = (await prefs()).kinds.map((k) => [k.kind, k.enabled]);
+  const on = await put({ clan_part: true });
   assert.equal(on.statusCode, 200, on.body);
-  assert.deepEqual(parse(on), { kind: "tracking_report", clan_part: true });
+  assert.deepEqual(parse(on), { clan_part: true });
   assert.equal(await stored(), true);
-  assert.equal((await digest()).clan_part, true);
-  // The digest's own switch and cadence are untouched by it.
-  assert.equal((await digest()).cadence, "weekly");
-  assert.equal(
-    (await put({ kind: "tracking_report", clan_part: false })).statusCode,
-    200,
+  assert.equal((await prefs()).clan_part, true);
+  // The digests' own switches are untouched by it.
+  assert.deepEqual(
+    (await prefs()).kinds.map((k) => [k.kind, k.enabled]),
+    before,
   );
+  assert.equal((await put({ clan_part: false })).statusCode, 200);
   assert.equal(await stored(), false);
-  // Only the digest has a clan part, and it is a yes or a no.
+  // It names no kind, and it is a yes or a no.
   assert.equal(
     parse(await put({ kind: "collector_activity", clan_part: true })).error,
-    "no_clan_part",
+    "clan_part_alone",
   );
-  assert.equal(
-    parse(await put({ kind: "tracking_report", clan_part: "on" })).error,
-    "bad_clan_part",
-  );
+  assert.equal(parse(await put({ clan_part: "on" })).error, "bad_clan_part");
   // The clan report stays retired as a mail of its own.
   assert.equal(
     (await put({ kind: "clan_report", enabled: true })).statusCode,
     410,
   );
   assert.equal(await stored(), false);
-  // Every other kind carries no clan part.
-  const kinds = parse(
-    await handler(
-      event({ method: "GET", path: "/api/me/email", cookie: memberCookie }),
-    ),
-  ).kinds;
-  for (const k of kinds.filter((x) => x.kind !== "tracking_report"))
-    assert.equal(k.clan_part, null, k.kind);
+  // No kind carries a clan part of its own.
+  for (const k of (await prefs()).kinds)
+    assert.equal("clan_part" in k, false, k.kind);
+});
+
+test("each digest's turn-off link turns off that email alone", async () => {
+  const {
+    rows: [person],
+  } = await db.query(
+    `insert into account (email_hash, status, role) values ($1, 'approved', 'member')
+     returning account_id`,
+    [emailHash("three-digests-off@example.com")],
+  );
+  for (const kind of ["digest_daily", "tracking_report", "digest_season"]) {
+    await db.query(
+      `insert into account_email_pref (account_id, kind, enabled, via)
+       values ($1, $2, true, 'profile')`,
+      [person.account_id, kind],
+    );
+  }
+  const rows = async () =>
+    Object.fromEntries(
+      (
+        await db.query(
+          `select kind, enabled from account_email_pref
+            where account_id = $1 and kind like any (array['digest_%', 'tracking_report'])`,
+          [person.account_id],
+        )
+      ).rows.map((r) => [r.kind, r.enabled]),
+    );
+  const off = async (kind) => {
+    const request = event({ method: "POST", path: "/api/email/unsubscribe" });
+    request.queryStringParameters = {
+      t: signUnsubscribe({
+        secret: SECRET,
+        accountId: person.account_id,
+        kind,
+      }),
+    };
+    request.body = "List-Unsubscribe=One-Click";
+    const res = await handler(request);
+    assert.equal(res.statusCode, 200, kind);
+  };
+  await off("digest_season");
+  assert.deepEqual(await rows(), {
+    digest_daily: true,
+    tracking_report: true,
+    digest_season: false,
+  });
+  await off("digest_daily");
+  assert.deepEqual(await rows(), {
+    digest_daily: false,
+    tracking_report: true,
+    digest_season: false,
+  });
 });
 
 test("retired personal and admin Collection routes are absent", async () => {

@@ -1,6 +1,7 @@
 import { visibleFriendSql } from "@elixir-mcp/claims";
 import { dailySql } from "@elixir-mcp/record/daily-sql";
 import { recentCompleteness } from "@elixir-mcp/tools/coverage";
+import { DIGEST_EMAIL_KINDS, emailKindDefault } from "@elixir-mcp/contracts";
 import { STARTER_HIDDEN_DAYS } from "./people.mjs";
 
 // Readiness is derived from the record, never a second onboarding state to
@@ -118,10 +119,10 @@ export async function firstAnswer(db, accountId, playerTag = null) {
   // how many of them have a recorded battle in the last seven days,
   // counted only to five, all the gate needs, so a big follow list stops
   // probing early (the starter set is offered while that is under
-  // STARTER_UNDER, #1016), and the person's own
-  // digest setting for Home's digest panel, a tracking_report row of
-  // their own (the table holds a row only where a person changed the
-  // default; an operator's row is not their choice). The profile list's
+  // STARTER_UNDER, #1016), and Home's emails panel: the three digest
+  // switches as they stand (an absent row is the kind's default) and
+  // when the person last moved one themselves (an operator's row is not
+  // their choice; null when they never have). The profile list's
   // steps are the passport's (GET /api/me/passport), never worked out
   // here.
   const setup = await db.query(
@@ -137,15 +138,29 @@ export async function firstAnswer(db, accountId, playerTag = null) {
                        and bp.battle_time >= now() - interval '7 days'
                        and bp.battle_time <= now())
                 limit 5) p) as following_played,
-            (select json_build_object('chosen_at', changed_at,
-                                      'enabled', enabled,
-                                      'cadence', coalesce(cadence, 'weekly'))
-               from account_email_pref
-              where account_id = $1 and kind = 'tracking_report'
-                and via <> 'ops') as digest,
+            json_build_object(
+              'chosen_at', (select max(changed_at) from account_email_pref
+                             where account_id = $1 and kind = any($3::text[])
+                               and via <> 'ops'),
+              'daily', coalesce((select enabled from account_email_pref
+                                  where account_id = $1 and kind = 'digest_daily'),
+                                $4::boolean),
+              'weekly', coalesce((select enabled from account_email_pref
+                                   where account_id = $1 and kind = 'tracking_report'),
+                                 $5::boolean),
+              'season', coalesce((select enabled from account_email_pref
+                                   where account_id = $1 and kind = 'digest_season'),
+                                 $6::boolean)) as emails,
             (select starter_hidden_at + make_interval(days => $2) from account
               where account_id = $1) as starter_hidden_until`,
-    [accountId, STARTER_HIDDEN_DAYS],
+    [
+      accountId,
+      STARTER_HIDDEN_DAYS,
+      [...DIGEST_EMAIL_KINDS],
+      emailKindDefault("digest_daily"),
+      emailKindDefault("tracking_report"),
+      emailKindDefault("digest_season"),
+    ],
   );
   const { starter_hidden_until, ...steps } = setup.rows[0];
   return {

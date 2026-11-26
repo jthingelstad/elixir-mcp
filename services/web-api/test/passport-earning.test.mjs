@@ -3,8 +3,8 @@
  * only after a successful write (a refused picture earns nothing; a
  * chosen one earns Looking Good; the favourite-card default is no
  * choice), a hook that throws never fails the action and logs no
- * account, the digest step takes an explicit weekly, daily or Off and
- * never the default, "Not now" completes the map step without On the
+ * account, the email step takes any digest switch the person moves and
+ * never the defaults, "Not now" completes the map step without On the
  * Map, a refused place save earns nothing, and the owner's reconciliation is a person's own write that
  * repairs a missed place save from a boolean and answers no place.
  * Invented names and tags only.
@@ -190,22 +190,22 @@ test("a refused picture earns nothing; a chosen one earns Looking Good", async (
   assert.deepEqual(await levels("looking_good"), [1]);
 });
 
-test("the digest step: the default weekly is no choice, an explicit Off is", async () => {
+test("the email step: the defaults are no choice, a switch moved is", async () => {
   let read = await call("GET", "/api/me/passport", { who: "owner" });
   assert.notEqual(step(read.body, "digest"), "done");
   const off = await call("PUT", "/api/me/email", {
     who: "owner",
-    body: { kind: "tracking_report", enabled: false },
+    body: { kind: "digest_season", enabled: false },
   });
   assert.equal(off.status, 200, JSON.stringify(off.body));
   read = await call("GET", "/api/me/passport", { who: "owner" });
   assert.equal(step(read.body, "digest"), "done");
-  // Stamps never turn mail on: the digest stays off.
+  // Stamps never turn mail on: the season recap stays off.
   const {
     rows: [pref],
   } = await db.query(
     `select enabled from account_email_pref
-      where account_id = $1 and kind = 'tracking_report'`,
+      where account_id = $1 and kind = 'digest_season'`,
     [ids.owner],
   );
   assert.equal(pref.enabled, false);

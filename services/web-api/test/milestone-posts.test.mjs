@@ -270,12 +270,12 @@ test("milestone posts use the existing follower audience across member, MCP, RSS
     const facts = await buildDigest({
       db: scratch.db,
       account: { accountId: other, kind: "person", timezone: "UTC" },
-      cadence: "daily",
+      kind: "digest_daily",
       posts: true,
       window: { fromMs: Date.now() - 60_000, toMs: Date.now() + 1000 },
     });
     assert.deepEqual(facts.people[0].items[0].post.moment, post.post.moment);
-    const mail = renderMail("tracking_report", facts, {
+    const mail = renderMail("digest_daily", facts, {
       timezone: "UTC",
       unsubscribe: "https://elixir.test/off",
       manage: "https://elixir.test/settings/emails",

@@ -520,15 +520,9 @@ test("profile latches keep their first instant; choices keep the latest", async 
   const t1 = "2026-11-14T10:00:00Z";
   const t2 = "2026-11-14T11:00:00Z";
   assert.deepEqual(
-    await latchProfile(
-      db,
-      a,
-      { steps: ["picture"], digest_choice: "off" },
-      { now: t1 },
-    ),
+    await latchProfile(db, a, { steps: ["picture", "digest"] }, { now: t1 }),
     {
       list_version: 2,
-      digest_choice: "off",
       map_choice: null,
       place_saved: false,
       complete: false,
@@ -537,7 +531,7 @@ test("profile latches keep their first instant; choices keep the latest", async 
   await latchProfile(
     db,
     a,
-    { digest_choice: "daily", map_choice: "not_now" },
+    { steps: ["digest"], map_choice: "not_now" },
     { now: t2 },
   );
   await latchProfile(
@@ -549,15 +543,18 @@ test("profile latches keep their first instant; choices keep the latest", async 
   const {
     rows: [row],
   } = await db.query(
-    `select l.picture_at, l.digest_at, l.digest_choice, l.map_choice, l.map_at,
+    `select l.picture_at, l.digest_at, l.map_choice, l.map_at,
             l.map_place_saved_at, l.completed_at, a.welcome_finished_at
        from account_profile_list l join account a using (account_id)
       where l.account_id = $1`,
     [a],
   );
   assert.equal(row.picture_at.toISOString(), new Date(t1).toISOString());
-  assert.equal(row.digest_at.toISOString(), new Date(t1).toISOString());
-  assert.equal(row.digest_choice, "daily");
+  assert.equal(
+    row.digest_at.toISOString(),
+    new Date(t1).toISOString(),
+    "a latch keeps its first instant",
+  );
   assert.equal(row.map_choice, "place");
   assert.equal(row.map_at.toISOString(), new Date(t2).toISOString());
   assert.ok(row.map_place_saved_at);
@@ -601,7 +598,7 @@ test("the snapshot: claims, follows with known and unknown activity, mutuals", a
   await claim(fan, OWN, "friend");
   await db.query(
     `insert into account_email_pref (account_id, kind, enabled, via)
-     values ($1, 'tracking_report', false, 'profile')`,
+     values ($1, 'digest_season', false, 'profile')`,
     [me],
   );
   const snap = await readSnapshot(db, me, { now });
@@ -609,7 +606,7 @@ test("the snapshot: claims, follows with known and unknown activity, mutuals", a
   assert.deepEqual(snap.primary, { verified: true });
   assert.equal(snap.own_verified, true);
   assert.equal(snap.has_alt, true);
-  assert.equal(snap.digest_choice, "off");
+  assert.equal(snap.email_chosen, true, "any digest switch the person moved");
   assert.equal(snap.mutual_count, 1);
   assert.equal(snap.follows.length, 4);
   const ev = evaluatePassport(snap, now);
@@ -637,7 +634,7 @@ test("the snapshot: claims, follows with known and unknown activity, mutuals", a
     `update account_email_pref set via = 'ops' where account_id = $1`,
     [me],
   );
-  assert.equal((await readSnapshot(db, me, { now })).digest_choice, null);
+  assert.equal((await readSnapshot(db, me, { now })).email_chosen, false);
 });
 
 test("the owner read ensures only the owner's passport and never grants", async () => {

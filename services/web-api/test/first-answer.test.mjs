@@ -338,10 +338,14 @@ test("selected capture state is claim-bound; roster-only data never promises a p
   assert.ok(p.capture_interval.observed_from && p.capture_interval.observed_to);
 });
 
-test("first-answer carries what Home reads beside the profile list: the players followed and the digest, once chosen", async () => {
+test("first-answer carries what Home reads beside the profile list: the players followed and the three digest switches", async () => {
   const first = JSON.parse((await read()).body);
   let w = first.setup;
-  assert.deepEqual(w, { following: 0, following_played: 0, digest: null });
+  assert.deepEqual(w, {
+    following: 0,
+    following_played: 0,
+    emails: { chosen_at: null, daily: false, weekly: true, season: true },
+  });
   // The older welcome steps are gone (#1015): the profile list is the
   // passport's, never worked out here.
   assert.equal("welcome" in first, false);
@@ -376,7 +380,13 @@ test("first-answer carries what Home reads beside the profile list: the players 
   assert.equal(w.following, 2);
   // Neither has a recorded battle: followed, not played (#1016).
   assert.equal(w.following_played, 0);
-  assert.equal(w.digest, null);
+  // The defaults, and no choice of the person's own.
+  assert.deepEqual(w.emails, {
+    chosen_at: null,
+    daily: false,
+    weekly: true,
+    season: true,
+  });
   // One battles today, the other only eight days ago: one played.
   await db.query(
     `insert into battle (battle_id, battle_time, type, type_class)
@@ -392,13 +402,14 @@ test("first-answer carries what Home reads beside the profile list: the players 
   w = JSON.parse((await read()).body).setup;
   assert.equal(w.following_played, 1);
   await db.query(
-    "update account_email_pref set via = 'profile', cadence = 'daily' where account_id = $1 and kind = 'tracking_report'",
+    "insert into account_email_pref (account_id, kind, enabled, via) values ($1, 'digest_daily', true, 'profile')",
     [accountId],
   );
   w = JSON.parse((await read()).body).setup;
-  assert.equal(w.digest.cadence, "daily");
-  assert.equal(w.digest.enabled, true);
-  assert.ok(w.digest.chosen_at);
+  assert.equal(w.emails.daily, true);
+  assert.equal(w.emails.weekly, true);
+  assert.equal(w.emails.season, true);
+  assert.ok(w.emails.chosen_at);
 });
 
 test("reading Home stamps nothing: the older welcome's finish is left as it was (#1015)", async () => {
@@ -424,7 +435,7 @@ test("reading Home stamps nothing: the older welcome's finish is left as it was 
   // All four of the older steps hold, and the read writes nothing.
   const w = JSON.parse((await read()).body).setup;
   assert.equal(w.following, 1);
-  assert.equal(w.digest.enabled, false);
+  assert.equal(w.emails.weekly, false);
   const stored = await db.query(
     "select welcome_finished_at from account where account_id = $1",
     [accountId],
