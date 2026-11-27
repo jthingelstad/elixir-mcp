@@ -5421,6 +5421,19 @@ export async function buildTimeline(
     // callers (Home's week): `entries` and `quiet` leave the stored
     // players out. Null: every player is built.
     storedPlayers = null,
+    // Followed clans' stories from their stored rows (stage 6 of the
+    // stored Timeline, 2026-11-27): `{ read, now }`, where `read` is
+    // story-store.mjs readClansStories. A clan whose rows are proven
+    // current has its window cut from them for its subject's scope
+    // (clanWindowItems) and gets no entry; the rest are built, as today.
+    // Never with `memberTag` (a member's own clan view is always built).
+    // For items-only callers that pass `lateCounts: false`, as the clan's
+    // write does (Home's week). Null: every clan is built.
+    storedClans = null,
+    // Record, per clan subject, the ids of the items its telling gave
+    // (`finished.clan_told`), as `storedClans` does: what Home's shadow
+    // attributes a difference by (home-feed.mjs). Never served.
+    clanTold = false,
     // A clan's stored telling (buildClanEntry's `stored`): the store's
     // own clan build (story-store.mjs) and nothing else.
     clanStored = false,
@@ -5436,13 +5449,53 @@ export async function buildTimeline(
   const playerTags = [
     ...new Set(subjects.filter((s) => s.kind !== "clan").map((s) => s.tag)),
   ];
+  const clanTags = [
+    ...new Set(subjects.filter((s) => s.kind === "clan").map((s) => s.tag)),
+  ];
   const fromStore = storedPlayers
-    ? await storedPlayerStories(db, playerTags, storedPlayers, {
-        fromMs,
-        toMs,
-        basis,
-      })
+    ? await storedSubjectStories(
+        db,
+        playerTags,
+        storedPlayers,
+        { fromMs, toMs, basis },
+        {
+          // Entry items are public; people items and attested facts are
+          // read live by buildTimeline (peopleItems, factItems), never
+          // from a row.
+          visibilities: ["public"],
+          omitSections: ["people", "attested"],
+        },
+      )
     : null;
+  // A member's own clan view never reads clan rows: every clan is built.
+  const fromClanStore = !storedClans
+    ? null
+    : memberTag === null
+      ? await storedSubjectStories(db, clanTags, storedClans, {
+          fromMs,
+          toMs,
+          basis,
+        })
+      : {
+          items: new Map(),
+          written: new Map(),
+          counts: {
+            stored: 0,
+            computed: clanTags.length ? { member: clanTags.length } : {},
+            ms: 0,
+          },
+        };
+  // Per clan tag, the ids its items carried (built or cut): a Map of its
+  // own, never shared with a player's (a player and a clan tag can be one
+  // string).
+  const told =
+    storedClans || clanTold
+      ? new Map(clanTags.map((tag) => [tag, new Set()]))
+      : null;
+  const tellClan = (tag, list) => {
+    if (!told) return;
+    for (const it of list) told.get(tag)?.add(idOf(it));
+  };
   const builtTags = fromStore
     ? playerTags.filter((t) => !fromStore.items.has(t))
     : playerTags;
@@ -5466,6 +5519,23 @@ export async function buildTimeline(
       continue;
     }
     if (s.kind === "clan") {
+      const rows = fromClanStore?.items.get(s.tag);
+      if (rows) {
+        // The window cut for this reader's scope, at the clan's place in
+        // the loop, as a build's items would come; no entry.
+        const cut = clanWindowItems(rows, {
+          fromMs,
+          toMs,
+          basis,
+          scope: s.scope,
+        });
+        items.push(...cut.items);
+        more += cut.more;
+        dropped.push(...cut.dropped);
+        tellClan(s.tag, cut.items);
+        tellClan(s.tag, cut.dropped);
+        continue;
+      }
       const built = await buildClanEntry(db, {
         tag: s.tag,
         scope: s.scope,
@@ -5482,6 +5552,8 @@ export async function buildTimeline(
       items.push(...built.items);
       more += built.more;
       dropped.push(...(built.dropped ?? []));
+      tellClan(s.tag, built.items);
+      tellClan(s.tag, built.dropped ?? []);
       continue;
     }
     const built = await buildPlayerEntry(db, {
@@ -5603,6 +5675,13 @@ export async function buildTimeline(
     // the shadow's causes (home-feed.mjs compareWeeks). Never logged.
     finished.stored_written = fromStore.written;
   }
+  if (fromClanStore) {
+    finished.stored_clans = fromClanStore.counts;
+    // Which clans were served from rows, and when each was written: a
+    // Map of its own, keyed by clan tag. Never logged.
+    finished.stored_clans_written = fromClanStore.written;
+  }
+  if (told) finished.clan_told = told;
   return finished;
 }
 
@@ -5611,17 +5690,19 @@ const STORED_READ_STATEMENT_MS = 500;
 
 /**
  * The stored rows of `tags` for one window, through `read`
- * (readPlayersStories) under a statement budget. Answers
+ * (readPlayersStories, or readClansStories for clans) under a statement
+ * budget, with `extra` options for the read. Answers
  * `{ items: Map(tag -> items), written: Map(tag -> ms), counts }`, the
  * counts `{ stored, computed: { <reason>: n }, ms }` and, when the read
  * failed, `error` (its class, never its message). A failed read serves
- * nothing: every player is built, under reason `error`.
+ * nothing: every subject is built, under reason `error`.
  */
-async function storedPlayerStories(
+async function storedSubjectStories(
   db,
   tags,
   { read, now = Date.now(), statementMs = STORED_READ_STATEMENT_MS },
   { fromMs, toMs, basis },
+  extra = {},
 ) {
   const started = Date.now();
   const out = {
@@ -5638,10 +5719,7 @@ async function storedPlayerStories(
       fromMs,
       toMs,
       basis,
-      // Entry items are public; people items and attested facts are read
-      // live by buildTimeline (peopleItems, factItems), never from a row.
-      visibilities: ["public"],
-      omitSections: ["people", "attested"],
+      ...extra,
       now,
       statementMs,
     });
