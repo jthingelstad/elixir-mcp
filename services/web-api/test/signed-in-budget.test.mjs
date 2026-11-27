@@ -358,7 +358,11 @@ const FIND = {
   "/api/me/home/needs": { statements: 12, buffers: 300 },
   "/api/me/follow-slots": { statements: 6, buffers: 700 },
   // +1 each: the rows' profile images, one statement a list (2026-11-14).
-  "/api/me/people/suggested": { statements: 11, buffers: 600 },
+  // +300 buffers: the players your friends played friendly battles with
+  // (2026-11-27) read each followed friend's last 30 days on its own
+  // cover range and keep the friendlies (no index on type; about 420
+  // buffers for the 55 follows here).
+  "/api/me/people/suggested": { statements: 11, buffers: 900 },
   "/api/me/people/battles": { statements: 9, buffers: 1300 },
   // Each member contributes at most 30 keyed battle verifications for deck comparisons.
   "/api/me/people/clan": { statements: 12, buffers: 5600 },

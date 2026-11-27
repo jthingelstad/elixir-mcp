@@ -449,7 +449,9 @@ test("People to follow: why and the cost, game names, never anyone you claim", a
   for (const p of res.body.people) {
     assert.equal(typeof p.free, "boolean");
     for (const w of p.why)
-      assert.ok(["battles", "clan", "followed_by"].includes(w.kind));
+      assert.ok(
+        ["battles", "clan", "followed_by", "friend_friendly"].includes(w.kind),
+      );
     // Facts, never a rating: no trophies, wins or level on a suggestion.
     for (const k of ["trophies", "wins", "losses", "level", "rank", "score"])
       assert.ok(!(k in p), k);
