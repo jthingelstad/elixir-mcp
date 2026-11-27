@@ -46,7 +46,15 @@ for (const [label, width] of [
       "Your 2v2 teammate twice in the last 30 days",
     );
     await expect(rows.nth(2)).toContainText("Free");
+    // A friend's friendly opponent: you have no games with them, so their
+    // page opens as any other suggestion's does.
     await expect(rows.nth(3)).toContainText(
+      "Ada and 1 other friend played 2 friendly battles with them",
+    );
+    await expect(
+      list.getByRole("link", { name: "Invented Player 1", exact: true }),
+    ).toHaveAttribute("href", "/home/player/02G2PJC0");
+    await expect(rows.nth(4)).toContainText(
       "You played a friendly battle in the last 30 days",
     );
     await expect(

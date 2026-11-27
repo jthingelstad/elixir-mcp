@@ -228,8 +228,9 @@ export function FindSuggested({ onSearch, onLink }) {
     return (
       <Panel pad className="kit-findsuggest" aria-label="Suggested">
         <p className="kit-week__quiet">
-          Nobody to suggest yet. Friendly battles, 2v2 teammates, the players
-          your follows follow show up here. Clanmates connect automatically.
+          Nobody to suggest yet. Friendly battles (yours and your friends'), 2v2
+          teammates and the players your follows follow show up here. Clanmates
+          connect automatically.
         </p>
         <div className="kit-findsuggest__ways">
           <button type="button" className="btn btn--sm" onClick={onSearch}>
