@@ -403,8 +403,9 @@ it. Each reads on its own, so the feed never waits for them.
   fame", or training days, or finished), the last race's place, and your
   war decks and donations this week.
 - **People to follow:** up to five players, each with why they are there
-  as a fact, and **Free** on anyone following costs nothing. They come from encounters in your battles (never a boat battle) and the players followed by
-  people you follow. Someone you met in battle opens on Together, your
+  as a fact, and **Free** on anyone following costs nothing. They come from encounters in your battles (never a boat battle), the
+  players your friends had a friendly battle with in the last 30 days,
+  and the players followed by people you follow. Someone you met in battle opens on Together, your
   games with them ([Your games together](/docs/player-page#your-games-together)). Your own players, friends and current clanmates already
   have a connection and stay out of these suggestions.
   Nobody is ranked by trophies, wins or any rating, and names are game
