@@ -275,8 +275,9 @@ export function FindSuggested({ onSearch, onLink }) {
         </div>
       ) : null}
       <p className="kit-tiny kit-people__slots">
-        From your battles in the last {data.days} days and the players your
-        follows follow. Clanmates connect automatically. Never ranked.
+        From your battles, your friends' friendly battles and the players your
+        follows follow. Clanmates connect automatically. No order by trophies or
+        wins.
         {all && data.more > 0 ? " More are in From your battles." : ""}
       </p>
     </Panel>
