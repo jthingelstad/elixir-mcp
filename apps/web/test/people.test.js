@@ -7,6 +7,7 @@ import { describe, expect, test } from "vitest";
 import {
   costMark,
   lastMetLine,
+  metInBattle,
   metLine,
   raceNowLine,
   offersStarter,
@@ -116,6 +117,32 @@ describe("why a person is suggested", () => {
         others: 2,
       }),
     ).toBe("#0J0RVYRR follows them, and 2 more you follow");
+  });
+
+  test("the players your friends played friendly battles with", () => {
+    const ff = (over) => ({
+      kind: "friend_friendly",
+      via: { tag: "#0J0RVYRR", name: "Ada" },
+      battles: 1,
+      others: 0,
+      days: 30,
+      ...over,
+    });
+    expect(whyLine(ff())).toBe("Ada played a friendly battle with them");
+    expect(whyLine(ff({ battles: 3 }))).toBe(
+      "Ada played 3 friendly battles with them",
+    );
+    expect(whyLine(ff({ battles: 2, others: 1 }))).toBe(
+      "Ada and 1 other friend played 2 friendly battles with them",
+    );
+    expect(whyLine(ff({ others: 2 }))).toBe(
+      "Ada and 2 other friends played a friendly battle with them",
+    );
+    expect(whyLine(ff({ via: { tag: "#0J0RVYRR", name: null } }))).toBe(
+      "#0J0RVYRR played a friendly battle with them",
+    );
+    // Not met in battle by you: their page opens as any other suggestion.
+    expect(metInBattle([ff()])).toBe(false);
   });
 
   test("every reason, joined", () => {

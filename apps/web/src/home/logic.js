@@ -494,6 +494,20 @@ export function whyLine(why, { dayHeading = null, compact = false } = {}) {
       ? `${who} follows them, and ${why.others} more you follow`
       : `${who} follows them`;
   }
+  // Your friends' friendly battles (2026-11-27): the friend who played
+  // them most, by game name, and how many of your friends did.
+  if (why.kind === "friend_friendly") {
+    const who = why.via?.name ?? why.via?.tag ?? "A player you follow";
+    const battles = many(
+      why.battles ?? 1,
+      "a friendly battle",
+      "friendly battles",
+    );
+    const others = why.others ?? 0;
+    return others > 0
+      ? `${who} and ${others} other friend${others > 1 ? "s" : ""} played ${battles} with them`
+      : `${who} played ${battles} with them`;
+  }
   if (why.kind === "battles") {
     const span =
       why.days === 7

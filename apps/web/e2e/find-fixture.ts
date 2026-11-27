@@ -53,7 +53,19 @@ const PEOPLE = [
   ...OTHER_PLAYERS.map((tag, i) => ({
     tag,
     name: `Invented Player ${i + 1}`,
-    why: battles({ against: 1, friendly: 1 }),
+    // The first: a player your friend Ada played friendly battles with.
+    why:
+      i === 0
+        ? [
+            {
+              kind: "friend_friendly",
+              via: { tag: "#0Q2UQ2YR", name: "Ada" },
+              battles: 2,
+              others: 1,
+              days: 30,
+            },
+          ]
+        : battles({ against: 1, friendly: 1 }),
     free: false,
     reason: null,
   })),
