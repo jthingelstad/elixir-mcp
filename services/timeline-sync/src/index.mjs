@@ -32,6 +32,7 @@ import { modelStorage } from "@elixir-mcp/clan/model-storage.mjs";
 import {
   refreshHomeWeek,
   storyBuildOf,
+  storyClansBuildOf,
 } from "@elixir-mcp/tools/activity/home-feed";
 import { applyPushReceipt } from "@elixir-mcp/tools/activity/push";
 import { refreshSubjectStories } from "@elixir-mcp/tools/activity/story-store";
@@ -174,11 +175,13 @@ export const handler = makeHandler({
   pushReceipts: (db, msg) => applyPushReceipt(db, msg),
   // Home's stored week (0245, #649), as the account reads it; its
   // followed players from their stored rows by the stack's
-  // TimelineStoryBuild (stage 4, 2026-11-25).
+  // TimelineStoryBuild (stage 4, 2026-11-25), and its clans from theirs
+  // by TimelineStoryBuildClans (stage 6, 2026-11-27).
   homeFeed: (db, accountId, opts = {}) =>
     refreshHomeWeek(db, accountId, {
       ...opts,
       storyBuild: storyBuildOf(process.env.TIMELINE_STORY_BUILD),
+      storyClans: storyClansBuildOf(process.env.TIMELINE_STORY_BUILD_CLANS),
     }),
   // A recorded player's stored stories (stage 2, 2026-11-23).
   stories: (db, playerTag, opts) =>

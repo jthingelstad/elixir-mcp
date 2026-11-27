@@ -449,6 +449,54 @@ test("a Home week built with stored stories logs its comparison as a line of its
   assert.ok(!/#[0289PYLQGRJCUV]{3,}/.test(text));
 });
 
+test("a Home week built with stored clans logs a home_feed_story_clans line of its own, beside stage 4's", async () => {
+  const key = `timeline-sync/home.${ACCOUNT}.clans.json`;
+  const objects = new Map([
+    [key, JSON.stringify({ v: 1, home_feed: ACCOUNT })],
+  ]);
+  const story = { mode: "on", players_stored: 2, build_ms: 30 };
+  const storyClans = {
+    mode: "shadow",
+    clans_stored: 2,
+    clans_computed: { news: 1 },
+    read_ms: 3,
+    base_ms: 30,
+    mixed_ms: 9,
+    diff: { only_computed: 0, ids: {}, groups: [] },
+  };
+  const handler = makeHandler({
+    connect: async () => ({ end: async () => {} }),
+    sync: async () => assert.fail("not an account sync"),
+    homeFeed: async () => ({
+      items: 3,
+      build_ms: 30,
+      story,
+      story_clans: storyClans,
+    }),
+    readObject: async (obj) => objects.get(obj.key) ?? null,
+    deleteObject: async (obj) => objects.delete(obj.key),
+  });
+  const lines = [];
+  const log = console.log;
+  console.log = (...a) => lines.push(a);
+  try {
+    await handler({ Records: [record("a", key)] });
+  } finally {
+    console.log = log;
+  }
+  const built = lines.find((l) => l[0] === "home_feed_built");
+  assert.deepEqual(JSON.parse(built[2]), { items: 3, build_ms: 30 });
+  const own = lines.filter((l) => l.length === 1).map((l) => JSON.parse(l[0]));
+  assert.deepEqual(
+    own.find((l) => l.at === "home_feed_story_build"),
+    { at: "home_feed_story_build", door: "home_sync", ...story },
+  );
+  assert.deepEqual(
+    own.find((l) => l.at === "home_feed_story_clans"),
+    { at: "home_feed_story_clans", door: "home_sync", ...storyClans },
+  );
+});
+
 test("a Home week's wake passes on a landed read's time, and drops one that is not a time", async () => {
   const seen = [];
   const SINCE = "2026-11-14T12:00:00.000Z";

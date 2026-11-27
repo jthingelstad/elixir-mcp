@@ -37,7 +37,9 @@
  * dropped, never retried: the next wake builds it, and a read whose row
  * is too old builds it itself. With TIMELINE_STORY_BUILD at `shadow` or
  * `on` (stage 4 of the stored Timeline, 2026-11-25) the build also logs
- * one `home_feed_story_build` line of counts.
+ * one `home_feed_story_build` line of counts, and, while it is `on`, with
+ * TIMELINE_STORY_BUILD_CLANS at `shadow` or `on` (stage 6, 2026-11-27),
+ * one `home_feed_story_clans` line.
  *
  * A recorded player's stored stories (timeline_story, stage 2 of the
  * stored Timeline, 2026-11-23) are rewritten by `{ v: 1, story_player,
@@ -157,8 +159,13 @@ export function makeHandler({
             since ? { since } : {},
           );
           // Stage 4's comparison is a line of its own, with no account,
-          // tag, name or content (home-feed.mjs logStoryBuild).
-          const { story = null, ...built } = out ?? {};
+          // tag, name or content (home-feed.mjs logStoryBuild), and stage
+          // 6's another (logStoryClans).
+          const {
+            story = null,
+            story_clans: storyClans = null,
+            ...built
+          } = out ?? {};
           console.log("home_feed_built", msg.home_feed, JSON.stringify(built));
           if (story)
             console.log(
@@ -166,6 +173,14 @@ export function makeHandler({
                 at: "home_feed_story_build",
                 door: "home_sync",
                 ...story,
+              }),
+            );
+          if (storyClans)
+            console.log(
+              JSON.stringify({
+                at: "home_feed_story_clans",
+                door: "home_sync",
+                ...storyClans,
               }),
             );
         } catch (err) {

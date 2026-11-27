@@ -42,6 +42,7 @@ import {
   changedFields,
   finishedHash,
   plainItem,
+  readClansStories,
   readPlayersStories,
 } from "./story-store.mjs";
 
@@ -181,6 +182,11 @@ export async function buildHomeWeek(
     // with followed players from their stored rows and compares the two,
     // `on` stores the second build.
     storyBuild = "off",
+    // Stage 6 (TIMELINE_STORY_BUILD_CLANS, storyClansBuildOf), only while
+    // storyBuild is `on` (else `off`): `off` builds every clan, `shadow`
+    // stores that and then builds again with followed clans from their
+    // stored rows too and compares the two, `on` stores the second build.
+    storyClans = "off",
     // The wall clock the stored rows are judged against (tests pin it).
     storyNow = Date.now(),
   },
@@ -201,15 +207,27 @@ export async function buildHomeWeek(
     people: { accounts, players: true },
     perf,
   };
+  const clansMode = storyBuild === "on" ? storyClans : "off";
+  const storedPlayers = { read: readPlayersStories, now: storyNow };
+  const storedClans = { read: readClansStories, now: storyNow };
   const mixed = () =>
-    buildTimeline(db, subjects, {
-      ...options,
-      storedPlayers: { read: readPlayersStories, now: storyNow },
-    });
+    buildTimeline(db, subjects, { ...options, storedPlayers });
+  // Followed players and clans both from their rows (stage 6).
+  const allStored = () =>
+    buildTimeline(db, subjects, { ...options, storedPlayers, storedClans });
   const started = Date.now();
-  const built = await (storyBuild === "on"
-    ? mixed()
-    : buildTimeline(db, subjects, options));
+  const built = await (storyBuild !== "on"
+    ? buildTimeline(db, subjects, options)
+    : clansMode === "on"
+      ? allStored()
+      : clansMode === "shadow"
+        ? // Which ids each built clan told: the shadow's attribution.
+          buildTimeline(db, subjects, {
+            ...options,
+            storedPlayers,
+            clanTold: true,
+          })
+        : mixed());
   const buildMs = Date.now() - started;
   const items = built.timeline ?? [];
   const more = built.timeline_more ?? 0;
@@ -272,12 +290,100 @@ export async function buildHomeWeek(
       };
     }
   }
+  if (clansMode === "on")
+    week.storyClans = {
+      mode: "on",
+      ...clanCounts(built.stored_clans),
+      build_ms: buildMs,
+    };
+  else if (clansMode === "shadow") {
+    // After the week is stored, and never its failure, as stage 4's.
+    const shadowStarted = Date.now();
+    try {
+      const other = await allStored();
+      week.storyClans = {
+        mode: "shadow",
+        ...clanCounts(other.stored_clans),
+        base_ms: buildMs,
+        mixed_ms: Date.now() - shadowStarted,
+        diff: compareClanWeeks(built, other, { fromMs }),
+      };
+    } catch (err) {
+      week.storyClans = {
+        mode: "shadow",
+        base_ms: buildMs,
+        mixed_ms: Date.now() - shadowStarted,
+        failed: err?.code ?? err?.name ?? "error",
+      };
+    }
+  }
   return week;
 }
 
 /** TIMELINE_STORY_BUILD as a mode: `off` unless it says `shadow` or
  *  `on`. */
 export const storyBuildOf = (v) => (v === "shadow" || v === "on" ? v : "off");
+/** TIMELINE_STORY_BUILD_CLANS as a mode (stage 6): the same parse. */
+export const storyClansBuildOf = (v) => storyBuildOf(v);
+
+/** The one log line of a stage-6 build (`home_feed_story_clans`), beside
+ *  stage 4's: counts, ms and story ids only, never a tag, a name or an
+ *  item's content. `door` as logStoryBuild's. */
+export function logStoryClans(log, door, story) {
+  try {
+    log(JSON.stringify({ at: "home_feed_story_clans", door, ...story }));
+  } catch {
+    // A log that fails never fails the week.
+  }
+}
+
+/** A build's stored-clan counts as the log carries them: no tag. */
+const clanCounts = (c) => ({
+  clans_stored: c?.stored ?? 0,
+  clans_computed: c?.computed ?? {},
+  read_ms: c?.ms ?? 0,
+  ...(c?.error ? { read_error: c.error } : {}),
+});
+
+/** No kind is labelled observed_basis by kind alone for a clan: its rows
+ *  keep each kind's observed instant (story-clans.mjs). */
+const NO_EDGE_KINDS = new Set();
+
+/**
+ * Stage 6's comparison: the stored week (players from rows, clans built)
+ * beside the same week with clans from their rows too. Both builds read
+ * players' rows, moments apart, so a difference can be a player's rows
+ * moving between them. A difference is a stored clan's only when its id
+ * is one a clan served from rows in the second build told, in either
+ * build (`clan_told`: what each clan subject's items carried, built or
+ * cut, before any merge); anything else is `not_clan`. A clan's is
+ * `unwritten` when it was learned after that clan's write (the earliest,
+ * when several stored clans tell it), then compareWeeks' `cap_edge`,
+ * `observed_basis` (it sorts before the week), `window` and `settled`.
+ */
+function compareClanWeeks(base, mixed, { fromMs }) {
+  const written = mixed.stored_clans_written ?? new Map();
+  const toldBy = [base.clan_told, mixed.clan_told].filter(Boolean);
+  const clanOf = (it) => {
+    let best = null;
+    for (const [tag, ms] of written)
+      if (
+        toldBy.some((t) => t.get(tag)?.has(it.id)) &&
+        (best === null || ms < written.get(best))
+      )
+        best = tag;
+    return best;
+  };
+  return compareWeeks(base, mixed, {
+    fromMs,
+    basis: "observed",
+    edgeKinds: NO_EDGE_KINDS,
+    saidGate: false,
+    storedOf: clanOf,
+    written,
+    unstoredCause: "not_clan",
+  });
+}
 
 /** The one log line of a stage-4 build: counts, ms and story ids only,
  *  never a tag, a name or an item's content. `door` says which build:
@@ -336,7 +442,12 @@ const OBSERVED_EDGE_KINDS = new Set(["member_role_changed", "returned"]);
  * labelled `observed_basis` whatever their instant (none: a clan row
  * keeps each kind's observed instant), and `saidGate: false` (a clan's
  * entry has no said gate). `storedOf` names the stored subject of an
- * item (a clan's: the clan, whatever member the item is about).
+ * item (a clan's: the clan, whatever member the item is about), or null.
+ * `written` (stage 6, 2026-11-27) is the Map of stored subject to its
+ * write's ms in place of `mixed.stored_written` (Home's clans: a Map of
+ * clan tags, apart from the players'), and `unstoredCause` names a
+ * difference on an item no stored subject told (`computed` unless
+ * said).
  */
 export function compareWeeks(
   computed,
@@ -348,10 +459,12 @@ export function compareWeeks(
     edgeKinds = OBSERVED_EDGE_KINDS,
     saidGate = true,
     storedOf = null,
+    written = null,
+    unstoredCause = "computed",
   },
 ) {
   const onlyOther = `only_${other}`;
-  const storedWritten = mixed.stored_written ?? new Map();
+  const storedWritten = written ?? mixed.stored_written ?? new Map();
   const a = new Map((computed.timeline ?? []).map((it) => [it.id, it]));
   const b = new Map((mixed.timeline ?? []).map((it) => [it.id, it]));
   const droppedA = new Set(
@@ -395,7 +508,7 @@ export function compareWeeks(
     )
       return "cap_edge";
     const tag = storedTag(it);
-    if (tag === null) return "computed";
+    if (tag === null) return unstoredCause;
     const learned = Date.parse(it.observed_at ?? it.at);
     if (learned > storedWritten.get(tag)) return "unwritten";
     if (saidGate && bucket === "only_computed" && it.kind === "quiet_crossed")
@@ -536,6 +649,10 @@ export async function readHomeWeek(
     // `log`. `shadow` is the lane's alone: a person's read never waits
     // for a second build that only compares.
     storyBuild = "off",
+    // TIMELINE_STORY_BUILD_CLANS (stage 6): a build on read follows it
+    // only at `on` (and only while storyBuild is `on`), and logs its
+    // home_feed_story_clans line; `shadow` is the lane's alone too.
+    storyClans = "off",
     log = console.info,
   },
 ) {
@@ -589,6 +706,7 @@ export async function readHomeWeek(
           readAt: now,
           perf,
           storyBuild: storyBuild === "on" ? "on" : "off",
+          storyClans: storyClans === "on" ? "on" : "off",
         })),
         stored: false,
       }),
@@ -601,6 +719,7 @@ export async function readHomeWeek(
     });
   }
   if (week.story) logStoryBuild(log, "home_read", week.story);
+  if (week.storyClans) logStoryClans(log, "home_read", week.storyClans);
   // Read live over the stored items, a statement each: highlights, so a
   // post, an edit or a removal shows at once; attested facts, because who
   // may see a clan or leaders' fact is decided at the read (factItems),
@@ -786,7 +905,12 @@ const fromRow = (row) => ({
 export async function refreshHomeWeek(
   db,
   accountId,
-  { now = Date.now(), since = null, storyBuild = "off" } = {},
+  {
+    now = Date.now(),
+    since = null,
+    storyBuild = "off",
+    storyClans = "off",
+  } = {},
 ) {
   const row = await storedWeek(db, accountId);
   // The bell's week rides the same wake (bell_week, 0247): built here
@@ -811,6 +935,7 @@ export async function refreshHomeWeek(
         timezone,
         now,
         storyBuild,
+        storyClans,
       }),
     // A read built it meanwhile: nothing left to do.
     reuse: async () => {
@@ -822,8 +947,10 @@ export async function refreshHomeWeek(
     items: week.items.length,
     build_ms: week.buildMs,
     ...(bell ? { bell } : {}),
-    // The lane logs it as its own line (logStoryBuild), not in this one.
+    // The lane logs each as its own line (logStoryBuild, logStoryClans),
+    // not in this one.
     ...(week.story ? { story: week.story } : {}),
+    ...(week.storyClans ? { story_clans: week.storyClans } : {}),
   };
 }
 

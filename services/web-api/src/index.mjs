@@ -15,6 +15,7 @@ import { makeOutbox, countStuck } from "@elixir-mcp/outbox";
 import {
   homeWeekWake,
   storyBuildOf,
+  storyClansBuildOf,
 } from "@elixir-mcp/tools/activity/home-feed";
 import { makeCardArt, makeSiteShell, shareAssetsIn } from "./routes/battle.mjs";
 import { makeSiteMiss } from "./routes/site-miss.mjs";
@@ -194,6 +195,9 @@ const handler = makeHandler({
   // The stored week's build on read (2026-11-25): the stack's
   // TimelineStoryBuild; anything but shadow or on is off.
   storyBuild: storyBuildOf(process.env.TIMELINE_STORY_BUILD),
+  // Its clans from their stored rows (2026-11-27): the stack's
+  // TimelineStoryBuildClans, followed by a build on read only at `on`.
+  storyClans: storyClansBuildOf(process.env.TIMELINE_STORY_BUILD_CLANS),
   // Product updates in Home's Timeline (2026-11-23): the What's new
   // entries marked for everyone, carried in this bundle from the build.
   productUpdates: readProductUpdates,

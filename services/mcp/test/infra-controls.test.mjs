@@ -1598,6 +1598,33 @@ test("TimelineStoryBuild: Home's two builders read it, shadow by default, and a 
   assert.ok(PRESERVED_PARAMETERS.includes("TimelineStoryBuild"));
 });
 
+test("TimelineStoryBuildClans: Home's two builders read it beside TimelineStoryBuild, shadow by default, and a deploy keeps it", async () => {
+  const template = await readFile(templateUrl, "utf8");
+  const functions = [
+    ...template.matchAll(/^  (\w+(?:Function|Revision)):\n/gm),
+  ];
+  const holding = (re) =>
+    functions
+      .filter((entry, index) =>
+        re.test(template.slice(entry.index, functions[index + 1]?.index)),
+      )
+      .map((entry) => entry[1]);
+  // The clans' mode is read only where the build's mode is.
+  assert.deepEqual(
+    holding(/TIMELINE_STORY_BUILD_CLANS: !Ref TimelineStoryBuildClans/).sort(),
+    holding(/TIMELINE_STORY_BUILD: !Ref TimelineStoryBuild\n/).sort(),
+  );
+  assert.deepEqual(
+    holding(/TIMELINE_STORY_BUILD_CLANS: !Ref TimelineStoryBuildClans/).sort(),
+    ["TimelineSyncFunction", "WebApiWebRevision"],
+  );
+  assert.match(
+    template,
+    /^  TimelineStoryBuildClans:\n {4}Type: String\n {4}Default: shadow\n {4}AllowedValues: \["off", "shadow", "on"\]$/m,
+  );
+  assert.ok(PRESERVED_PARAMETERS.includes("TimelineStoryBuildClans"));
+});
+
 test("TimelineStoryClans: only the timeline-sync lane reads it, shadow by default, and a deploy keeps it", async () => {
   const template = await readFile(templateUrl, "utf8");
   const functions = [

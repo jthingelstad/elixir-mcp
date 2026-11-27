@@ -702,6 +702,7 @@ async function readFeed(
   questionsOnly = false,
   productUpdates = null,
   storyBuild = "off",
+  storyClans = "off",
 ) {
   const started = Date.now();
   const { timezone, seenTo: seen_to } = await homeAccount(
@@ -715,6 +716,7 @@ async function readFeed(
     wake,
     perf,
     storyBuild,
+    storyClans,
   });
   // Posts (2026-11-17): read live over the week by their own audience
   // (posts.mjs); a person's feed only. A post about nothing in the record
@@ -881,7 +883,7 @@ async function readFeed(
 async function feedWeek(
   db,
   account,
-  { timezone, window, wake, perf, storyBuild = "off" },
+  { timezone, window, wake, perf, storyBuild = "off", storyClans = "off" },
 ) {
   const week = await readHomeWeek(db, account.accountId, {
     timezone,
@@ -889,6 +891,7 @@ async function feedWeek(
     wake,
     perf,
     storyBuild,
+    storyClans,
   });
   if (week) return week;
   const { built, subjects } = await buildFeed(db, account, {
@@ -1014,6 +1017,9 @@ export function homeRoutes({
    *  2026-11-25): the stack's TimelineStoryBuild, `off`, `shadow` or `on`
    *  (home-feed.mjs buildHomeWeek). */
   storyBuild = "off",
+  /** Its clans from their stored rows (stage 6, 2026-11-27): the stack's
+   *  TimelineStoryBuildClans; a build on read follows only `on`. */
+  storyClans = "off",
 }) {
   return {
     // What the first paint needs, and all it waits for.
@@ -1154,6 +1160,7 @@ export function homeRoutes({
           questionsOnly,
           productUpdates,
           storyBuild,
+          storyClans,
         ),
       );
     },
@@ -1172,6 +1179,7 @@ export function homeRoutes({
           timezone: account.timezone ?? timezone ?? "UTC",
           wake,
           storyBuild,
+          storyClans,
         }),
       );
       return json(200, { circle });

@@ -236,6 +236,9 @@ export function makeHandler({
    *  2026-11-25; home-feed.mjs buildHomeWeek): the stack's
    *  TimelineStoryBuild, `off`, `shadow` or `on`. */
   storyBuild = "off",
+  /** Its clans from their stored rows (stage 6, 2026-11-27): the stack's
+   *  TimelineStoryBuildClans; a build on read follows only `on`. */
+  storyClans = "off",
   /** ({ fromMs, toMs }) => the What's new entries marked for everyone's
    *  Timeline inside a window, as Home's feed items (product-updates.mjs
    *  readProductUpdates, 2026-11-23); null = none. */
@@ -447,6 +450,7 @@ export function makeHandler({
       posts: postsOn,
       productUpdates,
       storyBuild,
+      storyClans,
     }),
     ...playerRoutes({
       resolveAccount,
