@@ -4,7 +4,7 @@ import { verificationBudget } from "./verification-budget.mjs";
  * set and its People to follow panel, and Find's Suggested, From your
  * battles and clan lists, for a new account in a seeded clan whose rows are a small
  * part of each table (`clan-landing-seed.mjs`), with friendly battles
- * and a 2v2 added. Each read is held to a statement count, every
+ * and a 2v2 added, and a followed friend's friendly (2026-11-27). Each read is held to a statement count, every
  * statement's plan to never scanning a large table whole nor reading
  * far more of it than the person's own rows, and no battle read is
  * batched over many players at once. Counts and plan shapes, never
@@ -25,8 +25,10 @@ const LARGE = ["battle", "battle_participant", "player"];
 const BUDGET = {
   // +1 each: the rows' profile images, one statement a list (2026-11-14).
   "/api/me/people/starter": 12,
-  "/api/me/people/suggested": 12,
-  "/api/me/people/find": 12,
+  // +1 each: the players your friends played friendly battles with
+  // (2026-11-27), one statement over every friend.
+  "/api/me/people/suggested": 13,
+  "/api/me/people/find": 13,
   "/api/me/people/battles": 9,
   "/api/me/people/clan": 12,
   // #768: the session, the seam's one read, and Near you's follow prices.
@@ -38,6 +40,9 @@ const BUDGET = {
 // Invented: a friendly opponent and a 2v2 teammate's pair of opponents.
 const FRIEND = "#0G2ULUJP";
 const FOES = ["#0JCCC08Q", "#0Q2UQ2YR"];
+// Invented: a player the reader follows, and their friendly opponent.
+const FOLLOWED = "#0VQ2Y20";
+const FOLLOWED_FOE = "#0VQ2Y22";
 
 let seed, handler, database;
 const sizes = {};
@@ -57,7 +62,7 @@ before(async () => {
       order by player_tag limit 1`,
     [seed.clanTag, leaderTag],
   );
-  for (const tag of [FRIEND, ...FOES])
+  for (const tag of [FRIEND, ...FOES, FOLLOWED, FOLLOWED_FOE])
     await db.query(
       `insert into player (player_tag, name) values ($1, 'Invented Friend')
        on conflict do nothing`,
@@ -83,6 +88,16 @@ before(async () => {
   await add("people-budget-2v2", "trail", 3, [
     [leaderTag, mate.player_tag],
     FOES,
+  ]);
+  // A friend the reader follows, and their friendly with a stranger.
+  await db.query(
+    `insert into claim (account_id, player_tag, relationship, notify)
+     values ($1, $2, 'friend', false)`,
+    [seed.accountId, FOLLOWED],
+  );
+  await add("people-budget-friends-friendly", "friendly", 4, [
+    [FOLLOWED],
+    [FOLLOWED_FOE],
   ]);
   // The reader's place (#768), stamped as Clan saves it, so Near you
   // reads whole.
@@ -252,4 +267,23 @@ test("Find's Suggested lists the friendly, says why, and leaves out the 2v2's op
   for (const foe of FOES) assert.ok(!tags.includes(foe), foe);
   // Sources take turns, battles first: the friendly leads.
   assert.equal(tags[0], FRIEND);
+});
+
+test("Find's Suggested names a followed friend's friendly opponent", async (t) => {
+  t.mock.method(console, "info", () => {});
+  const r = await call("/api/me/people/find");
+  const foe = r.body.people.find((p) => p.tag === FOLLOWED_FOE);
+  assert.ok(foe, "the friend's friendly opponent is suggested");
+  assert.deepEqual(
+    foe.why.find((w) => w.kind === "friend_friendly"),
+    {
+      kind: "friend_friendly",
+      via: { tag: FOLLOWED, name: "Invented Friend" },
+      battles: 1,
+      others: 0,
+      days: 30,
+    },
+  );
+  const starter = await call("/api/me/people/starter");
+  assert.ok(!starter.body.people.some((p) => p.tag === FOLLOWED_FOE));
 });

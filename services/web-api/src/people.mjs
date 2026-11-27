@@ -6,7 +6,8 @@
  * and carries what following them would cost (`playerCosts`: free when
  * Elixir records them already, else a slot). Each says why they are here as
  * a fact from the record: you played them, they are in your clan, a player
- * you follow follows them. Nothing here is ranked by skill or record:
+ * you follow played a friendly battle with them, a player you follow
+ * follows them. Nothing here is ranked by skill or record:
  * DECISIONS "Facts, not advice" and "No player rating". The order is by
  * the facts themselves (how often you met, then how recently; how many of
  * the players you follow follow them), never by trophies, wins or level.
@@ -25,6 +26,7 @@ import {
   poolLimits,
   poolOwner,
   pooledUsage,
+  ownerBlockedSql,
   visibleFriendSql,
 } from "@elixir-mcp/claims";
 import { CLANMATE_TYPES, FRIENDLY_TYPES } from "@elixir-mcp/contracts";
@@ -43,6 +45,9 @@ const MET_AT_LEAST = 2;
 /** Find's From your battles: a month, at most this many. */
 const BATTLES_DAYS = 30;
 const BATTLES_MAX = 30;
+/** Your friends' friendly battles (2026-11-27): a month on Home's panel
+ *  and on Find alike, since friendlies are sparse [engineering]. */
+const FRIEND_FRIENDLY_DAYS = 30;
 
 /** The account's own players: never suggested to it. */
 const OWN_SQL = `select player_tag from claim where account_id = $1
@@ -150,6 +155,92 @@ async function followedByFriends(db, accountId, exclude) {
   return rows;
 }
 
+/** The players your friends (the players you follow, as `followedByFriends`
+ *  reads them) played friendly battles with in the window (2026-11-27;
+ *  Jamie: "Tyler is my friend and I may know some of the folks he does
+ *  friendly battles with"). A friendly is the friend's own participant row
+ *  typed FRIENDLY_TYPES (a friend's invite) or CLANMATE_TYPES (clan chat),
+ *  so never a boat battle; everyone else in it counts, opponents and 2v2
+ *  teammates alike. One battle is enough; a battle counts once however
+ *  many of your friends were in it. Each row says how many such battles,
+ *  when last, how many of your friends played them, and names the friend
+ *  who played them most (ties by name, then tag, so the line is stable).
+ *  Ranked by how many, then how recently, then tag: never by trophies,
+ *  wins or a score.
+ *
+ *  Nobody across a block: not a candidate whose verified owner is in a
+ *  block with you, either way, nor a friend's battle with someone their
+ *  owner is in a block with (as `followedByFriends` leaves out that edge).
+ *  The exclude list holds your claims and current clanmates, so a friend
+ *  is never suggested back to you, nor your clanmate from a clan-chat
+ *  friendly.
+ *
+ *  Each friend is one range of its own player/time cover, never
+ *  `player_tag = any(...)`; each battle's other players are read by its
+ *  key. */
+async function friendliesOfFriends(db, accountId, days, exclude) {
+  const { rows } = await db.query(
+    `with own as (${OWN_SQL}),
+     friends as (
+       select c.player_tag from claim c
+        where c.account_id = $1 and ${visibleFriendSql("c")}),
+     theirs as (
+       select f.player_tag as friend_tag, fr.battle_id, fr.battle_time
+         from friends f
+         cross join lateral (
+           select bp.battle_id, bp.battle_time
+             from battle_participant bp
+            where bp.player_tag = f.player_tag
+              and bp.battle_time >= now() - make_interval(days => $2)
+              and bp.type = any($4::text[])) fr),
+     met as (
+       select o.player_tag, t.friend_tag, t.battle_id, t.battle_time
+         from theirs t
+         -- OFFSET 0 keeps it a probe of each battle's key, as in
+         -- metInBattles: flattened into a join, the planner may hash every
+         -- participant row in the record.
+         cross join lateral (
+           select o.player_tag from battle_participant o
+            where o.battle_id = t.battle_id
+              and o.player_tag <> t.friend_tag
+              and o.player_tag <> all($3::text[])
+              and o.player_tag not in (select player_tag from own)
+           offset 0) o
+        where not exists (
+          select 1 from claim fo
+           where fo.player_tag = t.friend_tag
+             and fo.status = 'verified'
+             and (fo.is_primary or fo.relationship in ('primary', 'alt'))
+             and ${ownerBlockedSql("fo.account_id", "o.player_tag")})),
+     by_friend as (
+       select m.player_tag, m.friend_tag,
+              count(distinct m.battle_id)::int as battles
+         from met m group by m.player_tag, m.friend_tag),
+     via as (
+       select b.player_tag, count(*)::int as friends,
+              (array_agg(b.friend_tag order by b.battles desc,
+                 lower(coalesce(fp.name, b.friend_tag)), b.friend_tag))[1] as via_tag,
+              (array_agg(fp.name order by b.battles desc,
+                 lower(coalesce(fp.name, b.friend_tag)), b.friend_tag))[1] as via_name
+         from by_friend b
+         left join player fp on fp.player_tag = b.friend_tag
+        group by b.player_tag),
+     totals as (
+       select m.player_tag, count(distinct m.battle_id)::int as battles,
+              max(m.battle_time) as last_met
+         from met m group by m.player_tag)
+     select t.player_tag, p.name, t.battles, t.last_met,
+            v.friends, v.via_tag, v.via_name
+       from totals t
+       join via v on v.player_tag = t.player_tag
+       join player p on p.player_tag = t.player_tag
+      where not ${ownerBlockedSql("$1::uuid", "t.player_tag")}
+      order by t.battles desc, t.last_met desc, t.player_tag`,
+    [accountId, days, exclude, [...FRIENDLY_TYPES, ...CLANMATE_TYPES]],
+  );
+  return rows;
+}
+
 /** The pool's slots in use and its limit (null when unlimited). */
 async function slotsOf(db, ownerId) {
   const owner = await poolOwner(db, ownerId);
@@ -212,13 +303,19 @@ async function peopleSources(
   ];
   return {
     met: await metInBattles(db, accountId, days, exclude),
+    // Second-degree guesses never reach the starter set's pre-ticked
+    // follow-all, so it reads neither (friends: false).
+    friendFriendlies: friends
+      ? await friendliesOfFriends(db, accountId, FRIEND_FRIENDLY_DAYS, exclude)
+      : [],
     followed: friends ? await followedByFriends(db, accountId, exclude) : [],
   };
 }
 
 /**
- * Suggestions alternate between familiar battle players and players
- * followed by the accounts that verified your Friends. Automatic clanmates
+ * Suggestions take turns between familiar battle players, the players your
+ * Friends played friendly battles with, and players followed by the
+ * accounts that verified your Friends. Automatic clanmates
  * are already connected and excluded before this list is formed. A player in more than one source is listed once, with every
  * reason; each is priced from the read itself.
  */
@@ -238,7 +335,18 @@ async function suggest(db, accountId, { days, max, keep }) {
       others: Math.max(0, r.friends - 1),
     },
   }));
-  const all = interleave([met, friends], Infinity);
+  const friendlies = s.friendFriendlies.map((r) => ({
+    tag: r.player_tag,
+    name: r.name ?? null,
+    why: {
+      kind: "friend_friendly",
+      via: { tag: r.via_tag, name: r.via_name ?? null },
+      battles: r.battles,
+      others: Math.max(0, r.friends - 1),
+      days: FRIEND_FRIENDLY_DAYS,
+    },
+  }));
+  const all = interleave([met, friendlies, friends], Infinity);
   const people = all.slice(0, max);
   const slots = await slotsOf(db, accountId);
   const costs = await costsOf(
@@ -257,6 +365,7 @@ async function suggest(db, accountId, { days, max, keep }) {
 /**
  * Home's People to follow: up to SUGGEST_MAX players from the last week
  * (met twice or more, a friendly battle, or your 2v2 teammate), players
+ * your Friends played friendly battles with in the last month, and players
  * your Friends' accounts follow, in turn. Automatic clanmates are excluded.
  */
 export async function suggestedPeople(db, accountId) {
@@ -279,7 +388,8 @@ const FIND_MAX = 30;
 /**
  * Find's Suggested: up to FIND_MAX players from the last month's battles
  * (a friendly battle, your 2v2 teammate, or met twice or more), the players
- * your Friends' accounts follow, in turn; `more` counts the
+ * your Friends played friendly battles with, the players your Friends'
+ * accounts follow, in turn; `more` counts the
  * rest the sources held.
  */
 export async function findPeople(db, accountId) {
