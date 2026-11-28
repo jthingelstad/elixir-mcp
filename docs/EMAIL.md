@@ -99,7 +99,10 @@ internet, calls siteverify before it sends.
 - **Modes** (`packages/auth/src/turnstile.mjs`, `TURNSTILE_MODE` from
   the `TurnstileMode` parameter on all three functions): `observe`
   records and refuses nothing; `enforce` refuses a missing token at the
-  door (403 `turnstile_failed`, before the mail ceilings count it) and
+  door, before the mail ceilings count it (the website's answers 403
+  `turnstile_failed`; the OAuth email step answers 303 to its own GET
+  with `turnstile=refused`, which shows the sentence, so a reload keeps
+  the request), and
   drops a `fail` at the relay (acknowledged as sent, so never retried);
   `off`. `error` and `unconfigured` always send.
 - **One token, one address, five minutes, three sends.** Tokens are

@@ -138,6 +138,9 @@ export function turnstileAtDoor(body, surface, env = process.env) {
   };
 }
 
-/** What a refused person is told, at either door. */
+/** What a refused person is told, at either door: one sentence, the same
+ *  on every site of Jamie's (2026-11-28). apps/web/src/turnstile.js holds
+ *  the same. On the OAuth door the refusal redirects to the email step's
+ *  GET, so a reload keeps the request. */
 export const TURNSTILE_REFUSED_MESSAGE =
-  "Elixir could not confirm a person asked for this email. Reload the page and try again.";
+  "We couldn’t confirm you’re not a bot. Reload the page and try again.";

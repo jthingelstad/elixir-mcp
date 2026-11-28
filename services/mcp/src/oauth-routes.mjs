@@ -313,6 +313,32 @@ function hiddenAuthFields(q) {
     .join("");
 }
 
+/** The email step's query value that shows the Turnstile refusal. */
+const TURNSTILE_REFUSED_FLAG = "refused";
+
+/**
+ * Where a Turnstile refusal sends the browser (2026-11-28): the email
+ * step's GET, rebuilt from the request the POST validated (never the
+ * form as posted, and never the address or anything else typed), with
+ * `switch=1` so a browser signed in as somebody else still gets the email
+ * step rather than that account's consent, and `turnstile=refused`, which
+ * only selects the fixed sentence. The GET validates it all again.
+ */
+function refusedEmailStepUrl(v) {
+  const params = new URLSearchParams({
+    client_id: v.client.clientId,
+    redirect_uri: v.redirectUri,
+    code_challenge: v.codeChallenge,
+    code_challenge_method: "S256",
+    scope: v.scope,
+    resource: v.resource,
+  });
+  if (v.state) params.set("state", v.state);
+  params.set("switch", "1");
+  params.set("turnstile", TURNSTILE_REFUSED_FLAG);
+  return `/oauth/authorize?${params}`;
+}
+
 /**
  * What went wrong, in a sentence that names the next action.
  *
@@ -802,7 +828,18 @@ export function makeOauthRoutes({
         });
         return html(200, sessionConsentPage(v, q, me));
       }
-      return emailStepHtml(200, emailStepPage(q, v));
+      return emailStepHtml(
+        200,
+        emailStepPage(
+          q,
+          v,
+          // Only this one value selects the one fixed sentence; nothing
+          // in the link reaches the page as text.
+          q.turnstile === TURNSTILE_REFUSED_FLAG
+            ? `<p>${esc(TURNSTILE_REFUSED_MESSAGE)}</p>`
+            : "",
+        ),
+      );
     },
 
     async authorizePost(db, event) {
@@ -879,10 +916,18 @@ export function makeOauthRoutes({
             door: "oauth",
             ...turnstile.log,
           });
-          return emailStepHtml(
-            403,
-            emailStepPage(form, v, `<p>${esc(TURNSTILE_REFUSED_MESSAGE)}</p>`),
-          );
+          // A redirect to the GET, so "Reload the page" is true: a reload
+          // asks for the email step again with the request alive and
+          // draws a fresh widget, where a reloaded POST would resend the
+          // same tokenless form (2026-11-28).
+          return {
+            statusCode: 303,
+            headers: {
+              location: refusedEmailStepUrl(v),
+              "cache-control": "no-store",
+            },
+            body: "",
+          };
         }
         // The website's signup guards, shared with it: one ceiling per
         // caller and one per address, whichever door asked, because both

@@ -442,8 +442,17 @@ test("Turnstile on the email step: the page loads Cloudflare only by its hashed 
     "cf-turnstile-response": "widget-token",
   });
   assert.deepEqual(mail.turnstile, { surface: "oauth", token: "widget-token" });
-  ({ mail } = await emailStep("ts-oauth-quiet@example.com", ask(), ip));
+  let quiet;
+  ({ mail, res: quiet } = await emailStep(
+    "ts-oauth-quiet@example.com",
+    ask(),
+    ip,
+  ));
   assert.deepEqual(mail.turnstile, { surface: "oauth", token: "" });
+  // Observe goes ahead: the code page, never the refusal's redirect.
+  assert.equal(quiet.statusCode, 200);
+  assert.equal(quiet.headers.location, undefined);
+  assert.match(quiet.body, /Check your email/);
   // The form's reason and wait reach the door's log line, beside
   // token|missing, and nothing else.
   const lines = [];
@@ -466,17 +475,107 @@ test("Turnstile on the email step: the page loads Cloudflare only by its hashed 
   );
   t.mock.restoreAll();
 
-  // Enforce: no token, no mail and no ceiling spent; the page says why
-  // and keeps its Turnstile.
+  // Enforce: no token, no mail and no ceiling spent; the door sends the
+  // browser to the email step's GET, which says why and keeps its
+  // Turnstile, so "Reload the page" is true (2026-11-28).
   process.env.TURNSTILE_MODE = "enforce";
   const victimIp = nextIp();
+  const asked = ask();
+  const refusedLines = [];
+  t.mock.method(console, "log", (line) => {
+    try {
+      const parsed = JSON.parse(line);
+      if (parsed.auth === "turnstile_refused") refusedLines.push(parsed);
+    } catch {
+      // Not an auth line.
+    }
+  });
+  let location = null;
   for (let i = 0; i < SIGNIN_MAIL_PER_IP_HOUR + 1; i += 1) {
-    const refused = await emailStep("ts-victim@example.com", ask(), victimIp);
-    assert.equal(refused.res.statusCode, 403);
+    const refused = await emailStep("ts-victim@example.com", asked, victimIp, {
+      product_news: "1",
+      scope: `${asked.scope} `,
+      unexpected: "<b>x</b>",
+    });
+    assert.equal(refused.res.statusCode, 303);
     assert.equal(refused.mail, null);
-    assert.match(refused.res.body, /could not confirm a person asked/);
-    assert.match(refused.res.headers["content-security-policy"], /frame-src/);
+    assert.equal(refused.res.body, "");
+    assert.equal(refused.res.headers["cache-control"], "no-store");
+    location = refused.res.headers.location;
   }
+  t.mock.restoreAll();
+  // One turnstile_refused line per refusal, all at the POST.
+  assert.equal(refusedLines.length, SIGNIN_MAIL_PER_IP_HOUR + 1);
+  // The target: the validated request, rebuilt; never the address or
+  // anything else the form carried.
+  const target = new URL(location, ISSUER);
+  assert.equal(target.origin, ISSUER);
+  assert.equal(target.pathname, "/oauth/authorize");
+  assert.deepEqual(Object.fromEntries(target.searchParams), {
+    client_id: asked.client_id,
+    redirect_uri: asked.redirect_uri,
+    code_challenge: asked.code_challenge,
+    code_challenge_method: "S256",
+    scope: "cr:read",
+    resource: API,
+    state: "s",
+    switch: "1",
+    turnstile: "refused",
+  });
+  assert.doesNotMatch(
+    location,
+    /victim|example\.com|product_news|unexpected|age_13/,
+  );
+  const query = Object.fromEntries(target.searchParams);
+  const sentence =
+    "We couldn\u2019t confirm you\u2019re not a bot. Reload the page and try again.";
+  // The GET shows the sentence above the email form, with a fresh widget
+  // and the no-store headers and script hash of every email step; a
+  // reload is that same GET, and the request is still alive.
+  for (const visit of ["first", "reload"]) {
+    const got = await handler(event({ method: "GET", query, ip: victimIp }));
+    assert.equal(got.statusCode, 200, visit);
+    assert.ok(got.body.includes(`<p>${sentence}</p>`), visit);
+    assert.ok(
+      got.body.indexOf(sentence) <
+        got.body.indexOf(
+          '<form method="post" action="/oauth/authorize" id="signin-email-form">',
+        ),
+      visit,
+    );
+    assert.match(got.body, /<div id="turnstile-slot"><\/div>/);
+    assert.doesNotMatch(got.body, /ts-victim/);
+    assert.equal(got.headers["cache-control"], "no-store");
+    const script = got.body.match(/<script>([\s\S]*?)<\/script>/)[1];
+    const hash = crypto.createHash("sha256").update(script).digest("base64");
+    assert.ok(
+      got.headers["content-security-policy"].includes(`'sha256-${hash}'`),
+      visit,
+    );
+  }
+  // Only "refused" selects the sentence; a crafted value shows nothing of
+  // its own and nothing of ours, and skips no check.
+  for (const crafted of ["<b>hi</b>", "Refused", "refused ", ""]) {
+    const got = await handler(
+      event({
+        method: "GET",
+        query: { ...query, turnstile: crafted },
+        ip: victimIp,
+      }),
+    );
+    assert.equal(got.statusCode, 200);
+    assert.ok(!got.body.includes(sentence), crafted);
+    assert.ok(!got.body.includes("<b>hi</b>"), crafted);
+  }
+  const bad = await handler(
+    event({
+      method: "GET",
+      query: { ...query, redirect_uri: "https://evil.example/cb" },
+      ip: victimIp,
+    }),
+  );
+  assert.equal(bad.statusCode, 400);
+  assert.ok(!bad.body.includes(sentence));
   ({ mail } = await emailStep("ts-victim@example.com", ask(), victimIp, {
     "cf-turnstile-response": "a-person",
   }));
