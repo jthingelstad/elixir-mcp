@@ -26,7 +26,9 @@ and nothing said why. These four change no word, layout, wait or mode;
    nothing. The OAuth page's inline script changed, and its CSP hash is
    computed from it as before.
 3. **Cloudflare's first error is not the end.** Turnstile retries by
-   itself (`retry: "auto"`, every 8 s by default). Both pages used to end
+   itself (`retry: "auto"`), every 8 s by default, longer than the 5 s
+   wait, so both renders now pass `retry: "auto"` and `retry-interval`
+   2000 (`TURNSTILE_RETRY_INTERVAL_MS`, as Road Sign Math does). Both pages used to end
    the wait on any `error-callback` and send with no token, which lost
    Release Notes a real sign-in to a retryable `600010`. Now a retryable
    error leaves the wait running in the window it already had (5 s, or

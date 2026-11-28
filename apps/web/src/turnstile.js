@@ -30,7 +30,8 @@
  * says how long it waited. Neither is the address or the token.
  *
  * Cloudflare's error-callback is not the end (2026-11-28): Turnstile
- * retries by itself (retry "auto"), so a retryable error leaves the wait
+ * retries by itself (retry "auto", every two seconds rather than its
+ * default eight, so a retry fits the five-second wait), so a retryable error leaves the wait
  * running in the window it already had, and only an error Cloudflare's
  * docs mark as never retried ends it at once. The callback returns
  * nothing, so Cloudflare keeps its default handling and the retry the
@@ -49,6 +50,10 @@ export const TURNSTILE_SCRIPT_URL = `https://challenges.cloudflare.com/turnstile
 const REUSE_MS = 270_000;
 const MAX_USES = 3;
 const WAIT_MS = 5_000;
+/** Cloudflare's retry after a widget error (`retry-interval`): inside the
+ *  five-second wait, where its 8000 ms default is not. The server holds
+ *  the same (TURNSTILE_RETRY_INTERVAL_MS in packages/auth). */
+export const TURNSTILE_RETRY_INTERVAL_MS = 2_000;
 const INTERACTIVE_WAIT_MS = 120_000;
 
 /** Error codes Cloudflare's client-side error table marks "Retry: No"
@@ -149,6 +154,8 @@ export function makeTurnstile({
         action: "signin",
         appearance: "interaction-only",
         "refresh-expired": "auto",
+        retry: "auto",
+        "retry-interval": TURNSTILE_RETRY_INTERVAL_MS,
         callback: (t) => {
           token = t;
           tokenAt = now();

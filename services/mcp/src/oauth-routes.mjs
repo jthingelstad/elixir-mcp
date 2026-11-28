@@ -80,6 +80,7 @@ import {
   TURNSTILE_ACTIONS,
   TURNSTILE_ORIGIN,
   TURNSTILE_REFUSED_MESSAGE,
+  TURNSTILE_RETRY_INTERVAL_MS,
   TURNSTILE_SITE_KEY,
   foreignRequest,
 } from "@elixir-mcp/auth";
@@ -210,7 +211,8 @@ const html = (statusCode, body) => ({
  * long as a shown challenge needs); a script that cannot load, or an
  * error Cloudflare never retries, sends without one and the relay records
  * it as missing. A retryable error (2026-11-28) is Cloudflare's to retry
- * (retry "auto"): the wait keeps the window it had, and the callback
+ * (retry "auto", every TURNSTILE_RETRY_INTERVAL_MS, two seconds, so a
+ * retry fits the five-second wait): the wait keeps the window it had, and the callback
  * returns nothing so Cloudflare keeps its own handling.
  *
  * The form says why it sent no token, for the door's log only
@@ -233,7 +235,7 @@ if(state!=="idle")return;
 state="loading";
 window.elixirTurnstileLoaded=function(){
 if(!window.turnstile){state="failed";why="script-empty";return;}
-try{window.turnstile.render(slot,{sitekey:"${TURNSTILE_SITE_KEY}",action:"${TURNSTILE_ACTIONS.oauth}",appearance:"interaction-only","refresh-expired":"auto",
+try{window.turnstile.render(slot,{sitekey:"${TURNSTILE_SITE_KEY}",action:"${TURNSTILE_ACTIONS.oauth}",appearance:"interaction-only","refresh-expired":"auto",retry:"auto","retry-interval":${TURNSTILE_RETRY_INTERVAL_MS},
 callback:function(t){token=t;shown=false;state="ready";lastErr="";},
 "expired-callback":function(){token="";},
 "before-interactive-callback":function(){shown=true;},

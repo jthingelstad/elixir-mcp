@@ -19,6 +19,7 @@ import { SignIn } from "../src/views/SignIn.jsx";
 import {
   makeTurnstile,
   resetTurnstileScript,
+  TURNSTILE_RETRY_INTERVAL_MS,
   TURNSTILE_SCRIPT_URL,
   TURNSTILE_SITE_KEY,
 } from "../src/turnstile.js";
@@ -88,7 +89,11 @@ test("the script loads only when warmed, once, explicitly rendered and shown onl
     sitekey: TURNSTILE_SITE_KEY,
     action: "signin",
     appearance: "interaction-only",
+    // Cloudflare retries an error inside the five-second wait.
+    retry: "auto",
+    "retry-interval": 2_000,
   });
+  expect(TURNSTILE_RETRY_INTERVAL_MS).toBeLessThan(5_000);
   page.last().callback("tok-1");
   expect(await ts.tokenFor("a@x.com")).toBe("tok-1");
 });
@@ -103,6 +108,9 @@ test("the site key is the server's, and so is the action the relay checks", () =
   );
   expect(server).toContain(
     `TURNSTILE_SITE_KEY = ${JSON.stringify(TURNSTILE_SITE_KEY)}`,
+  );
+  expect(server).toContain(
+    `TURNSTILE_RETRY_INTERVAL_MS = ${TURNSTILE_RETRY_INTERVAL_MS};`,
   );
   expect(server).toMatch(
     /TURNSTILE_ACTIONS = Object\.freeze\(\{\s+web: "signin",/,
