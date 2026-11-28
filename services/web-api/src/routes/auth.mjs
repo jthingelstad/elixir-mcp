@@ -80,7 +80,7 @@ export function authRoutes({
         authLog("turnstile_refused", {
           email: emailRef(emailHash(email)),
           door: "web",
-          turnstile: turnstile.seen,
+          ...turnstile.log,
         });
         return json(403, {
           error: "turnstile_failed",
@@ -102,7 +102,7 @@ export function authRoutes({
         authLog("signin_mail_limited", {
           email: emailRef(emailHash(email)),
           by: okIp ? "address" : "ip",
-          turnstile: turnstile.seen,
+          ...turnstile.log,
         });
         return json(200, {
           ok: true,
@@ -127,7 +127,7 @@ export function authRoutes({
             );
           authLog("signin_code_issued", {
             email: emailRef(emailHash(email)),
-            turnstile: turnstile.seen,
+            ...turnstile.log,
           });
           const seen = sessionSeenFrom(event);
           const { token, code } = await startMagicLogin(db, {

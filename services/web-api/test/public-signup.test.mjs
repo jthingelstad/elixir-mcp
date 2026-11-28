@@ -973,20 +973,35 @@ test("Turnstile: observe carries the page's token to the relay and refuses nobod
   delete process.env.TURNSTILE_MODE; // observe is the default
   let { mail } = await send("ts-human@example.com", {
     turnstile_token: "page-token",
+    turnstile_wait_ms: 812,
   });
   assert.deepEqual(mail.turnstile, { surface: "web", token: "page-token" });
-  ({ mail } = await send("ts-quiet@example.com"));
+  ({ mail } = await send("ts-quiet@example.com", {
+    turnstile_reason: "error:600010",
+    turnstile_wait_ms: 5004,
+  }));
   assert.deepEqual(
     mail.turnstile,
     { surface: "web", token: "" },
     "no token still sends; the relay records it as missing",
   );
+  // The page's reason and wait sit beside the door's token|missing; a
+  // reason it cannot vouch for is named "invalid", never repeated.
+  ({ mail } = await send("ts-odd@example.com", {
+    turnstile_reason: "ts-odd@example.com",
+  }));
+  assert.deepEqual(mail.turnstile, { surface: "web", token: "" });
   assert.deepEqual(
     lines
       .filter((l) => l.auth === "signin_code_issued")
-      .map((l) => l.turnstile),
-    ["token", "missing"],
+      .map((l) => [l.turnstile, l.turnstile_reason, l.turnstile_wait_ms]),
+    [
+      ["token", undefined, 812],
+      ["missing", "error:600010", 5004],
+      ["missing", "invalid", undefined],
+    ],
   );
+  assert.doesNotMatch(JSON.stringify(lines), /ts-odd@example\.com/);
 
   process.env.TURNSTILE_MODE = "enforce";
   // A bot without a token, many times over: refused, and the person's

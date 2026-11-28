@@ -2,21 +2,26 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { makeHandler } from "../src/handler.mjs";
 import {
+  idempotencyKeyFor,
   makeTurnstileCheck,
   turnstileVerdictStore,
   SITEVERIFY_URL,
 } from "../src/turnstile.mjs";
 
 /** Cloudflare, faked: each token answers once, as the real siteverify
- *  does; a second ask is `timeout-or-duplicate`. */
+ *  does; a second ask is `timeout-or-duplicate`, unless it carries the
+ *  first ask's `idempotency_key`, which gets the first answer again.
+ *  A pass echoes our hostname and the `signin` action unless the answer
+ *  names others: `{ hostname, action }`. */
 function fakeCloudflare(answers = {}) {
   const asked = [];
-  const spent = new Set();
+  const spent = new Map();
   const fetchImpl = async (url, init) => {
     assert.equal(url, SITEVERIFY_URL);
     const form = new URLSearchParams(String(init.body));
     const token = form.get("response");
-    asked.push({ token, secret: form.get("secret") });
+    const key = form.get("idempotency_key");
+    asked.push({ token, secret: form.get("secret"), key });
     const answer = answers[token] ?? "pass";
     if (answer === "down") throw new Error("network");
     if (answer === "http500") return new Response("no", { status: 500 });
@@ -30,22 +35,26 @@ function fakeCloudflare(answers = {}) {
         success: false,
         "error-codes": ["internal-error"],
       });
-    if (spent.has(token))
+    if (spent.has(token)) {
+      const first = spent.get(token);
+      if (key && first.key === key) return Response.json(first.body);
       return Response.json({
         success: false,
         "error-codes": ["timeout-or-duplicate"],
       });
-    spent.add(token);
-    return Response.json(
-      answer === "pass"
-        ? {
+    }
+    const body =
+      answer === "fail"
+        ? { success: false, "error-codes": ["invalid-input-response"] }
+        : {
             success: true,
             hostname: "elixir.poapkings.com",
             action: "signin",
             "error-codes": [],
-          }
-        : { success: false, "error-codes": ["invalid-input-response"] },
-    );
+            ...(typeof answer === "object" ? answer : {}),
+          };
+    spent.set(token, { key, body });
+    return Response.json(body);
   };
   return { asked, fetchImpl };
 }
@@ -128,6 +137,7 @@ test("observe: every result is recorded and every mail may go", async (t) => {
 test("enforce refuses only a failed or missing token; an outage, a bad secret or no secret sends", async (t) => {
   captureLog(t);
   const cf = fakeCloudflare({
+    good: { action: "oauth-signin" },
     bad: "fail",
     gone: "down",
     key: "badsecret",
@@ -427,4 +437,123 @@ test("the relay checks a login that carries a token: observe sends, enforce drop
       "enforce:oauth:fail",
     ],
   );
+});
+
+test("a pass counts only for our hostname and the door's own action", async (t) => {
+  const log = captureLog(t);
+  const cf = fakeCloudflare({
+    web: {},
+    oauth: { action: "oauth-signin" },
+    elsewhere: { hostname: "example.com" },
+    crossed: { action: "oauth-signin" },
+    nohost: { hostname: undefined, action: undefined },
+  });
+  const check = makeTurnstileCheck({
+    secret: "s",
+    store: memoryStore(),
+    fetchImpl: cf.fetchImpl,
+    env: enforce,
+  });
+  const at = (surface, token) =>
+    check({ surface, token, to: "a@x.com", use: `email/${token}` });
+  assert.equal((await at("web", "web")).result, "pass");
+  assert.equal((await at("oauth", "oauth")).result, "pass");
+  const elsewhere = await at("web", "elsewhere");
+  assert.deepEqual(
+    [elsewhere.result, elsewhere.allowed, elsewhere.codes],
+    ["fail", false, ["hostname-mismatch"]],
+  );
+  // The OAuth page's token presented at the website's door.
+  const crossed = await at("web", "crossed");
+  assert.deepEqual(crossed.codes, ["action-mismatch"]);
+  const nohost = await at("oauth", "nohost");
+  assert.deepEqual(nohost.codes, ["hostname-mismatch", "action-mismatch"]);
+  // The line still names what Cloudflare saw.
+  const line = log.find((l) => l.codes?.includes("hostname-mismatch"));
+  assert.equal(line.hostname, "example.com");
+  assert.equal(line.result, "fail");
+});
+
+test("a kept verdict is judged as the first was: a mismatch stays a fail, another door's token fails", async (t) => {
+  captureLog(t);
+  const cf = fakeCloudflare({ elsewhere: { hostname: "example.com" } });
+  const store = memoryStore();
+  const check = makeTurnstileCheck({
+    secret: "s",
+    store,
+    fetchImpl: cf.fetchImpl,
+    env: enforce,
+  });
+  const send = (surface, token, use) =>
+    check({ surface, token, to: "a@x.com", use });
+  assert.equal((await send("web", "elsewhere", "1")).result, "fail");
+  const again = await send("web", "elsewhere", "2");
+  assert.deepEqual(
+    [again.result, again.reused, again.codes],
+    ["fail", true, ["hostname-mismatch"]],
+  );
+  // A website token kept as a pass, then sent through the OAuth door.
+  assert.equal((await send("web", "tok", "3")).result, "pass");
+  const other = await send("oauth", "tok", "4");
+  assert.deepEqual(
+    [other.result, other.reused, other.codes],
+    ["fail", true, ["action-mismatch"]],
+  );
+  assert.equal(cf.asked.length, 2, "Cloudflare asked once per token");
+  // A record kept before the action was (no action field) stands as it was.
+  const [hash, kept] = [...store.objects].find(
+    ([, o]) => o.record.result === "pass",
+  );
+  delete kept.record.action;
+  kept.record.uses = [];
+  store.objects.set(hash, kept);
+  assert.equal((await send("oauth", "tok", "5")).result, "pass");
+});
+
+test("siteverify gets the send's own idempotency key: a queue retry after a lost verdict is not a duplicate", async (t) => {
+  const log = captureLog(t);
+  const cf = fakeCloudflare();
+  // The verdict cannot be kept (S3 down), so a retry asks Cloudflare again.
+  const broken = {
+    read: async () => null,
+    create: async () => {
+      throw new Error("s3 down");
+    },
+    update: async () => {
+      throw new Error("s3 down");
+    },
+  };
+  const check = makeTurnstileCheck({
+    secret: "s",
+    store: broken,
+    fetchImpl: cf.fetchImpl,
+    env: enforce,
+  });
+  const send = (use) =>
+    check({ surface: "web", token: "person", to: "a@x.com", use });
+  assert.equal((await send("email/1.json")).result, "pass");
+  const retry = await send("email/1.json");
+  assert.deepEqual([retry.result, retry.allowed], ["pass", true]);
+  assert.equal(cf.asked.length, 2);
+  assert.equal(cf.asked[0].key, cf.asked[1].key);
+  // A UUID (version 5), the same for the same send, another for another.
+  assert.match(
+    cf.asked[0].key,
+    /^[0-9a-f]{8}-[0-9a-f]{4}-5[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
+  );
+  assert.equal(
+    idempotencyKeyFor("email/1.json", "a".repeat(64)),
+    idempotencyKeyFor("email/1.json", "a".repeat(64)),
+  );
+  assert.notEqual(
+    idempotencyKeyFor("email/1.json", "a".repeat(64)),
+    idempotencyKeyFor("email/2.json", "a".repeat(64)),
+  );
+  // Another send of the same token is a new use: Cloudflare says duplicate.
+  const resend = await send("email/2.json");
+  assert.deepEqual(resend.codes, ["timeout-or-duplicate"]);
+  // No send name, no key.
+  await check({ surface: "web", token: "fresh", to: "a@x.com", use: null });
+  assert.equal(cf.asked.at(-1).key, null);
+  for (const line of log) assert.doesNotMatch(JSON.stringify(line), /person/);
 });

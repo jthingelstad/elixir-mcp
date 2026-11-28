@@ -25,6 +25,8 @@ import {
   PutObjectCommand,
 } from "@aws-sdk/client-s3";
 import {
+  TURNSTILE_ACTIONS,
+  TURNSTILE_HOSTNAME,
   TURNSTILE_ORIGIN,
   turnstileAllows,
   turnstileMode,
@@ -39,6 +41,25 @@ const VERIFY_TIMEOUT_MS = 4000;
 const PREFIX = "mail-delivery/turnstile/";
 
 const sha256 = (value) => createHash("sha256").update(value).digest("hex");
+
+/** A name-based UUID (RFC 9562 version 5, SHA-1) under a namespace of our
+ *  own: the same send always asks siteverify with the same key. */
+const IDEMPOTENCY_NAMESPACE = "5e1f0c6a-2b7d-4c1e-9a3f-7d2b8c4e6f10";
+export function idempotencyKeyFor(use, tokenHash) {
+  const bytes = createHash("sha1")
+    .update(Buffer.from(IDEMPOTENCY_NAMESPACE.replaceAll("-", ""), "hex"))
+    .update(`turnstile:${use}:${tokenHash}`)
+    .digest()
+    .subarray(0, 16);
+  bytes[6] = (bytes[6] & 0x0f) | 0x50;
+  bytes[8] = (bytes[8] & 0x3f) | 0x80;
+  const hex = bytes.toString("hex");
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+}
+
+/** What siteverify said it saw, trimmed for the log line. */
+const echoed = (value) =>
+  typeof value === "string" ? value.slice(0, 100) : null;
 
 /**
  * The kept verdicts, one object per token. `read` answers
@@ -105,12 +126,32 @@ export function turnstileVerdictStore(bucket, s3) {
   };
 }
 
-async function siteverify(fetchImpl, secret, token) {
+/**
+ * One siteverify call. `idempotencyKey` (a UUID, Cloudflare's
+ * `idempotency_key`) is the send's own, so the queue retrying a send whose
+ * verdict could not be kept asks again as the same request and is not
+ * told `timeout-or-duplicate` for a person's real token.
+ *
+ * A success is a pass only when Cloudflare saw the token drawn on our
+ * hostname by the door's own action (Cloudflare's docs say to check
+ * both): otherwise it is a fail, `hostname-mismatch` or
+ * `action-mismatch`. A failure of Cloudflare's or ours (HTTP, timeout,
+ * `internal-error`, a rejected secret) stays an error, which every mode
+ * sends.
+ */
+async function siteverify(
+  fetchImpl,
+  secret,
+  token,
+  { surface, idempotencyKey },
+) {
   try {
+    const form = { secret, response: token };
+    if (idempotencyKey) form.idempotency_key = idempotencyKey;
     const res = await fetchImpl(SITEVERIFY_URL, {
       method: "POST",
       headers: { "content-type": "application/x-www-form-urlencoded" },
-      body: new URLSearchParams({ secret, response: token }),
+      body: new URLSearchParams(form),
       signal: AbortSignal.timeout(VERIFY_TIMEOUT_MS),
     });
     if (!res.ok) return { result: "error", codes: [`http_${res.status}`] };
@@ -129,11 +170,21 @@ async function siteverify(fetchImpl, secret, token) {
       )
     )
       return { result: "error", codes };
+    const hostname = echoed(data?.hostname);
+    const action = echoed(data?.action);
+    if (data?.success === true) {
+      const mismatch = [];
+      if (hostname !== TURNSTILE_HOSTNAME) mismatch.push("hostname-mismatch");
+      if (action !== TURNSTILE_ACTIONS[surface])
+        mismatch.push("action-mismatch");
+      if (mismatch.length)
+        return { result: "fail", codes: mismatch, hostname, action };
+    }
     return {
-      result: data?.success ? "pass" : "fail",
+      result: data?.success === true ? "pass" : "fail",
       codes,
-      hostname: typeof data?.hostname === "string" ? data.hostname : null,
-      action: typeof data?.action === "string" ? data.action : null,
+      hostname,
+      action,
     };
   } catch (err) {
     return { result: "error", codes: [String(err?.name ?? "Error")] };
@@ -193,6 +244,14 @@ export function makeTurnstileCheck({
       const { record, etag } = kept;
       if (record.email_hash !== hash)
         return done("fail", ["token-other-address"], true);
+      // Kept from the other door's page: what siteverify would have
+      // called an action mismatch. A record from before the action was
+      // kept carries none and is taken as it stands.
+      if (
+        typeof record.action === "string" &&
+        record.action !== TURNSTILE_ACTIONS[surface]
+      )
+        return done("fail", ["action-mismatch"], true);
       const uses = Array.isArray(record.uses) ? record.uses : [];
       if (use && uses.includes(use))
         return done(record.result, record.codes ?? [], true);
@@ -221,13 +280,19 @@ export function makeTurnstileCheck({
     }
     if (kept && fresh(kept.record)) return fromKept(kept);
 
-    const answer = await siteverify(fetchImpl, secret, token);
+    const answer = await siteverify(fetchImpl, secret, token, {
+      surface,
+      idempotencyKey: use ? idempotencyKeyFor(use, tokenHash) : null,
+    });
     const extra = { hostname: answer.hostname, action: answer.action };
     if (answer.result === "error") return done("error", answer.codes);
     if (store) {
+      // The verdict after the hostname and action checks, so a resend
+      // reusing it is judged as the first send was.
       const record = {
         result: answer.result,
         codes: answer.codes,
+        action: answer.action,
         email_hash: hash,
         uses: [use ?? `send-${nowMs}`],
         verified_at: Math.floor(nowMs / 1000),

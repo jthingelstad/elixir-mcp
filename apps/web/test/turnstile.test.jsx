@@ -93,7 +93,7 @@ test("the script loads only when warmed, once, explicitly rendered and shown onl
   expect(await ts.tokenFor("a@x.com")).toBe("tok-1");
 });
 
-test("the site key is the server's", () => {
+test("the site key is the server's, and so is the action the relay checks", () => {
   const server = readFileSync(
     path.resolve(
       path.dirname(fileURLToPath(import.meta.url)),
@@ -103,6 +103,9 @@ test("the site key is the server's", () => {
   );
   expect(server).toContain(
     `TURNSTILE_SITE_KEY = ${JSON.stringify(TURNSTILE_SITE_KEY)}`,
+  );
+  expect(server).toMatch(
+    /TURNSTILE_ACTIONS = Object\.freeze\(\{\s+web: "signin",/,
   );
 });
 
@@ -140,12 +143,90 @@ test("a resend to the same address reuses its token for three sends and 270 seco
   expect(await late).toBe("tok-4");
 });
 
-test("when Cloudflare's script cannot load, the send goes at once without a token", async () => {
+test("when Cloudflare's script cannot load, the send goes at once without a token, and says why", async () => {
   const page = fakePage();
   const { ts } = setup(page);
   ts.warm();
   page.scripts[0].onerror();
-  expect(await ts.tokenFor("a@x.com")).toBe("");
+  expect(await ts.fieldsFor("a@x.com")).toEqual({
+    token: "",
+    waitedMs: 0,
+    reason: "script-blocked",
+  });
+});
+
+test("a script that loads without the API is script-empty", async () => {
+  const page = fakePage();
+  const { ts } = setup(page);
+  ts.warm();
+  page.win.elixirTurnstileReady();
+  expect((await ts.fieldsFor("a@x.com")).reason).toBe("script-empty");
+});
+
+test("a token says how long it took and gives no reason; a reused one waited nothing", async () => {
+  vi.useFakeTimers();
+  const page = fakePage();
+  const ts = makeTurnstile({
+    slot: () => ({ isConnected: true }),
+    win: page.win,
+    doc: page.doc,
+  });
+  ts.warm();
+  page.load();
+  await vi.advanceTimersByTimeAsync(0);
+  let got = null;
+  ts.fieldsFor("a@x.com").then((f) => (got = f));
+  await vi.advanceTimersByTimeAsync(1_200);
+  page.last().callback("tok-1");
+  await vi.advanceTimersByTimeAsync(0);
+  expect(got).toEqual({ token: "tok-1", waitedMs: 1_200 });
+  expect(await ts.fieldsFor("a@x.com")).toEqual({
+    token: "tok-1",
+    waitedMs: 0,
+  });
+});
+
+test("a wait that runs out names what it was waiting on", async () => {
+  vi.useFakeTimers();
+  const page = fakePage();
+  const make = () =>
+    makeTurnstile({
+      slot: () => ({ isConnected: true }),
+      win: page.win,
+      doc: page.doc,
+    });
+  // The script never answered.
+  let ts = make();
+  let got = null;
+  ts.fieldsFor("a@x.com").then((f) => (got = f));
+  await vi.advanceTimersByTimeAsync(5_000);
+  expect(got).toEqual({
+    token: "",
+    waitedMs: 5_000,
+    reason: "loading-timeout",
+  });
+  // Drawn, but no answer.
+  page.load();
+  ts = make();
+  ts.warm();
+  await vi.advanceTimersByTimeAsync(0);
+  got = null;
+  ts.fieldsFor("a@x.com").then((f) => (got = f));
+  await vi.advanceTimersByTimeAsync(5_000);
+  expect(got.reason).toBe("solving-timeout");
+  // A box nobody answered.
+  ts = make();
+  ts.warm();
+  await vi.advanceTimersByTimeAsync(0);
+  got = null;
+  ts.fieldsFor("a@x.com").then((f) => (got = f));
+  page.last()["before-interactive-callback"]();
+  await vi.advanceTimersByTimeAsync(120_000);
+  expect(got).toEqual({
+    token: "",
+    waitedMs: 120_000,
+    reason: "interactive-timeout",
+  });
 });
 
 test("a script that never answers costs five seconds; a challenge on screen is waited for", async () => {
@@ -171,14 +252,58 @@ test("a script that never answers costs five seconds; a challenge on screen is w
   expect(got).toBe("answered");
 });
 
-test("a Turnstile error sends without a token rather than waiting", async () => {
+test("an error Cloudflare never retries sends without a token at once, naming its code", async () => {
   const page = fakePage();
   const { ts } = setup(page);
   ts.warm();
   page.load();
   await Promise.resolve();
-  page.last()["error-callback"]();
-  expect(await ts.tokenFor("a@x.com")).toBe("");
+  // Domain not authorized: "Retry: No" in Cloudflare's table.
+  expect(page.last()["error-callback"]("110200")).toBeUndefined();
+  expect(await ts.fieldsFor("a@x.com")).toEqual({
+    token: "",
+    waitedMs: 0,
+    reason: "error:110200",
+  });
+});
+
+// Release Notes lost a real sign-in to a retryable 600010 this way: the
+// first error was taken as final while Cloudflare was about to retry.
+test("a retryable error leaves Cloudflare to retry inside the wait it already had", async () => {
+  vi.useFakeTimers();
+  const page = fakePage();
+  const { ts } = setup(page);
+  ts.warm();
+  page.load();
+  await vi.advanceTimersByTimeAsync(0);
+  let got = null;
+  ts.fieldsFor("a@x.com").then((f) => (got = f));
+  await vi.advanceTimersByTimeAsync(1_000);
+  // Returns nothing: Cloudflare keeps its own handling, retry included.
+  expect(page.last()["error-callback"]("600010")).toBeUndefined();
+  await vi.advanceTimersByTimeAsync(2_000);
+  expect(got).toBe(null);
+  page.last().callback("after-retry");
+  await vi.advanceTimersByTimeAsync(0);
+  expect(got.token).toBe("after-retry");
+
+  // No retry lands: the five seconds end where they always did, and the
+  // send says which error it was.
+  const next = makeTurnstile({
+    slot: () => ({ isConnected: true }),
+    win: page.win,
+    doc: page.doc,
+  });
+  next.warm();
+  await vi.advanceTimersByTimeAsync(0);
+  got = null;
+  next.fieldsFor("b@x.com").then((f) => (got = f));
+  await vi.advanceTimersByTimeAsync(4_000);
+  page.last()["error-callback"]("300030");
+  await vi.advanceTimersByTimeAsync(999);
+  expect(got).toBe(null);
+  await vi.advanceTimersByTimeAsync(1);
+  expect(got).toEqual({ token: "", waitedMs: 5_000, reason: "error:300030" });
 });
 
 test("a widget whose card left the page is rendered again in the current one", async () => {
@@ -215,7 +340,7 @@ function replyWith(status, body) {
   return requests;
 }
 
-test("the form sends without a token when Cloudflare cannot be reached", async () => {
+test("the form sends without a token when Cloudflare cannot be reached, and says why", async () => {
   delete window.turnstile;
   const appended = vi
     .spyOn(document.head, "appendChild")
@@ -233,6 +358,8 @@ test("the form sends without a token when Cloudflare cannot be reached", async (
   await screen.findByLabelText("6-digit code");
   expect(requests).toHaveLength(1);
   expect(requests[0]).not.toHaveProperty("turnstile_token");
+  expect(requests[0].turnstile_reason).toBe("script-blocked");
+  expect(Number.isInteger(requests[0].turnstile_wait_ms)).toBe(true);
 });
 
 test("a send the server refuses for want of a token says so", async () => {
@@ -250,6 +377,7 @@ test("a send the server refuses for want of a token says so", async () => {
   ).toBeTruthy();
   await waitFor(() => expect(requests).toHaveLength(1));
   expect(requests[0].turnstile_token).toBe("test-turnstile-token");
+  expect(requests[0]).not.toHaveProperty("turnstile_reason");
   expect(screen.queryByLabelText("6-digit code")).toBeNull();
 });
 
@@ -279,7 +407,7 @@ test("a send says what it waits for: a check, Cloudflare's box, then nothing", a
   expect(said).toEqual(["check", "challenge", "check", null]);
 });
 
-test("a box on screen keeps its two minutes; a box that errors stops the wait at once", async () => {
+test("a box on screen keeps its two minutes, and a box that errors keeps them for Cloudflare's retry", async () => {
   vi.useFakeTimers();
   const page = fakePage();
   const { ts } = setup(page);
@@ -310,7 +438,12 @@ test("a box on screen keeps its two minutes; a box that errors stops the wait at
   page.last()["after-interactive-callback"]();
   page.last()["error-callback"]("600010");
   await vi.advanceTimersByTimeAsync(0);
-  expect(got).toBe("");
+  expect(got).toBe(null);
+  // Cloudflare retries (eight seconds by default) and answers.
+  await vi.advanceTimersByTimeAsync(8_000);
+  page.last().callback("retried");
+  await vi.advanceTimersByTimeAsync(0);
+  expect(got).toBe("retried");
 });
 
 test("the form names Cloudflare's box while it waits on it, and sends once it is answered", async () => {
@@ -343,7 +476,7 @@ test("the form names Cloudflare's box while it waits on it, and sends once it is
   expect(requests[0].turnstile_token).toBe("answered");
 });
 
-test("a box that errors sends without a token at once and says nothing more", async () => {
+test("a box that errors for good sends without a token at once and says nothing more", async () => {
   let options;
   window.turnstile = {
     render: (_el, o) => {
@@ -361,9 +494,10 @@ test("a box that errors sends without a token at once and says nothing more", as
   fireEvent.change(field, { target: { value: "a@x.com" } });
   fireEvent.click(screen.getByRole("button", { name: "Send sign-in email" }));
   await screen.findByRole("button", { name: "Waiting for the check…" });
-  options["error-callback"]("600010");
+  options["error-callback"]("110100");
   await screen.findByLabelText("6-digit code");
   expect(requests).toHaveLength(1);
   expect(requests[0]).not.toHaveProperty("turnstile_token");
+  expect(requests[0].turnstile_reason).toBe("error:110100");
   expect(screen.queryByText(/Cloudflare is asking/)).toBeNull();
 });

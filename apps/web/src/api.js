@@ -39,14 +39,15 @@ export const api = {
   // browser will not say, and the account starts at UTC.
   // `playerTag` is the signup form's optional tag, sent only when given;
   // the server normalizes it and applies it after the email is proved.
-  // `turnstileToken` is the page's Turnstile token (turnstile.js), left
-  // out when Cloudflare gave none; the server records which.
+  // `turnstile` is the page's Turnstile fields (turnstile.js fieldsFor):
+  // the token, left out when Cloudflare gave none, how long the send
+  // waited and, with no token, why. The server logs which, and why.
   sendLoginEmail: (
     email,
     newsletterOptIn = true,
     timezone = null,
     playerTag = "",
-    turnstileToken = "",
+    turnstile = null,
     // The signup form's "I am 13 or older" (#763); plain sign-in sends none.
     age13 = false,
   ) =>
@@ -55,7 +56,13 @@ export const api = {
       newsletter_opt_in: newsletterOptIn,
       ...(timezone ? { timezone } : {}),
       ...(playerTag?.trim() ? { player_tag: playerTag.trim() } : {}),
-      ...(turnstileToken ? { turnstile_token: turnstileToken } : {}),
+      ...(turnstile?.token ? { turnstile_token: turnstile.token } : {}),
+      ...(Number.isFinite(turnstile?.waitedMs)
+        ? { turnstile_wait_ms: turnstile.waitedMs }
+        : {}),
+      ...(turnstile && !turnstile.token && turnstile.reason
+        ? { turnstile_reason: turnstile.reason }
+        : {}),
       ...(age13 === true ? { age_13: true } : {}),
     }),
   // pollId: the id this browser was given if it is the one that asked

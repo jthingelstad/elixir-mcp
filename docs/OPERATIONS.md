@@ -553,8 +553,10 @@ Insights, a week at a time):
     | stats count(*) as mails by surface, result
 
 `surface` is the door (`web` the website, `oauth` the MCP connector's
-page); `result` is `pass`, `fail` (Cloudflare said no, or a token was
-presented for another address or a fourth send), `missing` (the page
+page); `result` is `pass`, `fail` (Cloudflare said no; it said yes to
+a token drawn on another hostname or by the other door's action, codes
+`hostname-mismatch` and `action-mismatch`, since 2026-11-28; or a token
+was presented for another address or a fourth send), `missing` (the page
 sent none: a script, or Cloudflare's script could not load), `error`
 (Cloudflare could not be asked, answered `internal-error`, or refused
 the secret or the request), `unconfigured`
@@ -585,6 +587,23 @@ The doors log the same requests as `signin_code_issued` (web, in
     | parse message '"auth":"*"' as door
     | parse message '"turnstile":"*"' as turnstile
     | stats count(*) by door, turnstile
+
+Since 2026-11-28 the page says why it sent no token, and those lines
+carry it as `turnstile_reason`: `script-blocked` (Cloudflare's script did
+not load: a content blocker or the network), `script-empty` (it loaded
+without the API), `error:<code>` (Cloudflare's error-callback, the last
+code it gave), `loading-timeout` / `solving-timeout` (five seconds ran
+out before the script loaded / before it answered), `interactive-timeout`
+(two minutes on a shown box), `no-widget`, `no-script` (the OAuth page
+posted with its script never run) and `invalid` (a value outside the
+charset, never repeated). `turnstile_wait_ms` is how long the send
+waited for Cloudflare, token or not. Both are the page's word, logged
+and never trusted:
+
+    filter message like /_code_issued/ and message like /"turnstile":"missing"/
+    | parse message '"auth":"*"' as door
+    | parse message '"turnstile_reason":"*"' as reason
+    | stats count(*) by door, reason
 
 Enforce is ready when real people's mail is `pass` (a `missing` share
 near zero outside an attack, `fail` only on fingerprints that were being

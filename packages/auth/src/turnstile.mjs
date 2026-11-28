@@ -28,6 +28,17 @@
  *  sign-in page carries it. apps/web/src/turnstile.js holds the same. */
 export const TURNSTILE_SITE_KEY = "0x4AAAAAAFW0ZICrZblLsqht";
 export const TURNSTILE_ORIGIN = "https://challenges.cloudflare.com";
+/** Where the widget draws: siteverify's `hostname` for a real token.
+ *  Cloudflare says to check it, and the relay does (2026-11-28). */
+export const TURNSTILE_HOSTNAME = "elixir.poapkings.com";
+/** The `action` each door's page draws its widget with, which siteverify
+ *  echoes back; the relay fails a pass whose action is another door's.
+ *  apps/web/src/turnstile.js draws "signin"; the OAuth email step's
+ *  inline script (services/mcp oauth-routes.mjs) draws "oauth-signin". */
+export const TURNSTILE_ACTIONS = Object.freeze({
+  web: "signin",
+  oauth: "oauth-signin",
+});
 /** Flip with the TurnstileMode stack parameter, never here. */
 export const DEFAULT_TURNSTILE_MODE = "observe";
 /** Cloudflare documents a 2048-character maximum. */
@@ -57,19 +68,66 @@ export function turnstileTokenFrom(body) {
   return raw.trim().slice(0, TURNSTILE_TOKEN_MAX);
 }
 
+/** The longest wait a page reports: its two-minute challenge window,
+ *  with room for a slow tab. Anything larger is not believed. */
+const WAIT_MS_MAX = 600_000;
+
+/**
+ * What the page says about its token, for the door's log only
+ * (2026-11-28): `turnstile_reason`, why it sent none (`script-blocked`,
+ * `script-empty`, `error:<code>`, `loading-timeout`, `solving-timeout`,
+ * `interactive-timeout`, `no-widget`; the OAuth form's `no-script` when
+ * its script never ran), and `turnstile_wait_ms`, how long the send
+ * waited for Cloudflare. Never trusted: a reason outside a small charset
+ * is `invalid`, a wait that is not a sane whole number is left out, and
+ * a reason beside a token is dropped. Neither decides anything.
+ */
+export function turnstileWhyFrom(body, hasToken) {
+  const out = {};
+  const rawWait = body?.turnstile_wait_ms;
+  const wait =
+    typeof rawWait === "number"
+      ? rawWait
+      : typeof rawWait === "string" && /^\d{1,6}$/.test(rawWait.trim())
+        ? Number(rawWait.trim())
+        : NaN;
+  if (Number.isInteger(wait) && wait >= 0 && wait <= WAIT_MS_MAX)
+    out.turnstile_wait_ms = wait;
+  if (!hasToken) {
+    const raw = body?.turnstile_reason;
+    if (typeof raw === "string" && raw.trim()) {
+      const reason = raw.trim();
+      out.turnstile_reason = /^[a-z][a-z0-9:-]{0,39}$/.test(reason)
+        ? reason
+        : "invalid";
+    }
+  }
+  return out;
+}
+
 /**
  * The door's half, before any mail ceiling is counted: what rides the
  * login message (`turnstile`, or null when the mode is off), what the
- * door's log line says (`seen`: token or missing), and whether to refuse
- * now (enforce and no token).
+ * door's log line says (`seen`: token or missing; `log`, the fields its
+ * lines carry: `turnstile` and the page's `turnstileWhyFrom`), and
+ * whether to refuse now (enforce and no token).
  */
 export function turnstileAtDoor(body, surface, env = process.env) {
   const mode = turnstileMode(env);
-  if (mode === "off") return { mode, seen: "off", refuse: false, carry: null };
+  if (mode === "off")
+    return {
+      mode,
+      seen: "off",
+      log: { turnstile: "off" },
+      refuse: false,
+      carry: null,
+    };
   const token = turnstileTokenFrom(body);
+  const seen = token ? "token" : "missing";
   return {
     mode,
-    seen: token ? "token" : "missing",
+    seen,
+    log: { turnstile: seen, ...turnstileWhyFrom(body, !!token) },
     refuse: !turnstileAllows(mode, token ? "pass" : "missing"),
     carry: { surface, token },
   };
