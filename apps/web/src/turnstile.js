@@ -55,6 +55,10 @@ const WAIT_MS = 5_000;
  *  the same (TURNSTILE_RETRY_INTERVAL_MS in packages/auth). */
 export const TURNSTILE_RETRY_INTERVAL_MS = 2_000;
 const INTERACTIVE_WAIT_MS = 120_000;
+/** The server's words for a send refused for want of a token; the server
+ *  holds the same (TURNSTILE_REFUSED_MESSAGE in packages/auth). */
+export const TURNSTILE_REFUSED =
+  "We couldn’t confirm you’re not a bot. Reload the page and try again.";
 
 /** Error codes Cloudflare's client-side error table marks "Retry: No"
  *  (sitekey, domain and clock problems): no token follows them. */

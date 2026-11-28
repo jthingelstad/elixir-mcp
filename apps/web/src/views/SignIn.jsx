@@ -2,7 +2,7 @@ import { Icon, browserZone, clockAt, writeErrorText } from "@elixir-mcp/ui";
 import { useEffect, useRef, useState } from "react";
 import { api } from "../api.js";
 import { consumeLoginToken } from "../url-hygiene.js";
-import { useTurnstile } from "../turnstile.js";
+import { TURNSTILE_REFUSED, useTurnstile } from "../turnstile.js";
 import { discordOutcome, discordStartHref } from "../discord.js";
 
 /** One email door for sign-in and public member signup. Email verification
@@ -11,10 +11,6 @@ import { discordOutcome, discordStartHref } from "../discord.js";
 // A form draft, never an account preference. Keep an unchecked choice through
 // an interrupted request/reload; the server freezes it in each emailed proof.
 const PRODUCT_NEWS_DRAFT = "elixir.signup_product_news";
-// The server's words for a send refused for want of a Turnstile token
-// (TURNSTILE_REFUSED_MESSAGE in packages/auth).
-const TURNSTILE_REFUSED =
-  "Elixir could not confirm a person asked for this email. Reload the page and try again.";
 // A proof for an address with no account, from plain sign-in, which does
 // not ask the 13-or-older question (#763): the signup form asks it, and a
 // new email follows.

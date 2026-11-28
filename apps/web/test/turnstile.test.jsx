@@ -19,6 +19,7 @@ import { SignIn } from "../src/views/SignIn.jsx";
 import {
   makeTurnstile,
   resetTurnstileScript,
+  TURNSTILE_REFUSED,
   TURNSTILE_RETRY_INTERVAL_MS,
   TURNSTILE_SCRIPT_URL,
   TURNSTILE_SITE_KEY,
@@ -98,7 +99,7 @@ test("the script loads only when warmed, once, explicitly rendered and shown onl
   expect(await ts.tokenFor("a@x.com")).toBe("tok-1");
 });
 
-test("the site key is the server's, and so is the action the relay checks", () => {
+test("the site key is the server's, and so are the action the relay checks and the refused sentence", () => {
   const server = readFileSync(
     path.resolve(
       path.dirname(fileURLToPath(import.meta.url)),
@@ -114,6 +115,13 @@ test("the site key is the server's, and so is the action the relay checks", () =
   );
   expect(server).toMatch(
     /TURNSTILE_ACTIONS = Object\.freeze\(\{\s+web: "signin",/,
+  );
+  // The refused sentence, word for word and with its curly apostrophes.
+  expect(server).toContain(
+    `TURNSTILE_REFUSED_MESSAGE =\n  ${JSON.stringify(TURNSTILE_REFUSED)};`,
+  );
+  expect(TURNSTILE_REFUSED).toBe(
+    "We couldn\u2019t confirm you\u2019re not a bot. Reload the page and try again.",
   );
 });
 
@@ -380,9 +388,7 @@ test("a send the server refuses for want of a token says so", async () => {
   fireEvent.focus(field);
   fireEvent.change(field, { target: { value: "a@x.com" } });
   fireEvent.click(screen.getByRole("button", { name: "Send sign-in email" }));
-  expect(
-    await screen.findByText(/could not confirm a person asked for this email/),
-  ).toBeTruthy();
+  expect(await screen.findByText(TURNSTILE_REFUSED)).toBeTruthy();
   await waitFor(() => expect(requests).toHaveLength(1));
   expect(requests[0].turnstile_token).toBe("test-turnstile-token");
   expect(requests[0]).not.toHaveProperty("turnstile_reason");

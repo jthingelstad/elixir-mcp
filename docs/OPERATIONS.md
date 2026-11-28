@@ -610,8 +610,9 @@ Enforce is ready when real people's mail is `pass` (a `missing` share
 near zero outside an attack, `fail` only on fingerprints that were being
 bombed) for a week or two. Before flipping it, weigh what enforce costs:
 a person whose browser cannot load Cloudflare's script, or a Cloudflare
-script outage, is refused at the door with a "reload and try again"
-message. A `fail` is dropped at the relay without a word to the page,
+script outage, is refused at the door with "We couldn’t confirm you’re
+not a bot. Reload the page and try again." (the OAuth email step
+redirects to its GET first, so a reload keeps the request). A `fail` is dropped at the relay without a word to the page,
 which still says to check your email. Flip it with
 `--param=TurnstileMode=enforce` on a deploy, and back with
 `--param=TurnstileMode=observe`; `turnstile_refused` lines at the doors
