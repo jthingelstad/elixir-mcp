@@ -342,26 +342,43 @@ test("every other path, 4.x's operations included, is the unknown operation's 40
   assert.equal(rows[0].n, 0);
 });
 
-test("a signed-in read is audited, and the request line names the operation", async () => {
+test("a signed-in read writes no call-log row; its one request line names the operation, the id and no token", async () => {
   const token = await grant(drop, "cr:read");
+  const { rows: mark } = await db.query(
+    `select coalesce(max(audit_id), 0) as last from mcp_call_audit`,
+  );
   const lines = [];
   const info = console.info;
   console.info = (line) => lines.push(line);
-  let r;
+  let r, refused;
   try {
     r = await call("GET", "/api/v1/me", token);
+    refused = await call("GET", "/api/v1/me", "eat_not-a-real-token");
   } finally {
     console.info = info;
   }
-  const line = lines.find((l) => l?.http === "GET /api/v1/*");
-  assert.ok(line, "no request line");
+  const mine = lines.filter((l) => l?.http === "GET /api/v1/*");
+  assert.equal(mine.length, 2, "one request line a call");
+  const [line, refusal] = mine;
   assert.equal(line.operation, "me");
   assert.equal(line.status, 200);
+  assert.equal(line.v1_request_id, data(r).request_id);
+  assert.equal(line.code, undefined);
+  assert.equal(refused.statusCode, 401);
+  assert.equal(refusal.status, 401);
+  assert.equal(refusal.code, "unauthenticated");
+  for (const l of mine) {
+    const text = JSON.stringify(l);
+    assert.ok(!text.includes(token), "never the token");
+    assert.ok(!text.includes("person@example.org"), "never the address");
+    assert.ok(!text.includes(person), "never the account id");
+  }
+  // Sign-in is not a tool call (2026-11-28): nothing in the call log.
   const { rows } = await db.query(
-    "select tool, http_status from mcp_call_audit where request_id = $1",
-    [data(r).request_id],
+    `select count(*)::int as n from mcp_call_audit where audit_id > $1`,
+    [mark[0].last],
   );
-  assert.deepEqual(rows, [{ tool: "me.read", http_status: 200 }]);
+  assert.equal(rows[0].n, 0);
 });
 
 /** The real client, with the read of the players made to fail. */

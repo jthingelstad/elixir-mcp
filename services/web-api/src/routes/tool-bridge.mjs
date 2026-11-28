@@ -3,9 +3,6 @@ import {
   normalizeTag,
   InvalidTagError,
 } from "@elixir-mcp/contracts";
-import { checkRateLimit } from "@elixir-mcp/auth";
-import { makeInvoker } from "@elixir-mcp/tools/invoker";
-import { HOURLY_RATE_LIMIT } from "@elixir-mcp/tools/quota";
 import {
   renderToolResultText,
   MCP_RESULT_MAX_CHARS,
@@ -13,7 +10,7 @@ import {
 
 import { withPlayerConnections } from "../connections.mjs";
 import { json } from "../http.mjs";
-import { toolDeadlineMs } from "../deadline.mjs";
+import { makeWebReader, webRate } from "../web-reads.mjs";
 
 /**
  * The app's own tool calls through the bridge, by name (2026-11-14). The
@@ -88,29 +85,25 @@ async function statsOpens(db, accountId, tag) {
 }
 
 export function toolBridgeRoutes({ resolveAccount, toolRegistry }) {
-  /** One tool read through the bridge, for a signed-in account. */
-  async function bridge(db, event, account, tool, args) {
+  /** One tool read through the bridge, for a signed-in account. `door`
+   *  names it on the log line: "tool" (the app's) or "stats". */
+  async function bridge(db, event, context, account, tool, args, door) {
     const registry = toolRegistry();
     if (!registry.has(tool) || !bridgeable(tool)) return notBridged(tool);
-    // The hourly bucket /mcp uses (handler.mjs), the same one: a person's
-    // own web reads are not a tier, but they are not unbounded either.
-    // No daily tool-call quota here (Jamie, 2026-10-12, #538): the
-    // app's own reads spend none of `mcpday#`. The call
-    // is still written to the log (surface "web"), and Usage counts it
-    // apart from the budget. Not `firstParty`: that would lift the live
-    // lane too (tools/shared.mjs liveBudgetFor), which stays metered.
-    const withinRate = await checkRateLimit(db, {
-      bucket: `mcp#${account.accountId}`,
-      max: HOURLY_RATE_LIMIT,
-    });
-    if (!withinRate) return json(429, { error: "rate_limited" });
-    const invoke = makeInvoker({
+    // The website's own hourly guard (web-reads.mjs), never the bucket a
+    // person's MCP clients spend: the site's reads are site usage, not a
+    // tool call (Jamie, 2026-11-28). No daily tool-call quota either, and
+    // no call-log row. Not `firstParty`: that would lift the live lane too
+    // (tools/shared.mjs liveBudgetFor), and the bridge never runs it.
+    if (!(await webRate(db, account)))
+      return json(429, { error: "rate_limited" });
+    const invoke = makeWebReader({
       db,
       account,
       registry,
-      surface: "web",
-      // Every read-only tool races the request's deadline, as at /mcp.
-      deadlineMs: toolDeadlineMs(event),
+      event,
+      door,
+      requestId: context?.requestId ?? null,
     });
     const result = await invoke(tool, args);
     // One result cap for every door: over it, the same bounded failure
@@ -140,14 +133,14 @@ export function toolBridgeRoutes({ resolveAccount, toolRegistry }) {
       : {};
 
   /** The app's own tools (APP_TOOLS), for a signed-in account. */
-  async function appTool(db, event, body) {
+  async function appTool(db, event, body, context) {
     const account = await resolveAccount(db, event, {
       requireContractHeader: true,
     });
     if (!account) return json(401, { error: "unauthenticated" });
     const tool = String(body.tool ?? "");
     if (!APP_TOOLS.has(tool)) return notBridged(tool);
-    return bridge(db, event, account, tool, argsOf(body));
+    return bridge(db, event, context, account, tool, argsOf(body), "tool");
   }
 
   return {
@@ -157,7 +150,7 @@ export function toolBridgeRoutes({ resolveAccount, toolRegistry }) {
     // holds or follows only. Everything from the game stays open to every
     // member on the player page; Stats, the season read back, is yours and
     // your follows'. Refused before any tool runs.
-    "POST /api/me/stats": async (db, event, body) => {
+    "POST /api/me/stats": async (db, event, body, context) => {
       const account = await resolveAccount(db, event, {
         requireContractHeader: true,
       });
@@ -176,7 +169,7 @@ export function toolBridgeRoutes({ resolveAccount, toolRegistry }) {
             error: "bad_request",
             message: "war_current takes a clan_tag only.",
           });
-        return bridge(db, event, account, tool, args);
+        return bridge(db, event, context, account, tool, args, "stats");
       }
       let tag;
       try {
@@ -192,7 +185,15 @@ export function toolBridgeRoutes({ resolveAccount, toolRegistry }) {
           message:
             "Stats opens for your own players and the players you follow.",
         });
-      return bridge(db, event, account, tool, { ...args, player_tag: tag });
+      return bridge(
+        db,
+        event,
+        context,
+        account,
+        tool,
+        { ...args, player_tag: tag },
+        "stats",
+      );
     },
   };
 }

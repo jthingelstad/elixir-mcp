@@ -42,6 +42,7 @@ import {
 import { json, UUID_RE, ID_RE } from "../http.mjs";
 import { labelOf as emailChoiceLabel } from "./email.mjs";
 import { loadCallRecord } from "../call-record.mjs";
+import { mcpCalls } from "../call-log.mjs";
 import { annotateFeed } from "../feed.mjs";
 import { withCheers } from "../cheers.mjs";
 import { playersChangedAfter, settleAfter } from "../passport-hooks.mjs";
@@ -51,20 +52,6 @@ import { playersChangedAfter, settleAfter } from "../passport-hooks.mjs";
 const AVATAR_WRITES_PER_HOUR = 60;
 /** Handle changes an hour: plenty for picking one, not for squatting. */
 const HANDLE_WRITES_PER_HOUR = 20;
-
-/** An audit row the daily tool-call limiter charged (`mcpday#`,
- *  packages/tools/quota.mjs): every call at /mcp. Not `GET /api/v1/me` (`rest`,
- *  metered on its own) and nothing on the web surface: the app's and
- *  Stats' own reads (#538, Jamie 2026-10-12) spend no daily tool-call
- *  budget. Clan's reads are in process and leave no call row at all
- *  (2026-11-13). */
-const CHARGED = `coalesce(surface, '') not in ('rest', 'web')`;
-/** The app's own reads (POST /api/me/tool and Stats' POST /api/me/stats,
- *  which name no client): logged, shown on Usage, never charged. The
- *  bridge's one write, the nickname editor (tool-bridge.mjs APP_WRITES),
- *  is logged there too and is not a read. */
-const WEB_READS = `(surface = 'web' and client_name is null
-  and tool <> 'elixir_nickname')`;
 
 export function accountRoutes({
   resolveAccount,
@@ -904,40 +891,34 @@ export function accountRoutes({
       if (!account) return json(401, { error: "unauthenticated" });
       // Fourteen days, because the page draws them as a bar per day and
       // a week is too short a run to see a shape in.
-      // Only what the daily limiter charges counts (CHARGED, above): the
-      // log also holds the app's, Stats' and Clan's own reads and
-      // `GET /api/v1/me` calls, which spend no tool-call budget. web_calls is the
-      // app's and Stats' reads, counted apart and never charged, so
-      // the page can show them without counting them against the day.
+      // MCP calls only (call-log.mjs): what the daily limiter charges.
       const { rows: days } = await db.query(
         `select (created_at at time zone 'UTC')::date::text as day,
-                count(*) filter (where ${CHARGED})::int as calls,
-                count(*) filter (where ${CHARGED} and error_code is not null)::int as errors,
-                count(*) filter (where ${WEB_READS})::int as web_calls
+                count(*)::int as calls,
+                count(*) filter (where error_code is not null)::int as errors
          from mcp_call_audit
          where account_id = $1
            and created_at > now() - interval '14 days'
+           and ${mcpCalls()}
          group by 1 order by 1 desc`,
         [account.accountId],
       );
-      // WHO spent it: a client signed in as you (its registered name), a
-      // service token on your own account, or the website. Seven days,
-      // like the tools.
+      // WHO spent it: a client signed in as you (its registered name) or a
+      // service token on your own account. Seven days, like the tools.
       const { rows: callers } = await db.query(
         `select coalesce(
                   case when m.token_id is not null then
                     'svc:' || (select st.name from service_token st
                                where st.token_id = m.token_id) end,
                   m.client_name,
-                  case when m.surface = 'web' then 'Website' end,
                   'unnamed client') as name,
                 case when m.token_id is not null then 'service token'
-                     when m.surface = 'web' then 'website'
                      else 'client' end as kind,
                 count(*)::int as calls
          from mcp_call_audit m
          where m.account_id = $1
            and m.created_at > now() - interval '7 days'
+           and ${mcpCalls("m")}
          group by 1, 2 order by calls desc limit 8`,
         [account.accountId],
       );
@@ -945,6 +926,7 @@ export function accountRoutes({
         `select tool, count(*)::int as calls from mcp_call_audit
          where account_id = $1
            and created_at > now() - interval '7 days'
+           and ${mcpCalls()}
          group by 1 order by 2 desc limit 5`,
         [account.accountId],
       );
@@ -964,9 +946,6 @@ export function accountRoutes({
         by_caller: callers,
         top_tools: tools,
         today_calls: days.find((d) => d.day === today)?.calls ?? 0,
-        // The app's and Stats' own reads today: the same tools, but
-        // not counted against the daily budget (docs/limits, #538).
-        web_calls_today: days.find((d) => d.day === today)?.web_calls ?? 0,
         live_today: live[0]?.count ?? 0,
         live_max: lim(account.liveDailyQuota ?? q.live_fetches_per_day),
         quota_max: lim(account.mcpDailyQuota ?? q.mcp_calls_per_day),
@@ -984,7 +963,7 @@ export function accountRoutes({
                 t.name as token_name
          from mcp_call_audit a
          left join service_token t on t.token_id = a.token_id
-         where a.account_id = $1
+         where a.account_id = $1 and ${mcpCalls("a")}
          order by a.created_at desc limit 200`,
         [account.accountId],
       );

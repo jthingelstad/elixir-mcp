@@ -266,7 +266,7 @@ whatever app you connected. See [Your connections](/docs/connections).
 **budget account**: whose daily quotas a call spends: yours, for every
 app you connect. Your own reads on Find, player pages and Stats spend no
 daily call budget. The hourly rate limit is not a budget: it is yours
-too, and your website reads share it.
+too, and your website reads have one of their own.
 
 **request_id**: the id minted for one call and stamped into `meta`; quote it
 when reporting an answer.

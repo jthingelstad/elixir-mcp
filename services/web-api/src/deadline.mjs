@@ -6,16 +6,16 @@
  * handler answers 504 itself. Without HTTP context (tests, no context) there is
  * no deadline unless the caller supplies one.
  *
- * A route that runs a tool (Explore, Find and the player page's Record
- * tab, through the app's tool bridge) hands the invoker a deadline a reply margin inside the soft
- * one, so every read-only tool races it as it does at /mcp and answers
- * query_timeout with a request id and an audit row, instead of running on
- * unbounded until the handler gives up on it.
+ * A route that runs a tool (Find, Stats and the player page's Record
+ * tab, through the app's tool bridge; Home's panels; Clan) hands the reader
+ * a deadline a reply margin inside the soft one, so every read-only tool
+ * races it as it does at /mcp and answers query_timeout, instead of
+ * running on unbounded until the handler gives up on it.
  */
 
 const DEADLINE_MARGIN_MS = 1500;
-/** Time the tool path keeps back for the invoker's restore, the audit
- *  row and rendering, so its answer beats the handler's 504. */
+/** Time the tool path keeps back for the reader's restore and rendering,
+ *  so its answer beats the handler's 504. */
 const TOOL_REPLY_MARGIN_MS = 1500;
 
 export function deadlineMs(context, event = null) {

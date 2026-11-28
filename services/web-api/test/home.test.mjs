@@ -711,7 +711,7 @@ test("the account's week as the timeline builds it: every kind, a repeat kept at
   );
 });
 
-test("a visit spends one charge on the shared bucket, however many panels it reads", async () => {
+test("a visit spends one charge on the website's bucket, however many panels it reads, and writes no call-log row", async (t) => {
   const id = await person("home-charge");
   await scratch.db.query(
     `insert into claim(account_id,player_tag,relationship,is_primary)
@@ -725,6 +725,8 @@ test("a visit spends one charge on the shared bucket, however many panels it rea
         [bucket],
       )
     ).rows[0].n;
+  const lines = [];
+  t.mock.method(console, "info", (line) => lines.push(line));
   for (const path of [
     "/api/me/home",
     "/api/me/home/needs",
@@ -732,8 +734,31 @@ test("a visit spends one charge on the shared bucket, however many panels it rea
     "/api/me/home/week",
   ])
     assert.equal((await call(handler, id, "GET", path)).statusCode, 200, path);
-  assert.equal(await charged(`mcp#${id}`), 1);
+  t.mock.restoreAll();
+  // The website's own bucket (Jamie, 2026-11-28), never the MCP door's.
+  assert.equal(await charged(`web#${id}`), 1);
+  assert.equal(await charged(`mcp#${id}`), 0);
   assert.equal(await charged(`home#${id}`), 3);
+  // The panels' tool reads are site usage: no row in the call log.
+  const { rows } = await scratch.db.query(
+    "select count(*)::int as n from mcp_call_audit where account_id = $1",
+    [id],
+  );
+  assert.equal(rows[0].n, 0, "no call-log row");
+  // An operational line a tool read instead, naming the door and the tool,
+  // never the player, the account or the arguments.
+  const reads = lines
+    .filter((l) => typeof l === "string" && l.includes('"web_read"'))
+    .map((l) => JSON.parse(l));
+  assert.ok(reads.length > 0, "a web_read line");
+  for (const r of reads) {
+    assert.equal(r.door, "home");
+    assert.equal(typeof r.tool, "string");
+    assert.equal(typeof r.db_ms, "number");
+    const text = JSON.stringify(r);
+    assert.ok(!text.includes(OWN) && !text.includes(OWN.slice(1)), text);
+    assert.ok(!text.includes(id), text);
+  }
 });
 
 test("the head names this account's nickname and no one else's", async () => {

@@ -1,7 +1,7 @@
 import { playerPlay } from "../player-play.mjs";
 import { handlesOfVerified } from "../handle.mjs";
 import { latestSnapshotOrder } from "@elixir-mcp/record/latest-snapshot";
-import { checkRateLimit } from "@elixir-mcp/auth";
+import { webRate } from "../web-reads.mjs";
 import {
   addPlayer,
   linkAfterFollow,
@@ -19,7 +19,6 @@ import {
 import { normalizeTag, InvalidTagError } from "@elixir-mcp/contracts";
 import { enqueueJob } from "@elixir-mcp/ledger";
 import { makeLive, requestFirstRead } from "@elixir-mcp/tools/live";
-import { HOURLY_RATE_LIMIT } from "@elixir-mcp/tools/quota";
 import { socialOf } from "@elixir-mcp/tools/social";
 import { readPlayerPassport } from "@elixir-mcp/stamps";
 import { verifiedAvatars, withAvatar } from "../avatars.mjs";
@@ -998,14 +997,10 @@ export function playerRoutes({
         ? shadowStories
         : null;
   const liveRead = live ?? makeLive({ enqueue: enqueueJob });
-  const rate = (db, account) =>
-    checkRateLimit(db, {
-      bucket: `mcp#${account.accountId}`,
-      max: HOURLY_RATE_LIMIT,
-    });
+  const rate = webRate;
   return {
-    // The player page: one read, one charge on the hourly bucket /mcp and
-    // Explore share.
+    // The player page: one read, one charge on the website's hourly bucket
+    // (web-reads.mjs).
     "GET /api/player": async (db, event) => {
       const account = await resolveAccount(db, event);
       if (!account) return json(401, { error: "unauthenticated" });

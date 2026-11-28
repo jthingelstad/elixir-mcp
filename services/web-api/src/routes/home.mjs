@@ -3,8 +3,6 @@ import { latestSnapshotOrder } from "@elixir-mcp/record/latest-snapshot";
 import { checkRateLimit } from "@elixir-mcp/auth";
 import { featuredDeck, buildFriendsWeek } from "@elixir-mcp/tools/friends-week";
 import { deckIdentities } from "@elixir-mcp/tools/shared";
-import { makeInvoker } from "@elixir-mcp/tools/invoker";
-import { HOURLY_RATE_LIMIT } from "@elixir-mcp/tools/quota";
 import {
   buildTimeline,
   followedAccountIds,
@@ -27,7 +25,11 @@ import { gameWeekStartMs } from "@elixir-mcp/record/form";
 import { lastGameWeek } from "@elixir-mcp/record/game-week";
 
 import { json } from "../http.mjs";
-import { toolDeadlineMs } from "../deadline.mjs";
+import {
+  WEB_HOURLY_RATE_LIMIT,
+  makeWebReader,
+  webRate,
+} from "../web-reads.mjs";
 import { TIMELINE_MODES } from "@elixir-mcp/contracts";
 import { sharedEvents } from "../shared-play.mjs";
 import { annotateFeed, groupsOf, inMode } from "../feed.mjs";
@@ -51,7 +53,7 @@ import { homeClan, myClans } from "./clans.mjs";
  *  four of them, and the instance is the 1 GB micro: going parallel inside a
  *  panel would take leases the other panels are waiting for.
  *
- *  A visit still spends one charge on the hourly bucket /mcp and Explore share:
+ *  A visit spends one charge on the website's hourly bucket (web-reads.mjs):
  *  the head's. The panels count on a bucket of their own (`panelRate`). */
 
 /** Below about this many battles a "most played" deck says little (the
@@ -90,13 +92,17 @@ export async function panel(name, read, meta = null) {
   }
 }
 
-function toolReader(db, account, registry, event) {
-  const invoke = makeInvoker({
+/** A panel's tool reads: the website's own (web-reads.mjs), so no call-log
+ *  row; each leaves a `web_read` line beside the panel's `home_panel` one,
+ *  which says which tool inside a slow panel was the slow one. */
+function toolReader(db, account, registry, event, requestId = null) {
+  const invoke = makeWebReader({
     db,
     account,
     registry,
-    surface: "web",
-    deadlineMs: toolDeadlineMs(event),
+    event,
+    door: "home",
+    requestId,
   });
   return async (tool, args) => {
     const r = await invoke(tool, args);
@@ -949,20 +955,15 @@ async function readFeedEvidence(db, account, q) {
   );
 }
 
-async function rate(db, account) {
-  // The hourly bucket /mcp and Explore use, charged once for the whole page.
-  return checkRateLimit(db, {
-    bucket: `mcp#${account.accountId}`,
-    max: HOURLY_RATE_LIMIT,
-  });
-}
+/** The website's hourly bucket, charged once for the whole page. */
+const rate = webRate;
 
 /** Four panels a visit, so the head's limit in visits stays what it was. */
-const PANEL_RATE_LIMIT = 4 * HOURLY_RATE_LIMIT;
+const PANEL_RATE_LIMIT = 4 * WEB_HOURLY_RATE_LIMIT;
 
 /** A panel's charge: its own bucket, so one visit still spends one charge on
- *  the bucket /mcp and Explore share, while these reads, which cost the most,
- *  stay limited. Your own reads on the website spend no budget either way. */
+ *  the website's bucket, while these reads, which cost the most, stay
+ *  limited. Your own reads on the website spend no budget either way. */
 async function panelRate(db, account) {
   return checkRateLimit(db, {
     bucket: `home#${account.accountId}`,
@@ -1059,7 +1060,13 @@ export function homeRoutes({
       if (!account) return json(401, { error: "unauthenticated" });
       if (!(await panelRate(db, account)))
         return json(429, { error: "rate_limited" });
-      const read = toolReader(db, account, toolRegistry(), event);
+      const read = toolReader(
+        db,
+        account,
+        toolRegistry(),
+        event,
+        context?.requestId ?? null,
+      );
       // `rebuild=1`: the page's ask when the card it was served is past
       // fresh; it builds now and keeps the build.
       const rebuild = event.queryStringParameters?.rebuild === "1";
@@ -1084,14 +1091,20 @@ export function homeRoutes({
     },
 
     // Your week: the opening mode, or the one a chip asked for.
-    "GET /api/me/home/week": async (db, event) => {
+    "GET /api/me/home/week": async (db, event, _body, context) => {
       const account = await resolveAccount(db, event);
       if (!account) return json(401, { error: "unauthenticated" });
       if (!(await panelRate(db, account)))
         return json(429, { error: "rate_limited" });
       const tag = await primaryTag(db, account.accountId);
       if (!tag) return json(404, { error: "no_player" });
-      const read = toolReader(db, account, toolRegistry(), event);
+      const read = toolReader(
+        db,
+        account,
+        toolRegistry(),
+        event,
+        context?.requestId ?? null,
+      );
       const wanted = event.queryStringParameters?.mode ?? null;
       const week = await panel("week", async () => {
         const out = await readWeek(read, db, tag, wanted);

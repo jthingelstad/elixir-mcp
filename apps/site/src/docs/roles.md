@@ -39,7 +39,8 @@ its verified members.
 
 Tool calls are what your connected apps spend at the MCP door.
 Your own reads on Elixir's website, Find, player pages and Stats, never count
-against them; they share only the hourly limit ([Limits](/docs/limits)).
+against them; the website has only an hourly limit of its own
+([Limits](/docs/limits)).
 
 Member, Leader and Family are **earned in the game**, and checked every
 time you use Elixir, the way Clan checks your role

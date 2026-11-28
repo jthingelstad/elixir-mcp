@@ -34,6 +34,10 @@
  *                     made (mcp_call_audit under their account, never a
  *                     service token's). A session only seen or refreshed
  *                     is not a return (Jamie, 2026-10-08, the beta pulse).
+ *                     Since 2026-11-28 the call log holds MCP calls only
+ *                     (the website's reads and GET /api/v1/me write no
+ *                     row), so a return to the website alone on an older
+ *                     session is not counted; before then its reads were.
  *                     `open_7d` / `open_30d` count accounts whose window
  *                     is still running, so a young week reads as so far.
  *   time_to_first_read  seconds from the primary claim's creation to the
