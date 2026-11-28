@@ -270,7 +270,8 @@ export function accountRoutes({
 
   return {
     "GET /api/me": async (db, event) => {
-      const account = await resolveAccount(db, event);
+      // The app's boot read, and the one route that marks a visit (0321).
+      const account = await resolveAccount(db, event, { visit: true });
       if (!account)
         return json(200, {
           authenticated: false,

@@ -12,12 +12,12 @@
  * kept alive, stopped through the claims package's own reconcile), the
  * sessions, OAuth grants and codes and tokens, service tokens, the call
  * log and its refusal log and the rate counters, feedback, account
- * events, mail sent and its switches, nicknames, posts, comments and the
- * conversations they joined, cheers, follows, blocks, push devices, the
- * stored Home and bell weeks, the passport and Stamps, timeline read
- * pointers, the timeline's Discord cross-post (its sealed webhook, what
- * it told, and its posts in the quality ledger), Clan's remembered clan,
- * and pending sign-in links. Removing an account
+ * events and website visit days, mail sent and its switches, nicknames,
+ * posts, comments and the conversations they joined, cheers, follows,
+ * blocks, push devices, the stored Home and bell weeks, the passport and
+ * Stamps, timeline read pointers, the timeline's Discord cross-post (its
+ * sealed webhook, what it told, and its posts in the quality ledger),
+ * Clan's remembered clan, and pending sign-in links. Removing an account
  * deletes the account, not the record (DECISIONS).
  *
  * What stays (KEPT_TABLES): canonical game data (lossless by policy;
@@ -273,6 +273,11 @@ const STEPS = [
   {
     table: "account_event",
     from: `account_event where account_id = any($1::uuid[])`,
+  },
+  // The days they used the website signed in (0321).
+  {
+    table: "account_visit_day",
+    from: `account_visit_day where account_id = any($1::uuid[])`,
   },
   // Rate counters are text-keyed (packages/tools quota and live, the MCP
   // and REST doors, Verify, sign-in mail): most end in the account id; a
