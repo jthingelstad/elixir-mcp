@@ -51,6 +51,7 @@ import { onboardAccount } from "@elixir-mcp/tools/onboard";
 import { makeLive, requestFirstRead } from "@elixir-mcp/tools/live";
 import { enqueueJob } from "@elixir-mcp/ledger";
 import { deadlineMs } from "./deadline.mjs";
+import { makeVisitMarker } from "./visit-day.mjs";
 import { battleRoutes } from "./routes/battle.mjs";
 import { itemSharingRoutes } from "./routes/item-sharing.mjs";
 import { timelineItemRoutes } from "./routes/timeline-items.mjs";
@@ -243,12 +244,16 @@ export function makeHandler({
    *  Timeline inside a window, as Home's feed items (product-updates.mjs
    *  readProductUpdates, 2026-11-23); null = none. */
   productUpdates = null,
+  /** (db, accountId) => the website visit mark (visit-day.mjs
+   *  makeVisitMarker); null = one of its own, remembered per instance. */
+  markVisit = null,
 }) {
   database ??= makeDatabase({
     connectionString: databaseUrl,
     max: Number(process.env.DB_POOL_MAX ?? 4),
   });
   const liveRead = live ?? makeLive({ enqueue: enqueueJob });
+  markVisit ??= makeVisitMarker();
   // What unsubscribe links are signed and checked with: their own key
   // when there is one, and the session secrets for links sent before it.
   const unsubscribeKeys =
@@ -258,7 +263,7 @@ export function makeHandler({
   async function resolveAccount(
     db,
     event,
-    { requireContractHeader = false } = {},
+    { requireContractHeader = false, visit = false } = {},
   ) {
     const fromBearer = bearer(event);
     const token = fromBearer || readCookie(event);
@@ -269,7 +274,7 @@ export function makeHandler({
       !event.headers?.[CONTRACT_HEADER]
     )
       return null;
-    return resolveSession(db, {
+    const account = await resolveSession(db, {
       secret,
       token,
       // Where this request came from, for the Profile page's device
@@ -277,6 +282,11 @@ export function makeHandler({
       // browser left them.
       seen: fromBearer ? null : sessionSeenFrom(event),
     });
+    // The website visit mark (0321, visit-day.mjs): only the app's own
+    // session read asks for it, and only a cookie session is a person
+    // in a browser.
+    if (visit && account && !fromBearer) await markVisit(db, account.accountId);
+    return account;
   }
 
   let toolRegistryCache = null;

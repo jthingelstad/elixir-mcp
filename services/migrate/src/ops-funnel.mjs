@@ -14,7 +14,8 @@
  *                     event (the web code and Discord sign-ins), a
  *                     session row (any sign-in; rows go 30 days after
  *                     they expire), an OAuth family (consent by code is a
- *                     sign-in) or a call of the person's own
+ *                     sign-in), a call of the person's own or a website
+ *                     visit day (0321, which only a session can write)
  *   enrolled          made by `{account_enroll}` (its `enrolled` event)
  *   enrolled_never_signed_in  of those, no sign-in by the rule above
  *   primary_player    a primary claim now
@@ -30,14 +31,22 @@
  *   came_back_7d / _30d  own activity on a later UTC day than the one
  *                     the account was made, within 7 or 30 days: a
  *                     sign-in (event, session minted or OAuth family
- *                     opened, which outlasts the session) or a call they
+ *                     opened, which outlasts the session), a call they
  *                     made (mcp_call_audit under their account, never a
- *                     service token's). A session only seen or refreshed
- *                     is not a return (Jamie, 2026-10-08, the beta pulse).
- *                     Since 2026-11-28 the call log holds MCP calls only
- *                     (the website's reads and GET /api/v1/me write no
- *                     row), so a return to the website alone on an older
- *                     session is not counted; before then its reads were.
+ *                     service token's) or a day they used the website
+ *                     signed in (account_visit_day, 0321: the app's
+ *                     session read, GET /api/me, on a cookie session).
+ *                     A session only seen or refreshed is not a return
+ *                     (Jamie, 2026-10-08, the beta pulse): the session
+ *                     row's last_seen_at, which the feed's poll and any
+ *                     other request slide, is never read. The visit day
+ *                     is written only by the read the app makes when a
+ *                     page opens, a tab comes back, or the person changes
+ *                     their session, so it is the person looking. Since
+ *                     2026-11-28 the call log holds MCP calls only, and
+ *                     the visit day is what counts a website return; one
+ *                     to the website alone on an older session between
+ *                     #1260's deploy and 0321's is not counted.
  *                     `open_7d` / `open_30d` count accounts whose window
  *                     is still running, so a young week reads as so far.
  *   time_to_first_read  seconds from the primary claim's creation to the
@@ -126,6 +135,13 @@ export async function funnelOp(databaseUrl, spec = {}) {
          select account_id, created_at from mcp_call_audit
           where created_at >= now() - make_interval(days => $1)
             and surface not like 'svc:%'
+            and account_id in (select account_id from people)
+         union all
+         -- A UTC day they used the website signed in (0321), as that
+         -- day's midnight UTC, which activity reads back as the day.
+         select account_id, day::timestamp at time zone 'UTC'
+           from account_visit_day
+          where day >= (now() - make_interval(days => $1))::date - 1
             and account_id in (select account_id from people)),
        activity as (
          select distinct account_id, (at at time zone 'UTC')::date as day
@@ -244,8 +260,8 @@ export async function funnelOp(databaseUrl, spec = {}) {
       time_to_first_read: timing(waits, alreadyRecorded),
       notes: [
         "first_read uses GET /api/me/first-answer's rule: a profile snapshot or battle evidence for the primary tag.",
-        "signed_in: a signed_in event, a session (kept 30 days past expiry), an OAuth family opened (it outlasts the session that consent by code mints) or an own call.",
-        "came_back counts sign-ins (event, session or OAuth family opened) and own calls on a later UTC day, never a session merely seen or refreshed; open_* accounts are still inside that window.",
+        "signed_in: a signed_in event, a session (kept 30 days past expiry), an OAuth family opened (it outlasts the session that consent by code mints), an own call or a website visit day.",
+        "came_back counts sign-ins (event, session or OAuth family opened), own MCP calls and website visit days (the app's session read, from 2026-11-28) on a later UTC day, never a session merely seen or refreshed; open_* accounts are still inside that window.",
         "time_to_first_read runs from the primary claim's creation to the first admitted profile fetch or first stored battle; a primary re-chosen later is measured from the new claim.",
       ],
     };

@@ -255,6 +255,12 @@ before(async () => {
      select post_id, $1, 'spam' from account_post where account_id = $2`,
     [ids.person, ids.other],
   );
+  // Two days they used the website signed in (0321).
+  await db.query(
+    `insert into account_visit_day (account_id, day)
+     values ($1, current_date - 1), ($1, current_date)`,
+    [ids.person],
+  );
   // When they last opened the bell (0244).
   await db.query(`insert into bell_seen (account_id) values ($1)`, [
     ids.person,
@@ -477,6 +483,7 @@ test("a dry run is the default: it reports what would go and writes nothing", as
     email_send: 1,
     account_email_pref: 0,
     account_event: 2, // signed_in, and agent_connected (their AI client's grant)
+    account_visit_day: 2,
     rate_limit: 6,
   });
   assert.deepEqual(dry.kept, {
@@ -596,6 +603,7 @@ test("the run removes the person, keeps the game record, and leaves a tombstone"
     "push_subscription",
     "account_push_pref",
     "push_notice",
+    "account_visit_day",
     "home_feed",
     "bell_week",
     "home_clan_card",

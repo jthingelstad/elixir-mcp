@@ -145,6 +145,10 @@ export const TRIMMED = Object.freeze([
   // Accounts' own history, one year.
   plain("account_event", "created_at", YEAR),
   {
+    ...plain("account_visit_day", "day", YEAR),
+    note: "a day the person used the website signed in (0321), for the funnel's returns",
+  },
+  {
     ...plain("email_issue", "composed_at", YEAR),
     note: "its sends go with it (on delete cascade)",
   },

@@ -96,6 +96,7 @@ if the quota store is unreachable, active accounts keep working.
 | Credential refusal counts | 30 days |
 | Timeline game-moment ledger | one year; a timeline read reaches back one week |
 | Your account's history (account events, the list of mail sent to you, answered feedback, cheers, finished claim checks) | one year |
+| The days you used the website while signed in: one mark a day, with no page, time or address | one year |
 | Saved request and response bodies of tool calls | 28 days (S3 lifecycle expiry, the same clock as the call log row the website finds them through) |
 | OAuth tokens | 90 days past expiry (grant life is 90 days) |
 | Website sessions | 90 days absolute, 30 days sliding; the address a session was last used from cleared 30 days after that use; rows purged 30 days after expiry |

@@ -266,3 +266,45 @@ test("a return through OAuth consent outlasts its session", async () => {
   assert.equal(after.came_back_30d, before.came_back_30d + 1);
   assert.equal(after.agent_connected, before.agent_connected);
 });
+
+test("a website visit day on a later day is a return; one on the first day is not", async () => {
+  const before = (await funnelOp(SCRATCH_URL, { days: 90 })).overall;
+  const made = async (hash) => {
+    const id = (
+      await db.query(
+        `insert into account (email_hash, status, role, created_at)
+         values ($1, 'approved', 'member', $2) returning account_id`,
+        [hash, ago(20)],
+      )
+    ).rows[0].account_id;
+    await db.query(
+      `insert into account_event (account_id, kind, created_at) values ($1, 'signed_in', $2)`,
+      [id, ago(20)],
+    );
+    return id;
+  };
+  // The visit mark (0321) on a UTC day `after` days from the account's.
+  const visit = (id, after) =>
+    db.query(
+      `insert into account_visit_day (account_id, day)
+       values ($1, ($2::timestamptz at time zone 'UTC')::date + $3::int)`,
+      [id, ago(20), after],
+    );
+  // G used the website only on the day it was made: not a return.
+  const g = await made("funnel-g");
+  await visit(g, 0);
+  // H came back to the website two days later, on its old session: the
+  // visit day is its only later activity.
+  const h = await made("funnel-h");
+  await visit(h, 0);
+  await visit(h, 2);
+  // I came back on day 12: inside 30 days, outside 7.
+  const i = await made("funnel-i");
+  await visit(i, 12);
+
+  const after = (await funnelOp(SCRATCH_URL, { days: 90 })).overall;
+  assert.equal(after.accounts, before.accounts + 3);
+  assert.equal(after.signed_in, before.signed_in + 3);
+  assert.equal(after.came_back_7d, before.came_back_7d + 1);
+  assert.equal(after.came_back_30d, before.came_back_30d + 2);
+});
