@@ -12,8 +12,7 @@
  *  A person's only. */
 import { accountConnections } from "../connections.mjs";
 import { searchHandles } from "../handle.mjs";
-import { checkRateLimit } from "@elixir-mcp/auth";
-import { HOURLY_RATE_LIMIT } from "@elixir-mcp/tools/quota";
+import { webRate } from "../web-reads.mjs";
 import {
   ACCOUNT_FOLLOW_MAX,
   followAccount,
@@ -35,12 +34,7 @@ export function accountsRoutes({ resolveAccount, blocks = false }) {
     if (!account) return { refused: json(401, { error: "unauthenticated" }) };
     if (account.kind !== "person")
       return { refused: json(403, { error: "not_entitled" }) };
-    if (
-      !(await checkRateLimit(db, {
-        bucket: `mcp#${account.accountId}`,
-        max: HOURLY_RATE_LIMIT,
-      }))
-    )
+    if (!(await webRate(db, account)))
       return { refused: json(429, { error: "rate_limited" }) };
     return { account };
   };

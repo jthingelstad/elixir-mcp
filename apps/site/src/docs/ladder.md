@@ -26,9 +26,9 @@ Stats is a mirror, not a coach. It shows what happened and leaves the
 conclusion to you: no verdict, no pace, no advice, and no number the tools
 do not return. There is no model behind it; each page is a handful of the
 same tool reads a connected app makes. They are your own reads of your own
-record, so they never count against your daily tool-call quota; they share
-only the hourly limit of 300 calls with your own connected apps, and Usage
-lists them apart from the budget ([Limits](/docs/limits)).
+record, so they never count against your daily tool-call quota or your
+connected apps' hourly limit; the website has an hourly limit of its own, and
+they are not in your call log ([Limits](/docs/limits)).
 
 ## A player just added
 

@@ -3,7 +3,7 @@
  *  them. Signed in only, each its own read so Home's first paint and Find's
  *  first tab never wait on them, on one bucket of their own. */
 import { checkRateLimit } from "@elixir-mcp/auth";
-import { HOURLY_RATE_LIMIT } from "@elixir-mcp/tools/quota";
+import { WEB_HOURLY_RATE_LIMIT } from "../web-reads.mjs";
 import { normalizeTag } from "@elixir-mcp/contracts";
 import { followedMoment } from "../followed-moment.mjs";
 import { json } from "../http.mjs";
@@ -23,7 +23,7 @@ import {
 } from "../people.mjs";
 
 /** Three reads a visit at most, as Home's panels are counted. */
-const PEOPLE_RATE_LIMIT = 3 * HOURLY_RATE_LIMIT;
+const PEOPLE_RATE_LIMIT = 3 * WEB_HOURLY_RATE_LIMIT;
 
 export function peopleRoutes({
   resolveAccount,

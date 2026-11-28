@@ -13,9 +13,10 @@
 import { roleQuotas } from "@elixir-mcp/contracts";
 import { liveBudgetFor } from "./tools/shared.mjs";
 
-/** Calls per hour per principal: MCP and the web explorer share the
- *  bucket. The daily quota below is the MCP door's alone; the app's
- *  and Stats' own reads spend none of it (#538). */
+/** MCP calls per hour per principal, the MCP door's bucket (`mcp#`).
+ *  The website's own reads have a guard of their own in web-api
+ *  (web-reads.mjs, 2026-11-28) and spend none of this, nor any of the
+ *  daily quota below. */
 export const HOURLY_RATE_LIMIT = 300;
 
 /** Next UTC midnight: when both daily buckets roll. */

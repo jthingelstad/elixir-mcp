@@ -11,6 +11,7 @@ import {
 
 import { UUID_RE, ID_RE, json } from "../http.mjs";
 import { loadCallRecord } from "../call-record.mjs";
+import { mcpCalls } from "../call-log.mjs";
 import { REFUSAL_MESSAGES, runRemoval } from "../account-removal.mjs";
 import { readEfficiency } from "../efficiency.mjs";
 import {
@@ -200,6 +201,7 @@ export function adminRoutes({
          from account a
          left join mcp_call_audit m
            on m.account_id = a.account_id and m.created_at > now() - interval '7 days'
+          and ${mcpCalls("m")}
          where a.status = 'approved'
          group by a.account_id order by calls_7d desc`,
       );
@@ -209,6 +211,7 @@ export function adminRoutes({
                 round(avg(duration_ms))::int as avg_ms,
                 count(*) filter (where truncated)::int as truncated
          from mcp_call_audit where created_at > now() - interval '7 days'
+          and ${mcpCalls()}
          group by 1 order by 2 desc`,
       );
       // Budget reality: consumption against the BULK share of a day's

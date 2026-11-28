@@ -97,7 +97,7 @@ export function Requests({
           <Link to={`${SETTINGS}/connections`}>Connect an AI</Link>
         </>
       }
-      footnote="The last 200 tool calls by your connections and by this site. Each request id is the one the caller was handed, in meta.request_id. Open a call for the request, the response and where the time went. A call, its request and its response are kept 28 days."
+      footnote="The last 200 tool calls by your connections. Each request id is the one the caller was handed, in meta.request_id. Open a call for the request, the response and where the time went. A call, its request and its response are kept 28 days."
     />
   );
 }

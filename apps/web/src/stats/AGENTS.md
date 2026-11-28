@@ -21,9 +21,9 @@ views and their shaping functions (`stats*.js`) live here. Public docs:
   A followed player opens from their player page's **Their stats**
   (`?player=`); the page then wears a way back to their page, and its words come from
   `whose.js` ("their" for "your"). A person's own
-  reads spend no daily tool-call quota (#538, Jamie 2026-10-12) but share
-  the hourly bucket (`mcp#<account>`, 300) with their own MCP clients, so
-  pages cache for minutes and never poll. Two exceptions (2026-10-08),
+  reads spend no daily tool-call quota (#538, Jamie 2026-10-12) and write
+  no call-log row, but spend the website's hourly bucket (`web#<account>`,
+  300; Jamie 2026-11-28), so pages cache for minutes and never poll. Two exceptions (2026-10-08),
   both account state and not tool reads: before a
   player's first capture lands, `Pending.jsx` shows "Your first capture
   is on its way" and polls the capture status

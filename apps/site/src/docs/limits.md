@@ -7,7 +7,7 @@ order: 4
 navTitle: "Limits"
 icon: gauge
 lede: "Calls per hour, calls per day, live fetches, and what a role changes."
-reviewed: "2026-11-13 JSON API 5.0.0, GET /api/v1/me alone; 2026-11-11 a player slot is spent only when Elixir records the player because of you (#760); 2026-10-12 collector credits and bonus slots retired, the upgrade request removed; 2026-10-08 against contract 11.5.1 and JSON API 3.1.0"
+reviewed: "2026-11-28 website reads: their own hourly bucket, not in the call log; 2026-11-13 JSON API 5.0.0, GET /api/v1/me alone; 2026-11-11 a player slot is spent only when Elixir records the player because of you (#760); 2026-10-12 collector credits and bonus slots retired, the upgrade request removed; 2026-10-08 against contract 11.5.1 and JSON API 3.1.0"
 callout: ["Open it at Settings › Usage and limits", "/settings/usage", "Open Usage and limits"]
 ---
 
@@ -29,9 +29,9 @@ refusal looks like. The per-role numbers are on [Roles](/docs/roles).
 | Limit | Applies to | Bucket | Max | Refusal |
 |---|---|---|---|---|
 | MCP calls per hour | every credential on the door, keyed by the person whose connection made the call: every app you connect shares your one bucket. Counts `tools/call`, `resources/read`, `prompts/get` and any method the door does not serve; connecting is not counted: notifications, `initialize`, `ping` and the `*/list` methods are authenticated and answered without spending the hour | `mcp#<principal>`, or `mcp#token#<key>` for a key with its own ceiling | 300 (per-token override possible) | HTTP 429 in the standard error envelope, `error.code` `quota_exceeded`, naming the ceiling that applied, with `meta.request_id` and a `Retry-After` giving the seconds left in the hourly window |
-| Website reads per hour | your own reads on the website: Find, player pages and Stats | the signed-in person's bucket above, shared with your own MCP clients | 300 | HTTP 429 `{"error":"rate_limited"}` |
+| Website reads per hour | your own reads on the website: opening your Timeline, Find, player pages and Stats. A guard against runaway use, not a quota | `web#<account>`, the website's own: your MCP clients never spend it, and your website reads never spend theirs | 300 | HTTP 429 `{"error":"rate_limited"}` |
 | Tool calls per day | every `tools/call`, billed before the tool runs (a failed call still counts) | `mcpday#<account>` | role `mcp_calls_per_day` (the role read now) or the account override; owner/admin unlimited | JSON-RPC `-32029` over HTTP 200: "Daily tool-call quota reached (N per day). It resets at midnight UTC." No `meta.quota` on this reply. |
-| Website reads per day | Find, player pages and Stats | none: your own reads on Elixir's website spend no daily tool-call quota, and neither do Clan's reads or `GET /api/v1/me` | no daily ceiling; each read is still in the call log, and Usage counts your website reads apart from the budget | never refused for the day; the hourly bucket above still applies |
+| Website reads per day | Find, player pages and Stats | none: your own reads on Elixir's website spend no daily tool-call quota, and neither do Clan's reads or `GET /api/v1/me` | no daily ceiling; none of them is in the call log or on Usage | never refused for the day; the website's hourly bucket above still applies |
 | Live fetches per day | `live_fetch`, and `live: true` on {{ tools.liveFlagNames }} | `liveday#<account>` | role `live_fetches_per_day` or the account override; owner/admin unlimited | tool error `quota_exceeded`: "Live-fetch quota reached (N/day for the <role> role)." |
 | Live fetches, fleet-wide | every new live read (the live lane, a card first seen in a deck) | the one global bucket the scheduler plans from | one token per new live read, from the same bucket scheduled collection spends; it accrues at the fleet's rate (1 request per second by default), settles at each scheduler tick, and banks at most 300 seconds' worth | nothing is queued and nothing is charged against your own quota: `live_status` `pending` with `retry_after_s` at the next scheduler tick and a note saying the budget had no room |
 | Player slots | `elixir_follow_player`, `POST /api/claims` | live count of the players Elixir records because of you; a player it already records for another reason is free ([What a player slot costs](/docs/recording#what-a-player-slot-costs)) | 50 (member to partner); override `max_player_recordings`. A role lost, or a free player's reason gone, leaves what you follow in place; only the next add that would take a slot is refused, never queued | MCP: `quota_exceeded` "All N of your player slots are in use (U of N). Following a player Elixir already records stays free: ..." Web: HTTP 429 with the same message, `used` and `limit` |
@@ -82,8 +82,8 @@ call made is already counted. Usage shows the same numbers, broken out by connec
 
 Reads of recorded game data are bounded only by the daily call quota, never by
 role or by subject. Your own reads on Elixir's website, Find, player pages
-and Stats, are not bounded by the daily quota either: only the hourly limit
-applies to them. Feedback has no limit of its own. The daily counter fails open:
+and Stats, are not bounded by the daily quota either: only the website's own
+hourly limit applies to them. Feedback has no limit of its own. The daily counter fails open:
 if the quota store is unreachable, active accounts keep working.
 
 ## Retention windows
@@ -92,7 +92,7 @@ if the quota store is unreachable, active accounts keep working.
 |---|---|
 | Recorded game history (battles, daily readings, clan membership, war weeks, timeline moments) | one year from when it happened, then deleted |
 | Raw API payloads | archived to S3 at admission and deleted there a year later; the latest per subject stays in the database until a year after it was last fetched |
-| Call log rows (the tool, when, which credential and client, the country it came from, its address and arguments, and how the call went) | 28 days |
+| Call log rows, one per MCP call (the tool, when, which credential and client, the country it came from, its address and arguments, and how the call went); your own reads on the website and `GET /api/v1/me` have none | 28 days |
 | Credential refusal counts | 30 days |
 | Timeline game-moment ledger | one year; a timeline read reaches back one week |
 | Your account's history (account events, the list of mail sent to you, answered feedback, cheers, finished claim checks) | one year |

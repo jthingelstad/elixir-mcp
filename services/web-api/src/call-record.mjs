@@ -1,5 +1,5 @@
 /**
- * One tool call, as the console's call record shows it: the audit row
+ * One tool call, as Settings' call record shows it: the audit row
  * with every 0063 column, the captured request and response read back
  * from the archive when the row says they landed, and the previous and
  * next call by the SAME credential so a reader can walk a session.
@@ -13,6 +13,8 @@
 
 import { readCapture } from "@elixir-mcp/tools/capture";
 
+import { mcpCalls } from "./call-log.mjs";
+
 const COLUMNS = `a.audit_id, a.account_id, a.token_id, a.request_id, a.surface, a.tool,
   a.args, a.duration_ms, a.result_bytes, a.truncated, a.error_code,
   a.viewer_country, a.client_name, a.oauth_family_id, a.created_at,
@@ -22,18 +24,18 @@ const COLUMNS = `a.audit_id, a.account_id, a.token_id, a.request_id, a.surface, 
 
 /**
  * The rows this reader may see. `ownerAccountId` null means every row
- * (admin); otherwise the account's own rows, the slice /api/me/usage
- * counts.
+ * (admin, the website's leftover rows included while they age out);
+ * otherwise the account's own MCP calls, the slice /api/me/usage counts.
  */
 function scopeSql(ownerAccountId, params) {
   if (!ownerAccountId) return "true";
   params.push(ownerAccountId);
-  return `a.account_id = $${params.length}`;
+  return `a.account_id = $${params.length} and ${mcpCalls("a")}`;
 }
 
-/** The credential predicate: a service token, an OAuth grant, or (for the
- *  console's explorer and anything else with neither) the account on the
- *  same surface. Prev/next walk within it. */
+/** The credential predicate: a service token, an OAuth grant, or (for a
+ *  call with neither) the account on the same surface. Prev/next walk
+ *  within it. */
 function credentialSql(row, params) {
   if (row.token_id != null) {
     params.push(row.token_id);

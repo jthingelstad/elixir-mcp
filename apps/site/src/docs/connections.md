@@ -110,7 +110,7 @@ on a phone it folds into one row above the page.
 | Players & following | your players (relationship, nickname, notify) and your clans (scope, notify), and where you change them; your AI can also start following someone and set a nickname with its tools |
 | Players & following › Verify | prove that you control a player by playing one battle with a deck Elixir names |
 | Connections | every app you connected as yourself, its last call, address and country, calls this week, refused credentials; controls to change capabilities or disconnect; the `/mcp` address to copy; the questions to try once your AI can answer; Discord sharing for your Timeline; and [your RSS link](/docs/timeline#your-rss-link) |
-| Usage and limits | today's call and live-fetch meters, what your account allows and what earns the next role, fourteen days of calls, which connections and tools spent them, your own website reads counted apart (they spend no daily quota), and **Requests**, every call with its `request_id` |
+| Usage and limits | today's call and live-fetch meters, what your account allows and what earns the next role, fourteen days of calls, which connections and tools spent them, and **Requests**, every call with its `request_id`. These are your connections' MCP calls only: your own reads on the website spend no quota and are not listed |
 | Sign-ins & devices | every session that can still act as you, this one marked, and your account events |
 | Feedback | what you filed and what the maintainer answered |
 

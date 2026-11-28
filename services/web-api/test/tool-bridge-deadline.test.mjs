@@ -4,7 +4,10 @@
  * handler's 504. The invoker's deadline used to reach no web door: a
  * read waiting on a lock ran on until the handler gave up with a bare
  * 504 and no request id, and the query ran on after it. /api/v1 shared
- * this test until its tool mirrors went in JSON API 5.0.0.
+ * this test until its tool mirrors went in JSON API 5.0.0. Since
+ * 2026-11-28 the bridge's reads write no call-log row, so the answer
+ * carries no request id; the operational `web_read` line, a warn, names
+ * the timeout.
  */
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
@@ -49,6 +52,9 @@ test("a tool behind a lock answers query_timeout on the app's tool bridge before
   const context = { remainingMs: () => 4000 };
   const holder = new pg.Client({ connectionString: databaseUrl });
   await holder.connect();
+  const warned = [];
+  const warn = console.warn;
+  console.warn = (line) => warned.push(line);
   try {
     await holder.query("begin");
     await holder.query("lock table player in access exclusive mode");
@@ -67,8 +73,21 @@ test("a tool behind a lock answers query_timeout on the app's tool bridge before
     assert.equal(res.statusCode, 200, res.body);
     const body = JSON.parse(res.body).body;
     assert.equal(body.error.code, "query_timeout");
-    assert.ok(body.meta.request_id);
+    assert.equal(body.meta?.request_id, undefined, "no call-log row to name");
+    const reads = warned
+      .filter((l) => typeof l === "string" && l.includes('"web_read"'))
+      .map((l) => JSON.parse(l));
+    assert.equal(reads.length, 1, "one warn line for the slow read");
+    assert.equal(reads[0].door, "tool");
+    assert.equal(reads[0].tool, "players_summary");
+    // The call log's code for a deadline hit (budget.auditCode).
+    assert.equal(reads[0].code, "timeout");
+    assert.ok(
+      !JSON.stringify(reads[0]).includes("20JJJ2CCRU"),
+      "never the tag",
+    );
   } finally {
+    console.warn = warn;
     await holder.query("rollback").catch(() => {});
     await holder.end();
   }

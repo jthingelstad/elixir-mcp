@@ -1134,8 +1134,8 @@ export const useCardCatalog = ({ enabled = true } = {}) =>
  *  refused. Keyed under the reader's root, because what it reads is
  *  theirs and a timezone change (the days a battle falls on) or a sign
  *  in must refetch it. Stats pages cache for minutes and never poll:
- *  a person's own reads spend no daily quota (#538) but do share the
- *  hourly bucket with their own MCP clients. */
+ *  a person's own reads spend no daily quota (#538) but do spend the
+ *  website's hourly bucket (`web#`, web-api web-reads.mjs). */
 async function toolRead(tool, args) {
   const r = unwrap(await api.stats(tool, args));
   if (r?.is_error) {

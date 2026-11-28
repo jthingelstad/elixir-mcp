@@ -612,10 +612,9 @@ test("usage: member sees own daily counts and quota; admin sees the fleet", asyn
      values ($1, 'war_current', 'not_entitled')`,
     [acct[0].account_id],
   );
-  // A Ladder read (the site's own: logged, never charged, #538), an
-  // Clan read, a Clan morning read, a Console nickname edit (the
-  // bridge's one write: uncharged, and not a read) and an /api/v1 call
-  // (none of them spends the daily tool-call budget).
+  // Rows the website and /api/v1 wrote before 2026-11-28, when they
+  // stopped writing any (Jamie): left to age out, and never on Usage,
+  // Requests or Admin's counts.
   await db.query(
     `insert into mcp_call_audit (account_id, tool, surface, client_name)
      values ($1, 'battles_query', 'web', null),
@@ -631,16 +630,24 @@ test("usage: member sees own daily counts and quota; admin sees the fleet", asyn
       event({ method: "GET", path: "/api/me/usage", cookie, body: undefined }),
     ),
   );
-  assert.equal(mine.today_calls, 3, "what the daily limiter charged");
-  assert.equal(
-    mine.web_calls_today,
-    1,
-    "the Console's and Ladder's reads, counted apart and uncharged",
-  );
-  assert.equal(mine.days[0].web_calls, 1, "and on the day's row");
+  assert.equal(mine.today_calls, 3, "MCP calls only");
+  assert.ok(!("web_calls_today" in mine), "no website count");
+  assert.ok(!("web_calls" in mine.days[0]), "nor on the day's row");
+  assert.equal(mine.days[0].calls, 3, "leftover web and rest rows left out");
   assert.equal(mine.quota_max, 500, "default quota surfaced");
   assert.equal(mine.days[0].errors, 1);
   assert.ok(mine.top_tools.some((t) => t.tool === "players_profile"));
+  for (const tool of ["clans_participation", "elixir_nickname"])
+    assert.ok(
+      !mine.top_tools.some((t) => t.tool === tool),
+      `${tool} (a website row) is not a top tool`,
+    );
+  assert.ok(Array.isArray(mine.by_caller));
+  for (const name of ["Website", "website", "Clan", "Clan morning"])
+    assert.ok(
+      !mine.by_caller.some((c) => c.name === name),
+      `no ${name} caller from a website row`,
+    );
 
   const ownerCookie = bossCookie;
   const fleet = parse(
@@ -658,8 +665,8 @@ test("usage: member sees own daily counts and quota; admin sees the fleet", asyn
     Object.hasOwn(row, "primary_name"),
     "the label can name the player",
   );
-  // The fleet view counts every recorded call, whatever spent the budget.
-  assert.equal(row.calls_7d, 8);
+  // The fleet view counts MCP calls; leftover website rows are not calls.
+  assert.equal(row.calls_7d, 3);
   assert.equal(row.errors_7d, 1);
   assert.ok(fleet.tools.some((t) => t.tool === "battles_query"));
   // A day's capacity is the planner's bulk share, not rate x 86,400 (#64).
@@ -689,20 +696,21 @@ test("call record: own rows open; others 404; admin opens any; capture reads bac
     mine: crypto.randomUUID(),
     later: crypto.randomUUID(),
     theirs: crypto.randomUUID(),
+    website: crypto.randomUUID(),
   };
-  // Three calls by the console explorer on the member's account (same
-  // credential: no token, no grant, surface web), in order.
+  // Three MCP calls on the member's account (same credential: no token,
+  // no grant), in order, and one row the website wrote before 2026-11-28.
   await db.query(
     `insert into mcp_call_audit
        (account_id, request_id, surface, tool, args, duration_ms, result_bytes,
         created_at, captured, db_ms, db_queries, live_wait_ms, serialize_ms,
         cold_start, principal_kind, client_name, viewer_country)
      values
-       ($1, $2, 'web', 'game_clock', '{}', 12, 200, now() - interval '3 minutes',
+       ($1, $2, 'mcp', 'game_clock', '{}', 12, 200, now() - interval '3 minutes',
         false, 1, 1, null, 0, true, 'person', null, 'US'),
-       ($1, $3, 'web', 'war_current', '{"clan_tag":"#ABC"}', 340, 9000, now() - interval '2 minutes',
+       ($1, $3, 'mcp', 'war_current', '{"clan_tag":"#ABC"}', 340, 9000, now() - interval '2 minutes',
         true, 210, 7, 95, 3, false, 'person', null, 'US'),
-       ($1, $4, 'web', 'players_profile', '{}', 50, 300, now() - interval '1 minute',
+       ($1, $4, 'mcp', 'players_profile', '{}', 50, 300, now() - interval '1 minute',
         false, 20, 2, null, 1, false, 'person', null, 'US')`,
     [me, ids.first, ids.mine, ids.later],
   );
@@ -710,6 +718,11 @@ test("call record: own rows open; others 404; admin opens any; capture reads bac
     `insert into mcp_call_audit (account_id, request_id, surface, tool)
      values ($1, $2, 'mcp', 'clans_roster')`,
     [stranger, ids.theirs],
+  );
+  await db.query(
+    `insert into mcp_call_audit (account_id, request_id, surface, tool, created_at)
+     values ($1, $2, 'web', 'players_summary', now() - interval '30 seconds')`,
+    [me, ids.website],
   );
 
   const get = (path, c = cookie, h = handler) =>
@@ -739,10 +752,26 @@ test("call record: own rows open; others 404; admin opens any; capture reads bac
   assert.equal(rec.capture_error, "unconfigured");
   assert.equal(rec.request, null);
 
-  // A stranger's row does not exist here.
+  // A stranger's row does not exist here, nor a leftover website row.
   assert.equal(
     (await get(`/api/me/activity/calls/${ids.theirs}`)).statusCode,
     404,
+  );
+  assert.equal(
+    (await get(`/api/me/activity/calls/${ids.website}`)).statusCode,
+    404,
+    "a website read is not in your call record",
+  );
+  assert.equal(
+    (await get(`/api/admin/calls/${ids.website}`, bossCookie)).statusCode,
+    200,
+    "admin still opens it by id until it ages out",
+  );
+  const requests = parse(await get("/api/me/requests")).requests;
+  assert.ok(requests.some((r) => r.request_id === ids.mine));
+  assert.ok(
+    !requests.some((r) => r.request_id === ids.website),
+    "nor on Requests",
   );
   assert.equal(
     (await get(`/api/me/activity/calls/not-a-uuid`)).statusCode,
@@ -1063,8 +1092,11 @@ test("collector fleet: card-derived identity; points and credits retired (#539)"
   assert.ok(!("arena" in gw));
 });
 
-test("the app's tool bridge: its own tools with session auth, audited as surface web", async () => {
+test("the app's tool bridge: its own tools with session auth, and no call-log row", async () => {
   const cookie = memberCookie;
+  const logged = async () =>
+    (await db.query(`select count(*)::int n from mcp_call_audit`)).rows[0].n;
+  const logBefore = await logged();
   const res = parse(
     await handler(
       event({
@@ -1103,11 +1135,8 @@ test("the app's tool bridge: its own tools with session auth, audited as surface
   );
   assert.equal(live.statusCode, 400);
 
-  // Audit rows carry the web surface.
-  const { rows } = await db.query(
-    `select count(*)::int n from mcp_call_audit where surface = 'web'`,
-  );
-  assert.ok(rows[0].n >= 2, "the app's tool calls audited as web");
+  // Site usage, not tool calls (Jamie, 2026-11-28): nothing in the log.
+  assert.equal(await logged(), logBefore, "the bridge writes no call-log row");
 });
 
 test("Stats opens for your own players and the players you follow, and refuses the rest", async () => {
@@ -2981,9 +3010,9 @@ test("the app's tool bridge takes the hourly bucket but no daily quota, and is r
     handler(event({ path: "/api/me/tool", cookie, body: { tool, args } }));
   const SEARCH = { query: "King", limit: 8 };
 
-  // A person's own web read (#538, Jamie 2026-10-12): it bumps the hourly
-  // bucket, leaves the daily tool-call counter alone, and is still written
-  // to the call log, on the web surface with no client name.
+  // A person's own web read is site usage (Jamie, 2026-11-28): it bumps
+  // the website's own hourly bucket (`web#`), leaves the MCP door's hourly
+  // and daily counters alone, and writes nothing to the call log.
   const today = new Date().toISOString().slice(0, 10);
   const counter = async (bucket) => {
     const { rows } = await db.query(
@@ -2994,28 +3023,32 @@ test("the app's tool bridge takes the hourly bucket but no daily quota, and is r
   };
   const logged = async () => {
     const { rows } = await db.query(
-      `select count(*)::int as n from mcp_call_audit
-        where account_id = $1 and tool = 'players_search'
-          and surface = 'web' and client_name is null`,
+      `select count(*)::int as n from mcp_call_audit where account_id = $1`,
       [accountId],
     );
     return rows[0].n;
   };
-  const hourBefore = await counter(`mcp#${accountId}`);
+  const hourBefore = await counter(`web#${accountId}`);
+  const mcpBefore = await counter(`mcp#${accountId}`);
   const dayBefore = await counter(`mcpday#${accountId}`);
   const logBefore = await logged();
   assert.equal((await call("players_search", SEARCH)).statusCode, 200);
   assert.equal(
-    await counter(`mcp#${accountId}`),
+    await counter(`web#${accountId}`),
     hourBefore + 1,
-    "a web read bumps the hourly bucket",
+    "a web read bumps the website's hourly bucket",
+  );
+  assert.equal(
+    await counter(`mcp#${accountId}`),
+    mcpBefore,
+    "and not the MCP door's",
   );
   assert.equal(
     await counter(`mcpday#${accountId}`),
     dayBefore,
     "a web read leaves the daily tool-call counter untouched",
   );
-  assert.equal(await logged(), logBefore + 1, "and is written to the log");
+  assert.equal(await logged(), logBefore, "and is not written to the log");
 
   // Read-only tools serve; writes other than the console's nickname editor
   // are refused.
@@ -3044,16 +3077,12 @@ test("the app's tool bridge takes the hourly bucket but no daily quota, and is r
     `mcpday#${accountId}`,
   ]);
 
-  // The hourly bucket too (same bucket as the MCP door).
+  // The website's own hourly bucket refuses when full.
   const { rows: hourly } = await db.query(
     `select bucket, window_start from rate_limit where bucket = $1 order by window_start desc limit 1`,
-    [`mcp#${accountId}`],
+    [`web#${accountId}`],
   );
-  assert.equal(
-    hourly.length,
-    1,
-    "explorer calls count against the hourly bucket",
-  );
+  assert.equal(hourly.length, 1, "web reads count against the web bucket");
   await db.query(
     `update rate_limit set count = 100000 where bucket = $1 and window_start = $2`,
     [hourly[0].bucket, hourly[0].window_start],
@@ -3062,7 +3091,7 @@ test("the app's tool bridge takes the hourly bucket but no daily quota, and is r
   assert.equal(rate.statusCode, 429);
   assert.equal(parse(rate).error, "rate_limited");
   await db.query(`delete from rate_limit where bucket = $1`, [
-    `mcp#${accountId}`,
+    `web#${accountId}`,
   ]);
 
   // Arguments are validated on this door as well.

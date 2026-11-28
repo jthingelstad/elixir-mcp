@@ -178,8 +178,7 @@ async function me(db, account) {
 }
 
 export async function signInApi(db, event, body) {
-  const requestId = randomUUID(),
-    started = Date.now();
+  const requestId = randomUUID();
   let account, response;
   const method = event.method ?? "GET";
   const operation = v1Operation(method, event.path);
@@ -231,21 +230,14 @@ export async function signInApi(db, event, body) {
       error.retryAfter ?? (status === 503 ? 5 : undefined),
     );
   }
-  if (account)
-    await db
-      .query(
-        `insert into mcp_call_audit(account_id,token_id,request_id,surface,tool,args,duration_ms,result_bytes,error_code,http_status)
-   values($1,$2,$3,'rest','me.read','{}',$4,$5,$6,$7)`,
-        [
-          account.accountId,
-          account.tokenId,
-          requestId,
-          Date.now() - started,
-          Buffer.byteLength(response.body),
-          response.statusCode >= 400 ? JSON.parse(response.body).code : null,
-          response.statusCode,
-        ],
-      )
-      .catch(() => {});
+  // No call-log row (2026-11-28, Jamie: the site's own reads "should not
+  // be logged in the database"; this door is sign-in, not a tool call).
+  // The handler's request line is its one operational line: the
+  // operation, the status and the time, and through `trace` the id this
+  // door answered with (x-request-id, so a caller's quote finds it) and
+  // the problem's code. Never the token or the address.
+  const code =
+    response.statusCode >= 400 ? JSON.parse(response.body).code : null;
+  response.trace = { v1_request_id: requestId, ...(code ? { code } : {}) };
   return response;
 }

@@ -3,7 +3,9 @@
  * (2026-11-14). It used to open every read-only tool to the browser, a
  * leftover of the Console's Explore page; now a read-only tool the app
  * does not call is refused before it runs, as an unknown one is, and
- * spends nothing of the hourly bucket. POST /api/explore, the old path,
+ * spends nothing of the hourly bucket. Since 2026-11-28 a bridged read is
+ * site usage (Jamie): no call-log row, the website's own hourly bucket
+ * (`web#`), and one operational line. POST /api/explore, the old path,
  * is gone (2026-11-14, after the day it stayed for tabs loaded before the
  * rename): it is a 404 like any unknown address.
  */
@@ -81,38 +83,90 @@ const call = (path, tool, args, withCookie = true) =>
     { remainingMs: () => 10_000 },
   );
 
-const audited = async (tool) =>
+const audited = async () =>
   (
     await db.query(
-      `select count(*)::int n from mcp_call_audit
-        where account_id = $1 and tool = $2 and surface = 'web'`,
-      [accountId, tool],
+      `select count(*)::int n from mcp_call_audit where account_id = $1`,
+      [accountId],
     )
   ).rows[0].n;
 
-const hourly = async () =>
+const spentOn = async (bucket) =>
   (
     await db.query(
       `select coalesce(sum(count), 0)::int n from rate_limit where bucket = $1`,
-      [`mcp#${accountId}`],
+      [bucket],
     )
   ).rows[0].n;
+const hourly = () => spentOn(`web#${accountId}`);
 
-test("each tool the app calls runs through the bridge", async () => {
+/** The `web_read` lines a call leaves on stdout, parsed. */
+async function withLines(run) {
+  const lines = [];
+  const info = console.info;
+  console.info = (line) => lines.push(line);
+  try {
+    const res = await run();
+    return {
+      res,
+      reads: lines
+        .filter((l) => typeof l === "string" && l.includes('"web_read"'))
+        .map((l) => JSON.parse(l)),
+    };
+  } finally {
+    console.info = info;
+  }
+}
+
+test("each tool the app calls runs through the bridge, with no call-log row and one log line", async () => {
   for (const path of PATHS)
     for (const [tool, args] of APP_TOOLS) {
-      const before = await audited(tool);
-      const res = await call(path, tool, args);
+      const before = await hourly();
+      const { res, reads } = await withLines(() => call(path, tool, args));
       assert.equal(res.statusCode, 200, `${path} ${tool}: ${res.body}`);
       const body = JSON.parse(res.body);
       assert.equal(body.tool, tool);
       assert.ok("is_error" in body && "body" in body, `${path} ${tool}`);
-      assert.equal(
-        await audited(tool),
-        before + 1,
-        `${path} ${tool} ran, logged on the web surface`,
-      );
+      assert.equal(await hourly(), before + 1, `${path} ${tool} spent web#`);
+      assert.equal(reads.length, 1, `${path} ${tool}: one web_read line`);
+      const [line] = reads;
+      assert.equal(line.door, "tool");
+      assert.equal(line.tool, tool);
+      for (const k of ["ms", "db_ms", "db_queries"])
+        assert.equal(typeof line[k], "number", k);
+      // Never the tag, the nickname, the query or the account.
+      const text = JSON.stringify(line);
+      for (const secret of ["20JJJ2CCRU", "J2RGCRVG", "King", accountId])
+        assert.ok(!text.includes(secret), `${tool}: ${text}`);
     }
+  assert.equal(await audited(), 0, "nothing in the call log");
+  assert.equal(
+    await spentOn(`mcp#${accountId}`),
+    0,
+    "the MCP door's bucket is untouched",
+  );
+});
+
+test("a full website bucket refuses the bridge; a full MCP bucket does not", async () => {
+  const hour = new Date();
+  hour.setUTCMinutes(0, 0, 0);
+  const fill = (bucket) =>
+    db.query(
+      `insert into rate_limit (bucket, window_start, count) values ($1, $2, 100000)
+       on conflict (bucket, window_start) do update set count = 100000`,
+      [bucket, hour.toISOString()],
+    );
+  const read = () =>
+    call(ROUTE, "players_summary", { player_tag: "#20JJJ2CCRU" });
+  await fill(`mcp#${accountId}`);
+  assert.equal((await read()).statusCode, 200, "MCP's hour is not the site's");
+  await fill(`web#${accountId}`);
+  const refused = await read();
+  assert.equal(refused.statusCode, 429);
+  assert.deepEqual(JSON.parse(refused.body), { error: "rate_limited" });
+  await db.query("delete from rate_limit where bucket = any($1)", [
+    [`mcp#${accountId}`, `web#${accountId}`],
+  ]);
 });
 
 test("a read-only tool the app does not call is refused before it runs", async () => {
@@ -122,7 +176,6 @@ test("a read-only tool the app does not call is refused before it runs", async (
       const res = await call(path, tool, args);
       assert.equal(res.statusCode, 400, `${path} ${tool}`);
       assert.equal(JSON.parse(res.body).error, "bad_request");
-      assert.equal(await audited(tool), 0, `${path} ${tool} never ran`);
       assert.equal(await hourly(), spent, `${path} ${tool} spent nothing`);
     }
   // Writes, the live lane and unknown names, as before.
@@ -147,7 +200,7 @@ test("the bridge needs a session", async () => {
 });
 
 test("the old path is gone: a 404, and nothing runs", async () => {
-  const before = await audited("players_summary");
+  const before = await hourly();
   for (const withCookie of [true, false]) {
     const res = await call(
       OLD_ROUTE,
@@ -157,5 +210,5 @@ test("the old path is gone: a 404, and nothing runs", async () => {
     );
     assert.equal(res.statusCode, 404, res.body);
   }
-  assert.equal(await audited("players_summary"), before);
+  assert.equal(await hourly(), before);
 });

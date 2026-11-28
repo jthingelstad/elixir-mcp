@@ -38,8 +38,6 @@ function fourteenDays(days, now = new Date()) {
       day: key,
       calls: byDay.get(key)?.calls ?? 0,
       errors: byDay.get(key)?.errors ?? 0,
-      // The website's and Stats' own reads: logged, never charged (#538).
-      web: byDay.get(key)?.web_calls ?? 0,
       today: i === 0,
     });
   }
@@ -47,7 +45,7 @@ function fourteenDays(days, now = new Date()) {
 }
 
 const dayLine = (d) =>
-  `${d.calls.toLocaleString()} ${noun(d.calls, "call")}${d.errors ? `, ${d.errors} refused` : ""}${d.web ? `, ${d.web.toLocaleString()} of your own ${noun(d.web, "read")}, not counted` : ""}`;
+  `${d.calls.toLocaleString()} ${noun(d.calls, "call")}${d.errors ? `, ${d.errors} refused` : ""}`;
 
 const shortDay = (d) => d.day.slice(5);
 
@@ -299,12 +297,7 @@ export function Usage({ me }) {
           </Link>
         }
       />
-      <p className="m-0">
-        {quota.resets}.
-        {usage.web_calls_today > 0
-          ? ` Stats and these pages also read ${usage.web_calls_today.toLocaleString()} ${noun(usage.web_calls_today, "time")} for you today. Your own reads on Elixir's website aren't counted against the budget.`
-          : ""}
-      </p>
+      <p className="m-0">{quota.resets}.</p>
       <Stats>
         <Stat
           label="Calls today"

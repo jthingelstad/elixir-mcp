@@ -478,7 +478,7 @@ export function makeInvoker({
   /** Lambda's remaining time less the reply margin: every read-only tool
    *  races this and answers query_timeout instead of dying as a bare
    *  HTTP 500 with no request id and no audit row (review 2026-09-19,
-   *  Part 7.1). null = no deadline (tests, the web explorer). */
+   *  Part 7.1). null = no deadline (tests). */
   deadlineMs = null,
   /** The read path's lock wait (READ_LOCK_TIMEOUT_MS); tests shorten it. */
   lockTimeoutMs = READ_LOCK_TIMEOUT_MS,
@@ -673,6 +673,13 @@ export function makeInvoker({
  * the invoker does: `{ body, isError }`, a ToolFailure rendered as every
  * door renders it, anything else opaque and logged as
  * tool_failed_unexpectedly (the handled-failure metric counts it).
+ *
+ * The website's own reads come through here too (2026-11-28, Jamie: the
+ * site's reads "should not be logged in the database"). `onRead`, when
+ * given, is told how each read went, for an operational log line: the
+ * tool's name, its wall time, its database time and query count, and the
+ * failure's code (absent on success). Never the arguments or the answer.
+ * Clan passes none and gets exactly what it got before.
  */
 export function makeRecordReader({
   db,
@@ -683,8 +690,11 @@ export function makeRecordReader({
   queryBudgetMs = null,
   deadlineMs = null,
   lockTimeoutMs = READ_LOCK_TIMEOUT_MS,
+  onRead = null,
 }) {
   return async function read(name, args = {}) {
+    const started = performance.now();
+    let code = null;
     const timings = {
       db_ms: 0,
       db_queries: 0,
@@ -711,8 +721,13 @@ export function makeRecordReader({
       await restoreBudget(db, budget);
       return { body, isError: false };
     } catch (err) {
-      if (err instanceof ToolFailure)
+      if (err instanceof ToolFailure) {
+        // Which guard fired, as the invoker's audit row says it.
+        code =
+          err.code === "query_timeout" && budget ? budget.auditCode : err.code;
         return { body: failureBody(err, null), isError: true };
+      }
+      code = "internal";
       console.error("tool_failed_unexpectedly", name, null, err?.message);
       return {
         body: {
@@ -734,6 +749,21 @@ export function makeRecordReader({
       await restoreBudget(db, budget).catch((err) =>
         console.error("query_timeout_restore_failed", name, err?.message),
       );
+      if (onRead) {
+        try {
+          onRead(name, {
+            ms: Math.round(performance.now() - started),
+            db_ms: Math.round(timings.db_ms),
+            db_queries: timings.db_queries,
+            ...(timings.live_wait_ms === null
+              ? {}
+              : { live_wait_ms: Math.round(timings.live_wait_ms) }),
+            ...(code ? { code } : {}),
+          });
+        } catch {
+          // A log line never breaks a read.
+        }
+      }
     }
   };
 }
