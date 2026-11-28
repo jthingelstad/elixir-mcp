@@ -333,7 +333,10 @@ for (const width of [320, 390, 1280]) {
       await expect(sheet.getByRole("region", { name: "New" })).toBeVisible();
       const mark = sheet.getByRole("button", { name: "Mark all read" });
       await expect(mark).toBeVisible();
-      // Comfortably tappable, in the sheet's head beside Close.
+      // Comfortably tappable, in the sheet's head beside Close. Measured
+      // once the sheet has landed: mid-slide the box sits on a fraction of
+      // a pixel and its height read 43.999996 on CI (2026-11-28).
+      await settled(page);
       const mb = (await mark.boundingBox())!;
       expect(mb.height).toBeGreaterThanOrEqual(44);
       await expect(sheet.locator(".kit-bell__head")).toContainText(
