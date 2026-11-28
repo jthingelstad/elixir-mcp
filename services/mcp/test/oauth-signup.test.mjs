@@ -418,6 +418,9 @@ test("Turnstile on the email step: the page loads Cloudflare only by its hashed 
   assert.match(script, /sitekey:"0x4AAAAAAFW0ZICrZblLsqht"/);
   assert.match(script, /addEventListener\("focus",load\)/);
   assert.match(script, /action:"oauth-signin"/);
+  // Cloudflare retries an error every two seconds, inside the five-second
+  // wait (its 8000 ms default is not); the hash above is of this script.
+  assert.match(script, /retry:"auto","retry-interval":2000,/);
   // Why a send had no token: "no-script" as served, which the script
   // replaces; hidden fields, so the page looks as it did.
   assert.match(

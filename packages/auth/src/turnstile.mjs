@@ -35,6 +35,11 @@ export const TURNSTILE_HOSTNAME = "elixir.poapkings.com";
  *  echoes back; the relay fails a pass whose action is another door's.
  *  apps/web/src/turnstile.js draws "signin"; the OAuth email step's
  *  inline script (services/mcp oauth-routes.mjs) draws "oauth-signin". */
+/** Cloudflare's own retry after a widget error, in ms (`retry-interval`;
+ *  its default is 8000, longer than the pages' five-second wait, so a
+ *  retry would rarely land in time). Both renders pass it with
+ *  `retry: "auto"`; apps/web/src/turnstile.js holds the same. */
+export const TURNSTILE_RETRY_INTERVAL_MS = 2000;
 export const TURNSTILE_ACTIONS = Object.freeze({
   web: "signin",
   oauth: "oauth-signin",

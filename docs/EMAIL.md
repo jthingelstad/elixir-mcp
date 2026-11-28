@@ -125,7 +125,8 @@ internet, calls siteverify before it sends.
   page's own CSP. Both render explicitly, `interaction-only`, wait five
   seconds for a token (two minutes while a challenge shows) and send
   without one when Cloudflare cannot be had. A retryable error from
-  Cloudflare's error-callback leaves its own retry to run inside that
+  Cloudflare's error-callback leaves its own retry (`retry: "auto"`,
+  `retry-interval` 2000 ms, `TURNSTILE_RETRY_INTERVAL_MS`) to run inside that
   wait; only an error its docs mark never retried ends it at once.
   A send without a token says why (`turnstile_reason`) and every send
   how long it waited (`turnstile_wait_ms`), for the door's log only

@@ -592,7 +592,8 @@ Since 2026-11-28 the page says why it sent no token, and those lines
 carry it as `turnstile_reason`: `script-blocked` (Cloudflare's script did
 not load: a content blocker or the network), `script-empty` (it loaded
 without the API), `error:<code>` (Cloudflare's error-callback, the last
-code it gave), `loading-timeout` / `solving-timeout` (five seconds ran
+code it gave; Cloudflare retries every 2 s inside the wait, so this is an
+error its retries did not clear), `loading-timeout` / `solving-timeout` (five seconds ran
 out before the script loaded / before it answered), `interactive-timeout`
 (two minutes on a shown box), `no-widget`, `no-script` (the OAuth page
 posted with its script never run) and `invalid` (a value outside the
