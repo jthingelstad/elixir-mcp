@@ -92,6 +92,7 @@ for (const width of [390, 1280]) {
           newsletter_opt_in: news,
           timezone: "America/Chicago",
           turnstile_token: TURNSTILE_TOKEN,
+          turnstile_wait_ms: expect.any(Number),
         }),
       );
       await page.getByLabel("6-digit code").fill("123456");

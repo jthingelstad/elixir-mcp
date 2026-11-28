@@ -417,6 +417,21 @@ test("Turnstile on the email step: the page loads Cloudflare only by its hashed 
   assert.match(script, /appearance:"interaction-only"/);
   assert.match(script, /sitekey:"0x4AAAAAAFW0ZICrZblLsqht"/);
   assert.match(script, /addEventListener\("focus",load\)/);
+  assert.match(script, /action:"oauth-signin"/);
+  // Why a send had no token: "no-script" as served, which the script
+  // replaces; hidden fields, so the page looks as it did.
+  assert.match(
+    page.body,
+    /<input type="hidden" name="turnstile_reason" value="no-script"><input type="hidden" name="turnstile_wait_ms" value="">/,
+  );
+  // Cloudflare's error-callback returns nothing and ends the wait only
+  // for an error its docs say it never retries.
+  assert.ok(
+    script.includes(
+      'if(/^(110100|110110|110200|200100|400020|400021|400070)$/.test(c)){state="failed";why=lastErr;}}});',
+    ),
+  );
+  assert.doesNotMatch(script, /return true/);
 
   // Observe: the widget's form field rides to the relay; none still sends.
   const ip = nextIp();
@@ -426,6 +441,27 @@ test("Turnstile on the email step: the page loads Cloudflare only by its hashed 
   assert.deepEqual(mail.turnstile, { surface: "oauth", token: "widget-token" });
   ({ mail } = await emailStep("ts-oauth-quiet@example.com", ask(), ip));
   assert.deepEqual(mail.turnstile, { surface: "oauth", token: "" });
+  // The form's reason and wait reach the door's log line, beside
+  // token|missing, and nothing else.
+  const lines = [];
+  t.mock.method(console, "log", (line) => {
+    try {
+      lines.push(JSON.parse(line));
+    } catch {
+      // Not an auth line.
+    }
+  });
+  ({ mail } = await emailStep("ts-oauth-why@example.com", ask(), ip, {
+    turnstile_reason: "loading-timeout",
+    turnstile_wait_ms: "5001",
+  }));
+  assert.deepEqual(mail.turnstile, { surface: "oauth", token: "" });
+  const issued = lines.filter((l) => l.turnstile === "missing").at(-1);
+  assert.deepEqual(
+    [issued?.turnstile_reason, issued?.turnstile_wait_ms],
+    ["loading-timeout", 5001],
+  );
+  t.mock.restoreAll();
 
   // Enforce: no token, no mail and no ceiling spent; the page says why
   // and keeps its Turnstile.

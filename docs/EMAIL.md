@@ -108,13 +108,28 @@ internet, calls siteverify before it sends.
   `mail-delivery/turnstile/<sha256 of token>.json` in the outbox bucket
   with the address's hash and its sends (conditional writes; a lost
   race takes the first verdict). A queue retry of one outbox object is
-  the same send. A store failure is logged and never blocks.
+  the same send, and siteverify is asked with that send's own
+  `idempotency_key` (a UUID derived from the outbox key and the token's
+  hash), so a retry after a verdict that could not be kept is not told
+  `timeout-or-duplicate`. A store failure is logged and never blocks.
+- **A pass is for this site and this door.** A success whose `hostname`
+  is not `elixir.poapkings.com`, or whose `action` is not the one the
+  door's page draws (`signin` on the website, `oauth-signin` on the
+  OAuth page: `TURNSTILE_ACTIONS`), is a `fail` with
+  `hostname-mismatch` or `action-mismatch` (2026-11-28). The kept
+  verdict holds the result after that check and the action, so a resend
+  through the other door fails too.
 - **Pages.** The website's form loads Cloudflare's script on the email
   field's first focus or input (`apps/web/src/turnstile.js`); the OAuth
   page does the same from one inline script allowed by its hash in that
   page's own CSP. Both render explicitly, `interaction-only`, wait five
   seconds for a token (two minutes while a challenge shows) and send
-  without one when Cloudflare cannot be had. The edge CSP allows
+  without one when Cloudflare cannot be had. A retryable error from
+  Cloudflare's error-callback leaves its own retry to run inside that
+  wait; only an error its docs mark never retried ends it at once.
+  A send without a token says why (`turnstile_reason`) and every send
+  how long it waited (`turnstile_wait_ms`), for the door's log only
+  (docs/OPERATIONS.md, "Sign-in Turnstile"). The edge CSP allows
   `challenges.cloudflare.com` in `script-src` and `frame-src`.
 - **The record** is `turnstile_checked` in the relay's log, one line per
   sign-in mail; reading it is in docs/OPERATIONS.md, "Sign-in

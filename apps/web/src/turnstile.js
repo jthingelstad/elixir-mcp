@@ -19,6 +19,22 @@
  * "Send another email" to the same address reuses the token it already
  * sent, inside the five minutes and three sends the relay allows; any
  * other send asks the widget for a fresh one.
+ *
+ * A send without a token says why (2026-11-28, `fieldsFor`), for the
+ * door's log only: `script-blocked` (the script did not load: a content
+ * blocker or the network), `script-empty` (it loaded without the API),
+ * `error:<code>` (Cloudflare's error-callback, the last one seen),
+ * `loading-timeout` / `solving-timeout` (the wait ran out before the script
+ * loaded / before it answered), `interactive-timeout` (two minutes on a
+ * shown challenge), `no-widget` when none of those applies. Every send
+ * says how long it waited. Neither is the address or the token.
+ *
+ * Cloudflare's error-callback is not the end (2026-11-28): Turnstile
+ * retries by itself (retry "auto"), so a retryable error leaves the wait
+ * running in the window it already had, and only an error Cloudflare's
+ * docs mark as never retried ends it at once. The callback returns
+ * nothing, so Cloudflare keeps its default handling and the retry the
+ * docs' own example leaves to it.
  */
 
 import { useEffect, useState } from "react";
@@ -35,18 +51,43 @@ const MAX_USES = 3;
 const WAIT_MS = 5_000;
 const INTERACTIVE_WAIT_MS = 120_000;
 
-// One script per page, however many forms ask for it. Resolves to the
-// Turnstile API, or null when it could not load.
+/** Error codes Cloudflare's client-side error table marks "Retry: No"
+ *  (sitekey, domain and clock problems): no token follows them. */
+const FINAL_ERRORS = new Set([
+  "110100",
+  "110110",
+  "110200",
+  "200100",
+  "400020",
+  "400021",
+  "400070",
+]);
+/** The error code, kept to a small charset for the log. */
+const errorCode = (code) =>
+  String(code ?? "")
+    .replace(/[^a-z0-9]/gi, "")
+    .slice(0, 12)
+    .toLowerCase() || "unknown";
+
+// One script per page, however many forms ask for it. Resolves to
+// `{ api }` with the Turnstile API, or `{ api: null, why }` when it could
+// not load: `script-blocked` (the tag failed) or `script-empty` (it ran
+// without the API).
 let loading = null;
 function loadScript(win, doc) {
-  if (win.turnstile) return Promise.resolve(win.turnstile);
+  if (win.turnstile) return Promise.resolve({ api: win.turnstile });
   if (!loading)
     loading = new Promise((resolve) => {
-      win[ONLOAD] = () => resolve(win.turnstile ?? null);
+      win[ONLOAD] = () =>
+        resolve(
+          win.turnstile
+            ? { api: win.turnstile }
+            : { api: null, why: "script-empty" },
+        );
       const script = doc.createElement("script");
       script.src = TURNSTILE_SCRIPT_URL;
       script.async = true;
-      script.onerror = () => resolve(null);
+      script.onerror = () => resolve({ api: null, why: "script-blocked" });
       doc.head.appendChild(script);
     });
   return loading;
@@ -66,6 +107,10 @@ export function makeTurnstile({
 }) {
   let api = null;
   let failed = false;
+  // Why no token can come (the script, a render, a final error), and the
+  // latest error Cloudflare reported, retryable or not.
+  let failure = "";
+  let lastError = "";
   let widget = null;
   let container = null;
   let token = "";
@@ -108,6 +153,8 @@ export function makeTurnstile({
           token = t;
           tokenAt = now();
           failed = false;
+          failure = "";
+          lastError = "";
           interactive = false;
           settle();
         },
@@ -124,14 +171,22 @@ export function makeTurnstile({
           interactive = false;
           report();
         },
-        "error-callback": () => {
-          failed = true;
-          settle();
-          return true;
+        "error-callback": (code) => {
+          const c = errorCode(code);
+          lastError = `error:${c}`;
+          // A retryable error is Cloudflare's to retry: the wait keeps
+          // the window it had (no settle, which would start a new one).
+          if (FINAL_ERRORS.has(c)) {
+            failed = true;
+            failure = lastError;
+            settle();
+          }
+          // Nothing returned: Cloudflare's own handling, retry included.
         },
       });
     } catch {
       failed = true;
+      failure = "no-widget";
       settle();
     }
   }
@@ -140,30 +195,35 @@ export function makeTurnstile({
     if (!win || !doc) return;
     if (api) return render();
     loadScript(win, doc).then((loaded) => {
-      if (!loaded) {
+      if (!loaded.api) {
         failed = true;
+        failure = loaded.why;
         return settle();
       }
-      api = loaded;
+      api = loaded.api;
       render();
     });
   }
 
   // Until a token arrives, Turnstile gives up, or the wait runs out; a
   // challenge on screen extends the wait so a person can answer it.
+  // Answers whether the wait ran out.
   function wait() {
     return new Promise((resolve) => {
       let timer;
-      const done = () => {
+      const done = (timedOut = false) => {
         clearTimeout(timer);
         waiters.delete(check);
         report();
-        resolve();
+        resolve(timedOut);
       };
       const check = () => {
         if (token || failed) return done();
         clearTimeout(timer);
-        timer = setTimeout(done, interactive ? INTERACTIVE_WAIT_MS : WAIT_MS);
+        timer = setTimeout(
+          () => done(true),
+          interactive ? INTERACTIVE_WAIT_MS : WAIT_MS,
+        );
       };
       waiters.add(check);
       report();
@@ -171,9 +231,11 @@ export function makeTurnstile({
     });
   }
 
-  /** The token to send with a sign-in email to `email`, or "" when there
-   *  is none to be had. */
-  async function tokenFor(email) {
+  /**
+   * The Turnstile fields for a sign-in email to `email`: `token` ("" when
+   * there is none to be had), `waitedMs` and, with no token, `reason`.
+   */
+  async function fieldsFor(email) {
     const key = String(email ?? "")
       .trim()
       .toLowerCase();
@@ -184,9 +246,10 @@ export function makeTurnstile({
       now() - spent.at < REUSE_MS
     ) {
       spent.uses += 1;
-      return spent.token;
+      return { token: spent.token, waitedMs: 0 };
     }
-    if (!win || !doc) return "";
+    if (!win || !doc) return { token: "", waitedMs: 0, reason: "no-widget" };
+    const started = now();
     warm();
     if (token && token === spent?.token) {
       // Sent once already, for another address or too long ago.
@@ -197,10 +260,31 @@ export function makeTurnstile({
         // A fresh render below.
       }
     }
-    if (!token) await wait();
-    if (!token) return "";
+    const timedOut = token ? false : await wait();
+    const waitedMs = Math.max(0, Math.round(now() - started));
+    if (!token) {
+      // An error Cloudflare reported says more than the wait after it.
+      const reason =
+        failure ||
+        lastError ||
+        (timedOut
+          ? interactive
+            ? "interactive-timeout"
+            : widget !== null
+              ? "solving-timeout"
+              : api
+                ? "no-widget"
+                : "loading-timeout"
+          : "no-widget");
+      return { token: "", waitedMs, reason };
+    }
     spent = { token, email: key, uses: 1, at: tokenAt };
-    return token;
+    return { token, waitedMs };
+  }
+
+  /** The token alone (fieldsFor's), "" when there is none. */
+  async function tokenFor(email) {
+    return (await fieldsFor(email)).token;
   }
 
   function dispose() {
@@ -217,7 +301,7 @@ export function makeTurnstile({
     token = "";
   }
 
-  return { warm, tokenFor, dispose };
+  return { warm, tokenFor, fieldsFor, dispose };
 }
 
 /** The form's half: `slot` is the ref for the element the widget renders

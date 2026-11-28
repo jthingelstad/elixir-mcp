@@ -77,6 +77,7 @@ import {
   sessionSeenFrom,
   ABSOLUTE_CAP_DAYS,
   turnstileAtDoor,
+  TURNSTILE_ACTIONS,
   TURNSTILE_ORIGIN,
   TURNSTILE_REFUSED_MESSAGE,
   TURNSTILE_SITE_KEY,
@@ -207,29 +208,43 @@ const html = (statusCode, body) => ({
  * Cloudflare wants a click, and puts its token in the form as
  * `cf-turnstile-response`. Sending waits for the token a few seconds (as
  * long as a shown challenge needs); a script that cannot load, or an
- * error, sends without one and the relay records it as missing.
+ * error Cloudflare never retries, sends without one and the relay records
+ * it as missing. A retryable error (2026-11-28) is Cloudflare's to retry
+ * (retry "auto"): the wait keeps the window it had, and the callback
+ * returns nothing so Cloudflare keeps its own handling.
+ *
+ * The form says why it sent no token, for the door's log only
+ * (`turnstile_reason`, auth turnstile.mjs `turnstileWhyFrom`): `no-script`
+ * as the page is served, which this script replaces with
+ * `script-blocked`, `script-empty`, `error:<code>`, `loading-timeout`,
+ * `solving-timeout`, `interactive-timeout` or `no-widget`, and how long it
+ * waited (`turnstile_wait_ms`). Both are hidden fields.
  */
 const TURNSTILE_SCRIPT = `(function(){
 var f=document.getElementById("signin-email-form");
 var e=f&&f.elements.email;
 var slot=document.getElementById("turnstile-slot");
 if(!f||!e||!slot)return;
-var state="idle",token="",shown=false,held=false;
+var r=f.elements.turnstile_reason,w=f.elements.turnstile_wait_ms;
+var state="idle",token="",shown=false,held=false,why="",lastErr="";
+function fields(reason,ms){if(r)r.value=reason;if(w)w.value=String(ms);}
 function load(){
 if(state!=="idle")return;
 state="loading";
 window.elixirTurnstileLoaded=function(){
-if(!window.turnstile){state="failed";return;}
-try{window.turnstile.render(slot,{sitekey:"${TURNSTILE_SITE_KEY}",action:"oauth-signin",appearance:"interaction-only","refresh-expired":"auto",
-callback:function(t){token=t;shown=false;state="ready";},
+if(!window.turnstile){state="failed";why="script-empty";return;}
+try{window.turnstile.render(slot,{sitekey:"${TURNSTILE_SITE_KEY}",action:"${TURNSTILE_ACTIONS.oauth}",appearance:"interaction-only","refresh-expired":"auto",
+callback:function(t){token=t;shown=false;state="ready";lastErr="";},
 "expired-callback":function(){token="";},
 "before-interactive-callback":function(){shown=true;},
-"error-callback":function(){token="";state="failed";}});}catch(x){state="failed";}
+"error-callback":function(c){token="";c=String(c||"").replace(/[^a-z0-9]/gi,"").slice(0,12).toLowerCase()||"unknown";lastErr="error:"+c;
+if(/^(110100|110110|110200|200100|400020|400021|400070)$/.test(c)){state="failed";why=lastErr;}}});
+if(state==="loading")state="rendered";}catch(x){state="failed";why="no-widget";}
 };
 var s=document.createElement("script");
 s.src="${TURNSTILE_ORIGIN}/turnstile/v0/api.js?render=explicit&onload=elixirTurnstileLoaded";
 s.async=true;
-s.onerror=function(){state="failed";};
+s.onerror=function(){state="failed";why="script-blocked";};
 document.head.appendChild(s);
 }
 e.addEventListener("focus",load);
@@ -237,12 +252,17 @@ e.addEventListener("input",load);
 if(document.activeElement===e)load();
 f.addEventListener("submit",function(ev){
 if(held){ev.preventDefault();return;}
-if(token||state==="idle"||state==="failed")return;
+if(token)return fields("",0);
+if(state==="idle")return fields("no-widget",0);
+if(state==="failed")return fields(why||lastErr||"no-widget",0);
 ev.preventDefault();
 held=true;
 var started=Date.now();
 (function wait(){
-if(token||state==="failed"||Date.now()-started>=(shown?120000:5000))return f.submit();
+var ms=Date.now()-started;
+if(token){fields("",ms);return f.submit();}
+if(state==="failed"){fields(why||lastErr||"no-widget",ms);return f.submit();}
+if(ms>=(shown?120000:5000)){fields(lastErr||(shown?"interactive-timeout":state==="loading"?"loading-timeout":"solving-timeout"),ms);return f.submit();}
 setTimeout(wait,250);
 })();
 });
@@ -554,6 +574,7 @@ export function makeOauthRoutes({
          <input type="email" name="email" placeholder="you@example.com" required autofocus>
          ${ageBox}
          ${productNewsBox}
+         <input type="hidden" name="turnstile_reason" value="no-script"><input type="hidden" name="turnstile_wait_ms" value="">
          <div id="turnstile-slot"></div>
          <button>Send code</button>
        </form>
@@ -854,7 +875,7 @@ export function makeOauthRoutes({
           authLog("turnstile_refused", {
             email: emailRef(hash),
             door: "oauth",
-            turnstile: turnstile.seen,
+            ...turnstile.log,
           });
           return emailStepHtml(
             403,
@@ -873,7 +894,7 @@ export function makeOauthRoutes({
             email: emailRef(hash),
             by: okIp ? "address" : "ip",
             door: "oauth",
-            turnstile: turnstile.seen,
+            ...turnstile.log,
           });
           return html(
             200,
@@ -891,7 +912,7 @@ export function makeOauthRoutes({
         if (account) {
           authLog("oauth_code_issued", {
             email: emailRef(hash),
-            turnstile: turnstile.seen,
+            ...turnstile.log,
             request: requestRef(v.codeChallenge),
             client: v.client.clientName,
             resource: v.resource,

@@ -119,7 +119,7 @@ export function SignIn({
   const {
     slot: turnstileSlot,
     warm: warmTurnstile,
-    tokenFor: turnstileToken,
+    fieldsFor: turnstileFields,
     waiting: turnstileWaiting,
   } = useTurnstile();
   const submitting = useRef(false);
@@ -243,7 +243,7 @@ export function SignIn({
       productNews,
       browserZone(),
       creating ? playerTag : "",
-      await turnstileToken(email),
+      await turnstileFields(email),
       creating && age === "yes",
     );
     submitting.current = false;

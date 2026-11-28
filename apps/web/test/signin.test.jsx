@@ -228,6 +228,8 @@ test("an unchecked new-account choice survives interruption, remount and resend;
       ...(zone ? { timezone: zone } : {}),
       // One page token serves the resend (test/setup-turnstile.js).
       turnstile_token: "test-turnstile-token",
+      // How long each send waited for it, for the door's log.
+      turnstile_wait_ms: expect.any(Number),
     }),
   );
   fireEvent.change(screen.getByLabelText("6-digit code"), {
